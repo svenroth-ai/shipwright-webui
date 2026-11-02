@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-02-mission-links-viewer-probe",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T14:25:07.428626+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T14:25:07.554280+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": "client/src/styles/mission-chat.css",
+          "line": 85,
+          "finding": ".mc-file-plain glued onto the same line as .mc-file span rule, trailing newline lost; font-size .9em is relative (12px floor).",
+          "suggestion": "Own line; explicit 12px/token.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "performance",
+          "file": "client/src/lib/pathProbe.ts",
+          "line": 66,
+          "finding": "No in-flight de-duplication; unknown answers never cached so remounts re-probe and can hit 429; cache never evicted.",
+          "suggestion": "Per-task inflight map; short negative cache for unknown; cap/sweep cache.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/pathProbe.ts",
+          "line": 70,
+          "finding": "flush() awaits chunks/tasks sequentially, no fetch timeout; a hung request leaves chips pending.",
+          "suggestion": "Promise.all plus AbortSignal.timeout(~5s) resolving unknown.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "server/src/external/session-file/probe-route.ts",
+          "line": 25,
+          "finding": "existingDir duplicated from routes.ts.",
+          "suggestion": "Share one helper.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "server/src/core/session-file/probe.ts",
+          "line": 41,
+          "finding": "Evidence batching covers only absolute outside paths; lexicallyInside startsWith('..') false-positive for names like ..foo (harmless).",
+          "suggestion": "Tighten to rel === '..' || startsWith('..'+sep).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/external/session-file/probe-route.ts",
+          "line": 36,
+          "finding": "No oracle or guard weakening found. Rate-limit map never pruned; call counted before body validation.",
+          "suggestion": "Delete empty keys; optionally count after validation.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/terminal/terminalFileLinkProvider.ts",
+          "line": 97,
+          "finding": "candidates {ref}[] needless wrapper.",
+          "suggestion": "Use FileRef[].",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/hooks/useOpenable.ts",
+          "line": 13,
+          "finding": "After cache expiry the hook keeps returning stale asked answer and never re-probes (a no stays no until remount).",
+          "suggestion": "Honour expiry in asked and re-probe.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-02T14:21:47.715780+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "server/src/core/session-file/probe.ts:64-71",
+          "line": null,
+          "finding": "Claim under doubt: probe yes means the Viewer can open the file — probe.ts checks decide + MIME extension + regular file only; GET also rejects file_too_large (413) and NUL text (415). Oversize file probes openable:true.",
+          "suggestion": "Report size > FILE_MAX_BYTES as not previewable (st.size on the handle); NUL sniff rebuttal acceptable.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency & ordering",
+          "file": "client/src/hooks/useOpenable.ts:15-28",
+          "line": null,
+          "finding": "Claim under doubt: useOpenable expiry re-checks a stale no — stale is computed only during render; no timer, so a quiet memoized chip stays dead.",
+          "suggestion": "Timer that bumps a tick when the answer is no.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling & blast radius",
+          "file": "client/src/components/external/mission/MissionBody.tsx:72,121-138,212",
+          "line": null,
+          "finding": "Claim under doubt: Removing Detail tab leaves no dead state — MissionBody keeps docRequest/activeNode across a task switch if it is not remounted per task; keyed sidebar replays the previous request on mount.",
+          "suggestion": "Key MissionBody by taskId or show it already remounts.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": "client/src/components/terminal/terminalFileLinkProvider.ts:112-118",
+          "line": null,
+          "finding": "Claim under doubt: terminal async filter cannot produce stale links — links built from buffer snapshot; filter resolves up to seconds later; filter reads latest.current at call time.",
+          "suggestion": "Accept or recheck line text; activation is guarded.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "server/src/core/session-file/probe.ts:40-53",
+          "line": null,
+          "finding": "Claim under doubt: probe is no oracle and does not widen V4 — Held: evidence first, 403/400 collapse, realpath canon, handle-based. Residual: rate limit per task consumes scans (30x40 per 10s).",
+          "suggestion": "State accepted cost bound.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "client/src/lib/pathProbe.ts:40-52",
+          "line": null,
+          "finding": "Claim under doubt: probed path form equals opened path form — Forms match for chips, outputs and terminal.",
+          "suggestion": "None.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-02T14:23:56.838719+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T14:25:11.732763+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T14:20:08.173399+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T14:25:07.702364+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T14:25:07.841737+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

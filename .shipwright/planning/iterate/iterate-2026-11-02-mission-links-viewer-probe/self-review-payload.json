@@ -1,0 +1,10 @@
+{"items":[
+{"name":"spec_compliance","verdict":"pass","note":"AC1-AC5 met; spec reviewer APPROVE"},
+{"name":"error_handling","verdict":"pass","note":"probe client fails open to unknown with 5s timeout and 5s backoff; server 400/404/429 explicit"},
+{"name":"security_basics","verdict":"pass","note":"probe reuses decideSessionFileAccess, no content, generic unavailable for unevidenced outside, handle-based check, size cap aligned with read route"},
+{"name":"test_quality","verdict":"pass","note":"server probe route 10 tests, client lib/hook/chip/outputs/terminal tests, real-browser V11 E2E with 6 tests"},
+{"name":"performance_basics","verdict":"pass","note":"batched evidence scan, 40-path cap, 30 calls/10s, coalesced client batches, cache"},
+{"name":"naming_structure","verdict":"pass","note":"files under 300 lines; hooks extracted"},
+{"name":"affected_boundaries","verdict":"pass","note":"session JSONL evidence boundary and project-root path-guard unchanged; only read-only probe added"},
+{"name":"test_hygiene_probe","verdict":"pass","note":"scan_test_hygiene --diff no findings"}
+]}

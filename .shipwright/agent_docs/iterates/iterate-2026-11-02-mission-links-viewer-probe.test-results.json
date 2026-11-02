@@ -1,0 +1,124 @@
+{
+  "last_updated": "2026-11-02",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-02-mission-links-viewer-probe",
+    "date": "2026-11-02",
+    "unit": {
+      "status": "passed",
+      "passed": 9844,
+      "total": 9859,
+      "skipped": 15
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 50,
+      "total": 50
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "run_id": "iterate-2026-11-02-mission-links-viewer-probe",
+      "counts": {
+        "testable": 11,
+        "tested": 11,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      },
+      "behaviors": [
+        {
+          "behavior": "A Mission document link (left rail, Run-result button, narrative, sub-agent row) opens as a tab of the Info sidebar Viewer; no middle panel; one tab strip",
+          "disposition": "tested",
+          "evidence": "V11 e2e (rail + Run-result) PASSED; MissionInfoSidebar.docs.test.tsx, MissionBody*.test.tsx PASSED"
+        },
+        {
+          "behavior": "Phone: tabs are Overview | Activity | Info and a link jumps to Info",
+          "disposition": "tested",
+          "evidence": "V11 e2e phone test + mobile-work-mode-mission.spec.ts + MissionBody.compact.test.tsx PASSED"
+        },
+        {
+          "behavior": "Document tab close, second document shares the same strip, Escape closes and returns focus",
+          "disposition": "tested",
+          "evidence": "V11 e2e, A11 e2e PASSED"
+        },
+        {
+          "behavior": "Layout: document inside the sidebar at 1024/1440/1920 without overflowing the row",
+          "disposition": "tested",
+          "evidence": "M3-mission-info-sidebar.spec.ts, A13-mission-shell.spec.ts PASSED"
+        },
+        {
+          "behavior": "Probe route answers yes/no per path with the V4 core (inside, outside evidenced/unevidenced, traversal, NUL, sensitive, directory, non-previewable, symlink, oversize)",
+          "disposition": "tested",
+          "evidence": "probe-route.test.ts PASSED (10 tests); V11 e2e probe route test PASSED"
+        },
+        {
+          "behavior": "Probe route bounds: invalid body 400, >40 paths 400, 30 calls/10s 429, unknown task 404, no existence oracle for unevidenced outside paths",
+          "disposition": "tested",
+          "evidence": "probe-route.test.ts PASSED"
+        },
+        {
+          "behavior": "Client probe batches per tick, caches yes/no, fails open to unknown, backs off after failure, never rejects",
+          "disposition": "tested",
+          "evidence": "pathProbe.test.ts PASSED"
+        },
+        {
+          "behavior": "Chat file chip is a button only when openable; name-only mention renders plain text",
+          "disposition": "tested",
+          "evidence": "FileChip.probe.test.tsx PASSED; V11 e2e chip test PASSED"
+        },
+        {
+          "behavior": "Outputs row for a missing file is disabled with a missing tag; inconclusive probe keeps it clickable",
+          "disposition": "tested",
+          "evidence": "MissionInfoOutputs.missing.test.tsx PASSED; V11 e2e Outputs test PASSED"
+        },
+        {
+          "behavior": "Terminal file links are offered only when the probe does not say no (async filter, fail-open)",
+          "disposition": "tested",
+          "evidence": "terminalFileLinkProvider.probe.test.ts PASSED"
+        },
+        {
+          "behavior": "Agents window transcript shows nested sub-agent dispatch rows and their hand-back for a sub-runner in the real record shape",
+          "disposition": "tested",
+          "evidence": "agentTranscriptFeed.nested.test.ts PASSED"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "exit_code": 0,
+      "tests_run": 50,
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/V11-mission-links-viewer-probe.spec.ts client/e2e/flows/V10-mission-viewer-routing-compaction-cap.spec.ts client/e2e/flows/V6-info-sidebar-file-chips.spec.ts client/e2e/flows/V2-mission-handback-result-subrunner.spec.ts client/e2e/flows/A11-mission-record-rail.spec.ts client/e2e/flows/A13-mission-shell.spec.ts client/e2e/flows/M3-mission-info-sidebar.spec.ts client/e2e/flows/mobile-work-mode-mission.spec.ts client/e2e/flows/mission-artifacts-s1.spec.ts client/e2e/flows/mission-artifacts-s2.spec.ts client/e2e/flows/mission-artifacts-s3.spec.ts client/e2e/flows/mission-tests-skipped-gate.spec.ts client/e2e/flows/mission-viewer-scroll-popout.spec.ts",
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\mission-links-viewer-probe\\.shipwright\\runs\\iterate-2026-11-02-mission-links-viewer-probe\\surface_verification.log",
+      "timestamp": "2026-11-02T14:40:46.702Z",
+      "attempts": 1
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

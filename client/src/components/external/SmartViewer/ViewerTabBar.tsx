@@ -38,6 +38,8 @@ interface Props {
   activePath: string | null;
   onActivate: (path: string) => void;
   onClose: (path: string) => void;
+  /** Tab titles that are not file names (document tabs): path -> title. */
+  labels?: Record<string, string>;
 }
 
 function basename(path: string): string {
@@ -71,7 +73,7 @@ function iconFor(name: string) {
   );
 }
 
-export function ViewerTabBar({ paths, activePath, onActivate, onClose }: Props) {
+export function ViewerTabBar({ paths, activePath, onActivate, onClose, labels }: Props) {
   if (paths.length === 0) return null;
   return (
     <div
@@ -81,7 +83,7 @@ export function ViewerTabBar({ paths, activePath, onActivate, onClose }: Props) 
     >
       {paths.map((p) => {
         const active = p === activePath;
-        const name = basename(p);
+        const name = labels?.[p] ?? basename(p);
         return (
           <div
             key={p}
@@ -98,7 +100,7 @@ export function ViewerTabBar({ paths, activePath, onActivate, onClose }: Props) 
               onClick={() => onActivate(p)}
               data-testid={`viewer-tab-${p}`}
               data-active={active || undefined}
-              title={p}
+              title={labels?.[p] ?? p}
               className={`vtb-hit flex min-w-0 items-center gap-2 ${!active ? "hover:text-[var(--color-text,#1a1a1a)]" : ""}`}
             >
               {iconFor(name)}

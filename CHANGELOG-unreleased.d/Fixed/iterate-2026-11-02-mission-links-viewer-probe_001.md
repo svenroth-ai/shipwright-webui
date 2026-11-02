@@ -1,0 +1,1 @@
+Mission: every document link (left Analysis/Spec/Tests/Review, Run-result buttons, narrative links) now opens as a tab of the Info sidebar Viewer instead of a second panel; phone tabs are Overview, Activity, Info.

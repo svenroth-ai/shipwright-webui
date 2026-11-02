@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import type { RunDataJoin, RunDetailResponse } from "../../../lib/runDataApi";
@@ -10,7 +10,7 @@ const runDetailMock = vi.fn<() => { data: RunDetailResponse | undefined }>();
 vi.mock("../../../hooks/useMissionAgents", () => ({
   useMissionAgents: () => ({ agents: [], runningCount: 0, open: false, selectedId: null, loading: false, failed: false, setOpen: () => {}, select: () => {}, openFor: () => false, canOpen: () => false, refresh: () => {} }),
 }));
-vi.mock("./MissionInfoSidebar", () => ({ MissionInfoSidebar: () => null }));
+vi.mock("./MissionInfoSidebar", async () => ({ MissionInfoSidebar: (await import("./MissionInfoSidebar.docs-stub")).MissionInfoSidebarDocsStub }));
 // V3: the subrunner panel may read the agent file; no query client in this shell test.
 vi.mock("../../../hooks/useSubagentTranscript", () => ({ useSubagentTranscript: () => ({ data: undefined }) }));
 vi.mock("../../../hooks/useMissionFileOpen", () => ({ useMissionFileOpen: () => ({ fileOpen: { projectRoot: null, open: () => {} }, request: null }) }));
@@ -214,14 +214,17 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     expect(screen.queryByTestId("mission-completed-stack")).not.toBeInTheDocument();
   });
 
-  it("clicking an artifact link opens the RIGHT panel; re-click closes it", () => {
+  it("clicking an artifact link opens it in the Viewer (the sidebar), never in a middle panel; Close closes it", () => {
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue({ data: { status: "ok", run: COMPLETED_RUN } as RunDetailResponse });
     setup("");
     fireEvent.click(screen.getByTestId("record-node-req"));
-    expect(screen.getByTestId("artifact-panel")).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("record-node-req"));
+    expect(screen.queryByTestId("mission-panel-detail")).not.toBeInTheDocument();
+    expect(within(screen.getByTestId("mission-panel-info")).getByTestId("artifact-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("record-node-req")).toHaveClass("active");
+    fireEvent.click(screen.getByTestId("artifact-close"));
     expect(screen.queryByTestId("artifact-panel")).not.toBeInTheDocument();
+    expect(screen.getByTestId("record-node-req")).not.toHaveClass("active");
   });
 
   it("the design-gate mode routes the middle to A14's design-gate surface", () => {
@@ -244,7 +247,7 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
   // iterate-2026-09-26-mission-tab-subrunner — the third `activeNode`
   // consumer (`SubrunnerPanel`), end-to-end: dispatch -> ack -> resolving
   // `task-notification`, then the click-to-open/close wiring itself.
-  it("clicking a resolved subrunner card's report link opens SubrunnerPanel with its report; the scrim closes it", () => {
+  it("clicking a resolved subrunner card's report link opens SubrunnerPanel with its report; Close closes it", () => {
     missionStateMock.mockReturnValue("live");
     runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
     const dispatch = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "t1", name: "Agent", input: { description: "Run the migration script" } }] } });
@@ -254,7 +257,8 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     fireEvent.click(screen.getByRole("button", { name: "View subrunner report" }));
     expect(screen.getByTestId("subrunner-panel")).toHaveTextContent("Run the migration script");
     expect(screen.getByTestId("subrunner-report")).toHaveTextContent("Full migration report.");
-    fireEvent.click(screen.getByTestId("artifact-scrim"));
+    expect(within(screen.getByTestId("mission-panel-info")).getByTestId("subrunner-panel")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("artifact-close"));
     expect(screen.queryByTestId("subrunner-panel")).not.toBeInTheDocument();
   });
 });

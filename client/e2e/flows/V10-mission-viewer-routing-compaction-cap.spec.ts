@@ -143,7 +143,7 @@ test.describe("V10 - Mission viewer routing, tab width, compaction row, hand-bac
     await expect(page.getByTestId("viewer-tab-bar")).toHaveCount(1);
     await expect(page.locator("[data-testid='task-detail-viewer']:visible")).toHaveCount(0);
     await expect(page.locator("[data-testid='smart-viewer']:visible")).toHaveCount(1);
-    await expect(page.getByTestId("mission-panel-detail").locator("*")).toHaveCount(0);
+    await expect(page.getByTestId("mission-panel-detail")).toHaveCount(0);
     await expect(page.locator("[data-testid^='chat-']")).toHaveCount(0);
   });
 

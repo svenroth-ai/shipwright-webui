@@ -15,6 +15,7 @@ import type { Terminal } from "@xterm/xterm";
 
 import type { FileOpenValue } from "../external/FileOpenContext";
 import { isRefusedBySession } from "../../lib/sessionFileApi";
+import { probePath } from "../../lib/pathProbe";
 import { resolveViewerTarget, type FileRef } from "../../lib/viewerTarget";
 import { createClickGuard, createFileLinkProvider } from "./terminalFileLinkProvider";
 import type { ClipboardNoticeKind } from "./terminal-clipboard";
@@ -35,6 +36,17 @@ export async function openTerminalFileLink(
     if (refused) return notify("link-not-in-session");
   }
   fileOpen.open(target);
+}
+
+/** One verdict per ref: false only when the server says the Viewer cannot open it (unknown / not ready / no target = keep). */
+export async function probeTerminalRefs(refs: FileRef[], taskId: string, fileOpen: FileOpenValue | undefined): Promise<boolean[]> {
+  if (!fileOpen || fileOpen.ready === false) return refs.map(() => true);
+  return Promise.all(
+    refs.map(async (ref) => {
+      const target = resolveViewerTarget(ref, fileOpen.projectRoot, fileOpen.cwd ?? null);
+      return !target || (await probePath(taskId, target.path)) !== "no";
+    }),
+  );
 }
 
 export function useTerminalFileLinks(
@@ -62,6 +74,10 @@ export function useTerminalFileLinks(
           void openTerminalFileLink(ref, c.taskId, c.fileOpen, c.notify, () => mine === seq.current && latest.current.taskId === c.taskId);
         },
         guard.isClick,
+        (refs) => {
+          const c = latest.current;
+          return probeTerminalRefs(refs, c.taskId, c.fileOpen);
+        },
       ),
     );
     return () => {

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ExternalTask } from "../../../lib/externalApi";
@@ -11,7 +11,7 @@ const missionContextMock = vi.fn<() => { data: unknown }>();
 vi.mock("../../../hooks/useMissionAgents", () => ({
   useMissionAgents: () => ({ agents: [], runningCount: 0, open: false, selectedId: null, loading: false, failed: false, setOpen: () => {}, select: () => {}, openFor: () => false, canOpen: () => false, refresh: () => {} }),
 }));
-vi.mock("./MissionInfoSidebar", () => ({ MissionInfoSidebar: () => null }));
+vi.mock("./MissionInfoSidebar", async () => ({ MissionInfoSidebar: (await import("./MissionInfoSidebar.docs-stub")).MissionInfoSidebarDocsStub }));
 vi.mock("../../../hooks/useMissionFileOpen", () => ({ useMissionFileOpen: () => ({ fileOpen: { projectRoot: null, open: () => {} }, request: null }) }));
 vi.mock("../../../hooks/useMissionState", () => ({
   useMissionState: () => missionStateMock(),
@@ -106,16 +106,13 @@ function setupCompletedCompact(transcriptContent = "") {
 }
 
 // @covers FR-01.66
-describe("MissionBody — compact Overview / Activity / Detail navigation", () => {
-  it("starts on Overview with semantic tabs and disabled Detail", () => {
+describe("MissionBody — compact Overview / Activity / Info navigation (documents open in the Viewer)", () => {
+  it("starts on Overview with three semantic tabs - there is no Detail tab any more", () => {
     setupCompletedCompact();
-    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
-      "Overview", "Activity", "Detail", "Info",
-    ]);
-    expect(screen.getByTestId("mission-compact-tab-overview")).toHaveAttribute(
-      "aria-selected", "true",
-    );
-    expect(screen.getByTestId("mission-compact-tab-detail")).toBeDisabled();
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Overview", "Activity", "Info"]);
+    expect(screen.queryByTestId("mission-compact-tab-detail")).toBeNull();
+    expect(screen.queryByTestId("mission-panel-detail")).toBeNull();
+    expect(screen.getByTestId("mission-compact-tab-overview")).toHaveAttribute("aria-selected", "true");
     expect(screen.getByTestId("mission-panel-overview")).not.toHaveAttribute("hidden");
     expect(screen.getByTestId("mission-panel-activity")).toHaveAttribute("hidden");
   });
@@ -128,22 +125,20 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
     expect(screen.getByTestId("mission-panel-overview")).toHaveAttribute("hidden");
   });
 
-  it("an Overview artifact automatically selects Detail", () => {
+  it("an Overview artifact opens in the Viewer under the Info tab", () => {
     setupCompletedCompact();
     fireEvent.click(screen.getByTestId("record-node-req"));
-    expect(screen.getByTestId("mission-compact-tab-detail")).not.toBeDisabled();
-    expect(screen.getByTestId("mission-compact-tab-detail")).toHaveAttribute(
-      "aria-selected", "true",
-    );
-    expect(screen.getByTestId("artifact-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("mission-compact-tab-info")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("mission-panel-info")).not.toHaveAttribute("hidden");
+    expect(within(screen.getByTestId("mission-side-doc")).getByTestId("artifact-panel")).toBeInTheDocument();
   });
 
-  it("manual Activity preserves the selected Detail artifact", () => {
+  it("the opened document stays in the Viewer while the user visits Activity and comes back", () => {
     setupCompletedCompact();
     fireEvent.click(screen.getByTestId("record-node-req"));
     fireEvent.click(screen.getByTestId("mission-compact-tab-activity"));
-    expect(screen.getByTestId("mission-panel-detail")).toHaveAttribute("hidden");
-    fireEvent.click(screen.getByTestId("mission-compact-tab-detail"));
+    expect(screen.getByTestId("mission-panel-info")).toHaveAttribute("hidden");
+    fireEvent.click(screen.getByTestId("mission-compact-tab-info"));
     expect(screen.getByTestId("artifact-panel")).toBeInTheDocument();
   });
 
@@ -172,40 +167,15 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
     expect(screen.queryByTestId("artifact-panel")).not.toBeInTheDocument();
   });
 
-  it("Activity → Detail → close restores and focuses Activity", async () => {
-    setupCompletedCompact();
-    fireEvent.click(screen.getByTestId("record-node-req"));
-    fireEvent.click(screen.getByTestId("mission-compact-tab-activity"));
-    fireEvent.click(screen.getByTestId("mission-compact-tab-detail"));
-    fireEvent.click(screen.getByTestId("artifact-close"));
-    await waitFor(() =>
-      expect(screen.getByTestId("mission-compact-tab-activity")).toHaveFocus());
-    expect(screen.getByTestId("mission-compact-tab-activity")).toHaveAttribute(
-      "aria-selected", "true",
-    );
-  });
-
-  it("reselecting the active artifact from Activity returns to Activity", async () => {
-    setupCompletedCompact();
-    const artifact = screen.getByTestId("record-node-req");
-    fireEvent.click(artifact);
-    fireEvent.click(screen.getByTestId("mission-compact-tab-activity"));
-    fireEvent.click(artifact);
-    await waitFor(() =>
-      expect(screen.getByTestId("mission-compact-tab-activity")).toHaveFocus());
-    expect(screen.getByTestId("mission-compact-tab-detail")).toBeDisabled();
-  });
-
-  it("closing Detail restores Overview and focuses its tab", async () => {
+  it("closing the document keeps the user on the Info tab (the Viewer), with nothing left behind", () => {
     setupCompletedCompact();
     fireEvent.click(screen.getByTestId("record-node-req"));
     fireEvent.click(screen.getByTestId("artifact-close"));
-    await waitFor(() =>
-      expect(screen.getByTestId("mission-compact-tab-overview")).toHaveFocus());
-    expect(screen.getByTestId("mission-compact-tab-detail")).toBeDisabled();
+    expect(screen.queryByTestId("artifact-panel")).toBeNull();
+    expect(screen.getByTestId("mission-compact-tab-info")).toHaveAttribute("aria-selected", "true");
   });
 
-  it("ArrowRight activates Activity while inactive panels remain mounted", () => {
+  it("ArrowRight activates Activity while inactive panels remain mounted; End reaches Info", () => {
     setupCompletedCompact();
     const overview = screen.getByTestId("mission-compact-tab-overview");
     overview.focus();
@@ -213,9 +183,11 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
     expect(screen.getByTestId("mission-compact-tab-activity")).toHaveFocus();
     expect(screen.getByTestId("record-rail")).toBeInTheDocument();
     expect(screen.getByTestId("mission-panel-overview")).toHaveAttribute("hidden");
+    fireEvent.keyDown(screen.getByTestId("mission-compact-tab-activity"), { key: "End" });
+    expect(screen.getByTestId("mission-compact-tab-info")).toHaveAttribute("aria-selected", "true");
   });
 
-  it("desktop keeps the existing three-card body without compact tabs", () => {
+  it("desktop keeps the card body without compact tabs and opens a document in the sidebar", () => {
     setCompact(false);
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue({
@@ -224,9 +196,12 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
     render(<MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />);
     expect(screen.queryByTestId("mission-compact-tabs")).toBeNull();
     expect(screen.getByTestId("record-rail")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("record-node-req"));
+    expect(screen.queryByTestId("mission-panel-detail")).toBeNull();
+    expect(within(screen.getByTestId("mission-side-doc")).getByTestId("artifact-panel")).toBeInTheDocument();
   });
 
-  it("desktop artifact selection preserves the compact Overview destination", () => {
+  it("a desktop document selection does not move the compact destination", () => {
     const switchViewport = setResponsiveCompact(false);
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue({
@@ -235,69 +210,6 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
     render(<MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />);
     fireEvent.click(screen.getByTestId("record-node-req"));
     switchViewport(true);
-    expect(screen.getByTestId("mission-compact-tab-overview")).toHaveAttribute(
-      "aria-selected", "true",
-    );
-    expect(screen.getByTestId("mission-compact-tab-detail")).not.toBeDisabled();
-  });
-
-  it("desktop close does not overwrite the preserved compact Activity destination", () => {
-    const switchViewport = setResponsiveCompact(true);
-    missionStateMock.mockReturnValue("done");
-    runDetailMock.mockReturnValue({
-      data: { status: "ok", run: COMPLETED_RUN } as RunDetailResponse,
-    });
-    render(<MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("record-node-req"));
-    fireEvent.click(screen.getByTestId("mission-compact-tab-activity"));
-
-    switchViewport(false);
-    fireEvent.click(screen.getByTestId("artifact-close"));
-    switchViewport(true);
-
-    expect(screen.getByTestId("mission-compact-tab-activity")).toHaveAttribute(
-      "aria-selected", "true",
-    );
-    expect(screen.getByTestId("mission-compact-tab-detail")).toBeDisabled();
-  });
-
-  it("compact Detail → desktop close → compact restores an enabled source tab", () => {
-    const switchViewport = setResponsiveCompact(true);
-    missionStateMock.mockReturnValue("done");
-    runDetailMock.mockReturnValue({
-      data: { status: "ok", run: COMPLETED_RUN } as RunDetailResponse,
-    });
-    render(<MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("record-node-req"));
-
-    switchViewport(false);
-    fireEvent.click(screen.getByTestId("artifact-close"));
-    switchViewport(true);
-
-    const overview = screen.getByTestId("mission-compact-tab-overview");
-    expect(overview).toHaveAttribute("aria-selected", "true");
-    expect(overview).not.toBeDisabled();
-    expect(overview).toHaveAttribute("tabindex", "0");
-    expect(screen.getByTestId("mission-panel-overview")).toBeVisible();
-  });
-
-  it("compact Detail → desktop artifact toggle → compact restores Overview", () => {
-    const switchViewport = setResponsiveCompact(true);
-    missionStateMock.mockReturnValue("done");
-    runDetailMock.mockReturnValue({
-      data: { status: "ok", run: COMPLETED_RUN } as RunDetailResponse,
-    });
-    render(<MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("record-node-req"));
-
-    switchViewport(false);
-    fireEvent.click(screen.getByTestId("record-node-req"));
-    switchViewport(true);
-
-    expect(screen.getByTestId("mission-compact-tab-overview")).toHaveAttribute(
-      "aria-selected", "true",
-    );
-    expect(screen.getByTestId("mission-compact-tab-detail")).toBeDisabled();
-    expect(screen.getByTestId("mission-panel-overview")).toBeVisible();
+    expect(screen.getByTestId("mission-compact-tab-overview")).toHaveAttribute("aria-selected", "true");
   });
 });

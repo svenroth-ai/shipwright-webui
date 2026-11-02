@@ -139,21 +139,21 @@ test.describe("M3 — Mission right info sidebar", () => {
   });
 
   // @covers FR-01.66
-  test("an open artifact card takes the row below 1700px; both fit at 1920px", async ({ page }) => {
+  test("an open document lives INSIDE the sidebar at every width; nothing else takes the row", async ({ page }) => {
     await mockSessionInfo(page, cwd);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/tasks/${taskId}`);
     await page.getByTestId("mission-tab-mission").click();
     await expect(page.getByTestId("mission-side")).toBeVisible();
     await page.getByTestId("record-node-req").click();
-    await expect(page.getByTestId("artifact-panel")).toBeVisible();
-    await expect(page.getByTestId("mission-side")).toBeHidden();
-    // Closing the artifact restores the sidebar at the user's persisted width.
-    await page.getByTestId("record-node-req").click();
+    // The document is a tab of the sidebar's own Viewer: the sidebar never yields the row to a second panel.
+    await expect(page.getByTestId("mission-side").getByTestId("artifact-panel")).toBeVisible();
     await expect(page.getByTestId("mission-side")).toBeVisible();
     expect((await page.getByTestId("mission-side").boundingBox())!.width).toBeGreaterThan(230);
-    await page.getByTestId("record-node-req").click();
-    await expect(page.getByTestId("mission-side")).toBeHidden();
+    await expect(page.getByTestId("mission-panel-detail")).toHaveCount(0);
+    await page.getByTestId("artifact-close").click();
+    await expect(page.getByTestId("artifact-panel")).toHaveCount(0);
+    await expect(page.getByTestId("mission-side")).toBeVisible();
     await page.setViewportSize({ width: 1920, height: 1000 });
     await expect(page.getByTestId("mission-side")).toBeVisible();
     const doc = await page.evaluate(() => ({
@@ -187,23 +187,23 @@ test.describe("M3 — Mission right info sidebar", () => {
     }
   });
 
-  // @covers FR-01.66
   // Review fix (3f-bis): the feed's 360px floor must not push an open artifact
   // card (and its close button) out of the row in the 1024-1103px band, where
   // the sidebar has already yielded.
-  test("1024: an open artifact card fits the row, close button inside", async ({ page }) => {
+  // @covers FR-01.66
+  test("1024: an open document fits inside the sidebar, close button inside", async ({ page }) => {
     await mockSessionInfo(page, cwd);
     await page.setViewportSize({ width: 1024, height: 800 });
     await page.goto(`/tasks/${taskId}`);
     await page.getByTestId("mission-tab-mission").click();
     await page.getByTestId("record-node-req").click();
-    await expect(page.getByTestId("artifact-panel")).toBeVisible();
-    await expect(page.getByTestId("mission-side")).toBeHidden();
+    await expect(page.getByTestId("mission-side").getByTestId("artifact-panel")).toBeVisible();
     const row = await page.getByTestId("mission-body").evaluate((el) => ({ s: el.scrollWidth, c: el.clientWidth }));
     expect(row.s).toBeLessThanOrEqual(row.c + 1);
-    const bodyBox = (await page.getByTestId("mission-body").boundingBox())!;
-    const artBox = (await page.getByTestId("artifact-panel").boundingBox())!;
-    expect(artBox.x + artBox.width).toBeLessThanOrEqual(bodyBox.x + bodyBox.width + 1);
+    const sideBox = (await page.getByTestId("mission-side").boundingBox())!;
+    const closeBox = (await page.getByTestId("artifact-close").boundingBox())!;
+    expect(closeBox.x + closeBox.width).toBeLessThanOrEqual(sideBox.x + sideBox.width + 1);
+    expect(closeBox.x + closeBox.width).toBeLessThanOrEqual(1024);
   });
 
   // @covers FR-01.66

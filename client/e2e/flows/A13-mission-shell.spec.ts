@@ -74,7 +74,7 @@ test.describe("A13 — Mission three-card shell", () => {
     // Equal height: the three cards render at (near-)identical height.
     const rail = await page.getByTestId("record-rail").boundingBox();
     const op = await page.getByTestId("operation-card").boundingBox();
-    const art = await page.getByTestId("artifact-panel").boundingBox();
+    const art = await page.getByTestId("mission-side").boundingBox(); // the document now renders inside the Info sidebar
     expect(Math.abs(rail!.height - op!.height)).toBeLessThanOrEqual(2);
     expect(Math.abs(op!.height - art!.height)).toBeLessThanOrEqual(2);
 
@@ -112,7 +112,7 @@ test.describe("A13 — Mission three-card shell", () => {
 
     const panel = page.getByTestId("artifact-panel");
     await expect(panel).toBeVisible();
-    await expect(page.getByTestId("mission-compact-tab-detail")).toHaveAttribute(
+    await expect(page.getByTestId("mission-compact-tab-info")).toHaveAttribute(
       "aria-selected",
       "true",
     );

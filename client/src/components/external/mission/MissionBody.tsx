@@ -2,26 +2,28 @@
  * MissionBody — the `.mc-body` of Mission Control (A13, FR-01.57; redesigned by
  * FR-01.66 to be a LIVE view of the session from the JSONL).
  *
- * The three equal-height cards that FLOAT on the photo, with gaps and NO dark
- * scrim: the LEFT panel (FR-01.66 `MissionLeftPanel` — business summary · the
- * `Spec·Build·Test·Finalize` stage · artifact links; this REPLACES A11's Record
- * rail spine) · the MIDDLE card · the Artifact card (mounted ONLY when a link is
- * active). The cards are rounded glass; each scrolls internally and — being flex
- * children of a definite-height row — renders at IDENTICAL height.
+ * The equal-height cards that FLOAT on the photo, with gaps and NO dark scrim:
+ * the LEFT panel (FR-01.66 `MissionLeftPanel` — business summary · the
+ * `Spec·Build·Test·Finalize` stage · artifact links) · the MIDDLE card · the
+ * info SIDEBAR. The cards are rounded glass; each scrolls internally and — being
+ * flex children of a definite-height row — renders at IDENTICAL height.
+ *
+ * ONE viewer surface (iterate-2026-11-02-mission-links-viewer-probe): every link
+ * of the Mission tab — a left-rail artifact, a Run-result button, an inline
+ * narrative link, a sub-agent row — opens as a TAB of the info sidebar's Viewer
+ * (the same strip that holds opened files). There is no separate "detail" card,
+ * so no empty middle panel is left behind; the phone has Overview | Activity |
+ * Info tabs and a link jumps to Info (Viewer).
  *
  * ONE derivation for the whole cluster: `useMissionLive` composes the transcript
  * summary (fed the SAME `useTaskTranscript` poll from TaskDetailPage — no second
  * poller), the run join and the Mission state. The MIDDLE is the A12 Operation
  * card ONLY for a `designgate` (a decision surface, not a story) — every other
- * state (live or completed) shows the activity feed directly, with no separate
- * verdict/proof header above it (Sven: the run-id/"suite green" strip above the
- * feed read as redundant clutter, iterate-2026-09-16-mission-feed-render-
- * fidelity — removed rather than conditionally hidden, since a genuinely red
- * gate already surfaces through the feed's own test cards). Read-only
+ * state (live or completed) shows the activity feed directly. Read-only
  * observer throughout (rule 1 / DO-NOT #1).
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { FileOpenContext } from "../FileOpenContext";
 import { useMissionFileOpen } from "../../../hooks/useMissionFileOpen";
 
@@ -39,12 +41,10 @@ import {
 import { MissionLeftPanel } from "./MissionLeftPanel";
 import { OperationCard } from "./OperationCard";
 import { MissionActivityFeed } from "./MissionActivityFeed";
-import { ArtifactPanel } from "./ArtifactPanel";
-import { MissionArtifactPanel } from "./MissionArtifactPanel";
-import { SubrunnerPanelHost } from "./SubrunnerPanelHost";
+import { MissionDetailView, detailLabel, resolveDetail } from "./MissionDetailView";
 import { AgentsDock } from "./AgentsDock";
 import { useMissionAgents } from "../../../hooks/useMissionAgents";
-import { MissionInfoSidebar } from "./MissionInfoSidebar";
+import { MissionInfoSidebar, type SidebarDocs } from "./MissionInfoSidebar";
 import { useIsCompactViewport } from "../../../hooks/useIsCompactViewport";
 import {
   MissionCompactTabs,
@@ -68,16 +68,13 @@ const LEGACY_RAIL_KEYS = ["req", "spec", "tests", "review", "commit"] as const;
 
 export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) {
   const compact = useIsCompactViewport();
+  // The document tab in front in the Viewer (drives the rail highlight); the sidebar owns the tabs.
   const [activeNode, setActiveNode] = useState<string | null>(null);
+  const [docRequest, setDocRequest] = useState<SidebarDocs["request"]>(null);
   const [compactPanel, setCompactPanel] = useState<MissionCompactPanel>("overview");
-  const detailReturnPanelRef = useRef<"overview" | "activity">("overview");
   const overviewTabRef = useRef<HTMLButtonElement | null>(null);
   const activityTabRef = useRef<HTMLButtonElement | null>(null);
-  const detailTabRef = useRef<HTMLButtonElement | null>(null);
-  const focusFrameRef = useRef<number | null>(null);
-  useEffect(() => () => {
-    if (focusFrameRef.current !== null) cancelAnimationFrame(focusFrameRef.current);
-  }, []);
+  const infoTabRef = useRef<HTMLButtonElement | null>(null);
 
   // S1 — the context-resolved artifact rail. Additive: it engages ONLY for a
   // resolved standalone iterate on a schema this build understands. Every other
@@ -91,10 +88,6 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   // phase of every run (the operator is watching precisely then).
   const runLive = context?.runLive === true;
 
-  // S4 — the SAME resolved context gates the stage derivation, so the
-  // iterate-only sticky-Analyze rule never runs on a card with no iterate
-  // lifecycle. Deliberately read from `context` and NOT from `artifacts`: a
-  // `plain` scenario drives no rail but still must gate the stage (AC5).
   // FR-01.68 AC5: the narrative may only link to nodes the rail actually
   // offers, so the same list that renders the LEFT links gates the inline ones.
   // One selection model, no dead buttons. Both rails use the same key names
@@ -119,79 +112,30 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   // been recorded. The final feed card still opens that delivery detail (which
   // explains the missing receipt) even though hide-empty omits it from the rail.
   const commitArtifact = (context?.artifacts.find((a) => a.kind === "commit") as CommitArtifact | undefined) ?? null;
-  const activeArtifact = artifacts?.find((a) => a.kind === activeNode)
-    ?? (activeNode === "commit" ? commitArtifact : null);
 
-  const activeRecordNode =
-    activeNode && !artifacts
-      ? model.nodes.find((n) => n.key === activeNode) ?? null
-      : null;
-  // `subrunner:<id>` right-panel key: namespaced so it never collides with an
-  // artifact/record-node key. Legacy fallback when the agent is not in session-info.
-  const activeSubrunnerCard = activeNode?.startsWith("subrunner:")
-    ? model.feed.cards.find((c) => c.kind === "subrunner" && `subrunner:${c.subrunnerId}` === activeNode) ?? null
-    : null;
-  const detailAvailable = activeArtifact !== null || activeRecordNode !== null || activeSubrunnerCard !== null;
+  const sources = { artifacts, commitArtifact, nodes: model.nodes, cards: model.feed.cards };
+  const sourcesRef = useRef(sources);
+  sourcesRef.current = sources;
 
-  const focusPanelTab = useCallback((panel: "overview" | "activity") => {
-    if (focusFrameRef.current !== null) cancelAnimationFrame(focusFrameRef.current);
-    focusFrameRef.current = requestAnimationFrame(() => {
-      focusFrameRef.current = null;
-      (panel === "overview" ? overviewTabRef : activityTabRef).current?.focus();
-    });
-  }, []);
+  // Every Mission link funnels here: resolve it, then hand it to the sidebar as a Viewer tab.
+  const openDoc = useCallback((key: string) => {
+    const detail = resolveDetail(key, sourcesRef.current);
+    if (!detail) return;
+    setDocRequest((prev) => ({ key, label: detailLabel(detail), nonce: (prev?.nonce ?? 0) + 1 }));
+    agents.setOpen(false);
+    if (compact) setCompactPanel("info");
+  }, [agents.setOpen, compact]);
 
-  const closeDetail = useCallback(() => {
-    setActiveNode(null);
-    const target = detailReturnPanelRef.current;
-    if (compactPanel === "detail") setCompactPanel(target);
-    if (compact) {
-      focusPanelTab(target);
-    }
-  }, [compact, compactPanel, focusPanelTab]);
-
-  useEffect(() => {
-    if (!activeNode || detailAvailable) return;
-    setActiveNode(null);
-    if (compactPanel === "detail") {
-      const target = detailReturnPanelRef.current;
-      setCompactPanel(target);
-      if (compact) focusPanelTab(target);
-    }
-  }, [activeNode, compact, compactPanel, detailAvailable, focusPanelTab]);
-
-  const handleNodeClick = useCallback((key: string) => {
-    if (activeNode === key) {
-      if (compact && (compactPanel === "overview" || compactPanel === "activity")) {
-        detailReturnPanelRef.current = compactPanel;
-      }
-      closeDetail();
-      return;
-    }
-    if (compact) {
-      if (compactPanel === "overview" || compactPanel === "activity") {
-        detailReturnPanelRef.current = compactPanel;
-      }
-      setCompactPanel("detail");
-    }
-    setActiveNode(key);
-  }, [activeNode, closeDetail, compact, compactPanel]);
-  const handleClose = closeDetail;
-  const handleOpenDocument = useCallback(() => {
-    closeDetail();
-    onOpenDocument();
-  }, [closeDetail, onOpenDocument]);
-
-  const handlePanelChange = useCallback((panel: MissionCompactPanel) => {
-    if (panel === "detail" && !detailAvailable) return;
-    if (
-      panel === "detail" &&
-      (compactPanel === "overview" || compactPanel === "activity")
-    ) {
-      detailReturnPanelRef.current = compactPanel;
-    }
-    setCompactPanel(panel);
-  }, [compactPanel, detailAvailable]);
+  const docs = useMemo<SidebarDocs>(() => ({
+    request: docRequest,
+    onActiveChange: setActiveNode,
+    render: (key, close) => {
+      const detail = resolveDetail(key, sourcesRef.current);
+      if (!detail) return null;
+      const openFull = () => { close(); onOpenDocument(); };
+      return <MissionDetailView detail={detail} taskId={task.taskId} cards={sourcesRef.current.cards} agents={agents} onClose={close} onOpenDocument={openFull} />;
+    },
+  }), [docRequest, onOpenDocument, task.taskId, agents]);
 
   // A DESIGN GATE keeps the A12 Operation card (a decision surface, not a
   // story); every other state shows the activity feed. The completed-run
@@ -202,7 +146,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   return (
     // `flex flex-col` (not a bare block) is load-bearing: `.mc-body` is
     // `flex:1; min-height:0`, which is INERT unless its parent is a flex
-    // container. Without it the three-card row grows to its tallest child's
+    // container. Without it the card row grows to its tallest child's
     // content height and the whole cluster overflows the shell scroller
     // (`.scene-fore`) — so the PAGE scrolls instead of each card scrolling
     // internally (iterate-2026-07-23-mission-viewer-scroll-popout; broken
@@ -212,11 +156,10 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
       {compact && (
         <MissionCompactTabs
           active={compactPanel}
-          detailAvailable={detailAvailable}
-          onChange={handlePanelChange}
+          onChange={setCompactPanel}
           overviewRef={overviewTabRef}
           activityRef={activityTabRef}
-          detailRef={detailTabRef}
+          infoRef={infoTabRef}
         />
       )}
       <div className="mc-body" data-testid="mission-body">
@@ -231,7 +174,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           <MissionLeftPanel
             model={model}
             activeNodeKey={activeNode}
-            onNodeClick={handleNodeClick}
+            onNodeClick={openDoc}
             artifacts={artifacts}
             runLive={runLive}
           />
@@ -255,32 +198,8 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           {isDesignGate ? (
             <OperationCard task={task} context={context} />
           ) : (
-            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} onSubrunnerClick={(id) => agents.openFor(id) || handleNodeClick(`subrunner:${id}`)} canOpenAgent={agents.canOpen} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
+            <MissionActivityFeed feed={model.feed} onArtifactClick={openDoc} onSubrunnerClick={(id) => agents.openFor(id) || openDoc(`subrunner:${id}`)} canOpenAgent={agents.canOpen} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
           )}
-        </div>
-        <div
-          id="mission-panel-detail"
-          role={compact ? "tabpanel" : undefined}
-          aria-labelledby={compact ? "mission-compact-tab-detail" : undefined}
-          className="mission-panel"
-          hidden={compact && compactPanel !== "detail"}
-          data-testid="mission-panel-detail"
-        >
-          {activeArtifact ? (
-            <MissionArtifactPanel
-              taskId={task.taskId}
-              artifact={activeArtifact}
-              onClose={handleClose}
-            />
-          ) : activeRecordNode ? (
-            <ArtifactPanel
-              node={activeRecordNode}
-              onClose={handleClose}
-              onOpenDocument={handleOpenDocument}
-            />
-          ) : activeSubrunnerCard ? (
-            <SubrunnerPanelHost taskId={task.taskId} card={activeSubrunnerCard} cards={model.feed.cards} agents={agents} onClose={handleClose} />
-          ) : null}
         </div>
         <div
           id="mission-panel-info"
@@ -290,7 +209,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           hidden={compact && compactPanel !== "info"}
           data-testid="mission-panel-info"
         >
-          <MissionInfoSidebar key={task.taskId} task={task} compact={compact} visible={!compact || compactPanel === "info"} request={viewerRequest} agents={agents} />
+          <MissionInfoSidebar key={task.taskId} task={task} compact={compact} visible={!compact || compactPanel === "info"} request={viewerRequest} agents={agents} docs={docs} />
         </div>
       </div>
       <AgentsDock task={task} controller={agents} />

@@ -73,9 +73,12 @@ test.describe("A11 — Mission 'The Record' rail", () => {
       await expect(page.getByTestId("artifact-panel")).toHaveAttribute("data-node", key);
     }
 
-    // Re-clicking the active node closes the panel.
+    // The document lives in the Info sidebar Viewer: re-clicking the active node keeps the one open tab,
+    // and closing it is the tab's own close button.
     await page.getByTestId("record-node-commit").click();
-    await expect(page.getByTestId("artifact-panel")).toHaveCount(0);
+    await expect(page.getByTestId("artifact-panel")).toHaveCount(1);
+    await page.getByTestId("artifact-close").click();
+    await expect(page.getByTestId("viewer-tab-doc:commit")).toHaveCount(0); // the other opened documents stay as tabs
   });
 
   // @covers FR-01.66
@@ -91,7 +94,7 @@ test.describe("A11 — Mission 'The Record' rail", () => {
   });
 
   // @covers FR-01.66
-  test("below the compact breakpoint an artifact selects the full-width Detail panel", async ({ page }) => {
+  test("below the compact breakpoint an artifact opens in the Viewer under the Info tab", async ({ page }) => {
     await page.setViewportSize({ width: 800, height: 900 });
     await page.goto(`/tasks/${taskId}`);
     await page.getByTestId("mission-tab-mission").click();
@@ -99,7 +102,7 @@ test.describe("A11 — Mission 'The Record' rail", () => {
 
     const panel = page.getByTestId("artifact-panel");
     await expect(panel).toBeVisible();
-    await expect(page.getByTestId("mission-compact-tab-detail")).toHaveAttribute(
+    await expect(page.getByTestId("mission-compact-tab-info")).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -107,7 +110,8 @@ test.describe("A11 — Mission 'The Record' rail", () => {
     const box = await panel.boundingBox();
     expect(box!.width).toBeLessThanOrEqual(800);
     await page.getByTestId("artifact-close").click();
-    await expect(page.getByTestId("mission-compact-tab-overview")).toBeFocused();
+    await expect(page.getByTestId("artifact-panel")).toHaveCount(0);
+    await expect(page.getByTestId("mission-compact-tab-info")).toHaveAttribute("aria-selected", "true");
   });
   // (FR-01.66) The collapse-to-60px spine was retired with the audit RAIL — the
   // redesigned left panel is a static summary + stage + artifact-links card.

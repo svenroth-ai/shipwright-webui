@@ -128,6 +128,7 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true, agents }: 
       </section>
 
       <MissionInfoOutputs
+        taskId={task.taskId}
         paths={outputs}
         projectRoot={projectRoot}
         rootReady={rootReady}

@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-02-mission-links-viewer-probe",
+  "date": "2026-11-02",
+  "section": "Iterate - bug: Mission links open in the Info Viewer, dead paths are not links",
+  "title": "Mission document links open in the Info sidebar Viewer; a read-only probe keeps dead paths from being links",
+  "context": "After #563/#564 Mission links still opened a second viewer, a hand-off path did nothing and Outputs rows said File not found (171 of 214 write targets lived in removed iterate worktrees).",
+  "decision": "All Mission document links become tabs of the Info sidebar Viewer (no middle panel; phone tabs Overview/Activity/Info). New POST session-file/probe reuses the V4 decision core (yes/no only, 40 paths, 30 calls/10s); chips, Outputs rows and terminal links use it and fail open.",
+  "consequences": "One viewer surface; dead chat/terminal paths are plain text; missing Outputs show a missing tag. New read-only route, cached client probe; the feed min-width floor now applies from 1200px.",
+  "rationale": "Reusing decideSessionFileAccess keeps one security rule; yes/no with a generic unavailable reason avoids an existence oracle; fail-open keeps the Viewer authoritative.",
+  "rejected": "Mapping removed worktree paths onto the merged main-tree file (guessing); probing inside every GET (extra reads); a second Detail panel kept for phones.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

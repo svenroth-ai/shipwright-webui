@@ -11,7 +11,7 @@
  */
 
 import { afterEach, describe, it, expect, vi, beforeEach } from "vitest";
-import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import type { MissionContext } from "../../../lib/missionContextApi";
@@ -25,7 +25,7 @@ const contextMock = vi.fn<() => { data: MissionContext | undefined }>();
 vi.mock("../../../hooks/useMissionAgents", () => ({
   useMissionAgents: () => ({ agents: [], runningCount: 0, open: false, selectedId: null, loading: false, failed: false, setOpen: () => {}, select: () => {}, openFor: () => false, canOpen: () => false, refresh: () => {} }),
 }));
-vi.mock("./MissionInfoSidebar", () => ({ MissionInfoSidebar: () => null }));
+vi.mock("./MissionInfoSidebar", async () => ({ MissionInfoSidebar: (await import("./MissionInfoSidebar.docs-stub")).MissionInfoSidebarDocsStub }));
 vi.mock("../../../hooks/useMissionFileOpen", () => ({ useMissionFileOpen: () => ({ fileOpen: { projectRoot: null, open: () => {} }, request: null }) }));
 vi.mock("../../../hooks/useMissionState", () => ({
   useMissionState: () => missionStateMock(),
@@ -111,42 +111,6 @@ afterEach(() => {
   window.matchMedia = originalMatchMedia;
 });
 
-function setCompact() {
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: query === "(max-width: 1023px)",
-    media: query,
-    onchange: null,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })) as unknown as typeof window.matchMedia;
-}
-
-function setResponsiveCompact(initial: boolean) {
-  let matches = initial;
-  const listeners = new Set<(event: MediaQueryListEvent) => void>();
-  const query = "(max-width: 1023px)";
-  window.matchMedia = vi.fn(() => ({
-    get matches() { return matches; },
-    media: query,
-    onchange: null,
-    addEventListener: (_: string, listener: (event: MediaQueryListEvent) => void) =>
-      listeners.add(listener),
-    removeEventListener: (_: string, listener: (event: MediaQueryListEvent) => void) =>
-      listeners.delete(listener),
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })) as unknown as typeof window.matchMedia;
-  return (next: boolean) => {
-    matches = next;
-    act(() => listeners.forEach((listener) =>
-      listener({ matches: next, media: query } as MediaQueryListEvent)));
-  };
-}
-
 function setup() {
   render(<MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />);
 }
@@ -215,25 +179,26 @@ describe("context-driven artifact rail", () => {
     expect(screen.getByTestId("artifact-link-commit")).toBeInTheDocument();
   });
 
-  it("opens the two-region panel on click and closes on re-click (AC3)", () => {
+  it("opens the two-region panel in the Viewer on click (AC3) and closes it with Close", () => {
     contextMock.mockReturnValue({ data: context() });
     setup();
     fireEvent.click(screen.getByTestId("artifact-link-spec"));
     expect(screen.getByTestId("mission-artifact-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("mission-side-doc")).toContainElement(screen.getByTestId("mission-artifact-panel"));
+    expect(screen.queryByTestId("mission-panel-detail")).not.toBeInTheDocument();
     expect(screen.getByTestId("doc-markdown")).toHaveTextContent("# Plan");
-    fireEvent.click(screen.getByTestId("artifact-link-spec"));
+    fireEvent.click(screen.getByTestId("artifact-close"));
     expect(screen.queryByTestId("mission-artifact-panel")).not.toBeInTheDocument();
   });
 
-  it("disables Detail and returns to Overview when a live artifact disappears", async () => {
-    setCompact();
+  it("a document whose artifact disappears leaves its Viewer tab, saying so", async () => {
     const initial = context();
     contextMock.mockReturnValue({ data: initial });
     const view = render(
       <MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />,
     );
     fireEvent.click(screen.getByTestId("artifact-link-spec"));
-    expect(screen.getByTestId("mission-compact-tab-detail")).toBeEnabled();
+    expect(screen.getByTestId("mission-artifact-panel")).toBeInTheDocument();
 
     contextMock.mockReturnValue({
       data: context({ artifacts: [initial.artifacts[1]] }),
@@ -241,38 +206,7 @@ describe("context-driven artifact rail", () => {
     view.rerender(
       <MissionBody task={TASK} transcriptContent="updated" onOpenDocument={vi.fn()} />,
     );
-
-    await waitFor(() =>
-      expect(screen.getByTestId("mission-compact-tab-detail")).toBeDisabled());
-    expect(screen.getByTestId("mission-compact-tab-overview")).toHaveAttribute(
-      "aria-selected", "true",
-    );
-    expect(screen.queryByTestId("mission-artifact-panel")).not.toBeInTheDocument();
-  });
-
-  it("restores Overview when the selected artifact disappears on desktop", async () => {
-    const switchViewport = setResponsiveCompact(true);
-    const initial = context();
-    contextMock.mockReturnValue({ data: initial });
-    const view = render(
-      <MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />,
-    );
-    fireEvent.click(screen.getByTestId("artifact-link-spec"));
-    switchViewport(false);
-
-    contextMock.mockReturnValue({
-      data: context({ artifacts: [initial.artifacts[1]] }),
-    });
-    view.rerender(
-      <MissionBody task={TASK} transcriptContent="updated" onOpenDocument={vi.fn()} />,
-    );
-    switchViewport(true);
-
-    await waitFor(() => expect(
-      screen.getByTestId("mission-compact-tab-overview"),
-    ).toHaveAttribute("aria-selected", "true"));
-    expect(screen.getByTestId("mission-compact-tab-detail")).toBeDisabled();
-    expect(screen.getByTestId("mission-panel-overview")).toBeVisible();
+    await waitFor(() => expect(screen.queryByTestId("mission-artifact-panel")).not.toBeInTheDocument());
   });
 });
 
