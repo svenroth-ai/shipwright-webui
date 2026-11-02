@@ -22,7 +22,6 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import { FileOpenContext } from "../FileOpenContext";
 import { useMissionFileOpen } from "../../../hooks/useMissionFileOpen";
 
@@ -256,7 +255,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           {isDesignGate ? (
             <OperationCard task={task} context={context} />
           ) : (
-            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} onSubrunnerClick={(id) => agents.openFor(id) || handleNodeClick(`subrunner:${id}`)} canOpenAgent={agents.canOpen} footer={<AgentsDock task={task} controller={agents} />} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
+            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} onSubrunnerClick={(id) => agents.openFor(id) || handleNodeClick(`subrunner:${id}`)} canOpenAgent={agents.canOpen} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
           )}
         </div>
         <div
@@ -291,9 +290,10 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           hidden={compact && compactPanel !== "info"}
           data-testid="mission-panel-info"
         >
-          <MissionInfoSidebar key={task.taskId} task={task} compact={compact} visible={!compact || compactPanel === "info"} request={viewerRequest} />
+          <MissionInfoSidebar key={task.taskId} task={task} compact={compact} visible={!compact || compactPanel === "info"} request={viewerRequest} agents={agents} />
         </div>
       </div>
+      <AgentsDock task={task} controller={agents} />
     </div>
     </FileOpenContext.Provider>
   );

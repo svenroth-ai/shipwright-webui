@@ -1,7 +1,7 @@
 /*
  * V5 — flat file tree + row context menu (campaign mission-desktop-style-v2).
- * Real browser + real server: flat tree in the Mission Folders segment, 15px /
- * 28px rows, right-click menu (Open in Viewer / Copy Path / Copy Relative Path,
+ * Real browser + real server: flat tree in the Mission Folders segment, 13px /
+ * 26px rows, right-click menu (Open in Viewer / Copy Path / Copy Relative Path,
  * no shortcut hints), clipboard contents, click-to-open, Esc, touch "..." sheet.
  * @covers FR-01.66
  */
@@ -50,7 +50,7 @@ test.describe("V5 — flat file tree + context menu", () => {
   }
 
   // @covers FR-01.66
-  test("flat tree, 28px rows, right-click menu copies paths", async ({ page }) => {
+  test("flat tree, 26px rows, right-click menu copies paths", async ({ page }) => {
     await openFolders(page);
     const tree = page.getByTestId("mission-side-body-folders").getByTestId("folder-tree");
     await expect(tree).not.toHaveClass(/ft-card/);
@@ -58,8 +58,8 @@ test.describe("V5 — flat file tree + context menu", () => {
 
     const readme = side(page).getByTestId("folder-tree-row-README.md");
     const box = (await readme.boundingBox())!;
-    expect(box.height).toBeGreaterThanOrEqual(28);
-    expect(await readme.evaluate((el) => getComputedStyle(el).fontSize)).toBe("15px");
+    expect(box.height).toBeGreaterThanOrEqual(26); // polish: 26px on a fine pointer, 44px on coarse
+    expect(await readme.evaluate((el) => getComputedStyle(el).fontSize)).toBe("13px"); // --fs-row, same as the Environment rows
 
     await side(page).getByTestId("folder-tree-row-client").click();
     const pkg = side(page).getByTestId("folder-tree-row-client/package.json");

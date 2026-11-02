@@ -14,6 +14,8 @@ import { useProject } from "../../../hooks/useProjects";
 import { UNASSIGNED_PROJECT_ID } from "../../../lib/projectIds";
 import { formatTokens, shortModel } from "../../../lib/sessionInfoFormat";
 import type { ViewerTarget } from "../../../lib/viewerTarget";
+import type { MissionAgents } from "../../../hooks/useMissionAgents";
+import { AgentsPill } from "./AgentsPill";
 import { MissionInfoOutputs } from "./MissionInfoOutputs";
 
 interface Props {
@@ -21,6 +23,8 @@ interface Props {
   onOpenOutput: (target: ViewerTarget) => void;
   /** False while the panel is mounted-but-hidden: no scan is requested for a panel nobody sees. */
   active?: boolean;
+  /** Controller behind the "Agents" row (omitted = no row). */
+  agents?: MissionAgents;
 }
 
 function Row({ k, children, testId, big }: { k: string; children: React.ReactNode; testId: string; big?: boolean }) {
@@ -32,7 +36,7 @@ function Row({ k, children, testId, big }: { k: string; children: React.ReactNod
   );
 }
 
-export function MissionInfoPanel({ task, onOpenOutput, active = true }: Props) {
+export function MissionInfoPanel({ task, onOpenOutput, active = true, agents }: Props) {
   const q = useSessionInfo(active ? task.taskId : null, task.state);
   // The Viewer/FolderTree resolve paths from the PROJECT root, which is not
   // always task.cwd (iterate worktrees, subfolder tasks) — relativize against it.
@@ -97,6 +101,7 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true }: Props) {
             </span>
           )}
         </Row>
+        {agents ? <AgentsPill controller={agents} /> : null}
       </section>
 
       <section className="env-sec" aria-labelledby="env-h-context" data-testid="env-context">

@@ -10,16 +10,16 @@
    photo, light elsewhere) — no hardcoded text colours, so no
    white-on-white. No motion (nothing here appears/changes on its own).
    ============================================================================ */
-/* V1 type + spacing scale (a11y): chat 15/1.6, tool lines 13, nothing < 12. */
+/* V1 type + spacing scale (a11y), polish: chat 14/1.55, tool lines + tables 12, nothing < 12. */
 .mc-op {
-  --fs-chat: 15px; --fs-small: 13px; --fs-eyebrow: 12px;
+  --fs-chat: 14px; --fs-small: 12px; --fs-eyebrow: 12px;
   --gap-turn: 28px; --gap-switch: 36px; --gap-block: 12px;
   --thead-fallback: #f5f5f4; /* light surfaces */
 }
 .mc-feed-scroll { padding: 4px 6px 8px; }
 .mc-feed-entry { padding-bottom: var(--gap-turn); }
 .mc-feed-entry[data-switch="true"] { margin-top: calc(var(--gap-switch) - var(--gap-turn)); }
-.mc-feed-card { border: 0; border-radius: 0; padding: 0; background: transparent; font-size: var(--fs-chat); line-height: 1.6; color: var(--body); }
+.mc-feed-card { border: 0; border-radius: 0; padding: 0; background: transparent; font-size: var(--fs-chat); line-height: 1.55; color: var(--body); }
 .mc-feed-card[data-kind="system"] { border: 0; text-align: center; font-size: 12px; font-style: italic; color: var(--faint); }
 
 /* human messages: right-aligned bubble */
@@ -73,9 +73,9 @@
 .mc-ask-opt[data-chosen="true"] .mc-ask-opt-mark, .mc-ask-answer[data-chosen="true"] .mc-ask-opt-mark { border-color: var(--accent); color: var(--accent); }
 .mc-ask-opt-mark svg { width: 10px; height: 10px; }
 .mc-ask-opt-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; overflow-wrap: anywhere; }
-.mc-ask-opt-label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
-.mc-ask-opt-desc { font-size: 12.5px; color: var(--muted); }
-.mc-feed-card .mc-ask-note { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.mc-ask-opt-label { font-size: 13px; font-weight: 600; color: var(--ink); }
+.mc-ask-opt-desc { font-size: 12px; color: var(--muted); }
+.mc-feed-card .mc-ask-note { margin: 8px 0 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 
 /* V6: file chips (.mc-file) — paths in the chat that open the Smart Viewer */
 .mc-file { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px 0 6px; border-radius: 7px; border: 1px solid var(--accent-line); background: var(--accent-tint); color: var(--link, var(--accent)); font-family: var(--font-mono, ui-monospace, monospace); font-size: .9em; line-height: 1.6; cursor: pointer; vertical-align: baseline; max-width: 100%; }

@@ -24,15 +24,23 @@ describe("mission info sidebar (V6)", () => {
     expect(h).not.toMatch(/#[0-9a-f]{3,8}/i);
   });
   // @covers FR-01.66
-  it("each group is a card; rows are >=38px at 14px; output rows are 40px full-width buttons", () => {
-    expect(rule(css, ".env-sec")).toMatch(/border-radius:\s*12px/);
+  it("each group is a SOLID lifted card; rows + outputs share the --fs-row type step; output rows are tight full-width buttons (44px only when coarse)", () => {
+    const sec = rule(css, ".env-sec");
+    expect(sec).toMatch(/border-radius:\s*12px/);
+    expect(sec).toMatch(/background:\s*var\(--card\)/); // solid, not translucent
+    expect(sec).toMatch(/box-shadow:\s*var\(--sh-elev\)/);
+    expect(sec).toMatch(/border:\s*1px solid var\(--line\)/);
     const row = rule(css, ".env-row");
-    expect(row).toMatch(/min-height:\s*38px/);
-    expect(row).toMatch(/font-size:\s*14px/);
+    expect(row).toMatch(/font-size:\s*var\(--fs-row\)/);
     const out = rule(css, ".env-output");
-    expect(out).toMatch(/min-height:\s*40px/);
+    expect(out).toMatch(/min-height:\s*30px/);
     expect(out).toMatch(/width:\s*100%/);
-    expect(out).toMatch(/font-size:\s*14px/);
+    expect(out).toMatch(/font-size:\s*var\(--fs-row\)/);
+    expect(css).toMatch(/@media \(pointer: coarse\) \{ \.env-output, \.env-pill-btn \{ min-height: 44px; \} \}/);
+    // the tree uses the very same token
+    const tree = readFileSync(path.join(dir, "folder-tree.css"), "utf8");
+    expect(rule(tree, ".ft-tree")).toMatch(/font-size:\s*var\(--fs-row\)/);
+    expect(tree).toMatch(/\.ft-node \{[^}]*font-size: var\(--fs-row\)/);
   });
   // @covers FR-01.66
   it("no font-size below 12px and no hardcoded hex colour in the sidebar sheet", () => {

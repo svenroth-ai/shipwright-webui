@@ -135,18 +135,19 @@ test.describe("V9 - mobile + accessibility (phone)", () => {
 
     expect(await smallTargets(page, "[data-testid=mission-compact-tabs], [data-testid=mission-body] .mc-op")).toEqual([]);
 
-    // 3px teal focus ring on a keyboard-focused control.
+    // Info panel (Info tab): the Agents pill (Environment card) carries the 3px teal focus ring.
+    await page.getByTestId("mission-compact-tab-info").click();
+    await expect(page.getByTestId("mission-side")).toBeVisible();
     const chip = page.getByTestId("agents-bar-button");
-    await expect(chip).toBeVisible();
+    await expect(chip).toBeVisible({ timeout: 20_000 });
+    expect((await chip.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     await chip.focus(); // focus() then Shift+Tab / Tab puts the browser in keyboard (:focus-visible) mode
     await page.keyboard.press("Shift+Tab");
     await page.keyboard.press("Tab");
     await expect(chip).toBeFocused();
     expect(await chip.evaluate((el) => getComputedStyle(el).boxShadow)).toMatch(/0px 0px 0px 3px/);
 
-    // Info panel (Info tab): the Info | Folders | Viewer switch is 44px.
-    await page.getByTestId("mission-compact-tab-info").click();
-    await expect(page.getByTestId("mission-side")).toBeVisible();
+    // The Info | Folders | Viewer switch is 44px.
     expect(await smallTargets(page, "[data-testid=mission-side] .mc-side-head")).toEqual([]);
   });
 
@@ -156,7 +157,7 @@ test.describe("V9 - mobile + accessibility (phone)", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(`/tasks/${taskId}`, { waitUntil: "domcontentloaded", timeout: 20_000 });
     await page.getByTestId("mission-tab-mission").click();
-    await page.getByTestId("mission-compact-tab-activity").click();
+    await page.getByTestId("mission-compact-tab-info").click();
     await page.getByTestId("agents-bar-button").click();
     const win = page.getByTestId("agents-window");
     await expect(win).toBeVisible();

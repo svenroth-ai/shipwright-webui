@@ -105,18 +105,17 @@
 }
 
 /* ── Files tree on touch-first widths (phone + tablet portrait, ≤1023px) ───────
-   The tree is the WHOLE screen there, yet rendered at desktop density (12px text,
-   14px icons, ~20px rows). Bigger type, icons and a 44px row (the repo's touch
-   floor) — sizes via CSS so the lucide `size` attributes stay the desktop
+   The tree is the WHOLE screen there. Polish: it now shares the --fs-row type step with
+   the Environment rows; the 44px touch row comes from the coarse-pointer rule in folder-tree.css — sizes via CSS so the lucide `size` attributes stay the desktop
    defaults and the ≥1024px tree is byte-identical.
    (iterate-2026-10-08-tablet-mobile-layout-polish) */
 @media (max-width: 1023px) {
   .ft-files .ft-tree-row {
-    min-height: 44px; font-size: 15px; gap: 8px;
+    font-size: var(--fs-row); gap: 8px;
   }
-  .ft-files .ft-tree-row svg { width: 20px; height: 20px; }
-  .ft-files .ft-tree-row .ft-tree-chev { width: 20px; }
-  .ft-files .ft-tree-row .ft-tree-chev svg { width: 16px; height: 16px; }
+  .ft-files .ft-tree-row svg { width: 16px; height: 16px; }
+  .ft-files .ft-tree-row .ft-tree-chev { width: 16px; }
+  .ft-files .ft-tree-row .ft-tree-chev svg { width: 14px; height: 14px; }
 }
 
 /* ── V8: the right card hosts the shared MissionInfoSidebar (Info | Viewer) ─────

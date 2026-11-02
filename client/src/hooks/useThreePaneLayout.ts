@@ -31,8 +31,8 @@ export const LEFT_MIN = 180;
 export const LEFT_MAX = 480;
 export const RIGHT_MIN = 320;
 export const RIGHT_MAX = 720;
-export const DEFAULT_LEFT = 240;
-export const DEFAULT_RIGHT = 480;
+export const DEFAULT_LEFT = 248; // = the Mission tab's left card (.record), so both tabs start columns at the same x
+export const DEFAULT_RIGHT = 400; // = SIDEBAR_DEFAULT (Mission), same reason
 export const STEP_PX = 10;
 export const COLLAPSED_LEFT_PX = 48;
 export const COLLAPSED_RIGHT_PX = 0;

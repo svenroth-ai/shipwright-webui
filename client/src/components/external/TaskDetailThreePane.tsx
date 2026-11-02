@@ -17,7 +17,7 @@ import {
 } from "../../hooks/useIsCompactViewport";
 import { PaneTabBar, type PaneId, type RightSegment } from "./PaneTabBar";
 import { TerminalExpandButton } from "./TerminalExpandButton";
-import { PaneSplitter } from "./PaneSplitter";
+import { PaneSplitter, SPLITTER_GUTTER_PX } from "./PaneSplitter";
 import { useSplitterKeydown } from "./useSplitterKeydown";
 import { FocusModeContext } from "./focus-mode-context";
 import {
@@ -95,8 +95,9 @@ export function TaskDetailThreePane({
   }, [containerWidth]);
 
   // Translate px layout to panel percentages; focus mode hides both sides at 0.
-  const total = Math.max(measuredWidth, 600);
   const maxed = layout.maximized;
+  // Panel percentages apply to the width LEFT OVER by the two gutter handles, so subtract them first.
+  const total = Math.max(measuredWidth, 600) - (compact || maxed ? 0 : 2 * SPLITTER_GUTTER_PX);
   const effLeftCollapsed = maxed || layout.leftCollapsed;
   const effRightCollapsed =
     maxed || (tablet ? !tabletViewerOpen : layout.rightCollapsed);

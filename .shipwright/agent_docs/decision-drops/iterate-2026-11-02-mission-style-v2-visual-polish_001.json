@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-02-mission-style-v2-visual-polish",
+  "date": "2026-11-02",
+  "section": "Iterate — change: mission style v2 visual polish",
+  "title": "One row type size, shared column layout, Agents pill in the Environment card",
+  "context": "After the live trial of mission-desktop-style-v2 the product owner wanted visual polish only: oversized tree/Outputs/chat type, Info cards blending into the glass, differing tabs and column gutters between Mission and Files & Terminal.",
+  "decision": "Introduce --fs-row (13px) and --sh-elev tokens; chat scale 14/12; Info tabs reuse the 46px .ft-head + ft-seg; PaneSplitter becomes a 16px gutter with 248/400 default widths matching Mission; the Agents pill moves into an Environment-card row shared by both tabs.",
+  "consequences": "Mission and Files & Terminal now start columns at identical x (default widths; user-dragged widths stay per tab). The Mission chat column is ~80px narrower at 1440px because the sidebar default grew 320 to 400.",
+  "rationale": "Token reuse keeps tree, Environment and Outputs rows provably the same size; reusing the shared sidebar makes the Agents entry point exist in both tabs without a second implementation.",
+  "rejected": "Per-tab hard-coded gaps (drift again), keeping the chat chip plus a new row (duplicate entry point), sharing one persisted width store across tabs (larger behaviour change).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-02-mission-style-v2-visual-polish",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T10:19:24.240524+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T10:19:24.460368+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": null,
+          "line": null,
+          "finding": "Warn pill contrast in the Files & Terminal Info card unverified. Resolution: verified by screenshot, ft-card is reset to the light token set (warn #B54708 on #FFFAEB, about 5.5:1).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": null,
+          "line": null,
+          "finding": "Gutter count in layout math. Resolution: both handles stay rendered (only hidden in compact/maximized), so 2 gutters is exact.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": null,
+          "line": null,
+          "finding": "Agents window could outlive a hidden Files & Terminal tab. Fixed: effect closes it when visible turns false.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": null,
+          "line": null,
+          "finding": "Splitter focus indicator weak on the 5px bar. Fixed: bar gets a filled background on focus-visible plus the ring.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": null,
+          "line": null,
+          "finding": "V10 e2e scoping/flake note. Kept scoped locators; no change.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-02T10:15:23.938613+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Agents pill reachable only via the Info sidebar (phone Info tab, collapsed desktop sidebar, design gate). — Agents pill reachable only via the Info sidebar (phone Info tab, collapsed desktop sidebar, design gate).",
+          "suggestion": "Accepted in writing: the product owner asked to REMOVE the old chat placement and put the pill in the Environment card. Design gate: MissionInfoSidebar is its own always-mounted panel, independent of the feed (rebutted). Phone: pill is on the Info tab (V9 e2e updated). A collapsed desktop sidebar hides it; chat subrunner cards still open the window. Disclosed to the owner.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "hidden coupling",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Files & Terminal controller has no chat cards: no event-driven rescan, window lacks report/hand-back text. — Files & Terminal controller has no chat cards: no event-driven rescan, window lacks report/hand-back text.",
+          "suggestion": "Accepted and disclosed as a known limitation: count refreshes when the tab becomes visible, on window open, focus and task-state change; the F&T window shows prompt/answer/transcript but not the chat-card report/hand-back extras. Hidden-tab window is closed (fixed).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Two docks / windows. — Two docks / windows.",
+          "suggestion": "Each controller has its own open state; the F&T window closes when the tab hides; V10 e2e opens and closes the window in both tabs sequentially.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "persisted state",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: New default widths do not reach users with stored widths. — New default widths do not reach users with stored widths.",
+          "suggestion": "Fixed for the common case: a stored Mission sidebar width equal to the old default 320 (persisted by any segment change) is treated as unset (useMissionSidebar.test.ts). Deliberately dragged widths are kept; parity is guaranteed for default widths only. Disclosed.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "layout",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Gutter count in the percentage maths. — Gutter count in the percentage maths.",
+          "suggestion": "Rebutted: PaneSplitter is hidden only in compact/maximized (which the maths already excludes); collapsed or tablet states keep both 16px handles in the layout. Real-browser bounding-box parity verified at 1440px.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "cascade",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Token scope and contrast. — Token scope and contrast.",
+          "suggestion": "Rebutted: tokens are in :root (weather-deck.css line 55 block); computed 13px asserted in V5/V10 e2e; warn pill about 5.5:1 on the light card, seen in screenshots.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "tests",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Regex source fences. — Regex source fences.",
+          "suggestion": "Complemented by computed-style assertions in V10 e2e (font size, shadow, opaque background, bounding boxes).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "behaviour",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Pill hidden while loading or failed. — Pill hidden while loading or failed.",
+          "suggestion": "Acknowledged, same as the old chip.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-02T10:17:48.013605+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "spec |",
+          "file": "client/src/styles/files-terminal.css (≤1023px block)",
+          "line": null,
+          "finding": "AC1 requires tree rows \"26px fine pointer, 44px coarse\". The diff removes `.ft-files .ft-tree-row { min-height: 44px; }` from the touch media query and the comment claims \"the 44px touch row comes from the coarse-pointer rule in folder-tree.css\" — but no `@media (pointer: coarse)` rule for `.ft-node`/`.ft-tree-row` is added in folder-tree.css (its diff only changes font-size/icon/min-height 26px). Unless such a rule already existed out-of-diff, every coarse-pointer tree (phone, tablet portrait, touch laptops) drops to 26px rows, a touch-target regression and an AC violation.",
+          "suggestion": "Add `@media (pointer: coarse) { .ft-node { min-height: 44px; } }` to folder-tree.css, and add a test asserting it (the existing `touch44` helper list in mission-a11y.guards.test.ts is a natural home).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": "client/src/hooks/useMissionSidebar.ts (LEGACY_DEFAULT migration)",
+          "line": null,
+          "finding": "A stored width of exactly 320 is treated as \"never dragged\" and silently reset to 400 — but 320 was a perfectly drag-reachable width (MIN 240, MAX 560), so a user who deliberately set 320 loses their layout on upgrade. There's no way to distinguish \"default persisted\" from \"deliberately dragged to 320\".",
+          "suggestion": "Persist a schema/version marker or a `dragged: true` flag instead of keying off a magic width value; at minimum note the collateral in the migration.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug |",
+          "file": "client/src/components/external/TaskDetailThreePane.tsx (total computation)",
+          "line": null,
+          "finding": "const total = Math.max(measuredWidth - 2SPLITTER_GUTTER_PX, 600)` — the floor of 600 now applies to the net width, so on containers between 600 and 632px the computed percentages reference 600 while the panels lay out in less than 600px net, shifting/squeezing columns and breaking the \"no jump\" goal the change exists for. Previously the floor matched the container width being measured.",
+          "suggestion": "Clamp the raw measured width (e.g. `Math.max(measuredWidth, 632)`) before subtracting the gutters, or drop the floor and clamp percentages downstream.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test |",
+          "file": "client/src/styles/mission-layout-parity.test.ts (regex assertions)",
+          "line": null,
+          "finding": "The parity fence asserts exact source formatting (`.on-photo .mc-body \\{ padding: 16px 32px 22px; gap: (\\d+)px; \\}`, `\\.record \\{ width: (\\d+)px;`, `w-[${SPLITTER_GUTTER_PX}px]` via `toContain`). A reformat (property order, whitespace, single-vs-double quote, template change in PaneSplitter) breaks the test without any behavior change — these are source-string tests, not behavior tests, and the Tailwind arbitrary-value `w-[16px]` also doesn't actually bind SPLITTER_GUTTER_PX to the rendered width (a manual change to the class string silently passes the numeric check only if the constant is also updated; a change to the class alone fails loudly but a change to the constant alone breaks parity silently).",
+          "suggestion": "Fine as a fence, but at least comment that PaneSplitter's literal `w-[16px]` must be edited alongside SPLITTER_GUTTER_PX; better, derive the className from the constant.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test |",
+          "file": "client/e2e/flows/V10-mission-visual-polish.spec.ts (\"one row type size\" test)",
+          "line": null,
+          "finding": "expect(outH).toBeLessThan(36)` is much weaker than the spec's \"30px rows on fine pointer\" — an implementation shipping 34px or 35px rows (the old value was 40) passes. The card opacity check `bg).toMatch(/^rgb\\(/)` also passes for `rgb(255,255,255)` on any solid color, fine, but the row-height AC (30px) has no tight assertion.",
+          "suggestion": "Assert `Math.abs(outH - 30) <= 1` on a fine pointer, and a 44px assertion under a coarse-pointer emulation for the outputs row.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "regression |",
+          "file": "client/src/components/external/FilesTerminalSides.tsx (ViewCard)",
+          "line": null,
+          "finding": "The F&T tab instantiates a second `useMissionAgents` controller. If both tabs stay mounted (MissionBody visible toggling rather than unmount), two pollers scan session-info concurrently, doubling scan traffic; and a window opened from one tab can stay open while the other tab's pill shows a different controller's count. Also, `visible ? task.taskId : null` means returning to the tab re-fetches, so the pill can briefly show \"None running\"/absent row on tab return.",
+          "suggestion": "Confirm MissionBody unmounts when hidden; if not, gate the F&T controller's fetch on its tab being the active one and consider a shared/context-level controller so counts can't diverge between tabs.  Everything else in the six ACs (solid cards + --sh-elev, chat 14/12/1.55 with spacing untouched, outputs 30px, Agents row below Remote Control in both tabs with \"None running\" and hidden-when-empty, 16px splitter gutter with DEFAULT_LEFT/RIGHT alignment, tests updated accordingly) is implemented coherently. No security issues. The one high finding is the missing 44px coarse-pointer tree rule that the code's own comment claims exists.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "client/src/hooks/useMissionSidebar.ts",
+          "line": 35,
+          "finding": "Every persisted width of `320` is discarded, including a width deliberately selected by the user. This also affects new settings: resizing the sidebar to 320px and remounting it restores 400px instead. A numeric width alone cannot distinguish the old default from a user preference.",
+          "suggestion": "Preserve stored widths and apply the new default only when no width is stored. If migration is necessary, use explicit version or preference metadata rather than treating 320px as evidence that the sidebar was never resized.  Overall assessment: ship-with-fixes. The diff addresses the six visual requirements, but the width migration introduces a concrete persistence regression. Browser behavior and test execution could not be verified because local command execution was blocked.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-11-02T10:19:23.997339+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: spec | Severity: high\n  File: client/src/styles/files-terminal.css (≤1023px block)\n  Finding: AC1 requires tree rows \"26px fine pointer, 44px coarse\". The diff removes `.ft-files .ft-tree-row { min-height: 44px; }` from the touch media query and the comment claims \"the 44px touch row comes from the coarse-pointer rule in folder-tree.css\" — but no `@media (pointer: coarse)` rule for `.ft-node`/`.ft-tree-row` is added in folder-tree.css (its diff only changes font-size/icon/min-height 26px). Unless such a rule already existed out-of-diff, every coarse-pointer tree (phone, tablet portrait, touch laptops) drops to 26px rows, a touch-target regression and an AC violation.\n  Suggestion: Add `@media (pointer: coarse) { .ft-node { min-height: 44px; } }` to folder-tree.css, and add a test asserting it (the existing `touch44` helper list in mission-a11y.guards.test.ts is a natural home).\n\n- Category: edge-case | Severity: medium\n  File: client/src/hooks/useMissionSidebar.ts (LEGACY_DEFAULT migration)\n  Finding: A stored width of exactly 320 is treated as \"never dragged\" and silently reset to 400 — but 320 was a perfectly drag-reachable width (MIN 240, MAX 560), so a user who deliberately set 320 loses their layout on upgrade. There's no way to distinguish \"default persisted\" from \"deliberately dragged to 320\".\n  Suggestion: Persist a schema/version marker or a `dragged: true` flag instead of keying off a magic width value; at minimum note the collateral in the migration.\n\n- Category: bug | Severity: medium\n  File: client/src/components/external/TaskDetailThreePane.tsx (total computation)\n  Finding: `const total = Math.max(measuredWidth - 2*SPLITTER_GUTTER_PX, 600)` — the floor of 600 now applies to the *net* width, so on containers between 600 and 632px the computed percentages reference 600 while the panels lay out in less than 600px net, shifting/squeezing columns and breaking the \"no jump\" goal the change exists for. Previously the flo […truncated]\n\n[openai] - Category: regression\n- Severity: medium\n- File: client/src/hooks/useMissionSidebar.ts:35\n- Finding: Every persisted width of `320` is discarded, including a width deliberately selected by the user. This also affects new settings: resizing the sidebar to 320px and remounting it restores 400px instead. A numeric width alone cannot distinguish the old default from a user preference.\n- Suggestion: Preserve stored widths and apply the new default only when no width is stored. If migration is necessary, use explicit version or preference metadata rather than treating 320px as evidence that the sidebar was never resized.\n\nOverall assessment: ship-with-fixes. The diff addresses the six visual requirements, but the width migration introduces a concrete persistence regression. Browser behavior and test execution could not be verified because local command execution was blocked.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T10:14:07.858354+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T10:19:24.669984+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T10:19:24.903914+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

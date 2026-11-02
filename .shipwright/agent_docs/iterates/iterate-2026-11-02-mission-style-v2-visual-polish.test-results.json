@@ -1,0 +1,117 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-02-mission-style-v2-visual-polish",
+    "date": "2026-11-02",
+    "unit": {
+      "status": "passed",
+      "passed": 4899,
+      "total": 4899,
+      "skipped": 0
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 29,
+      "total": 29,
+      "skipped": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "run_id": "iterate-2026-11-02-mission-style-v2-visual-polish",
+      "behaviors": [
+        {
+          "behavior": "Folder tree, Environment rows and Outputs rows share ONE 13px row size (--fs-row)",
+          "disposition": "tested",
+          "evidence": "mission-sidebar.test.ts PASSED; V10 e2e one-row-size PASSED; V5/V6 e2e PASSED"
+        },
+        {
+          "behavior": "Info cards are solid, hairline-bordered and lifted by a token shadow",
+          "disposition": "tested",
+          "evidence": "mission-sidebar.test.ts PASSED; V10 e2e card shadow/opaque/border PASSED"
+        },
+        {
+          "behavior": "Outputs rows tighter (30px), 44px only on coarse pointers",
+          "disposition": "tested",
+          "evidence": "mission-sidebar.test.ts coarse rule PASSED; V10 e2e <=32px PASSED; V9 e2e 44px on Pixel 5 PASSED"
+        },
+        {
+          "behavior": "Mission chat type scale 14px body / 12px small, 12px floor kept",
+          "disposition": "tested",
+          "evidence": "mission-chat-scale.test.ts PASSED; mission-a11y.guards.test.ts PASSED; V1 e2e 14px PASSED"
+        },
+        {
+          "behavior": "Info tabs use the 46px .ft-head band and ft-seg style in both tabs",
+          "disposition": "tested",
+          "evidence": "mission-layout-parity.test.ts PASSED; V10 e2e head height + identical tab style PASSED"
+        },
+        {
+          "behavior": "Identical 16px gutters and column start x in Mission and Files & Terminal",
+          "disposition": "tested",
+          "evidence": "mission-layout-parity.test.ts PASSED; V10 e2e bounding boxes <=1px PASSED"
+        },
+        {
+          "behavior": "Legacy stored sidebar width 320 resets to the new 400 default; deliberate widths kept",
+          "disposition": "tested",
+          "evidence": "useMissionSidebar.test.ts 3 PASSED"
+        },
+        {
+          "behavior": "Agents pill is a row under Remote Control, reachable from both tabs, opens the window; old chat chip removed",
+          "disposition": "tested",
+          "evidence": "AgentsDock.test.tsx + AgentsWindow.mobile.test.tsx PASSED; V10 e2e pill order + window open/close in both tabs PASSED; V9 e2e PASSED"
+        },
+        {
+          "behavior": "Pixel-level look of the elevated cards and smaller chat",
+          "disposition": "untestable",
+          "evidence": "requires-manual-visual-judgment: before/after screenshots inspected; no Linux baseline regenerated here",
+          "reason_code": "requires-manual-visual-judgment",
+          "reason": "visual taste of shadow strength and chat type size is judged by a person; screenshots were inspected, Linux baselines come from the visual-baselines workflow"
+        }
+      ],
+      "counts": {
+        "testable": 8,
+        "tested": 8,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 8,
+        "covered_acs": 8
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium V10-mission-visual-polish V8-files-terminal-shared-ui V5-flat-file-tree V6-info-sidebar V1-mission-chat M3-mission-info M4-mission-agents A13-mission-shell",
+      "exit_code": 0,
+      "tests_run": 26,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\mission-style-v2-visual-polish\\.shipwright\\runs\\iterate-2026-11-02-mission-style-v2-visual-polish\\surface_verification.log",
+      "timestamp": "2026-11-02T10:20:29.857Z",
+      "attempts": 1
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
