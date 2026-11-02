@@ -1,0 +1,14 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "doubts": [
+    { "severity": "low", "lens": "concurrency & ordering", "claim_under_doubt": "A genuinely working resumed agent never shows finished-stale", "disproof_attempt": "A resumed agent thinking longer than the stale budget with no tool call and no write flips to finished-stale, then back to running on the next write; flicker, not a wrong terminal state. mtime matches the existing non-resumed path.", "file": "server/src/core/session-info/subagents.ts" },
+    { "severity": "low", "lens": "boundary & contract", "claim_under_doubt": "Fingerprint additions cannot swallow a real human message", "disproof_attempt": "A human message that starts with 'The summarized conversation' and carries no flag would be hidden; negligible.", "file": "client/src/external/parsers/compact-summary.ts" },
+    { "severity": "low", "lens": "hidden coupling", "claim_under_doubt": "Summary attaches to the right row; subagent transcripts unaffected", "disproof_attempt": "Only producer of kind system cards is the compaction card; agentTranscriptFeed skips system cards. No action.", "file": "client/src/lib/missionActivityFeedCompaction.ts" },
+    { "severity": "medium", "lens": "boundary & contract (a11y)", "claim_under_doubt": "CappedBody clipping is safe for keyboard and AT users", "disproof_attempt": "Links inside the clipped region stay focusable; focusing an invisible link scrolls the hidden container; no print fallback.", "file": "client/src/components/external/mission/CappedBody.tsx", "what_would_resolve_it": "Expand on focusin inside the clip; add a print rule removing the cap." },
+    { "severity": "low", "lens": "concurrency & ordering", "claim_under_doubt": "ResizeObserver effect is stable", "disproof_attempt": "children in deps recreates the observer every render; wasted work only.", "file": "client/src/components/external/mission/CappedBody.tsx" },
+    { "severity": "low", "lens": "boundary & contract", "claim_under_doubt": "Tab max-width safe with 44px close button", "disproof_attempt": "Fine; duplicate basenames distinguishable only by tooltip.", "file": "client/src/components/external/SmartViewer/ViewerTabBar.tsx" },
+    { "severity": "low", "lens": "hidden coupling", "claim_under_doubt": "mc-side-flush causes no scroll regression", "disproof_attempt": "Same structure as the Files & Terminal hosting; suggests a long-file scroll smoke in the Mission tab.", "file": "client/src/components/external/mission/MissionInfoSidebar.tsx" }
+  ],
+  "summary": "No blocking failure found. One medium: CappedBody keyboard focus and print behavior. Verdict: PROCEED after addressing or rebutting the medium doubt."
+}

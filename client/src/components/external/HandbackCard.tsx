@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import type { HandbackOrigin } from "../../external/parsers/handback";
 import { explanationExcerpt } from "../../lib/missionActivityFeedText";
 import { MarkdownChunk } from "./BubbleTranscript/MarkdownChunk";
+import { CappedBody } from "./mission/CappedBody";
 
 export const HANDBACK_NOTICE = "Reply from a subagent, not a message from you.";
 export const SESSION_NOTICE = "Message from another session, not from you.";
@@ -28,10 +29,12 @@ interface Props {
   onSenderClick?: (sender: string) => void;
   className?: string;
   tableWrap?: boolean;
+  /** Mission main chat: cap a long report at ~12 lines with Show more / Show less. */
+  capped?: boolean;
   footer?: ReactNode;
 }
 
-export function HandbackCard({ origin, sender, text, title, onSenderClick, className, tableWrap, footer }: Props) {
+export function HandbackCard({ origin, sender, text, title, onSenderClick, className, tableWrap, capped, footer }: Props) {
   const hash = sender.slice(0, 8);
   // The title can be peer-supplied (cross-session from-name): strip control/bidi characters and cap it.
   const safeTitle = title ? explanationExcerpt(title, 1, 120) : "";
@@ -46,7 +49,9 @@ export function HandbackCard({ origin, sender, text, title, onSenderClick, class
           <span className="mc-handback-chip" data-static="true">{hash}</span>
         ))}
       </div>
-      {text && <div className="mc-handback-body"><MarkdownChunk tableWrap={tableWrap} content={text} /></div>}
+      {text && (capped
+        ? <CappedBody className="mc-handback-body" testId="handback-body"><MarkdownChunk tableWrap={tableWrap} content={text} /></CappedBody>
+        : <div className="mc-handback-body"><MarkdownChunk tableWrap={tableWrap} content={text} /></div>)}
       <p className="mc-handback-notice">{origin === "subagent" ? HANDBACK_NOTICE : origin === "coordinator" ? COORDINATOR_NOTICE : SESSION_NOTICE}</p>
       {footer}
     </article>

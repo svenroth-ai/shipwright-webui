@@ -5,6 +5,7 @@ import { deriveSubrunnerNotificationFromAttachment, resolveSubrunnerNotification
 import { buildUserReplyCard, extractTurnProse, flushPendingNarration, processTurnTools, type PendingNarration, type TurnToolsState } from "./missionActivityFeedTurn";
 import { type WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 import { buildHandbackCard } from "./missionActivityFeedHandback";
+import { addCompactSummary, compactionBoundaryCard, isCompactSummaryEvent } from "./missionActivityFeedCompaction";
 import { createCardAdder } from "./missionActivityFeedCardFactory";
 import { clearMultiTurnExplanations, reconcileArtifactCards } from "./missionActivityFeedReconcile";
 import { resolveToolResults, type PendingTool } from "./missionActivityFeedResolve";
@@ -92,9 +93,11 @@ export function deriveActivityFeed(
   )?.timestamp;
   for (const event of events) {
     if (isCompactionMarker(event)) {
-      cards.push({ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: event.timestamp });
+      cards.push(compactionBoundaryCard(event.timestamp));
     }
     if (event.kind === "user") {
+      // The compaction summary is harness text: one collapsed system row, never a human bubble.
+      if (isCompactSummaryEvent(event)) { addCompactSummary(cards, event); continue; }
       const replyCard = buildUserReplyCard(event);
       if (replyCard) cards.push(replyCard);
       const resolveState = { cards, testCards, pendingTools, unresolvedTest, awaitingTestResult, writtenTestFiles, authoringConsumedBy, failedWriteToolIds, restoreValidationPending, failedTestCards, toolCallIndex };

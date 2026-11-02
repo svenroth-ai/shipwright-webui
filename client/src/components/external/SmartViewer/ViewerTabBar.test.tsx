@@ -76,3 +76,19 @@ describe("ViewerTabBar — close control is a real, keyboard-reachable button (a
     expect(onActivate).not.toHaveBeenCalled();
   });
 });
+
+// @covers FR-01.66
+describe("ViewerTabBar — fixed maximum tab width (class fence)", () => {
+  it("caps the tab, truncates the label, keeps the full path in the tooltip and the close button un-shrinkable", () => {
+    const long = "docs/some/very/deep/folder/a-really-quite-long-file-name-for-a-tab.md";
+    render(<ViewerTabBar paths={[long]} activePath={long} onActivate={vi.fn()} onClose={vi.fn()} />);
+    const hit = screen.getByTestId(`viewer-tab-${long}`);
+    expect(hit.getAttribute("title")).toBe(long);
+    expect(hit.className).toContain("min-w-0");
+    expect(screen.getByTestId("viewer-tab-label").className).toContain("truncate");
+    expect(hit.parentElement!.className).toContain("max-w-[var(--vtb-tab-max,200px)]");
+    expect(screen.getByTestId(`viewer-tab-close-${long}`).className).toContain("shrink-0");
+    // accessible name keeps the whole file name (truncation is visual only)
+    expect(screen.getByText("a-really-quite-long-file-name-for-a-tab.md")).toBeTruthy();
+  });
+});

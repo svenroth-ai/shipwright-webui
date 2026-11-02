@@ -1,0 +1,11 @@
+{
+  "section": "iterate-2026-11-02-mission-viewer-routing-polish",
+  "verdict": "PASS (no HIGH or MEDIUM findings; 4 LOW, none blocking)",
+  "review": [
+    { "severity": "LOW", "category": "performance", "file": "client/src/external/parsers/compact-summary.ts", "finding": "Marker regex /^\\s*Summary:\\s*$/im runs on the uncapped text; a pathological run of blank lines scans quadratically; cap is applied after.", "suggestion": "Slice to maxChars first and use [ \\t]* instead of \\s*." },
+    { "severity": "LOW", "category": "readability", "file": "client/src/components/external/mission/CompactionRow.tsx", "finding": "aria-controls points at an id not in the DOM while collapsed (dangling IDREF).", "suggestion": "Set aria-controls only when open." },
+    { "severity": "LOW", "category": "correctness", "file": "client/src/components/external/mission/CappedBody.tsx", "finding": "Effect depends on [expanded, children] so the ResizeObserver is recreated every render; useEffect lets one uncapped-looking frame paint.", "suggestion": "Depend on [expanded] only; optionally useLayoutEffect." },
+    { "severity": "LOW", "category": "readability", "file": "server/src/core/session-info/subagents.resumed.test.ts", "finding": "\"Z:\\does-not-exist\" has an unintended \\d escape.", "suggestion": "Escape the backslash." }
+  ],
+  "notes": ["subagents.ts precedence correct", "ViewerTabBar width correct", "system cards only come from compaction so routing all system cards to CompactionRow is safe", "session-parser.ts net line count unchanged", "no leaks, no transitions, fonts above 12px"]
+}

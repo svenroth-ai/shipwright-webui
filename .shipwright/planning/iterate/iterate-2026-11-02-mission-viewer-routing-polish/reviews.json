@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-02-mission-viewer-routing-polish",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T11:01:05.834019+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T11:06:57.588472+00:00",
+      "disposition": "small complexity: external LLM review is skipped by the phase matrix; the internal spec -> code -> doubt cascade ran and all three were recorded completed",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/external/parsers/compact-summary.ts",
+          "line": null,
+          "finding": "Marker regex /^\\s*Summary:\\s*$/im runs on the uncapped text; a pathological run of blank lines scans quadratically; cap is applied after.",
+          "suggestion": "Slice to maxChars first and use [ \\t]* instead of \\s*.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/mission/CompactionRow.tsx",
+          "line": null,
+          "finding": "aria-controls points at an id not in the DOM while collapsed (dangling IDREF).",
+          "suggestion": "Set aria-controls only when open.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/CappedBody.tsx",
+          "line": null,
+          "finding": "Effect depends on [expanded, children] so the ResizeObserver is recreated every render; useEffect lets one uncapped-looking frame paint.",
+          "suggestion": "Depend on [expanded] only; optionally useLayoutEffect.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/session-info/subagents.resumed.test.ts",
+          "line": null,
+          "finding": "\"Z:\\does-not-exist\" has an unintended \\d escape.",
+          "suggestion": "Escape the backslash.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-02T11:06:13.526590+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": "server/src/core/session-info/subagents.ts",
+          "line": null,
+          "finding": "Claim under doubt: A genuinely working resumed agent never shows finished-stale — A resumed agent thinking longer than the stale budget with no tool call and no write flips to finished-stale, then back to running on the next write; flicker, not a wrong terminal state. mtime matches the existing non-resumed path.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "client/src/external/parsers/compact-summary.ts",
+          "line": null,
+          "finding": "Claim under doubt: Fingerprint additions cannot swallow a real human message — A human message that starts with 'The summarized conversation' and carries no flag would be hidden; negligible.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "client/src/lib/missionActivityFeedCompaction.ts",
+          "line": null,
+          "finding": "Claim under doubt: Summary attaches to the right row; subagent transcripts unaffected — Only producer of kind system cards is the compaction card; agentTranscriptFeed skips system cards. No action.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract (a11y)",
+          "file": "client/src/components/external/mission/CappedBody.tsx",
+          "line": null,
+          "finding": "Claim under doubt: CappedBody clipping is safe for keyboard and AT users — Links inside the clipped region stay focusable; focusing an invisible link scrolls the hidden container; no print fallback.",
+          "suggestion": "Expand on focusin inside the clip; add a print rule removing the cap.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": "client/src/components/external/mission/CappedBody.tsx",
+          "line": null,
+          "finding": "Claim under doubt: ResizeObserver effect is stable — children in deps recreates the observer every render; wasted work only.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "client/src/components/external/SmartViewer/ViewerTabBar.tsx",
+          "line": null,
+          "finding": "Claim under doubt: Tab max-width safe with 44px close button — Fine; duplicate basenames distinguishable only by tooltip.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
+          "line": null,
+          "finding": "Claim under doubt: mc-side-flush causes no scroll regression — Same structure as the Files & Terminal hosting; suggests a long-file scroll smoke in the Mission tab.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-02T11:06:35.935433+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T11:06:57.588472+00:00",
+      "disposition": "small complexity: external LLM review is skipped by the phase matrix; the internal spec -> code -> doubt cascade ran and all three were recorded completed",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T11:04:08.847218+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T11:06:57.588472+00:00",
+      "disposition": "small complexity: external LLM review is skipped by the phase matrix; the internal spec -> code -> doubt cascade ran and all three were recorded completed",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T11:06:57.588472+00:00",
+      "disposition": "small complexity: external LLM review is skipped by the phase matrix; the internal spec -> code -> doubt cascade ran and all three were recorded completed",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

@@ -7,6 +7,7 @@
  * (running / finished / failed / killed / stopped) — never colour alone.
  */
 import { MarkdownChunk } from "../BubbleTranscript/MarkdownChunk";
+import { CappedBody } from "./CappedBody";
 import type { ActivityCard } from "../../../lib/missionActivityFeed";
 import { AgentIcon, ChevronRightIcon } from "./MissionFeedIcons";
 import { formatElapsed } from "./MissionActivityFeedCardParts";
@@ -62,7 +63,7 @@ export function SubrunnerRow({
         </button>
       )}
       {!canClick && !running && card.subrunnerReport && (
-        <div className="mc-sub-report"><MarkdownChunk content={card.subrunnerReport} /></div>
+        <CappedBody className="mc-sub-report" testId="subrunner-report"><MarkdownChunk content={card.subrunnerReport} /></CappedBody>
       )}
     </div>
   );

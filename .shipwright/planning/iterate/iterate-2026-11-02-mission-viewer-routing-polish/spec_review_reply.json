@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "All five requested changes are present, faithful and in scope. (1) Tab width: ViewerTabBar caps each tab at max-w-[var(--vtb-tab-max,200px)], label truncates, full path in title, close button shrink-0; short names keep natural width. (2) Routing: the Mission-hosted viewer lacked the tab bar; the diff adds ViewerTabBar through a shared viewerWithTabs in both hostings; no second pane; real-browser E2E V10 covers chip, Outputs and Folders. (3) Subagents: a resumed agent whose file is quiet becomes finished-stale, a still-writing one stays running; unit tests cover resumed+stale, resumed+active, not-resumed; client agentsTree reads the same state field. (4) Compaction: logic in new files (compact-summary.ts, missionActivityFeedCompaction.ts) plus CompactionRow; collapsed by default, Show summary / Hide summary, markdown when open, never a user card; session-parser.ts net zero lines. (5) Hand-back cap: CappedBody on the handback card and subrunner report row; toggle only on overflow with aria-expanded/aria-controls; agent/user texts untouched. Known deviation (left-pane structured artifact cards fetched by opaque document id keep their detail panel) judged an acceptable reading."
+}

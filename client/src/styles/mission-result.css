@@ -68,3 +68,20 @@ button.mc-handback-chip:focus-visible { outline: none; box-shadow: var(--focus);
   .mc-result-commit a.m { min-height: 44px; }
   .mc-result-commit { flex-wrap: wrap; }
 }
+
+/* Capped long bodies (hand-back / subrunner report): ~12 lines, fade, Show more/less.
+   Mask carries alpha only (no theme colour). No motion at all: reduced motion shows the final state at once. */
+.mc-cap[data-cap="on"] { max-height: var(--mc-cap-h, 19rem); overflow: hidden; }
+.mc-cap[data-fade="on"] { -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 3.5rem), transparent); mask-image: linear-gradient(to bottom, black calc(100% - 3.5rem), transparent); }
+.mc-cap-toggle { margin-top: 6px; min-height: 36px; font-size: var(--fs-small, 13px); }
+.mc-cap-toggle:focus-visible { outline: none; box-shadow: var(--focus); }
+
+/* Context compaction: a quiet divider row; the summary is collapsed by default (Show summary / Hide summary). */
+.mc-compact { margin: 6px 0; color: var(--muted); }
+.mc-compact-h { display: flex; align-items: center; gap: 10px; font-size: var(--fs-small, 13px); }
+.mc-compact-rule { flex: 1; height: 1px; background: var(--line-strong); }
+.mc-compact-t { font-weight: 600; }
+.mc-compact-toggle { min-height: 36px; font-size: var(--fs-small, 13px); }
+.mc-compact-toggle:focus-visible { outline: none; box-shadow: var(--focus); }
+.mc-compact-body { margin-top: 8px; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); color: var(--body); max-height: 28rem; overflow-y: auto; }
+@media print { .mc-cap[data-cap="on"] { max-height: none; overflow: visible; } .mc-cap[data-fade="on"] { -webkit-mask-image: none; mask-image: none; } }
