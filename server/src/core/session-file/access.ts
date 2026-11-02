@@ -38,7 +38,7 @@ export interface AccessArgs {
 const deny = (status: AccessDenial["status"], error: string, detail?: string): AccessDecision => ({ ok: false, status, error, detail });
 export const MAX_PATH_CHARS = 4096;
 const BACKSLASH = String.fromCharCode(92);
-const WIN_DEVICE = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³]|conin\$|conout\$)[. ]*(\..*)?$/i;
+export const WIN_DEVICE = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³]|conin\$|conout\$)[. ]*(\..*)?$/i;
 
 /**
  * The registered root that lexically contains `abs`, decided by the shared pathGuard (DO-NOT #10) on the

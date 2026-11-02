@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-02-smartviewer-html-images",
+  "date": "2026-11-02",
+  "section": "Iterate - bug: HTML preview shows images, fonts and imported CSS",
+  "title": "HTML preview loads page resources through a bounded client loader and an assetOf server rule",
+  "context": "The sandboxed srcdoc preview has no base URL, so relative images never loaded and outside-project pages got no stylesheets either.",
+  "decision": "Client inlines images, fonts, CSS url() and @import as data URIs under hard caps; server adds session-file assetOf: same folder tree, allowlisted types, memoized owner proof.",
+  "consequences": "Images and CSS show for project and outside pages and in pop-out. Accepted risk: a scripted page can forward the files it names in its own folder tree.",
+  "rationale": "Keeps the sandbox intact (no allow-same-origin, no base URL) and reuses the evidence-gated file routes; review-found fan-out and scan-queue starvation were fixed.",
+  "rejected": "allow-same-origin or a base URL (breaks isolation), separate origin (too large), server-side HTML rewriting (parses untrusted markup), per-asset evidence scan (starves queue).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

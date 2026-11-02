@@ -5,11 +5,13 @@
  *   - inside the project root: same posture as /projects/:id/file
  *   - outside it: only when THIS session evidences the path (Output write, chat
  *     mention, tool call) — core/session-file/access.ts. Never a directory listing.
+ *   - `assetOf=<evidenced html>`: an image / stylesheet / font in that page's own
+ *     folder tree — core/session-file/asset-access.ts.
  * Same MIME allowlist, 5 MB cap, nosniff + sandbox CSP as the project file route;
  * text types with NUL bytes answer 415 like any other binary.
  *
  *   400 invalid_path | path_required | path_traversal | not_a_file | project_path_unavailable
- *   403 path_not_evidenced | sensitive_location    404 task_not_found | not_found
+ *   403 path_not_evidenced | sensitive_location | asset_type_not_allowed | asset_outside_page_folder | asset_owner_invalid    404 task_not_found | not_found
  *   413 file_too_large        415 binary_not_previewable    500 file_read_failed
  */
 
@@ -18,6 +20,7 @@ import { stat } from "node:fs/promises";
 import { basename, extname, isAbsolute } from "node:path";
 
 import { decideSessionFileAccess } from "../../core/session-file/access.js";
+import { ASSET_MIME_BY_EXTENSION, decideAssetAccess } from "../../core/session-file/asset-access.js";
 import { findSessionEvidence, type EvidenceDeps } from "../../core/session-file/evidence.js";
 import { readRegularFileCapped } from "../../core/session-file/safe-read.js";
 import type { SdkSessionsStore } from "../../core/sdk-sessions-store.js";
@@ -57,18 +60,21 @@ export function createSessionFileRouter(deps: SessionFileRouterDeps): Hono {
     const projectDir = await existingDir(deps.getProjectById?.(task.projectId)?.path);
     const roots: string[] = projectDir ? [projectDir] : [];
 
-    const decision = await decideSessionFileAccess({
+    // `assetOf` = the evidenced outside HTML page that wants this image / stylesheet / font (asset-access.ts).
+    const assetOf = c.req.query("assetOf");
+    const accessArgs = {
       roots,
       requested: c.req.query("path") ?? "",
-      findEvidence: async (candidates) =>
+      findEvidence: async (candidates: string[]) =>
         findSessionEvidence(task.sessionUuid, await watcher.findByUuid(task.sessionUuid), candidates, deps),
-    });
+    };
+    const decision = assetOf ? await decideAssetAccess({ ...accessArgs, owner: assetOf, memoKey: task.taskId }) : await decideSessionFileAccess(accessArgs);
     if (!decision.ok) {
       return c.json({ error: decision.error, ...(decision.detail ? { detail: decision.detail } : {}) }, decision.status);
     }
 
     const ext = extname(decision.absolute).toLowerCase().slice(1);
-    const mime = MIME_BY_EXTENSION[ext];
+    const mime = assetOf ? ASSET_MIME_BY_EXTENSION[ext] : MIME_BY_EXTENSION[ext];
     if (!mime) {
       return c.json({ error: "binary_not_previewable", mime: "application/octet-stream", extension: ext || null }, 415);
     }

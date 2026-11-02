@@ -1,6 +1,6 @@
 /*
- * htmlInlineStyles — makes a project's .html file render with its OWN
- * stylesheets inside the sandboxed srcdoc iframe.
+ * htmlInlineStyles — makes a .html file render with its OWN stylesheets inside
+ * the sandboxed srcdoc iframe.
  *
  * The iframe has an opaque origin and no base URL, so a relative
  * `<link rel="stylesheet" href="mockup.css">` can never load (and the CSP
@@ -19,33 +19,25 @@
  * over; `alternate` / `disabled` stylesheets are left as they are. Absolute,
  * protocol-relative and data links are left to the CSP, a stylesheet that
  * fails or stalls (FETCH_TIMEOUT_MS) stays a plain `<link>`, and at most
- * MAX_LINKS are inlined.
- *
- * Known limits: relative `@import` / `url()` INSIDE the inlined CSS stay
- * relative and do not load (same opaque-origin reason); link detection is
- * best-effort for malformed markup.
+ * MAX_LINKS are inlined. `processCss` (htmlInlineAssets) runs over each
+ * fetched stylesheet so its own `@import` / `url()` references are inlined too.
  */
 
-import { resolveDocPath } from "./useDocNavigation";
+import { ABSOLUTE_HREF, attr, hasHiddenSegment, maskNonMarkup, refExtension, resolveAssetPath } from "./htmlMarkupScan";
 
+export { maskNonMarkup };
 export const MAX_LINKS = 20;
 export const FETCH_TIMEOUT_MS = 5000;
 
 // Quote-aware, so a `>` inside an attribute value does not end the tag. The
-// three branches start with disjoint characters, so matching stays linear.
-const LINK_TAG = /<link(?=[\s/>])(?:"[^"]*"|'[^']*'|[^'">])*>/gi;
-const ABSOLUTE_HREF = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i;
-const RAW_TEXT_OPEN = /^<(script|style|textarea|title)(?=[\s/>])/i;
+// three branches start with disjoint characters and a bare character never
+// spans a `<`, so an unterminated tag costs one line of input, not the rest of the document.
+const LINK_TAG = /<link(?=[\s/>])(?:"[^"]*"|'[^']*'|[^'"<>])*>/gi;
 
 const REL_ATTR = /(?:^|\s)rel\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
 const HREF_ATTR = /(?:^|\s)href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
 const MEDIA_ATTR = /(?:^|\s)media\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
 const DISABLED_ATTR = /(?:^|\s)disabled(?=[\s=>/]|$)/i;
-
-function attr(tag: string, re: RegExp): string | null {
-  const m = re.exec(tag);
-  return m ? (m[1] ?? m[2] ?? m[3] ?? "") : null;
-}
 
 /** Project-relative stylesheet href of a `<link>` tag we may inline, else null. */
 function relativeStylesheetHref(tag: string): string | null {
@@ -55,48 +47,8 @@ function relativeStylesheetHref(tag: string): string | null {
   const href = attr(tag, HREF_ATTR)?.trim();
   if (!href || ABSOLUTE_HREF.test(href)) return null;
   const path = href.split(/[?#]/)[0];
-  if (!/\.css$/i.test(path)) return null;
-  if (path.split(/[\\/]/).some((seg) => seg.startsWith(".") && seg !== "." && seg !== "..")) return null;
+  if (refExtension(path) !== "css" || hasHiddenSegment(path)) return null;
   return path;
-}
-
-/**
- * `html` with comments and raw-text element contents blanked out (same
- * length). One pass: every closer is located with `indexOf` from the current
- * position, and an element that never closes masks the rest of the document
- * (as a browser would read it), so cost stays linear on any input.
- */
-export function maskNonMarkup(html: string): string {
-  const lower = html.toLowerCase();
-  let out = "";
-  let i = 0;
-  while (i < html.length) {
-    const lt = html.indexOf("<", i);
-    if (lt === -1) break;
-    let end = -1;
-    if (lower.startsWith("<!--", lt)) {
-      const close = lower.indexOf("-->", lt + 4);
-      end = close === -1 ? html.length : close + 3;
-    } else {
-      const open = RAW_TEXT_OPEN.exec(html.slice(lt, lt + 12));
-      if (open) {
-        const close = lower.indexOf(`</${open[1].toLowerCase()}`, lt + open[0].length);
-        if (close === -1) end = html.length;
-        else {
-          const gt = lower.indexOf(">", close);
-          end = gt === -1 ? html.length : gt + 1;
-        }
-      }
-    }
-    if (end === -1) {
-      out += html.slice(i, lt + 1);
-      i = lt + 1;
-    } else {
-      out += html.slice(i, lt) + " ".repeat(end - lt);
-      i = end;
-    }
-  }
-  return out + html.slice(i);
 }
 
 interface Found {
@@ -117,7 +69,7 @@ function findLinks(html: string): Found[] {
   return found;
 }
 
-function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve(null), ms);
     p.then(
@@ -138,10 +90,17 @@ export async function inlineLinkedStyles(
   htmlPath: string,
   fetchText: (path: string) => Promise<string>,
   timeoutMs: number = FETCH_TIMEOUT_MS,
+  processCss?: (css: string, cssPath: string) => Promise<string>,
 ): Promise<string> {
   const links = findLinks(html);
   const css = await Promise.all(
-    links.map((l) => withTimeout(fetchText(resolveDocPath(htmlPath, l.href).path), timeoutMs)),
+    links.map((l) => {
+      const cssPath = resolveAssetPath(htmlPath, l.href);
+      // Only the stylesheet fetch is under this timeout; what it references is bounded by the loader's own.
+      return withTimeout(fetchText(cssPath), timeoutMs).then((body) =>
+        body !== null && processCss ? processCss(body, cssPath).catch(() => body) : body,
+      );
+    }),
   );
   let out = "";
   let cursor = 0;
