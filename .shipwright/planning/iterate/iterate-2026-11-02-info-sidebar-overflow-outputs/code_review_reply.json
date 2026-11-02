@@ -1,0 +1,64 @@
+{
+ "stage": "code-quality",
+ "verdict": "APPROVE",
+ "summary": "APPROVE with minor follow-ups; no CRITICAL/HIGH.",
+ "review": [
+  {
+   "severity": "medium",
+   "file": "client/src/hooks/useOpenableMap.ts",
+   "line": 28,
+   "finding": "live flag drops in-flight answers on every dependency change; costs latency only (answers are cached by pathProbe, render reads peekProbe first)",
+   "category": "correctness",
+   "suggestion": "see summary"
+  },
+  {
+   "severity": "medium",
+   "file": "client/src/components/external/mission/MissionInfoOutputs.tsx",
+   "line": 60,
+   "finding": "first-load flash: rows visible while pending, then vanish on definitive no (deliberate fail-open)",
+   "category": "correctness",
+   "suggestion": "see summary"
+  },
+  {
+   "severity": "low",
+   "file": "client/src/hooks/useOpenableMap.ts",
+   "line": 48,
+   "finding": "an unknown re-probe could overwrite a prior definitive answer; answers map grows unbounded",
+   "category": "correctness",
+   "suggestion": "see summary"
+  },
+  {
+   "severity": "low",
+   "file": "client/src/styles/mission-sidebar.css",
+   "line": 0,
+   "finding": "overflow hidden clips focus ring of non-pill focusable children; title only on two rows",
+   "category": "correctness",
+   "suggestion": "see summary"
+  },
+  {
+   "severity": "low",
+   "file": "client/src/styles/mission-sidebar.css",
+   "line": 0,
+   "finding": ".env-output:disabled styling removed while the button is still disabled while the project loads",
+   "category": "correctness",
+   "suggestion": "see summary"
+  },
+  {
+   "severity": "low",
+   "file": "client/e2e/flows/V12-info-sidebar-no-overflow.spec.ts",
+   "line": 103,
+   "finding": "project dir name + long file name may exceed 260 chars on Windows",
+   "category": "correctness",
+   "suggestion": "see summary"
+  },
+  {
+   "severity": "low",
+   "file": "client/src/hooks/useOpenableMap.ts",
+   "line": 20,
+   "finding": "30s tick runs while the panel is hidden (cache-served, TTL 5 min for yes)",
+   "category": "correctness",
+   "suggestion": "see summary"
+  }
+ ],
+ "section": "iterate-2026-11-02-info-sidebar-overflow-outputs"
+}

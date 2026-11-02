@@ -27,11 +27,11 @@ interface Props {
   agents?: MissionAgents;
 }
 
-function Row({ k, children, testId, big }: { k: string; children: React.ReactNode; testId: string; big?: boolean }) {
+function Row({ k, children, testId, big, title }: { k: string; children: React.ReactNode; testId: string; big?: boolean; title?: string }) {
   return (
     <div className="env-row" data-testid={testId}>
       <span className="env-k">{k}</span>
-      <span className={big ? "env-v env-big" : "env-v"}>{children}</span>
+      <span className={big ? "env-v env-big" : "env-v"} title={title}>{children}</span>
     </div>
   );
 }
@@ -52,6 +52,7 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true, agents }: 
   const failed = q.isError;
 
   const host = typeof window === "undefined" ? "" : window.location.hostname;
+  const computer = `This computer${host && host !== "localhost" ? ` (${host})` : ""}`;
   const outputs = (() => {
     if (!info) return [];
     const seen = new Set<string>();
@@ -86,8 +87,8 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true, agents }: 
             {q.isFetching ? "Refreshing…" : "Refresh"}
           </button>
         </h4>
-        <Row k="Computer" testId="env-computer">
-          This computer{host && host !== "localhost" ? ` (${host})` : ""}
+        <Row k="Computer" testId="env-computer" title={computer}>
+          {computer}
         </Row>
         <Row k="Project folder" testId="env-folder">
           <span className="env-mono" title={task.cwd}>{task.cwd}</span>
@@ -109,7 +110,7 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true, agents }: 
         {info && (info.context.tokens !== null || info.context.model) ? (
           <>
             {info.context.tokens !== null ? (
-              <Row k="Tokens used" testId="env-tokens" big>
+              <Row k="Tokens used" testId="env-tokens" big title={info.context.compactedSince ? `${formatTokens(info.context.tokens)} (before compaction)` : undefined}>
                 {formatTokens(info.context.tokens)}
                 {info.context.compactedSince ? (
                   <span className="env-note"> (before compaction)</span>
@@ -117,7 +118,7 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true, agents }: 
               </Row>
             ) : null}
             {info.context.model ? (
-              <Row k="Model" testId="env-model">{shortModel(info.context.model)}</Row>
+              <Row k="Model" testId="env-model" title={info.context.model}>{shortModel(info.context.model)}</Row>
             ) : null}
           </>
         ) : (

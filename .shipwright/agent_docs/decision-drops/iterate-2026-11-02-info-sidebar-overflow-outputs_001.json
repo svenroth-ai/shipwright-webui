@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-02-info-sidebar-overflow-outputs",
+  "date": "2026-11-02",
+  "section": "Iterate - change: Info sidebar overflow, Outputs ellipsis, hide missing outputs",
+  "title": "Info sidebar never overflows; gone Outputs files are hidden",
+  "context": "A long Outputs file name widened the Info pane: .env-panel was a grid with an implicit auto track, so a nowrap row grew the track past the pane (clipped values, horizontal scroll). The previous iterate also showed gone files as a missing row.",
+  "decision": "The panel track is minmax(0,1fr) with min-width:0 cards; .env-v and Outputs names ellipsize with tooltips; Outputs rows are probed as a list (useOpenableMap) and hidden only when the server says not_found; the missing tag is removed.",
+  "consequences": "The Info pane cannot overflow; counts reflect visible rows; present-but-unviewable files stay listed; on first load rows show briefly before a definitive no hides them.",
+  "rationale": "Fixing the grid track is the root cause; hiding only on not_found avoids silently dropping existing files the viewer cannot preview.",
+  "rejected": "Hiding on any probe no (drops existing unpreviewable files); a per-row hook (cannot count visible rows).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-11-02-info-sidebar-overflow-outputs.md"
+}

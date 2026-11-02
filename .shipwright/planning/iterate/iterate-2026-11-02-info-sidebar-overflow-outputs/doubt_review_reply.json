@@ -1,0 +1,7 @@
+{"stage":"doubt","gating":"advisory-must-address","doubts":[
+{"severity":"medium","lens":"boundary & contract","claim_under_doubt":"Only rows whose file is gone are hidden","finding":"The probe 'no' also covers non-previewable types, oversize files, sensitive paths and truncated evidence windows; those would vanish instead of showing disabled."},
+{"severity":"medium","lens":"concurrency & blast radius","claim_under_doubt":"Probing is cheap and equivalent","finding":"Every output path is probed, not just the visible five; shares the 30/10s per-task probe budget with chat chips and terminal links."},
+{"severity":"low","lens":"hidden coupling","claim_under_doubt":".env-v CSS change is safe for all rows","finding":"Tokens used note and Model have no title and truncate; project folder truncates at the end."},
+{"severity":"low","lens":"concurrency & ordering","claim_under_doubt":"The hook never keeps a stale answer","finding":"Stale 'no' in answers[] survives an 'unknown' re-probe (anti-flap), so a row stays hidden during an outage."},
+{"severity":"info","lens":"boundary & contract","claim_under_doubt":"Absolute path probe equals relative","finding":"Could not disprove; same decision core."}
+],"summary":"Advisory: address doubts 1 and 2 (3-4 optional).","review":[]}

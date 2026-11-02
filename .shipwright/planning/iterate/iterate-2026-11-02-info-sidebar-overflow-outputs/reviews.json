@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-02-info-sidebar-overflow-outputs",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T22:28:02.161209+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T22:35:05.005434+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/hooks/useOpenableMap.ts",
+          "line": 28,
+          "finding": "live flag drops in-flight answers on every dependency change; costs latency only (answers are cached by pathProbe, render reads peekProbe first)",
+          "suggestion": "see summary",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/MissionInfoOutputs.tsx",
+          "line": 60,
+          "finding": "first-load flash: rows visible while pending, then vanish on definitive no (deliberate fail-open)",
+          "suggestion": "see summary",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/hooks/useOpenableMap.ts",
+          "line": 48,
+          "finding": "an unknown re-probe could overwrite a prior definitive answer; answers map grows unbounded",
+          "suggestion": "see summary",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/styles/mission-sidebar.css",
+          "line": null,
+          "finding": "overflow hidden clips focus ring of non-pill focusable children; title only on two rows",
+          "suggestion": "see summary",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/styles/mission-sidebar.css",
+          "line": null,
+          "finding": ".env-output:disabled styling removed while the button is still disabled while the project loads",
+          "suggestion": "see summary",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/e2e/flows/V12-info-sidebar-no-overflow.spec.ts",
+          "line": 103,
+          "finding": "project dir name + long file name may exceed 260 chars on Windows",
+          "suggestion": "see summary",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/hooks/useOpenableMap.ts",
+          "line": 20,
+          "finding": "30s tick runs while the panel is hidden (cache-served, TTL 5 min for yes)",
+          "suggestion": "see summary",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-02T22:30:01.985621+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": null,
+          "line": null,
+          "finding": "Only rows whose file is gone are hidden",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency & blast radius",
+          "file": null,
+          "line": null,
+          "finding": "Probing is cheap and equivalent",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": null,
+          "line": null,
+          "finding": ".env-v CSS change is safe for all rows",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": null,
+          "line": null,
+          "finding": "The hook never keeps a stale answer",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "boundary & contract",
+          "file": null,
+          "line": null,
+          "finding": "Absolute path probe equals relative",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-02T22:32:23.070765+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T22:35:05.005434+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T22:28:43.953624+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T22:35:05.005434+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-02T22:35:05.005434+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}
