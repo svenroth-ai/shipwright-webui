@@ -55,9 +55,9 @@ test.describe("V1 — Mission chat readability", () => {
     await expect(feed).toContainText(TAIL);
     await expect(feed.getByRole("button", { name: "Show more" })).toHaveCount(0);
 
-    // Chat type scale: 15px.
+    // Chat type scale: 14px (polish: one step down from 15).
     const agentCard = feed.locator(".mc-feed-entry:not([data-entry-kind='user']) .mc-feed-card", { hasText: "long paragraph" }).first();
-    expect(await agentCard.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBe(15);
+    expect(await agentCard.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBe(14);
 
     // Spacing: 28px between turns, 36px total on a speaker change.
     const entries = feed.locator(".mc-feed-entry");

@@ -1,0 +1,6 @@
+{"section":"iterate-2026-11-02-mission-style-v2-visual-polish","verdict":"PASS (no blocking findings)","review":[
+{"severity":"medium","category":"correctness","finding":"Warn pill contrast in the Files & Terminal Info card unverified. Resolution: verified by screenshot, ft-card is reset to the light token set (warn #B54708 on #FFFAEB, about 5.5:1)."},
+{"severity":"low","category":"correctness","finding":"Gutter count in layout math. Resolution: both handles stay rendered (only hidden in compact/maximized), so 2 gutters is exact."},
+{"severity":"low","category":"correctness","finding":"Agents window could outlive a hidden Files & Terminal tab. Fixed: effect closes it when visible turns false."},
+{"severity":"low","category":"readability","finding":"Splitter focus indicator weak on the 5px bar. Fixed: bar gets a filled background on focus-visible plus the ring."},
+{"severity":"low","category":"readability","finding":"V10 e2e scoping/flake note. Kept scoped locators; no change."}]}

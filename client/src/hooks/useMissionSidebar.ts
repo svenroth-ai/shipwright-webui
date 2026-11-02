@@ -10,11 +10,15 @@ export type MissionSidebarSegment = "info" | "folders" | "viewer";
 
 export const SIDEBAR_MIN = 240;
 export const SIDEBAR_MAX = 560;
-export const SIDEBAR_DEFAULT = 320;
+export const SIDEBAR_DEFAULT = 400; // = useThreePaneLayout DEFAULT_RIGHT (column x parity with Files & Terminal)
 const KEY = "shipwright:mission-sidebar";
+/** The pre-polish default. Every segment/collapse change persisted it, so a stored 320 WITHOUT `widthSet` means "never dragged". */
+const LEGACY_DEFAULT = 320;
 
 interface Stored {
   width: number;
+  /** True once the user chose a width (drag / keyboard): then even 320 is a deliberate preference. */
+  widthSet?: boolean;
   collapsed: boolean;
   segment: MissionSidebarSegment;
 }
@@ -30,7 +34,8 @@ function read(): Stored {
     if (!raw) return fallback;
     const p = JSON.parse(raw) as Partial<Stored>;
     return {
-      width: typeof p.width === "number" ? clampSidebarWidth(p.width) : fallback.width,
+      width: typeof p.width === "number" && (p.widthSet === true || p.width !== LEGACY_DEFAULT) ? clampSidebarWidth(p.width) : fallback.width,
+      widthSet: p.widthSet === true,
       collapsed: p.collapsed === true,
       segment: p.segment === "folders" || p.segment === "viewer" ? p.segment : "info",
     };
@@ -56,7 +61,7 @@ export function useMissionSidebar() {
 
   return {
     ...state,
-    setWidth: (w: number) => update({ width: clampSidebarWidth(w) }),
+    setWidth: (w: number) => update({ width: clampSidebarWidth(w), widthSet: true }),
     setCollapsed: (collapsed: boolean) => update({ collapsed }),
     setSegment: (segment: MissionSidebarSegment) => update({ segment }),
   };

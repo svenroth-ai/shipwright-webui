@@ -8,6 +8,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { AgentsDock } from "./AgentsDock";
+import { AgentsPill } from "./AgentsPill";
 import { useMissionAgents } from "../../../hooks/useMissionAgents";
 import type { ExternalTask } from "../../../lib/externalApi";
 
@@ -26,6 +27,7 @@ function Harness({ openId }: { openId?: string }) {
     <>
       <button data-testid="open-bar" onClick={() => c.openFor()}>bar</button>
       <button data-testid="open-card" onClick={() => c.openFor(openId)}>card</button>
+      <AgentsPill controller={c} />
       <AgentsDock task={task} controller={c} />
     </>
   );

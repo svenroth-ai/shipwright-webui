@@ -1,16 +1,16 @@
 /* FileTree — shared tree (Mission Folders + Files & Terminal), row actions menu
    and touch bottom sheet. mission-desktop-style-v2 V5 (mockup Board 8 / 12). */
 
-.ft-tree { font-size: 15px; }
+.ft-tree { font-size: var(--fs-row); } /* polish: same type step as the Environment rows */
 .ft-row { position: relative; }
 .ft-flat, .ft-files { position: relative; }
 .ft-guide { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); pointer-events: none; }
 .ft-node { -webkit-touch-callout: none; user-select: none; }
-.ft-node > svg { width: 17px; height: 17px; }
+.ft-node > svg { width: 15px; height: 15px; }
 .ft-node {
-  display: flex; width: 100%; align-items: center; gap: 8px; min-height: 28px;
+  display: flex; width: 100%; align-items: center; gap: 7px; min-height: 26px;
   padding-top: 2px; padding-bottom: 2px; padding-right: 36px; border-radius: 8px;
-  text-align: left; color: var(--ink); font-size: 15px; cursor: pointer;
+  text-align: left; color: var(--ink); font-size: var(--fs-row); cursor: pointer;
 }
 .ft-node:hover { background: var(--accent-tint); }
 .ft-node.sel { background: var(--accent-tint); font-weight: 500; }

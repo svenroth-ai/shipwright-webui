@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { AgentsDock } from "./AgentsDock";
+import { AgentsPill } from "./AgentsPill";
 import { useMissionAgents } from "../../../hooks/useMissionAgents";
 import type { ExternalTask } from "../../../lib/externalApi";
 import type { ActivityCard } from "../../../lib/missionActivityFeed";
@@ -23,6 +24,7 @@ function Harness({ openId, cards }: { openId?: string; cards?: ActivityCard[] })
   return (
     <>
       <button data-testid="card-open" onClick={() => c.openFor(openId)}>card</button>
+      <AgentsPill controller={c} />
       <AgentsDock task={task} controller={c} />
     </>
   );
@@ -46,8 +48,13 @@ beforeEach(() => {
 
 // @covers FR-01.66
 describe("AgentsDock", () => {
-  it("is hidden when no agent is running", async () => {
+  it("with only finished agents the Agents row says 'None running' (still opens the window); with no agent at all there is no row", async () => {
     subagents = [sub({ agentId: "a1" })];
+    const { unmount } = mount();
+    expect(await screen.findByTestId("agents-bar-button")).toHaveTextContent("None running");
+    expect(screen.getByTestId("agents-bar")).toHaveTextContent("Agents");
+    unmount();
+    subagents = [];
     mount();
     await waitFor(() => expect(fetch).toHaveBeenCalled());
     expect(screen.queryByTestId("agents-bar")).toBeNull();

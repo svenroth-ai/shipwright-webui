@@ -28,6 +28,7 @@ import { useProject } from "../../../hooks/useProjects";
 import { FolderTree } from "../FolderTree";
 import { SmartViewer } from "../SmartViewer";
 import { ViewerTabBar } from "../SmartViewer/ViewerTabBar";
+import type { MissionAgents } from "../../../hooks/useMissionAgents";
 import { MissionInfoPanel } from "./MissionInfoPanel";
 import { MissionSegmented } from "./MissionSegmented";
 
@@ -52,6 +53,8 @@ interface Props {
    *  same target re-open the Viewer after the user switched away. */
   request?: { target: ViewerTarget; nonce: number } | null;
   embed?: SidebarEmbed;
+  /** The Agents controller behind the Environment card's "Agents" pill (Mission: MissionBody's; Files & Terminal: its own). */
+  agents?: MissionAgents;
 }
 
 const OPTIONS = [
@@ -65,7 +68,7 @@ const EMBED_OPTIONS = OPTIONS.filter((o) => o.value !== "folders").map((o) => ({
   testId: o.testId.replace("mission-side", "ft-side"),
 }));
 
-export function MissionInfoSidebar({ task, compact, visible = true, request = null, embed }: Props) {
+export function MissionInfoSidebar({ task, compact, visible = true, request = null, embed, agents }: Props) {
   const layout = useMissionSidebar();
   const embedRef = useRef(embed);
   embedRef.current = embed;
@@ -175,7 +178,7 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
       value={seg}
       onChange={setSeg}
       ariaLabel="Info sidebar sections"
-      variant={embed ? "ft-seg" : "default"}
+      variant="ft-seg"
     />
   );
 
@@ -194,7 +197,7 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
         )}
         {visible && seg === "info" && (
           <div className="mc-side-body" data-testid="ft-side-body-info">
-            <MissionInfoPanel task={task} onOpenOutput={openTarget} active={visible} />
+            <MissionInfoPanel task={task} onOpenOutput={openTarget} active={visible} agents={agents} />
           </div>
         )}
         {visible && seg === "viewer" && (
@@ -239,7 +242,7 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
         aria-label="Session info"
         data-testid="mission-side"
       >
-        <div className="mc-side-head">
+        <div className="ft-head mc-side-head" data-testid="mission-side-head">
           {segmented}
           {!compact && (
             <button
@@ -254,7 +257,7 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
           )}
         </div>
         <div className="mc-side-body" data-testid={`mission-side-body-${seg}`}>
-          {seg === "info" && <MissionInfoPanel task={task} onOpenOutput={openTarget} active={visible} />}
+          {seg === "info" && <MissionInfoPanel task={task} onOpenOutput={openTarget} active={visible} agents={agents} />}
           {seg === "folders" && visible && (
             <FolderTree projectId={task.projectId} selectedPath={target?.outside ? null : (target?.path ?? null)} onSelect={(p) => openTarget({ path: p, outside: false })} projectRoot={projectRoot} label={project?.name ?? null} />
           )}

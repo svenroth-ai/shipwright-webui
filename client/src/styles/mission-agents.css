@@ -1,14 +1,9 @@
-/* M4: Mission "Agents" bar + modal window. The window is portaled to <body>,
+/* M4: Mission "Agents" modal window (its pill lives in the Info sidebar Environment card, .env-pill-btn). The window is portaled to <body>,
    OUTSIDE .on-photo, so it uses the root (light) tokens. Entrance motion is an
    enhancement under no-preference only; the resting style is the final state.
    V3 (campaign mission-desktop-style-v2, Boards 4-6): grey list column with a strong divider,
    50px rows, >=13px text, a status dot only for RUNNING agents, and the transcript rendered by
    the Mission chat's own feed classes on a light token set (.ag-feed). */
-.mc-agents-bar { flex: 0 0 auto; display: flex; padding-top: 8px; }
-.mc-agents-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--warn-line); background: var(--warn-tint); color: var(--warn); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-.mc-agents-chip:hover { border-color: currentColor; }
-.mc-agents-chip:focus-visible { outline: none; box-shadow: var(--focus); }
-@media (pointer: coarse) { .mc-agents-chip { min-height: 44px; } }
 
 .ag-overlay { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, .4); }
 .ag-window, .artifact {

@@ -167,7 +167,7 @@ function touch44(selector: string): boolean {
 describe("4. 44px touch targets on a coarse pointer", () => {
   // @covers FR-01.66
   it.each([
-    ".mc-agents-chip",
+    ".env-pill-btn",
     ".ag-icon-btn",
     ".ag-tab",
     ".tr-btn",

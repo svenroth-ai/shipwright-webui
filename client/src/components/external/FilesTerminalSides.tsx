@@ -6,12 +6,15 @@
  * heads are the shared 46px `.ft-head` band; the terminal in the middle is
  * composed by the page and untouched.
  */
+import { useEffect } from "react";
 import type { ExternalTask } from "../../lib/externalApi";
 import type { ViewerTarget } from "../../lib/viewerTarget";
 import { UNASSIGNED_PROJECT_ID } from "../../lib/projectIds";
 import { useProject } from "../../hooks/useProjects";
 import { FolderTree } from "./FolderTree";
 import { useFocusMode } from "./focus-mode-context";
+import { useMissionAgents } from "../../hooks/useMissionAgents";
+import { AgentsDock } from "./mission/AgentsDock";
 import { MissionInfoSidebar } from "./mission/MissionInfoSidebar";
 import type { RightSegment } from "./PaneTabBar";
 
@@ -52,6 +55,10 @@ interface ViewCardProps {
 
 export function ViewCard({ task, compact, visible, segment, onSegmentChange, request, onActivePathChange }: ViewCardProps) {
   const { viewer, sidebar } = useFocusMode();
+  // The Environment card's "Agents" pill (shared Info sidebar) needs its own controller here; no chat cards in this tab.
+  const agents = useMissionAgents(visible ? task.taskId : null, task.state); // no scan for a tab nobody sees
+  const closeAgents = agents.setOpen;
+  useEffect(() => { if (!visible) closeAgents(false); }, [visible, closeAgents]); // a window never outlives its tab
   // Tablet hides the card through the viewer toggle; desktop through the sidebar collapse.
   const onCollapse = viewer.available ? viewer.toggle : sidebar.available ? sidebar.toggle : undefined;
   return (
@@ -62,7 +69,9 @@ export function ViewCard({ task, compact, visible, segment, onSegmentChange, req
         visible={visible}
         request={request}
         embed={{ segment, onSegmentChange, headless: compact, onCollapse, onActivePathChange }}
+        agents={agents}
       />
+      <AgentsDock task={task} controller={agents} />
     </aside>
   );
 }

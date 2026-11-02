@@ -130,7 +130,7 @@ describe("MissionInfoSidebar", () => {
   it("resizes via keyboard (persisted) and collapses", () => {
     mount();
     fireEvent.keyDown(screen.getByTestId("mission-side-splitter"), { key: "ArrowLeft" });
-    expect(JSON.parse(localStorage.getItem("shipwright:mission-sidebar")!).width).toBe(330);
+    expect(JSON.parse(localStorage.getItem("shipwright:mission-sidebar")!).width).toBe(410);
     fireEvent.click(screen.getByTestId("mission-side-collapse"));
     expect(screen.getByTestId("mission-side-expand")).toBeInTheDocument();
     expect(screen.queryByTestId("mission-side")).toBeNull();
@@ -191,11 +191,11 @@ describe("MissionInfoSidebar", () => {
     mount();
     fireEvent.keyDown(screen.getByTestId("mission-side-splitter"), { key: "ArrowLeft" });
     const saved = localStorage.getItem("shipwright:mission-sidebar");
-    expect(saved).toContain("330");
+    expect(saved).toContain("410");
     // Re-mounting (what closing an artifact card does to the row) restores the user's width.
     cleanup();
     mount();
-    expect(screen.getByTestId("mission-side").style.width).toBe("330px");
+    expect(screen.getByTestId("mission-side").style.width).toBe("410px");
     expect(localStorage.getItem("shipwright:mission-sidebar")).toBe(saved);
   });
 

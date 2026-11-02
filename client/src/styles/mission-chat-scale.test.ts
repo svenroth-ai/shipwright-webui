@@ -20,8 +20,8 @@ describe("mission chat scale (V1)", () => {
     expect(chat).toMatch(/--gap-turn: 28px/);
     expect(chat).toMatch(/--gap-switch: 36px/);
     expect(chat).toMatch(/--gap-block: 12px/);
-    expect(chat).toMatch(/--fs-chat: 15px/);
-    expect(chat).toMatch(/--fs-small: 13px/);
+    expect(chat).toMatch(/--fs-chat: 14px/);
+    expect(chat).toMatch(/--fs-small: 12px/);
   });
   // @covers FR-01.66
   it("uses no font-size below 12px in the chat stylesheet", () => {

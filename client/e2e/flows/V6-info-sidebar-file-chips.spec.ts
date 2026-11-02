@@ -139,14 +139,14 @@ test.describe("V6 — info sidebar, Outputs and chat file chips", () => {
       });
       expect(st).toEqual({ size: "12px", weight: "600", tt: "uppercase" });
     }
-    // Refresh sits in the FIRST heading; tabs use the same .mc-tabs trough as Mission | Files & Terminal.
+    // Refresh sits in the FIRST heading; the tabs are the Files & Terminal ones (.ft-seg in the 46px .ft-head band).
     await expect(heads.first().getByTestId("env-refresh")).toBeVisible();
     await expect(page.getByTestId("mission-side").locator(".mc-tabs")).toBeVisible();
-    await expect(page.getByTestId("mission-side").locator(".mc-tabs.ft-seg")).toHaveCount(0);
+    await expect(page.getByTestId("mission-side").locator(".ft-head .mc-tabs.ft-seg")).toHaveCount(1);
     const row = await page.getByTestId("env-computer").boundingBox();
-    expect(row!.height).toBeGreaterThanOrEqual(38);
+    expect(row!.height).toBeGreaterThanOrEqual(34);
     const out = await page.getByTestId("env-output").first().boundingBox();
-    expect(out!.height).toBeGreaterThanOrEqual(40);
+    expect(out!.height).toBeGreaterThanOrEqual(30);
   });
 
   // @covers FR-01.66
