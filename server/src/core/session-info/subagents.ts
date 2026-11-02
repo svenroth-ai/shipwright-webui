@@ -70,10 +70,16 @@ export async function buildSubagents(
     const lastTs = facts?.lastTs ?? null;
     const tr = toolUseId && !tu?.background ? results.get(toolUseId) : undefined;
     const doneAt = Date.parse(n?.at ?? tr?.at ?? "");
-    // A resumed agent keeps writing after its earlier notification: it is running again.
-    const resumed = !!(n || tr) && !!lastTs && Number.isFinite(doneAt) && Date.parse(lastTs) > doneAt + RESUME_SLACK_MS;
+    // A resumed agent keeps writing after its earlier notification: it is running again,
+    // but only while its file is still being written. A quiet resumed agent has the same
+    // staleness budget as any other (otherwise a finished agent that wrote once after its
+    // notification would show as running forever).
     const staleMs = facts && facts.pendingUse.size > 0 ? SUBAGENT_PENDING_STALE_MS : SUBAGENT_STALE_MS;
-    const state = resumed ? "running" : n || tr ? "finished" : now - file.mtimeMs > staleMs ? "finished-stale" : "running";
+    const quiet = now - file.mtimeMs > staleMs;
+    const resumedAfterNotice =
+      !!(n || tr) && !!lastTs && Number.isFinite(doneAt) && Date.parse(lastTs) > doneAt + RESUME_SLACK_MS;
+    const resumed = resumedAfterNotice && !quiet;
+    const state = resumed ? "running" : resumedAfterNotice ? "finished-stale" : n || tr ? "finished" : quiet ? "finished-stale" : "running";
     const status = resumed ? null : n?.status ?? (tr ? (tr.isError ? "failed" : (tr.status ?? "completed")) : null);
     const wall =
       startedAt && lastTs && Date.parse(lastTs) >= Date.parse(startedAt) ? Date.parse(lastTs) - Date.parse(startedAt) : null;

@@ -146,6 +146,8 @@ export interface ActivityCard {
   handbackSender?: string;
   handbackOrigin?: "subagent" | "session" | "coordinator";
   handbackTitle?: string;
+  /** `kind: "system"` compaction row only: the summary of the earlier conversation (shown behind "Show summary"). */
+  compactSummary?: string;
 }
 
 export interface ActivityFeed {

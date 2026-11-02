@@ -1,0 +1,105 @@
+{
+  "last_updated": "2026-11-02",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-02-mission-viewer-routing-polish",
+    "date": "2026-11-02",
+    "unit": {
+      "status": "passed",
+      "passed": 9819,
+      "total": 9834,
+      "skipped": 15
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 53,
+      "total": 61,
+      "skipped": 8
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "run_id": "iterate-2026-11-02-mission-viewer-routing-polish",
+      "behaviors": [
+        {
+          "behavior": "Viewer tab is capped at a max width, label ellipsis, full path in tooltip, close button reachable, short names natural width",
+          "disposition": "tested",
+          "evidence": "ViewerTabBar.test.tsx class fence PASSED; V10 e2e tab width <=201px, ellipsis, title, close inside tab, short tab narrower PASSED"
+        },
+        {
+          "behavior": "Mission Info sidebar Viewer shows open-file tabs; chip, Outputs row and Folders tree all land in its own Viewer; no second pane",
+          "disposition": "tested",
+          "evidence": "V10 e2e entry-points test PASSED (3 tabs, one tab bar, one smart-viewer, Files&Terminal card hidden, detail panel empty); V6 e2e PASSED"
+        },
+        {
+          "behavior": "Resumed subagent whose file went quiet is finished-stale (not running); still-writing resumed stays running; not-resumed finished",
+          "disposition": "tested",
+          "evidence": "subagents.resumed.test.ts 3 PASSED; session-info.test.ts PASSED"
+        },
+        {
+          "behavior": "Client Agents list/pill/count read the same state field",
+          "disposition": "tested",
+          "evidence": "agentsTree.test.ts PASSED (unchanged; state values identical)"
+        },
+        {
+          "behavior": "Compaction summary becomes one system row with summary attached; never a user card; flag + fingerprint detection",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedCompaction.test.ts 6 PASSED"
+        },
+        {
+          "behavior": "Compaction row collapsed by default, Show/Hide summary, markdown when open, aria-expanded",
+          "disposition": "tested",
+          "evidence": "CompactionAndCap.test.tsx PASSED; V10 e2e compaction test PASSED"
+        },
+        {
+          "behavior": "Hand-back and subrunner report capped with fade and Show more/less only on overflow; focus inside opens it",
+          "disposition": "tested",
+          "evidence": "CompactionAndCap.test.tsx 4 PASSED; V10 e2e hand-back cap PASSED; mission-result.test.ts fence PASSED"
+        },
+        {
+          "behavior": "Pixel-level look of the capped fade and compaction row",
+          "disposition": "untestable",
+          "evidence": "requires-manual-visual-judgment: author-checked via e2e geometry only",
+          "reason_code": "requires-manual-visual-judgment",
+          "reason": "visual taste of the fade strength is a human judgment"
+        }
+      ],
+      "counts": {
+        "testable": 7,
+        "tested": 7,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/V10-mission-viewer-routing-compaction-cap.spec.ts client/e2e/flows/V6-info-sidebar-file-chips.spec.ts client/e2e/flows/V2-mission-handback-result-subrunner.spec.ts",
+      "exit_code": 0,
+      "tests_run": 12,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\mission-viewer-routing-polish\\.shipwright\\runs\\iterate-2026-11-02-mission-viewer-routing-polish\\surface_verification.log",
+      "timestamp": "2026-11-02T11:20:41.550Z",
+      "attempts": 1
+    }
+  }
+}

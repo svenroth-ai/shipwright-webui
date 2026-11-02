@@ -5,7 +5,6 @@ import { detectHandback, handbackFromAttachment, type HandbackOrigin } from "./p
 import { extractSkillBody } from "./parsers/skill-body";
 
 export { extractSkillBody };
-
 /*
  * POC vertical slice — client-side session JSONL parser.
  *
@@ -54,6 +53,7 @@ export interface UserEvent extends BaseEvent {
   content: unknown;
   /** Only the `answers` + `annotations` maps of the top-level `toolUseResult` sidecar (AskUserQuestion); other tool payloads are not kept. */
   toolUseResult?: unknown;
+  isCompactSummary?: boolean; // compaction summary record (parsers/compact-summary.ts)
 }
 
 /**
@@ -372,7 +372,7 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
       // Last: the most permissive fingerprint (see parsers/handback.ts).
       const handback = detectHandback(content, raw.isSidechain === true);
       if (handback) return { ...base, kind: "handback", ...handback };
-      return { ...base, kind: "user", content, ...(typeof (raw.toolUseResult as { answers?: unknown } | null)?.answers === "object" && { toolUseResult: { answers: (raw.toolUseResult as { answers: unknown }).answers, annotations: (raw.toolUseResult as { annotations?: unknown }).annotations } }) };
+      return { ...base, kind: "user", content, ...(raw.isCompactSummary === true && { isCompactSummary: true }), ...(typeof (raw.toolUseResult as { answers?: unknown } | null)?.answers === "object" && { toolUseResult: { answers: (raw.toolUseResult as { answers: unknown }).answers, annotations: (raw.toolUseResult as { annotations?: unknown }).annotations } }) };
     }
     case "assistant":
       return {

@@ -101,6 +101,8 @@ export const INJECTED = [
   "<local-command-stdout>",
   "<local-command-stderr>",
   "This session is being continued from a previous conversation",
+  "<artifact-content-authored-by-others",
+  "The summarized conversation",
 ];
 // reclassification exists to avoid.
 

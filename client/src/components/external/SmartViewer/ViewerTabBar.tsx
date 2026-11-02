@@ -9,6 +9,10 @@
  * are sibling <button>s (not nested), so a close click never bubbles into
  * the tab button's own onClick — no stopPropagation needed.
  *
+ * Width: a tab is capped at `--vtb-tab-max` (200px); a longer file name is cut with an
+ * ellipsis and the FULL path rides in the `title` tooltip (the tab button's accessible
+ * name stays the full text). Short names keep their natural width.
+ *
  * Icon-by-extension is best-effort: uses the same lucide icon set as
  * FolderTree so the visual language is consistent.
  *
@@ -81,7 +85,7 @@ export function ViewerTabBar({ paths, activePath, onActivate, onClose }: Props) 
         return (
           <div
             key={p}
-            className={`vtb-tab group flex min-h-[40px] shrink-0 items-center gap-1 whitespace-nowrap border-b-2 pl-3 pr-1.5 font-mono text-[12px] transition ${
+            className={`vtb-tab group flex min-h-[40px] max-w-[var(--vtb-tab-max,200px)] shrink-0 items-center gap-1 whitespace-nowrap border-b-2 pl-3 pr-1.5 font-mono text-[12px] transition ${
               active
                 ? "border-[var(--color-primary,#6b5e56)] bg-[var(--color-surface,#ffffff)] text-[var(--color-primary,#6b5e56)]"
                 : "border-transparent text-[var(--color-muted,#6b7280)]"
@@ -94,17 +98,18 @@ export function ViewerTabBar({ paths, activePath, onActivate, onClose }: Props) 
               onClick={() => onActivate(p)}
               data-testid={`viewer-tab-${p}`}
               data-active={active || undefined}
-              className={`vtb-hit flex items-center gap-2 ${!active ? "hover:text-[var(--color-text,#1a1a1a)]" : ""}`}
+              title={p}
+              className={`vtb-hit flex min-w-0 items-center gap-2 ${!active ? "hover:text-[var(--color-text,#1a1a1a)]" : ""}`}
             >
               {iconFor(name)}
-              <span className="truncate">{name}</span>
+              <span className="truncate" data-testid="viewer-tab-label">{name}</span>
             </button>
             <button
               type="button"
               aria-label={`Close ${name}`}
               onClick={() => onClose(p)}
               data-testid={`viewer-tab-close-${p}`}
-              className="vtb-close flex h-[14px] w-[14px] items-center justify-center rounded-[3px] opacity-0 transition hover:bg-[var(--color-muted-bg,#ede8e1)] group-hover:opacity-60 hover:!opacity-100 focus-visible:opacity-100"
+              className="vtb-close flex h-[14px] shrink-0 w-[14px] items-center justify-center rounded-[3px] opacity-0 transition hover:bg-[var(--color-muted-bg,#ede8e1)] group-hover:opacity-60 hover:!opacity-100 focus-visible:opacity-100"
             >
               <X size={8} className="text-[var(--color-muted,#6b7280)]" />
             </button>

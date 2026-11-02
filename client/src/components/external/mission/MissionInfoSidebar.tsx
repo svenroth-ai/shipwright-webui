@@ -172,6 +172,18 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
   const viewer = (
     <SmartViewer projectId={task.projectId} path={target?.path ?? null} sessionTaskId={target?.outside ? task.taskId : undefined} line={target?.line} focusKey={focusKey} />
   );
+  // Opened files stay as tabs above the viewer, in BOTH hostings (Mission tab + Files & Terminal).
+  const viewerWithTabs = (
+    <>
+      <ViewerTabBar
+        paths={tabs.map((t) => t.path)}
+        activePath={target?.path ?? null}
+        onActivate={(p) => setTarget(tabs.find((x) => x.path === p) ?? target)}
+        onClose={closeTab}
+      />
+      <div className="min-h-0 flex-1">{viewer}</div>
+    </>
+  );
   const segmented = (
     <MissionSegmented
       options={options}
@@ -202,13 +214,7 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
         )}
         {visible && seg === "viewer" && (
           <div className="mc-side-flush" data-testid="ft-side-body-viewer">
-            <ViewerTabBar
-              paths={tabs.map((t) => t.path)}
-              activePath={target?.path ?? null}
-              onActivate={(p) => setTarget(tabs.find((x) => x.path === p) ?? target)}
-              onClose={closeTab}
-            />
-            <div className="min-h-0 flex-1">{viewer}</div>
+            {viewerWithTabs}
           </div>
         )}
       </aside>
@@ -256,12 +262,12 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
             </button>
           )}
         </div>
-        <div className="mc-side-body" data-testid={`mission-side-body-${seg}`}>
+        <div className={seg === "viewer" ? "mc-side-flush" : "mc-side-body"} data-testid={`mission-side-body-${seg}`}>
           {seg === "info" && <MissionInfoPanel task={task} onOpenOutput={openTarget} active={visible} agents={agents} />}
           {seg === "folders" && visible && (
             <FolderTree projectId={task.projectId} selectedPath={target?.outside ? null : (target?.path ?? null)} onSelect={(p) => openTarget({ path: p, outside: false })} projectRoot={projectRoot} label={project?.name ?? null} />
           )}
-          {seg === "viewer" && visible && viewer}
+          {seg === "viewer" && visible && viewerWithTabs}
         </div>
       </aside>
     </>

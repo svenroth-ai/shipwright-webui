@@ -17,6 +17,7 @@ import { ExpandToggle, mergeStateLabel, pillLabel } from "./MissionActivityFeedC
 import { stripDuplicateSentence } from "../../../lib/missionActivityFeedText";
 import { HandbackCard } from "../HandbackCard";
 import { SubrunnerRow } from "./SubrunnerRow";
+import { CompactionRow } from "./CompactionRow";
 
 export function FeedCard({
   card,
@@ -45,12 +46,14 @@ export function FeedCard({
   if (card.kind === "subrunner") {
     return <SubrunnerRow card={card} onSubrunnerClick={onSubrunnerClick} canOpenAgent={canOpenAgent} />;
   }
+  if (card.kind === "system") return <CompactionRow card={card} />;
   if (card.kind === "handback") {
     const sender = card.handbackSender ?? "";
     return (
       <HandbackCard
         className="mc-feed-card"
         tableWrap
+        capped
         origin={card.handbackOrigin ?? "session"}
         sender={sender}
         text={card.text}

@@ -1,0 +1,12 @@
+{
+  "items": [
+    { "name": "spec_compliance", "verdict": "pass", "note": "All five requested changes are implemented: viewer tab max width (ViewerTabBar), Mission sidebar gets the open-file tab bar so chips/Outputs/Folders all land in its own Viewer, resumed-agent staleness (subagents.ts), compaction summary as a collapsed system row, hand-back/subrunner report height cap. Deviation recorded: the left-pane Spec/Tests/... artifacts are structured detail cards fetched by opaque document id (no file path), so they stay in their detail panel." },
+    { "name": "error_handling", "verdict": "pass", "note": "CappedBody falls back to a one-shot measure when ResizeObserver is absent; compact-summary extraction is total (returns empty string for non-text content, caps at 60k chars); resumed-agent branch still yields finished when notification data exists." },
+    { "name": "security_basics", "verdict": "pass", "note": "Summary and report text render through the existing safe MarkdownChunk path (no raw HTML); no new routes, no file paths exposed, no new write surface; ~/.claude stays read-only." },
+    { "name": "test_quality", "verdict": "pass", "note": "Server: 3 tests incl. resumed+stale, resumed+active, not-resumed. Client: feed derivation (6), CompactionRow/CappedBody/HandbackCard (5), ViewerTabBar class fence; real-browser E2E V10 (3 tests) proves routing, tab width/ellipsis/tooltip, compaction toggle, hand-back cap through the real JSONL->DOM chain." },
+    { "name": "performance_basics", "verdict": "pass", "note": "CappedBody observes one element; compaction summary body mounts only while open; no polling added." },
+    { "name": "naming_structure", "verdict": "pass", "note": "New code lives in new files (compact-summary.ts, missionActivityFeedCompaction.ts, CompactionRow.tsx, CappedBody.tsx); session-parser.ts stays at its 775-line baseline (net 0 lines); all touched files under 300 lines." },
+    { "name": "affected_boundaries", "verdict": "pass", "note": "Read-only JSONL boundary: UserEvent gains an optional isCompactSummary flag copied from the CLI record; unknown/absent flag is handled by a framing fingerprint fallback. SessionSubagent shape unchanged (state values identical, only the resumed+quiet case now resolves to finished-stale)." },
+    { "name": "test_hygiene_probe", "verdict": "pass", "note": "No skipped tests, no sleeps; E2E waits on web-first assertions." }
+  ]
+}
