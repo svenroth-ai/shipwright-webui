@@ -43,7 +43,7 @@ function payload(cwd: string) {
 
 interface Cols { x: number[]; gaps: number[] }
 async function columns(page: Page, ids: string[]): Promise<Cols> {
-  const boxes = [];
+  const boxes: { x: number; width: number }[] = [];
   for (const sel of ids) boxes.push((await page.locator(sel).first().boundingBox())!);
   return {
     x: boxes.map((b) => Math.round(b.x * 10) / 10),
