@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-03-terminal-wrapped-path-links",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T08:29:52.477644+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T08:41:04.393382+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/terminal/terminalLogicalLine.ts",
+          "line": 72,
+          "finding": "False-positive hard merge of two relative paths on adjacent rows when the first fills the last column.",
+          "suggestion": "Reject the join when the tail already ends in a file extension and the head carries a separator.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/terminal/terminalLogicalLine.ts",
+          "line": 110,
+          "finding": "No test pins the 20/21 row boundary.",
+          "suggestion": "Add boundary tests.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/components/terminal/terminalLogicalLine.ts",
+          "line": 93,
+          "finding": "Row cache per call; acceptable.",
+          "suggestion": "No change.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/terminal/terminalLogicalLine.test.ts",
+          "line": 105,
+          "finding": "Missing tests: soft-wrap empty last cell, wide char at link end.",
+          "suggestion": "Add.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/e2e/flows/109-terminal-wrapped-file-links.spec.ts",
+          "line": 96,
+          "finding": "Soft-wrap E2E should assert isWrapped so it cannot silently degrade into the hard case.",
+          "suggestion": "Assert buffer isWrapped.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-03T08:31:51.080281+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/components/terminal/terminalLogicalLine.ts:91-92",
+          "line": null,
+          "finding": "Claim under doubt: A tail that already ends in a named extension is never merged with the next row — Full-width row 'docs/planning/specs/a.md' followed by '  b.md is stale': head has no separator so the guard is skipped and the joined text 'a.mdb.md' replaces the valid link.",
+          "suggestion": "If the tail ends in a named extension, return false regardless of the head. RESOLUTION: fixed.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "client/src/components/terminal/terminalFileLinkProvider.ts:72",
+          "line": null,
+          "finding": "Claim under doubt: Hard-join range mapping only affects the path — Skipped indent cells on the continuation row fall inside the contiguous multi-row range, so the underline/hit area starts at the left edge.",
+          "suggestion": "Accept and document. RESOLUTION: accepted.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": "client/src/components/terminal/terminalLogicalLine.ts:123",
+          "line": null,
+          "finding": "Claim under doubt: A MAX_ROWS overflow degrades safely — Over the cap the hovered row gets no links at all, even a short path on a row inside a long wrapped blob.",
+          "suggestion": "Fall back to the hovered row alone. RESOLUTION: fixed.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-03T08:35:52.479487+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T08:41:04.393382+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T08:30:34.611501+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T08:41:04.393382+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T08:41:04.393382+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

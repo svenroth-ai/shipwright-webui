@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"FR-01.28: a path wrapped over rows is ONE link; soft wrap (isWrapped) already joined since #562, now the app hard-wrap (Claude TUI newline at the last column) is joined by a conservative heuristic."},
+{"name":"Error Handling","verdict":"pass","note":"Pure read-only buffer scan; missing rows return undefined, row cap 20 returns no links."},
+{"name":"Security Basics","verdict":"pass","note":"No I/O added; activation and probe unchanged and run on the joined path through the same guards."},
+{"name":"Test Quality","verdict":"pass","note":"9 unit tests (hard wrap, 3 rows, wide char, adjacent paths, prose/URL/indent negatives, soft wrap exact width, 3-row soft, cap) + 5 real-browser specs (soft/hard, row 1/2, Mission chip)."},
+{"name":"Performance Basics","verdict":"pass","note":"Row cells cached per call, walk bounded by 20 rows, only on hover of a row."},
+{"name":"Naming & Structure","verdict":"pass","note":"Scan extracted to terminalLogicalLine.ts; provider shrank to 89 lines; EmbeddedTerminal.tsx untouched."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No serialized format touched."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"No skips, no only."}
+]}

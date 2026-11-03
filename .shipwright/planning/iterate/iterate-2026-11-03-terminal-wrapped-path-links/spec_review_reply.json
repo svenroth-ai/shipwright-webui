@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"All nine requirements met (one logical-line link over rows, soft wrap always joined, hard wrap only via isHardJoin, 20-row cap, adjacent paths/prose not merged, wide chars, click guards unchanged, unit + E2E present, URLs stay with WebLinksAddon, read-only provider)."}
