@@ -15,7 +15,8 @@ import type { Terminal } from "@xterm/xterm";
 
 import type { FileOpenValue } from "../external/FileOpenContext";
 import { isRefusedBySession } from "../../lib/sessionFileApi";
-import { probePath } from "../../lib/pathProbe";
+import { COARSE_POINTER_QUERY } from "../../hooks/useIsCompactViewport";
+import { peekProbe, probePath } from "../../lib/pathProbe";
 import { resolveViewerTarget, type FileRef } from "../../lib/viewerTarget";
 import { createClickGuard, createFileLinkProvider } from "./terminalFileLinkProvider";
 import type { ClipboardNoticeKind } from "./terminal-clipboard";
@@ -38,15 +39,38 @@ export async function openTerminalFileLink(
   fileOpen.open(target);
 }
 
-/** One verdict per ref: false only when the server says the Viewer cannot open it (unknown / not ready / no target = keep). */
-export async function probeTerminalRefs(refs: FileRef[], taskId: string, fileOpen: FileOpenValue | undefined): Promise<boolean[]> {
+/**
+ * One verdict per ref: false only when the server says the Viewer cannot open it (unknown / not ready / no target = keep).
+ *
+ * `optimistic` (touch devices): a tap fires mousemove -> mousedown -> mouseup within milliseconds with no hover
+ * before it, so waiting for the probe round trip would leave xterm without a link at mouseup and the FIRST tap on
+ * a path would do nothing. There the answer comes from the cache only (a fresh "no" hides the link, anything
+ * else keeps it) and an unknown path is probed in the background for the next look; a dead path then opens the
+ * Viewer, which reports the real state (the same fail-open as an unknown probe answer).
+ */
+export async function probeTerminalRefs(
+  refs: FileRef[],
+  taskId: string,
+  fileOpen: FileOpenValue | undefined,
+  optimistic = false,
+): Promise<boolean[]> {
   if (!fileOpen || fileOpen.ready === false) return refs.map(() => true);
   return Promise.all(
     refs.map(async (ref) => {
       const target = resolveViewerTarget(ref, fileOpen.projectRoot, fileOpen.cwd ?? null);
-      return !target || (await probePath(taskId, target.path)) !== "no";
+      if (!target) return true;
+      if (optimistic) {
+        const known = peekProbe(taskId, target.path);
+        if (!known) void probePath(taskId, target.path);
+        return known !== "no";
+      }
+      return (await probePath(taskId, target.path)) !== "no";
     }),
   );
+}
+
+function isCoarsePointer(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(COARSE_POINTER_QUERY).matches;
 }
 
 export function useTerminalFileLinks(
@@ -76,7 +100,7 @@ export function useTerminalFileLinks(
         guard.isClick,
         (refs) => {
           const c = latest.current;
-          return probeTerminalRefs(refs, c.taskId, c.fileOpen);
+          return probeTerminalRefs(refs, c.taskId, c.fileOpen, isCoarsePointer());
         },
       ),
     );

@@ -1,0 +1,78 @@
+{
+  "last_updated": "2026-11-03",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-03-e2e106-probe-expectations",
+    "date": "2026-11-03",
+    "unit": {
+      "status": "passed",
+      "passed": 4978,
+      "total": 4978,
+      "skipped": 0
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 12,
+      "total": 12,
+      "skipped": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "run_id": "iterate-2026-11-03-e2e106-probe-expectations",
+      "counts": {
+        "testable": 3,
+        "tested": 3,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      },
+      "behaviors": [
+        {
+          "behavior": "Unevidenced outside path is not a link: server probe says openable:false (true for the evidenced sibling), click opens nothing, no notice, no viewer",
+          "disposition": "tested",
+          "evidence": "106 e2e 'outside file NOT evidenced' PASSED"
+        },
+        {
+          "behavior": "Touch: first tap on a not-yet-probed path opens the file (optimistic cache-only answer + background probe)",
+          "disposition": "tested",
+          "evidence": "106 e2e phone test PASSED on first tap (failed before the fix); probe unit test optimistic case PASSED"
+        },
+        {
+          "behavior": "Desktop keeps waiting for the probe; dead paths are still not links; evidenced outside + project file links still open",
+          "disposition": "tested",
+          "evidence": "terminalFileLinkProvider.probe.test.ts PASSED; 106 desktop tests + 109 + V11 e2e PASSED (18/18)"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/106-terminal-file-links.spec.ts client/e2e/flows/109-terminal-wrapped-file-links.spec.ts",
+      "exit_code": 0,
+      "tests_run": 12,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\e2e106-probe-expectations\\.shipwright\\runs\\iterate-2026-11-03-e2e106-probe-expectations\\surface_verification.log",
+      "timestamp": "2026-11-03T19:02:20.410Z",
+      "attempts": 1
+    }
+  }
+}

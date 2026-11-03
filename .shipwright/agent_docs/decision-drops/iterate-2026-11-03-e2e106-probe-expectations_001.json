@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-03-e2e106-probe-expectations",
+  "date": "2026-11-03",
+  "section": "Iterate - bug: terminal file links first tap on touch and spec 106 expectations",
+  "title": "Terminal file links: touch answers from the probe cache, spec 106 asserts post-565 behaviour",
+  "context": "PR #565 made terminal file links wait for an async openable probe. A touch tap has no hover before mousedown/up, so the first tap on an unprobed path found no link and opened nothing (spec 106 phone test). The unevidenced-outside test still expected the pre-565 notice.",
+  "decision": "On a coarse pointer the link provider answers from the probe cache only (fresh no hides, unknown stays a link) and probes in the background; desktop still waits. Spec 106 outside-unevidenced test asserts the probe verdicts and that a click opens nothing and shows no notice. Server V4 rule untouched.",
+  "consequences": "A dead path is offered as a link on its first touch look and the Viewer reports the real state; mouse-primary hybrid devices keep the async path (a missed first tap, never a wrong open).",
+  "rationale": "Phone failure was a real regression (differential observed); the other was a stale expectation after an intended behaviour change.",
+  "rejected": "Widening the server file-read rule or relaxing the probe for outside paths; deleting the stale test.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

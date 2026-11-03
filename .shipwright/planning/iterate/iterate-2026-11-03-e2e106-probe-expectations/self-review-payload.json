@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"FR-01.28/FR-01.66: desktop still hides dead links (waits for probe); coarse pointer answers from cache so the first tap opens; V4 server rule untouched."},
+{"name":"Error Handling","verdict":"pass","note":"Unknown/failed probe stays a link (fail-open, as before); background probe never rejects."},
+{"name":"Security Basics","verdict":"pass","note":"Client-only; activation still goes through resolveViewerTarget + isRefusedBySession + server access rules."},
+{"name":"Test Quality","verdict":"pass","note":"New unit test for the optimistic path; spec 106 stale test rewritten to assert probe verdicts via the real route plus no link/notice/viewer on click; phone test now passes on first tap."},
+{"name":"Performance Basics","verdict":"pass","note":"Optimistic path does no awaiting; probes batched/cached as before."},
+{"name":"Naming & Structure","verdict":"pass","note":"One optional param on probeTerminalRefs; reuses COARSE_POINTER_QUERY."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No serialized format touched."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"No skips, no only."}
+]}

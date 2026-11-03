@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"AC1 test asserts probe verdicts and no link/notice/viewer/window.open; AC2 optimistic flag from coarse pointer, desktop unchanged; AC3 unit test covers optimistic path; no server files touched; 3 files, no scope creep."}
