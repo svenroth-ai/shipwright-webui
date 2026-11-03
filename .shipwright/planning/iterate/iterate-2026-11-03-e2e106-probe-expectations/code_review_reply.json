@@ -1,0 +1,5 @@
+{"section":"iterate-2026-11-03-e2e106-probe-expectations","review":[
+{"severity":"low","category":"correctness","file":"client/src/components/terminal/useTerminalFileLinks.ts","line":125,"finding":"Hybrid devices with a fine primary pointer use the awaiting path; accepted limitation.","suggestion":"None."},
+{"severity":"low","category":"correctness","file":"client/src/components/terminal/useTerminalFileLinks.ts","line":116,"finding":"void probePath has no catch; probePath never rejects by contract.","suggestion":"None."},
+{"severity":"low","category":"readability","file":"client/e2e/flows/106-terminal-file-links.spec.ts","line":40,"finding":"Fixed waits prove a negative; acceptable, preceded by probe endpoint assertion.","suggestion":"None."}],
+"verdict":"PASS"}

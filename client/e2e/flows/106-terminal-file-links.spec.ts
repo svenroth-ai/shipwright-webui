@@ -10,7 +10,7 @@
  *   web link            -> window.open(url, "_blank", "noopener,noreferrer"), plain click
  *   project file        -> right card switches to the Viewer and shows the file
  *   evidenced outside   -> Viewer with the "Outside project" tag
- *   unevidenced outside -> NO Viewer, notice "Not part of this session"
+ *   unevidenced outside -> NOT a link (probe says no): a click opens nothing and shows no notice
  *   phone (Pixel-5 size, touch) -> a swipe scrolls the terminal and opens nothing; a tap opens
  * @covers FR-01.28
  */
@@ -168,14 +168,31 @@ test.describe("106 - terminal file and web links", () => {
     });
 
     // @covers FR-01.28
-    test("an outside file the session does NOT evidence shows the hint and opens nothing", async ({ page }) => {
-      await clickPath(page, secretFile);
-      const notice = page.getByTestId("embedded-terminal-clipboard-notice");
-      await expect(notice).toHaveText(/Not part of this session/, { timeout: 20_000 });
-      await expect(notice).toHaveAttribute("data-notice-kind", "link-not-in-session");
+    // @covers FR-01.66
+    test("an outside file the session does NOT evidence is not a link: the probe says no, a click opens nothing and shows no hint", async ({ page, request }) => {
+      // Since the probe (#565) a path the Viewer cannot open is never offered as a link, so the old
+      // "Not part of this session" notice is no longer reachable by clicking it: the server answers
+      // openable:false for it (and true for the evidenced sibling), the click is a plain no-op.
+      const verdict = async (p: string) => {
+        const r = await request.post(`/api/external/tasks/${taskId}/session-file/probe`, { data: { paths: [p] } });
+        expect(r.ok()).toBe(true);
+        return ((await r.json()) as { results: Array<{ openable: boolean }> }).results[0]?.openable;
+      };
+      expect(await verdict(outsideFile)).toBe(true);
+      expect(await verdict(secretFile)).toBe(false);
+
+      await printLine(page, secretFile);
+      const p = await pointOn(page, secretFile);
+      await page.mouse.move(p.x - 3, p.y);
+      await page.mouse.move(p.x, p.y);
+      await page.waitForTimeout(1500); // let the (batched) probe answer settle, so a link WOULD be offered by now if it were one
+      await page.mouse.down();
+      await page.mouse.up();
+      await page.waitForTimeout(1000);
+      await expect(page.getByTestId("embedded-terminal-clipboard-notice")).toHaveCount(0);
       await expect(page.getByTestId("ft-side-body-viewer")).toHaveCount(0); // right card stays on Info
       await expect(page.getByTestId("smart-viewer-outside-tag")).toHaveCount(0);
-      await expect(notice).toBeHidden({ timeout: 15_000 }); // auto-dismisses
+      expect(await page.evaluate(() => (window as unknown as { __opened: unknown[] }).__opened.length)).toBe(0);
     });
 
     // @covers FR-01.28

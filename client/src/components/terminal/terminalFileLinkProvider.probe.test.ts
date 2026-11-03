@@ -73,4 +73,16 @@ describe("probeTerminalRefs", () => {
     expect(await probeTerminalRefs([{ path: "src/a.ts" }], "t1", undefined)).toEqual([true]);
     expect(await probeTerminalRefs([{ path: "src/a.ts" }], "t1", open)).toEqual([true]);
   });
+
+  it("optimistic (touch): answers at once from the cache - unknown stays a link and is probed for next time, a cached no hides it", async () => {
+    const f = vi.fn(async (_u: string, init?: RequestInit) => {
+      const { paths } = JSON.parse(String(init?.body)) as { paths: string[] };
+      return new Response(JSON.stringify({ results: paths.map((p) => ({ openable: p !== "docs/ghost.md" })) }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", f);
+    const refs = [{ path: "src/a.ts" }, { path: "docs/ghost.md" }];
+    expect(await probeTerminalRefs(refs, "t2", open, true)).toEqual([true, true]); // nothing cached yet: no waiting, no hiding
+    await vi.waitFor(() => expect(f).toHaveBeenCalledTimes(1)); // ...but the background probe ran
+    await vi.waitFor(async () => expect(await probeTerminalRefs(refs, "t2", open, true)).toEqual([true, false]));
+  });
 });

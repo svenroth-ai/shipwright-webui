@@ -80,4 +80,27 @@ describe("useTerminalFileLinks", () => {
   it("is inert when the terminal is not created yet", () => {
     expect(() => renderHook(() => useTerminalFileLinks({ current: null }, "a", undefined, vi.fn()))).not.toThrow();
   });
+
+  // @covers FR-01.28
+  it("on a coarse pointer the provider offers a link without waiting for the probe round trip", async () => {
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("coarse"), media: q }));
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {}))); // the probe never answers
+    try {
+      let provider: { provideLinks: (y: number, cb: (l?: Array<{ text: string }>) => void) => void } | undefined;
+      const text = "see src/hello.ts now";
+      const cells = Array.from(text).map((ch) => ({ getWidth: () => 1, getChars: () => ch }));
+      const line = { isWrapped: false, getCell: (x: number) => cells[x] };
+      const term = {
+        registerLinkProvider: (p: typeof provider) => ((provider = p), { dispose: vi.fn() }),
+        cols: 40,
+        buffer: { active: { getLine: (i: number) => (i === 0 ? line : undefined) } },
+        hasSelection: () => false,
+      } as unknown as Terminal;
+      renderHook(() => useTerminalFileLinks({ current: term }, "t-coarse", ctx(), vi.fn()));
+      const links = await new Promise<Array<{ text: string }> | undefined>((resolve) => provider!.provideLinks(1, resolve));
+      expect(links?.map((l) => l.text)).toEqual(["src/hello.ts"]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

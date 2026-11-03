@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-03-e2e106-probe-expectations",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T18:58:40.365792+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T19:01:31.980644+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/terminal/useTerminalFileLinks.ts",
+          "line": 125,
+          "finding": "Hybrid devices with a fine primary pointer use the awaiting path; accepted limitation.",
+          "suggestion": "None.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/terminal/useTerminalFileLinks.ts",
+          "line": 116,
+          "finding": "void probePath has no catch; probePath never rejects by contract.",
+          "suggestion": "None.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/e2e/flows/106-terminal-file-links.spec.ts",
+          "line": 40,
+          "finding": "Fixed waits prove a negative; acceptable, preceded by probe endpoint assertion.",
+          "suggestion": "None.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-03T19:01:02.955383+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass",
+      "reviewed_commit": "09b9dc4975cf97eea737b109f874230d53e80aec"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "concurrency & ordering",
+          "file": "client/src/components/terminal/useTerminalFileLinks.ts",
+          "line": null,
+          "finding": "Claim under doubt: Root cause is a real regression and the optimistic fix suffices — Diagnosis unverified differential",
+          "suggestion": "RESOLUTION: differential observed - phone test FAILED on unmodified main (viewer never appeared), PASSED when the same tap was repeated after 1.5 s (cache warm), and PASSES on first tap with the fix.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "client/src/components/terminal/useTerminalFileLinks.ts",
+          "line": null,
+          "finding": "Claim under doubt: Optimistic mode weakens V4 — Click path openTerminalFileLink unchanged: outside paths still await isRefusedBySession before open",
+          "suggestion": "RESOLUTION: rebutted, gate unchanged.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "client/src/lib/pathProbe.ts",
+          "line": null,
+          "finding": "Claim under doubt: Dead path flickers on touch after 30s NO_TTL — Touch-only fail-open, viewer re-validates server-side",
+          "suggestion": "RESOLUTION: accepted, cosmetic.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "client/src/components/terminal/useTerminalFileLinks.ts",
+          "line": null,
+          "finding": "Claim under doubt: pointer:coarse misses mouse-primary hybrids — Hybrid failure mode is a missed first tap, not a wrong open",
+          "suggestion": "RESOLUTION: accepted.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-03T19:01:25.190026+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass",
+      "reviewed_commit": "09b9dc4975cf97eea737b109f874230d53e80aec"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T19:01:32.407865+00:00",
+      "disposition": "small iterate, 65-line client diff, no risk flag; external review is a medium+ phase",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "diff-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T18:59:30.134903+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass",
+      "reviewed_commit": "09b9dc4975cf97eea737b109f874230d53e80aec"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T19:01:32.124047+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-03T19:01:32.265246+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}
