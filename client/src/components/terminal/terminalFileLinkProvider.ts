@@ -3,30 +3,19 @@
  * terminal buffer clickable (FR-01.28). READ-ONLY on the xterm instance: it only
  * reads buffer cells; it never writes to the terminal, the pty or the socket.
  *
- * Soft-wrapped rows are joined into one logical line (so a path the terminal
- * wrapped is ONE link whose range spans both rows) and string offsets are mapped
- * back to cells per code unit (wide characters occupy two cells). Only the
- * logical line under the pointer is scanned, capped at MAX_ROWS rows.
+ * Wrapped rows are joined into one logical line (terminalLogicalLine: terminal soft wraps
+ * always, an app's own hard wrap only when it is reliably a broken path), so one path is ONE
+ * link whose range spans the rows. Only the logical line under the pointer is scanned.
  * Activation = plain click (same as the web links); ignored while the terminal
  * has a text selection, so finishing a drag-select never opens a file.
  */
-import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
+import type { ILink, ILinkProvider } from "@xterm/xterm";
 
 import type { FileRef } from "../../lib/viewerTarget";
 import { findFileLinkCandidates } from "./terminalLinkMatch";
+import { buildLogicalLine, type LinkTerm } from "./terminalLogicalLine";
 
-export type LinkTerm = Pick<Terminal, "buffer" | "cols" | "hasSelection">;
-
-const MAX_ROWS = 40;
-
-interface CellPos {
-  /** 0-based column of the cell the code unit starts in. */
-  x: number;
-  /** 1-based buffer row. */
-  y: number;
-  /** Cell width of the character the code unit belongs to. */
-  w: number;
-}
+export type { LinkTerm };
 
 /**
  * Click filter: primary button only, not the 2nd+ click of a multi-click, and the pointer must not
@@ -68,30 +57,9 @@ export function createFileLinkProvider(
 ): ILinkProvider {
   return {
     provideLinks(bufferLineNumber, callback) {
-      const buf = term.buffer.active;
-      const row0 = bufferLineNumber - 1;
-      let first = row0;
-      while (first > 0 && row0 - first < MAX_ROWS && buf.getLine(first)?.isWrapped) first--;
-      let last = row0;
-      while (last - row0 < MAX_ROWS && buf.getLine(last + 1)?.isWrapped) last++;
-      if (!buf.getLine(row0) || last - first >= MAX_ROWS) return callback(undefined);
-
-      let text = "";
-      const pos: CellPos[] = [];
-      for (let row = first; row <= last; row++) {
-        const line = buf.getLine(row);
-        if (!line) break;
-        for (let x = 0; x < term.cols; x++) {
-          const cell = line.getCell(x);
-          if (!cell) break;
-          const w = cell.getWidth();
-          if (w === 0) continue;
-          // An empty cell at the end of a row that soft-wraps on (a wide char that did not fit) is not a space.
-          const chars = cell.getChars() || (row < last && x === term.cols - 1 ? "" : " ");
-          for (let i = 0; i < chars.length; i++) pos.push({ x, y: row + 1, w });
-          text += chars;
-        }
-      }
+      const logical = buildLogicalLine(term, bufferLineNumber - 1);
+      if (!logical) return callback(undefined);
+      const { text, pos } = logical;
 
       const links: ILink[] = [];
       const candidates: Array<{ ref: FileRef }> = [];

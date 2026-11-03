@@ -1,0 +1,7 @@
+{"section":"iterate-2026-11-03-terminal-wrapped-path-links","review":[
+{"severity":"medium","category":"correctness","file":"client/src/components/terminal/terminalLogicalLine.ts","line":72,"finding":"False-positive hard merge of two relative paths on adjacent rows when the first fills the last column.","suggestion":"Reject the join when the tail already ends in a file extension and the head carries a separator."},
+{"severity":"low","category":"correctness","file":"client/src/components/terminal/terminalLogicalLine.ts","line":110,"finding":"No test pins the 20/21 row boundary.","suggestion":"Add boundary tests."},
+{"severity":"low","category":"performance","file":"client/src/components/terminal/terminalLogicalLine.ts","line":93,"finding":"Row cache per call; acceptable.","suggestion":"No change."},
+{"severity":"low","category":"readability","file":"client/src/components/terminal/terminalLogicalLine.test.ts","line":105,"finding":"Missing tests: soft-wrap empty last cell, wide char at link end.","suggestion":"Add."},
+{"severity":"low","category":"correctness","file":"client/e2e/flows/109-terminal-wrapped-file-links.spec.ts","line":96,"finding":"Soft-wrap E2E should assert isWrapped so it cannot silently degrade into the hard case.","suggestion":"Assert buffer isWrapped."}],
+"verdict":"PASS with minor follow-ups"}

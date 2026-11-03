@@ -1,0 +1,91 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-03-terminal-wrapped-path-links",
+    "date": "2026-11-03",
+    "unit": {
+      "status": "passed",
+      "passed": 4977,
+      "total": 4977,
+      "skipped": 0
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 5,
+      "total": 5,
+      "skipped": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "run_id": "iterate-2026-11-03-terminal-wrapped-path-links",
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 6,
+        "covered_acs": 6
+      },
+      "behaviors": [
+        {
+          "behavior": "An app hard-wrapped path (newline at the last column, isWrapped=false) is ONE link spanning both rows, offered on either row",
+          "disposition": "tested",
+          "evidence": "terminalLogicalLine.test.ts PASSED; 109 e2e hard-wrap row 1 + row 2 PASSED"
+        },
+        {
+          "behavior": "A terminal soft-wrapped path (exact width, 3 rows) is ONE link; activation opens the FULL path in the Viewer",
+          "disposition": "tested",
+          "evidence": "terminalLogicalLine.test.ts + terminalFileLinkProvider.test.ts PASSED; 109 e2e soft-wrap row 1 + row 2 PASSED"
+        },
+        {
+          "behavior": "Two separate paths on adjacent rows, prose, a plain word, a URL tail, a deep indent never merge; logical line capped at 20 rows",
+          "disposition": "tested",
+          "evidence": "terminalLogicalLine.test.ts PASSED (9 tests)"
+        },
+        {
+          "behavior": "Wide characters map to the right cells across the join",
+          "disposition": "tested",
+          "evidence": "terminalLogicalLine.test.ts wide-char case PASSED"
+        },
+        {
+          "behavior": "Probe (openable check) and click guards run on the full joined path (unchanged contract)",
+          "disposition": "tested",
+          "evidence": "terminalFileLinkProvider.probe.test.ts + terminalFileLinkProvider.test.ts PASSED; 109 e2e opens the file body"
+        },
+        {
+          "behavior": "Mission chat file chip with a very long name stays ONE chip / hit target on one line and opens the file",
+          "disposition": "tested",
+          "evidence": "109 e2e Mission chip test PASSED"
+        }
+      ]
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-03-terminal-wrapped-path-links",
+    "commit": "54890d50ee76e54629940779ec2340e811d5445d",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

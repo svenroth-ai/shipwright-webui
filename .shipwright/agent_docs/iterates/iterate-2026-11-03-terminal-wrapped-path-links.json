@@ -1,0 +1,66 @@
+{
+  "run_id": "iterate-2026-11-03-terminal-wrapped-path-links",
+  "date": "2026-11-03T08:39:37.198012Z",
+  "event_at": "2026-11-02T22:38:52.011055+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/terminal-wrapped-path-links",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-03-terminal-wrapped-path-links",
+  "test_completeness": {
+    "status": "complete",
+    "run_id": "iterate-2026-11-03-terminal-wrapped-path-links",
+    "counts": {
+      "testable": 6,
+      "tested": 6,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 6,
+      "covered_acs": 6
+    },
+    "behaviors": [
+      {
+        "behavior": "An app hard-wrapped path (newline at the last column, isWrapped=false) is ONE link spanning both rows, offered on either row",
+        "disposition": "tested",
+        "evidence": "terminalLogicalLine.test.ts PASSED; 109 e2e hard-wrap row 1 + row 2 PASSED"
+      },
+      {
+        "behavior": "A terminal soft-wrapped path (exact width, 3 rows) is ONE link; activation opens the FULL path in the Viewer",
+        "disposition": "tested",
+        "evidence": "terminalLogicalLine.test.ts + terminalFileLinkProvider.test.ts PASSED; 109 e2e soft-wrap row 1 + row 2 PASSED"
+      },
+      {
+        "behavior": "Two separate paths on adjacent rows, prose, a plain word, a URL tail, a deep indent never merge; logical line capped at 20 rows",
+        "disposition": "tested",
+        "evidence": "terminalLogicalLine.test.ts PASSED (9 tests)"
+      },
+      {
+        "behavior": "Wide characters map to the right cells across the join",
+        "disposition": "tested",
+        "evidence": "terminalLogicalLine.test.ts wide-char case PASSED"
+      },
+      {
+        "behavior": "Probe (openable check) and click guards run on the full joined path (unchanged contract)",
+        "disposition": "tested",
+        "evidence": "terminalFileLinkProvider.probe.test.ts + terminalFileLinkProvider.test.ts PASSED; 109 e2e opens the file body"
+      },
+      {
+        "behavior": "Mission chat file chip with a very long name stays ONE chip / hit target on one line and opens the file",
+        "disposition": "tested",
+        "evidence": "109 e2e Mission chip test PASSED"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/109-terminal-wrapped-file-links.spec.ts",
+    "exit_code": 0,
+    "tests_run": 5,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\terminal-wrapped-path-links\\.shipwright\\runs\\iterate-2026-11-03-terminal-wrapped-path-links\\surface_verification.log",
+    "timestamp": "2026-11-03T08:37:31.402Z",
+    "attempts": 1
+  }
+}
