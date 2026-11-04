@@ -4,7 +4,8 @@
  * @covers FR-01.51
  */
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -17,6 +18,11 @@ import type { ReadinessState } from "./useReadiness";
 const ready: ReadinessState = { report: null, ready: true, loading: false, error: false };
 
 afterEach(() => setStandaloneViewEnabled(false));
+
+function LocationProbe() {
+  const l = useLocation();
+  return <div data-testid="loc">{l.pathname + l.search}</div>;
+}
 
 describe("Standalone view hides the Intent Wizard", () => {
   // @covers FR-01.51
@@ -32,6 +38,19 @@ describe("Standalone view hides the Intent Wizard", () => {
     expect(screen.queryByTestId("wizard-door-adopt")).toBeNull();
     expect(screen.queryByTestId("wizard-door-grade")).toBeNull();
     expect(screen.queryByTestId("wizard-add-existing-line")).toBeNull();
+  });
+
+  // @covers FR-01.51
+  it("the Register card leaves the wizard for the project registration dialog", async () => {
+    setStandaloneViewEnabled(true);
+    render(
+      <MemoryRouter initialEntries={["/wizard"]}>
+        <DoorGrid readiness={ready} onPickDoor={() => {}} />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByTestId("wizard-door-register"));
+    expect(screen.getByTestId("loc").textContent).toBe("/projects?new=1");
   });
 
   // @covers FR-01.51

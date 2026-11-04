@@ -47,6 +47,37 @@ function renderPage() {
 }
 
 describe("TaskBoardPage", () => {
+
+  // @covers FR-01.51 — the empty board's "New task" opens the New Task dialog
+  // (the plain-session action), never the Intent Wizard.
+  it("empty-state New task opens the New Task dialog", async () => {
+    server.use(
+      http.get("/api/external/tasks", () => HttpResponse.json({ tasks: [] })),
+      http.get("/api/projects", () =>
+        HttpResponse.json({ data: [{ id: "p1", name: "Proj", path: "C:/proj" }] }),
+      ),
+      http.get("/api/external/projects/:id/actions", () =>
+        HttpResponse.json({
+          ...ACTIONS_RESPONSE,
+          actions: [{ id: "new-plain", label: "New task", kind: "external_launch", description: "Plain session" }],
+        }),
+      ),
+    );
+    renderPage();
+    const cta = await screen.findByTestId("task-board-empty-cta");
+    await waitFor(() => expect((cta as HTMLButtonElement).disabled).toBe(false));
+    await userEvent.click(cta);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
+
+  // @covers FR-01.51
+  it("empty-state New task is disabled while no plain action exists", async () => {
+    server.use(http.get("/api/external/tasks", () => HttpResponse.json({ tasks: [] })));
+    renderPage();
+    const cta = await screen.findByTestId("task-board-empty-cta");
+    expect((cta as HTMLButtonElement).disabled).toBe(true);
+  });
+
   // @covers FR-01.01
   it("renders the A07 teaching empty state on a genuinely empty successful response", async () => {
     server.use(http.get("/api/external/tasks", () => HttpResponse.json({ tasks: [] })));
