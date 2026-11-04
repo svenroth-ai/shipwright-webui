@@ -5329,3 +5329,581 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** A suite that always fails hides new regressions; the failures were stale specs, not product defects, so no product code changed.
 - **Consequences:** node client/e2e/isolated-stack.mjs with chromium, mobile-chromium and schema-isolated now exits 0 (509 passed, 10 skipped) with no leaked fixture tasks. The narrator's prose assertions (outcome wording, inline artifact link) are retired with it, not ported.
 - **Rejected:** Skipping or quarantining the failing specs: that keeps the red count honest-looking but leaves the surfaces untested.
+
+---
+
+### ADR-371: Add pr-review to g2_stoplist
+- **Date:** 2026-10-09
+- **Section:** Iterate — change: allow pr-review commit scope in G2
+- **Run-ID:** iterate-2026-10-09-g2-stoplist-pr-review-scope
+- **Context:** 5c09c234 used feat(pr-review): and the G2 audit flagged the scope as unknown. B7 was stale: both flagged commits fall before the v0.28.0 tag.
+- **Decision:** Add pr-review to g2_stoplist in audit_config.json, as #498 did for config.
+- **Commit:** (assigned post-merge)
+- **Rationale:** pr-review names a real component (the PR-review gate); a stoplist entry is the established fix.
+- **Consequences:** G2 reports 0 failures. No product behavior changed.
+- **Rejected:** Rewriting the commit message; the commit is already merged on main.
+
+---
+
+### ADR-372: Phone polish: header-hosted expand, tap Paste key, keyboard-fit anchoring, ship's-wheel icon
+- **Date:** 2026-10-10
+- **Section:** Iterate — change: mobile Task Detail polish + home-screen icon + tighter Triage
+- **Run-ID:** iterate-2026-10-10-mobile-taskdetail-favicon
+- **Context:** Sven reported on phone: description under the status pill, no way to expand the terminal without a control covering status messages, paste/long-press not working on iOS, New Task modal and terminal input sitting 5-13mm above the keyboard, no home-screen icon, Triage spacing still too large.
+- **Decision:** Description joins the status row; Expand toggle lives in MissionTopRow and sets html[data-term-expanded]; a tap Paste key (Clipboard API) replaces the uncontrollable iOS long-press menu; dialogs with a scroll body get .kbd-dialog anchored to the visual-viewport bottom via --app-bottom and .scene-fore drops its safe-area padding while the keyboard is up; ship's-wheel apple-touch-icon/favicon/manifest; Triage spacing tightened.
+- **Commit:** (assigned post-merge)
+- **Rationale:** iOS Safari exposes no hook to enable the native selection menu on a canvas/DOM terminal; a tap is a user gesture, which the Clipboard API requires. visualViewport math anchors dialogs exactly instead of tuning magic offsets.
+- **Consequences:** Desktop is unchanged (all keyboard/expand CSS is flag- or media-gated); Triage density changes on every width. The iOS keyboard fit is verified by simulated flags in Chromium plus reasoning, not on a real device. The native iOS long-press paste menu remains unavailable.
+- **Rejected:** Floating expand button over the terminal (covers status messages); capping every dialog height (clips dialogs without a scroll body, CLAUDE.md rule 24); CSS hacks for the unreproduced Triage paint gap.
+
+---
+
+### ADR-373: Ctrl+V and Alt+V paste a browser-clipboard image via the existing paste-image route
+- **Date:** 2026-10-10
+- **Section:** Iterate - bug: keyboard image paste in embedded terminal
+- **Run-ID:** iterate-2026-10-10-terminal-image-paste-keyboard
+- **Context:** Over Tailscale https text Ctrl+V worked, but an image on the remote browser clipboard was dropped: Ctrl+V read text only and suppressed the native paste event; Alt+V made Claude read the server's empty clipboard. Only right-click Paste worked.
+- **Decision:** Ctrl+V/Shift+Insert call navigator.clipboard.read() once and upload an image (else use its text/plain, readText as fallback). Alt+V is intercepted: upload an image, else forward ESC v to the pty. Reuses usePasteImage's upload helper; server unchanged.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Single read() because Safari/Firefox gate each clipboard read on a user gesture; reusing the upload helper keeps one server path and caps.
+- **Consequences:** Keyboard image paste works remotely. Alt+V on Windows/Linux no longer reaches Claude directly when the browser clipboard has an image. macOS Option+V (key U+221A) stays passthrough.
+- **Rejected:** Server-side clipboard read for Alt+V (reads the wrong machine); a paste-event-only approach (Ctrl+V keydown is suppressed to avoid double paste).
+
+---
+
+### ADR-374: Triage card buttons are display:block (no line-box gap in Safari)
+- **Date:** 2026-10-10
+- **Section:** Iterate - bug: Triage card gaps in WebKit
+- **Run-ID:** iterate-2026-10-10-triage-card-block-display
+- **Context:** Sven (iPad/iPhone Safari): huge empty gaps after some Triage cards; Edge on Windows/Mac fine. Reproduced in iPad-WebKit with the real data: card buttons are computed inline-block, so each sits on a line box and WebKit adds 170px+ baseline/descender space under cards whose line-clamped text sets the baseline.
+- **Decision:** TriageItemCard and DeferredTriageSection card buttons get the block utility so no line box exists.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Removing the line box fixes the cause; a compositing hack would have treated a symptom that was never there.
+- **Consequences:** Cards stack with only the list gap in every engine; no visual change in Chromium. The earlier hypothesis of a paint/compositing bug was wrong - the cards were laid out, not unpainted.
+- **Rejected:** Compositing hint on the scroller; removing the bg image filter (needs many baseline regens, and would not fix a layout gap).
+
+---
+
+### ADR-375: Board toolbar controls share one fixed height (32px desktop, 44px touch)
+- **Date:** 2026-10-10
+- **Section:** Iterate — bug: equal-height Task Board toolbar controls
+- **Run-ID:** iterate-2026-10-10-triage-paint-toolbar-height
+- **Context:** Sven (iPad): the Task Board header dropdowns were not equally tall. Measured on touch: project dropdown 38px, Board/List 47px, filter 44px, density 44px; on desktop 37/35/32/32.
+- **Decision:** ProjectFilterDropdown and ViewToggle get an explicit h-8 / pointer-coarse:h-[44px] like the filter and density buttons. ViewToggle draws its 1.5px border as an ::after overlay so its buttons keep the full 44px target.
+- **Commit:** (assigned post-merge)
+- **Rationale:** One shared height makes alignment structural instead of a per-component padding guess; a real border would have cut the touch target to 41px.
+- **Consequences:** Desktop dropdown and Board/List shrink to 32px; phone top-bar dropdown grows to 44px. Triage card-paint gap seen on iPad is NOT fixed: it does not reproduce in headless WebKit or Chromium and needs a real device.
+- **Rejected:** Per-component padding tweaks (the cause of the drift); shipping an unverified compositing hack for the Triage paint gap.
+
+---
+
+### ADR-376: Render .html in a sandboxed, network-blocked iframe
+- **Date:** 2026-10-23
+- **Section:** Iterate — feature: SmartViewer HTML rendering + header layout
+- **Run-ID:** iterate-2026-10-23-terminal-smartviewer-html-view
+- **Context:** Users wanted to view HTML boards (e.g. the social-engagement board) in the SmartViewer; html was shown only as source.
+- **Decision:** HtmlRenderer renders .html/.htm in an iframe sandboxed WITHOUT allow-same-origin, with a CSP meta (connect-src none, form-action none) emitted after any doctype; Preview/Source toggle; terminal links open http(s) in a new noopener tab.
+- **Commit:** (assigned post-merge)
+- **Rationale:** An opaque origin plus CSP isolates untrusted file content; reusing the existing file endpoint adds no server surface.
+- **Consequences:** Rendered pages run scripts but cannot reach the webui API or save anything back; interactive boards stay usable via their own server in a separate tab.
+- **Rejected:** allow-same-origin (exposes /api and storage); a server-side HTML proxy route (new write/read surface).
+
+---
+
+### ADR-377: Reconcile four open compliance findings at their causes
+- **Date:** 2026-10-24
+- **Section:** Iterate — change: reconcile B7, D1, D-layer, H1 compliance findings
+- **Run-ID:** iterate-2026-10-24-compliance-reconcile-b7-d-h1
+- **Context:** The detective audit reported B7 (3 deps commits without events), H1 (xtermAddons.ts 308>300 after PR 532), D1 and D-layer (traceability manifest carried executed=not_run).
+- **Decision:** Backfill three work_completed events; extract openTerminalLink and the WebLinks addon factory into openTerminalLink.ts; regenerate the manifest from executed vitest and targeted Playwright evidence.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Fix each finding where it originates instead of raising the baseline or suppressing the check.
+- **Consequences:** Audit shows no B/D/H fails; xtermAddons.ts at 299 lines; evidence reflects an actual run, not a stale manifest.
+- **Rejected:** Adding xtermAddons.ts to the bloat baseline (would ratchet a fresh crossing).
+
+---
+
+### ADR-378: Preview for custom stack profiles; live Adopt profile row
+- **Date:** 2026-10-25
+- **Section:** Iterate - feature: custom-profile Preview and live Adopt profile
+- **Run-ID:** iterate-2026-10-25-custom-profiles-preview-and-adopt-wiring
+- **Context:** Preview only knew the bundled profile snapshot, so projects with their own stack profile got no Preview, and the Adopt result Profile row was sample data.
+- **Decision:** Resolve profiles via the shipwright resolver, treat the file as untrusted (realpath containment, field allowlist, command policy, fresh re-resolve at spawn), and add a read-only POST /api/adopt/scan feeding the Adopt Profile row.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A cloned repo can ship a profile, so the file is input not config; the resolver stays the only authority on which file a name means, and the spawn path is unchanged.
+- **Consequences:** Preview works for project/user profiles; hostile profiles get no Preview. Actions GET is async with a bounded resolver queue; npx is not accepted in project profiles.
+- **Rejected:** Re-implementing lookup in webui; trusting the file as-is; a per-command confirmation dialog; allowing npx; running the scan inside the repo.
+
+---
+
+### ADR-379: Surface custom stack profiles through the monorepo resolver CLI, not by reading the profile dirs
+- **Date:** 2026-10-25
+- **Section:** Iterate — feature: custom stack profiles UI
+- **Run-ID:** iterate-2026-10-25-custom-stack-profiles-ui
+- **Context:** Shipwright's resolver (contract_version 1) now finds project/user/bundled stack profiles. The Command Center needed to list, validate and create them, and to offer a user's own stack in the Intent Wizard.
+- **Decision:** Wrap resolve_profile.py list|validate --json (uv, shell:false, pinned contract + real-output fixture); the only write is a renamed copy of a bundled profile (wx, resolver-validated, rolled back unless confirmed valid). The wizard asks one explained stack question only when own profiles exist; choosing one skips remember/where.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reading ~/.shipwright/profiles from Node would duplicate lookup order, shadowing and schema rules and drift silently; a bridge mirrors the campaign-readiness pattern already used here.
+- **Consequences:** Lookup order and schema stay owned by the monorepo, so the UI cannot disagree with the phases. The wizard step count is now dynamic (activeQuestions/planStep). Preview for a project with a custom profile is not wired (profile-loader reads only the bundled snapshot).
+- **Rejected:** Reading the profile directories directly in Node (drift risk); generating a profile from wizard answers (out of scope, operator may want it later).
+
+---
+
+### ADR-380: Profile first in the Intake trailer; live Adopt rows from the scan
+- **Date:** 2026-10-26
+- **Section:** Iterate - change: wizard brief profile contract and live Adopt rows
+- **Run-ID:** iterate-2026-10-25-wizard-profile-contract-and-adopt-rows
+- **Context:** The monorepo brief intake now reads the wizard's Stack profile item strictly, so a bracket or label in typed text could hide the choice or refuse the run; the Adopt screen still showed mostly sample rows.
+- **Decision:** composeNewBrief puts the profile item first and cleans typed text; the name rule is mirrored and drift-tested; the existing scan response gains short findings that the client maps onto the Adopt rows.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Fix the producer of the contract the monorepo committed to; return structured capped data so wording stays testable in the UI; never show repo command text.
+- **Consequences:** A chosen profile always reaches the run; Adopt rows are live or honestly marked sample. Two client/server mirrors need upkeep, guarded by tests.
+- **Rejected:** Returning the whole snapshot, server-worded rows, splitting the Adopt rows out, doing nothing.
+
+---
+
+### ADR-381: Reconcile G2 and H1 by config and extraction; defer D1/D-layer to the refresh flow
+- **Date:** 2026-10-26
+- **Section:** Iterate — change: reconcile D1, D-layer, G2, H1 compliance findings
+- **Run-ID:** iterate-2026-10-26-compliance-reconcile-d-g-h
+- **Context:** Audit flagged two scopes (preview, settings), two oversize files (stubData.ts 321, custom-profile-loader.ts 305), and D1/D-layer evidence gaps.
+- **Decision:** Added the two scopes to g2_stoplist and split the files into stubReports.ts and custom-profile-command-policy.ts with re-exports. D1/D-layer are derived-manifest gaps cleared by the compliance refresh flow, not this PR.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Iterate PRs carry zero derived snapshots; fabricating coverage would be dishonest.
+- **Consequences:** G2 and H1 pass. D1/D-layer stay open until the manifest is regenerated from executed suites.
+- **Rejected:** Raising the bloat baseline; hand-editing the traceability manifest.
+- **Details:** [iterate-2026-10-26-compliance-reconcile-d-g-h.md](../planning/adr/iterate-2026-10-26-compliance-reconcile-d-g-h.md)
+
+---
+
+### ADR-382: Campaign board explains both ways to start a campaign
+- **Date:** 2026-10-28
+- **Section:** Iterate — change: campaign board no-loop readiness text
+- **Run-ID:** iterate-2026-10-28-no-loop-readiness-copy
+- **Context:** When a campaign has no autonomous run, the board said 'No autonomous run is set up for this campaign', which reads like a missing setup although launching steps by hand is a normal way to run a campaign.
+- **Decision:** Replace the text with the operator-approved wording: 'You have two options: launch each step yourself, or start an autonomous run. An autonomous run starts every step that is ready at the same time and keeps going until the campaign is done or needs you.'
+- **Commit:** (assigned post-merge)
+- **Rationale:** The operator found the old text misleading while starting a campaign by hand.
+- **Consequences:** Copy only: the banner tone, the conditions that show it and the launch buttons are unchanged. The wording now also states that an autonomous run starts ready steps in parallel, matching the wave scheduler.
+- **Rejected:** 'No run is in progress' was rejected because it is false while a hand-launched step is running.
+
+---
+
+### ADR-383: Renew the GHSA-frvp-7c67-39w9 acceptance for three months
+- **Date:** 2026-10-28
+- **Section:** Iterate — change: renew the @hono/node-server accepted risk
+- **Run-ID:** iterate-2026-10-28-renew-hono-accepted-risk
+- **Context:** The acceptance for the @hono/node-server serve-static Windows path traversal expired on 2026-10-28, which turned the Accepted-risk register gate red on every PR.
+- **Decision:** Renew both the register entry and the trivy ignore entry to 2027-01-28 after re-checking the evidence: @hono/node-ws is still 1.3.1 and peer-requires node-server ^1.19.11, the lockfiles pin 1.19.17, and every app.use in server/src/index.ts is still a wildcard.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The fix is still blocked upstream and the advisory is still not reachable here; the operator approved the renewal.
+- **Consequences:** The gate is green again. The re-review trigger (a node-ws release compatible with node-server 2.x) and the tripwire (guarded middleware under the static root) are unchanged; the next review is due in January.
+- **Rejected:** Replacing @hono/node-ws to unblock the upgrade was rejected for now as a larger change with risk to the embedded terminal.
+
+---
+
+### ADR-384: Surface guided-phase human-gate waits in the Inbox via run_loop_state
+- **Date:** 2026-10-29
+- **Section:** Iterate — feature: inbox lists guided-phase questions
+- **Run-ID:** iterate-2026-10-29-inbox-guided-phase-questions
+- **Context:** In guided mode a phase asks its question as a terminal menu; the live-terminal detector is best-effort, so someone watching only the Inbox could miss that a run waits.
+- **Decision:** Add a read-only phase_gate Inbox kind driven by the durable paused_human_gate loop-state: the task whose phaseTaskId equals currentPhaseTaskId and is not terminal in the run-config gets an Awaiting-your-reply row; a specific question kind for the same task wins.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The loop-state is written by the orchestrator at every human gate, independent of terminal rendering, so it cannot miss a wait the way screen scraping can.
+- **Consequences:** A paused phase is never invisible in the Inbox. The row carries a generic message, not the question text (terminal_prompt supplies that when detection works). Relies on task.cwd being the project root.
+- **Rejected:** Widening the terminal picker detector alone (still best-effort); a new cross-package contract carrying the question text (out of scope here).
+
+---
+
+### ADR-385: Preview origin host comes from the profile's dev_server.host
+- **Date:** 2026-10-29
+- **Section:** Iterate — bug: preview origin host
+- **Run-ID:** iterate-2026-10-29-preview-origin-dev-server-host
+- **Context:** buildPreviewUrl pinned http://localhost:<port>; a companion that checks the Host header (skill-companion-app, 127.0.0.1) answered 403 through the Preview button.
+- **Decision:** The profile's dev_server.host (allowlist 127.0.0.1|localhost, else localhost) sets the preview origin; the host is part of the profile hash.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Keeps the F10 host pin while honouring the one host choice a profile legitimately needs.
+- **Consequences:** Preview opens the host the profile names; hosts outside the allowlist still fall back to localhost; authority smuggling stays rejected.
+- **Rejected:** Free-form host from the profile (re-opens the open-redirect surface F10 closed).
+
+---
+
+### ADR-386: Standalone projects: per-project webui files move to a central data dir, repo-writing routes are refused
+- **Date:** 2026-10-29
+- **Section:** Iterate — feature: standalone projects (zero repo footprint)
+- **Run-ID:** iterate-2026-10-29-standalone-mode
+- **Context:** Sven works in customer repos where a .shipwright-webui folder, .gitignore edit or .code-workspace file would be noticed; the webui must still give a board and terminal there, without Shipwright plugins.
+- **Decision:** A stored per-project flag standalone:true redirects actions.json and pastes to <registryDir>/projects/<id>/ via core/project-data-dir.ts and refuses repo-writing routes through one middleware (403 standalone_project_read_only).
+- **Commit:** (assigned post-merge)
+- **Rationale:** One resolver plus one chokepoint middleware beats per-route checks; a per-project flag lets customer and own Shipwright projects share one webui; the flag is stored, not derived, because it is a user decision.
+- **Consequences:** Zero bytes written into a standalone repo (snapshot-tested); SHIPWRIGHT_DATA_DIR relocates all webui data; Shipwright-only views stay empty; switching the flag later does not migrate existing files.
+- **Rejected:** Global standalone switch (cannot mix projects); per-route guards (a forgotten route silently writes into the customer repo); reusing ProjectMode 'standalone' (already means no run_config); migrating files on flag switch (surprising data movement).
+
+---
+
+### ADR-387: Central webui data by default; shared is the opt-in; no repo write lock
+- **Date:** 2026-10-30
+- **Section:** Iterate - change: webui data lives outside the repo by default
+- **Run-ID:** iterate-2026-10-30-central-data-default
+- **Context:** The webui wrote .shipwright-webui/ files (actions.json, pasted screenshots, .code-workspace) into every repo. Sven wants them kept out of repos, but the standalone write lock also blocked editing the user's own Markdown, which is not wanted.
+- **Decision:** Per-project webui files resolve to <registryDir>/projects/<id>/ by default; a stored shared flag keeps them in <repo>/.shipwright-webui/. actions.json is read central-first with a legacy in-repo fallback; migrate-data moves legacy files. The standalone-guard middleware and 403 are removed.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Where webui data lives and whether the repo may be edited are different questions; splitting them removes the write lock without putting webui files back into repos.
+- **Consequences:** Repos stay clean by default and stay fully editable; existing projects keep working; central pastes sit outside the agent's cwd (may prompt for read permission); the central folder is not removed on project delete; Move/Reset delete repo files (a tracked actions.json shows as deleted in git).
+- **Rejected:** Keeping standalone as a write lock (blocks the Markdown editor); migrating projects.json on boot (ADR-038 write-on-touch); auto-moving files when the shared flag flips (surprising data movement); a global switch.
+
+---
+
+### ADR-388: Standalone view: a per-browser Settings switch hides Triage and Ship's Log
+- **Date:** 2026-10-30
+- **Section:** Iterate — feature: Standalone view display preference
+- **Run-ID:** iterate-2026-10-30-hide-shipwright-views
+- **Context:** Standalone-mode users never use Shipwright-only pages; Triage and a project's Ship's Log stay empty for them. Sven asked to hide them from Settings with a short explanation.
+- **Decision:** A client-only localStorage preference (lib/standaloneView.ts, useSyncExternalStore) gates the sidebar Triage item, the palette entry, the campaign triage link, the task-detail Shiplog button and route guards on /triage and /projects/:id/log; openProjectLog lands on the filtered board.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A display preference needs no server state; one hook plus one route-guard component keeps every entry point consistent and testable.
+- **Consequences:** Purely presentational and per browser; server routes and the per-project standalone write protection are untouched. Triage counts are still polled while hidden.
+- **Rejected:** Reusing the per-project standalone flag (different meaning: write protection); a server-side setting (needless state, cross-device sync not requested); removing the routes (breaks bookmarks and the off state).
+
+---
+
+### ADR-389: Mission feed shows no error/blocker cards
+- **Date:** 2026-10-30
+- **Section:** Iterate - change: no error cards in Mission feed
+- **Run-ID:** iterate-2026-10-30-m1-quick-wins
+- **Context:** The feed synthesized 'A command failed: ...' blocker cards plus a 'run ended before the blocker was resolved' sentence for any failed plain command; the operator wants errors handled in the terminal only.
+- **Decision:** Stop producing the card in the reducer (generic is_error continues untouched) and delete the dead blocker machinery: kind, recovery merge, reconcile sentence, renderer disclosure, summarizer.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A render-time filter would leave an invisible card state to maintain; removing the producer is smaller long-term. Both external architecture reviewers approved option 3.
+- **Consequences:** Failed plain commands leave no trace in the feed; user-input questions, Failing test cards, failed subrunner cards and delivery/PR cards are unchanged. Old blocker tests rewritten to assert absence.
+- **Rejected:** Hide the card via CSS/render filter (keeps dead state); keep the card but restyle (contradicts 'no error messages in the chat').
+
+---
+
+### ADR-390: Read-only session-info endpoint
+- **Date:** 2026-10-30
+- **Section:** Iterate — feat: session-info data layer
+- **Run-ID:** iterate-2026-10-30-m2-session-info-data-layer
+- **Context:** Mission desktop UI needs context tokens, outputs, Remote Control and subagents; /transcript does not expose subagent files or full-history writes.
+- **Decision:** Add GET /tasks/:id/session-info over core/session-info (bounded positional newest-window scan, per-file size/mtime memo, subagent meta join, lstat/realpath containment).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Smallest server-side single-home parser; client parsing 100MB+ files plus subagent files was not viable. Review rounds fixed async acks, write retraction, symlinks, memo LRU.
+- **Consequences:** Contract depends on Claude's undocumented JSONL/sessions formats; history beyond the 48MB/12MB window is not reflected (scan.truncated reports it); tokensAfterCompaction exposed separately from context.tokens.
+- **Rejected:** Client-side parsing of transcript chunks; showing nothing; an incremental persisted index (more state than needed).
+
+---
+
+### ADR-391: Mission right sidebar, client-only, no poll timer
+- **Date:** 2026-10-30
+- **Section:** Iterate - feature: Mission right info sidebar
+- **Run-ID:** iterate-2026-10-30-m3-right-info-sidebar
+- **Context:** Mission tab lacked at-a-glance machine, folder, context usage and outputs; session-info (M2) exposes them but rescans up to 48 MB per request.
+- **Decision:** Add a right sidebar (Info/Folders/Viewer) fetching session-info on entry, focus, task-state change and manual Refresh; no timer; reuse FolderTree and SmartViewer.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Operator specified the sidebar; openai architecture reject (prefer extending the left panel) overruled by operator, its poll concern removed by dropping the timer.
+- **Consequences:** Client-only, no new write surface. Four cards need 1700px+, so the sidebar yields while an artifact card is open below that.
+- **Rejected:** Extend the left summary panel (cannot host Folders/Viewer); 20 s polling timer; do nothing.
+- **Details:** [iterate-2026-10-30-m3-right-info-sidebar-mission-right-sidebar.md](../planning/adr/iterate-2026-10-30-m3-right-info-sidebar-mission-right-sidebar.md)
+
+---
+
+### ADR-392: Mission Agents window: modal tree + read-only agent transcript route
+- **Date:** 2026-10-30
+- **Section:** Iterate - feature: Mission Agents window (M4)
+- **Run-ID:** iterate-2026-10-30-m4-agents-window
+- **Context:** Mission users could not see which subagents run, who started whom, their prompt/answer or transcript; subrunner cards only showed a one-shot report.
+- **Decision:** Bottom-bar chip opens a Radix modal (Active/Finished tree, prompt, answer, Transcript tab); chat cards open the same detail; one new read-only transcript route; data from session-info, no timer.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Smallest option delivering the operator's desktop-style goal; reuses session-info, BubbleTranscript and the positional read helpers; route is strict-id + realpath/relative + handle check.
+- **Consequences:** Counts refresh on open/focus/refresh and subrunner-card changes, so a nested agent can lag until Refresh; legacy SubrunnerPanel stays as fallback.
+- **Rejected:** Extending the right sidebar (same route, no modal); linking raw JSONL in the file viewer (would loosen the project path guard).
+
+---
+
+### ADR-393: Mission chat desktop-app style + answered-question cards
+- **Date:** 2026-10-30
+- **Section:** Iterate - feature: Mission desktop-app style chat (M5)
+- **Run-ID:** iterate-2026-10-30-m5-desktop-style-chat
+- **Context:** The Mission chat was a boxed icon timeline and an answered AskUserQuestion showed only the first question with a terse answer line.
+- **Decision:** Restyle the existing feed in place (agent text left, human bubble right, no avatars, grey tool lines) and render one read-only card per answered question from tool_use input joined with toolUseResult.answers.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Smallest change that matches the desktop look and keeps every Shipwright card; both architecture reviewers approved; the real JSONL shape was verified on live sessions.
+- **Consequences:** Rejected and answer-less questions vanish from the feed; pending questions keep the terminal CTA; the parser keeps only the answers map; multiSelect marks options only when every part is a label.
+- **Rejected:** Replacing the feed with BubbleTranscript (loses curated cards); leaving the first-question-only display.
+- **Details:** [iterate-2026-10-30-m5-desktop-style-chat-desktop-chat.md](../planning/adr/iterate-2026-10-30-m5-desktop-style-chat-desktop-chat.md)
+
+---
+
+### ADR-394: Inline only .css stylesheets, with linear masking and a time box; cover the HTML viewer with an E2E regression
+- **Date:** 2026-10-31
+- **Section:** Iterate — change: SmartViewer HTML stylesheet inlining hardening
+- **Run-ID:** iterate-2026-10-31-smartviewer-html-hardening
+- **Context:** #551 inlined an .html file's relative stylesheets so the SmartViewer shows it styled, but shipped after one code review and without E2E. The full cascade (spec, code, doubt, external) found that ANY relative href was fetched into a scripted iframe, so project text files such as .env were readable and exfiltratable, and that the regex masking was quadratic on unclosed markup.
+- **Decision:** Fetch only .css hrefs outside dot segments; mask comments and raw-text elements with a linear indexOf scanner; quote-aware link regex; keep media, skip alternate/disabled, cap 20 links, 5 s timeout per fetch. Hold the iframe until inlined and key the result on project+path (previous frame kept on text-only change); pop-out moved out of the tablist. Add an E2E regression, verified red on the old code, plus unit tests.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The HTML is untrusted and runs scripts, so every file the viewer fetches for it is readable by it; a closed extension allowlist closes the exfiltration path without touching the sandbox or CSP.
+- **Consequences:** A page linking a non-.css or dot-path stylesheet, or using relative @import/url() inside CSS, renders partly unstyled (documented limit). The sandbox and CSP are unchanged; the read path from an opened page is now limited to project .css files.
+- **Rejected:** Allowing same-origin or relaxing the CSP (breaks the opaque-origin guarantee); an HTML-parser dependency (heavier than a linear scanner for a viewer); a secrets denylist (an allowlist is simpler and safer).
+
+---
+
+### ADR-395: Full chat messages, readable scale, dark tables, teal links
+- **Date:** 2026-10-31
+- **Section:** Iterate — change: Mission chat readability
+- **Run-ID:** iterate-2026-10-31-v1-chat-readability
+- **Context:** Mission chat hid agent/user text behind Show more, used 14px/tight gaps, showed white GFM table headers on the dark card and browser-blue links.
+- **Decision:** Render full text; keep Show more only for raw tool output; add chat scale tokens (15/13/12px, 28/36/12px gaps), dark token lifts, --link/--thead tokens; GFM tables wrapped in .mc-table-wrap via opt-in MarkdownText tableWrap prop.
+- **Commit:** (assigned post-merge)
+- **Rationale:** CSS plus small TSX is the smallest change; opt-in wrapper avoids altering SmartViewer/Inbox DOM.
+- **Consequences:** Long messages render unbounded (no cap). Other MarkdownText consumers keep bare tables. Light scope links fall back to --accent.
+- **Rejected:** New chat renderer; global table wrapper in MarkdownText; capping message length.
+
+---
+
+### ADR-396: Hand-back is a parser event kind; Run result is render-time grouping
+- **Date:** 2026-10-31
+- **Section:** Iterate - feat: Mission hand-back card, Run result card, subrunner row (V2)
+- **Run-ID:** iterate-2026-10-31-v2-handback-result-subrunner-cards
+- **Context:** A subagent hand-back arrives as a user-role record and rendered as the human's own bubble; the Open-tests/requirement/... lines were five loose links; subrunners looked like evidence lines.
+- **Decision:** Classify hand-backs once in the parser (kind handback) and carry it into the feed as its own card; fold evidence-only cards into one Run result card at render time; render subagents as a distinct row with a text state pill.
+- **Commit:** (assigned post-merge)
+- **Rationale:** One parser kind fixes every consumer; grouping at render time leaves deriveActivityFeed output and its many tests untouched. session-parser.ts shrank 842 to 775 lines via extraction (skill-body, handback).
+- **Consequences:** All parser consumers (feed, BubbleTranscript, narrator) stop attributing hand-backs to the human. Cards with narration, commands, output, textFull or an earlier delivery stay normal cards, so nothing is hidden.
+- **Rejected:** Reclassifying only in the feed reducer (BubbleTranscript and narrator would keep the bug); changing the reducer to emit one result card (breaks every consumer of the cards).
+
+---
+
+### ADR-397: Read files outside the project only when the session evidences them
+- **Date:** 2026-10-31
+- **Section:** Iterate - feat: session-evidenced file read route
+- **Run-ID:** iterate-2026-10-31-v4-read-session-files
+- **Context:** Mission UI must open outputs and chat file chips that live outside the project, but the WebUI is reachable over Tailscale, so any-file read would expose ~/.ssh, tokens and .env.
+- **Decision:** Add GET /tasks/:id/session-file: inside the registered project root (path-guard, one realpath), or outside it only when this task's session names the whole path in chat text or a tool_use input, or as a Write/Edit output; credential names always refused.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Smallest gate satisfying the agreed design decision (Output, chat, tool call). External and internal reviews tightened it: task cwd is never a root, command output and meta records are not evidence, evidence before realpath.
+- **Consequences:** Evidence is the newest 48MB of the transcript (older mentions fail closed, reported as evidence_window_truncated); one serialized scan per request, no cache; residuals: file replaced at an evidenced path, hardlinks, spaces in quoted names.
+- **Rejected:** Any absolute path (exposes secrets); outputs-only evidence (spec requires chat and tool-call mentions); no denylist (kept as defense in depth); memoized evidence (rule 4 spirit, deferred).
+
+---
+
+### ADR-398: Shared FileTree: flat variant and row context menu on existing Radix primitives
+- **Date:** 2026-10-31
+- **Section:** Iterate - feature: flat file tree + row context menu (V5)
+- **Run-ID:** iterate-2026-10-31-v5-flat-file-tree
+- **Context:** Mission Folders needed a flat tree and a row menu (Open in Viewer, Copy Path, Copy Relative Path); @radix-ui/react-context-menu is not installed.
+- **Decision:** FolderTree gains flat/projectRoot/label props; pointer menu = Radix DropdownMenu anchored by a body-portalled virtual 1px trigger, touch = Dialog bottom sheet (48px items); clipboard via lib/clipboard deferred a frame after close.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reuses installed primitives. Portalling the anchor is required because glass cards use backdrop-filter, which re-bases position:fixed (found by real-browser E2E).
+- **Consequences:** No new dependency or server route. Files & Terminal inherits menu + 15px font; its Copy Path is disabled until it passes projectRoot. FolderTree.tsx shrank 394 to 285 lines.
+- **Rejected:** Adding react-context-menu (new dependency); copying relative path when no project root is known (mislabelled copy); hiding Open in Viewer for folders (spec lists it for every row; folder expands).
+
+---
+
+### ADR-399: One client resolver opens every file (project route or session-file route)
+- **Date:** 2026-10-31
+- **Section:** Iterate - change: info sidebar cards, file chips, outside-project viewer
+- **Run-ID:** iterate-2026-10-31-v6-info-sidebar-file-chips
+- **Context:** Outputs outside the project were inert and chat paths were plain text, so users could not look at files the assistant wrote or named.
+- **Decision:** A pure client resolver maps a path to a project-relative target or an absolute outside target; Outputs rows and chat chips share it. Outside files use the task-scoped session-file route and get an Outside project header.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The session-file route (V4) already owns access control, so the client only picks the route and labels the scope; markdown consults an optional context so other consumers are unchanged.
+- **Consequences:** No new server surface; chips exist only inside the Mission provider. :line now scrolls to and marks the line in code/text kinds; rendered kinds (markdown/html/mermaid) ignore it. Relative chat paths resolve against task.cwd, not the project root.
+- **Rejected:** Routing every file through the session-file route (couples ordinary project viewing to session evidence); leaving outside files inert.
+
+---
+
+### ADR-400: Smart Viewer code wraps by default with per-browser toggle
+- **Date:** 2026-10-31
+- **Section:** Iterate — change: smart viewer code wrap
+- **Run-ID:** iterate-2026-10-31-v7-viewer-wrap
+- **Context:** Long code lines forced horizontal scrolling in the Smart Viewer; Board 9 asks for wrapping and 13px/1.6 code.
+- **Decision:** CodeRenderer wraps by default (pre-wrap, overflow-wrap:anywhere), Wrap lines toggle remembered in localStorage, CSS in styles/smart-viewer-code.css.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Smallest change meeting Board 9; per-line rows for line numbers would add standing markup cost.
+- **Consequences:** One localStorage key; no line numbers exist so no hanging indent was added (declared deviation). Viewer background stays the github-dark theme color, not #1f2937.
+- **Rejected:** CSS-only wrap without toggle; per-line DOM rows with line-number gutter.
+
+---
+
+### ADR-401: Terminal file paths open in the Smart Viewer through an xterm link provider
+- **Date:** 2026-11-01
+- **Section:** Iterate - feature: clickable file paths in the embedded terminal
+- **Run-ID:** iterate-2026-11-01-terminal-links
+- **Context:** Paths printed in terminal output could not be opened; users copied them by hand. Web links already open on a plain click via the web-links addon. The Mission chat chips already had a safe open path including the session-evidence rule for files outside the project.
+- **Decision:** Register a read-only xterm link provider on the client terminal. A pure tokenizer finds path candidates and delegates every token to parseFileRef. A plain click or tap opens the file through the existing Mission FileOpenContext path. Outside-project files are probed first via the V4 session-file route; a refusal shows the hint 'Not part of this session'. Web links stay unchanged.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reusing parseFileRef and the chip open path keeps the server as the only authority over what may be read. Plain click matches the existing web-link behavior and works on phones, which have no Ctrl key; a click guard rejects non-primary buttons, multi-clicks, drags and active selections.
+- **Consequences:** No pty, replay, resize, renderer or server change. EmbeddedTerminal.tsx stays at its 311-line baseline. Known limits: relative paths resolve against the task cwd, hard-wrapped TUI fragments and relative heads containing spaces are not linked, one extra evidence scan per outside click, live Claude click and iOS Safari are hand-verified.
+- **Rejected:** Ctrl/Cmd-gated clicks (unusable on phones; kept as a one-line fallback in createClickGuard), widening the server path rule, a new server route, and opening files from the provider via window.open.
+- **Details:** [2026-11-01-terminal-links.md](../planning/iterate/2026-11-01-terminal-links.md)
+
+---
+
+### ADR-402: Agents transcript reuses the chat renderer; panel answer from the agent own data
+- **Date:** 2026-11-01
+- **Section:** Iterate - feat: Agents window transcript in the chat renderer, subrunner answer, agent-hash chips (V3)
+- **Run-ID:** iterate-2026-11-01-v3-subrunner-answer-agents-window-chat
+- **Context:** The Agents window transcript used the old bubble view, the subrunner panel could show the CLI delivered-to-you pointer, agent hashes were not clickable, and coordinator messages looked like human bubbles.
+- **Decision:** Reuse parser + feed reducer + FeedCard on a light token set; resolve the panel answer from session-info / the agent file / the hand-back; hash chips via a context null outside the window and panel; coordinator message is a handback origin.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A shared renderer deletes a divergence instead of adding a parallel one; the provider keeps chat markdown untouched.
+- **Consequences:** One renderer for both surfaces; MarkdownText unchanged outside a provider; the delivered-to-you pointer is dropped at the reducer so no consumer shows it.
+- **Rejected:** Restyling BubbleTranscript (cannot reproduce chat tool lines, tables, cards); threading an option instead of a context (two surfaces need the resolver).
+- **Details:** [iterate-2026-11-01-v3-subrunner-answer-agents-window-chat-agents-window-transcript.md](../planning/adr/iterate-2026-11-01-v3-subrunner-answer-agents-window-chat-agents-window-transcript.md)
+
+---
+
+### ADR-403: Host the existing MissionInfoSidebar in Files & Terminal via an embed config
+- **Date:** 2026-11-01
+- **Section:** Iterate - change: Files & Terminal shared tree and sidebar
+- **Run-ID:** iterate-2026-11-01-v8-files-terminal-shared-ui
+- **Context:** Files & Terminal still had an older boxed tree and a separate Preview panel; phones needed a second tab row under the main bar.
+- **Decision:** MissionInfoSidebar gains an embed config (segments Info|Viewer, page-owned segment, open-file tabs, head band); FolderTree is flat-only; the phone bar is Files|Terminal|Info|Viewer + Expand sharing one expand store.
+- **Commit:** (assigned post-merge)
+- **Rationale:** README row 16 prescribes MissionInfoSidebar with the segment list as a prop; reuse avoids a copied panel that drifts.
+- **Consequences:** One tree and one sidebar for both tabs; the sidebar has two hosts so changes must consider both. Terminal subtree untouched; the header Expand is hidden on the Files tab so phones show one Expand.
+- **Rejected:** A copied Files & Terminal panel (drift); doing nothing (two UIs and a second tab row); a headless content extraction (bigger refactor than the unit).
+
+---
+
+### ADR-404: Guard the Mission look with CSS-level a11y tests; phone Agents window is a list-then-detail sheet
+- **Date:** 2026-11-01
+- **Section:** Iterate - change: Mission accessibility guards and phone Agents sheet
+- **Run-ID:** iterate-2026-11-01-v9-a11y-mobile-guards
+- **Context:** The v2 Mission restyle had no check that contrast, 12px text, 44px targets, the focus ring or motion stayed accessible, and the Agents window was a small box on phones.
+- **Decision:** Two vitest style guards (WCAG contrast over parsed dark/light tokens; 12px / motion / focus / 44px rules) fix what they found; Agents window gets a drilled list->detail state with a full-screen phone layout; --focus becomes a 3px teal ring.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Parsing the real stylesheets makes a token edit re-drive the math, so drift fails CI instead of surfacing in screenshots; list->detail needs state, everything else is CSS.
+- **Consequences:** New Mission CSS must pass the guards; the dark card and the light surfaces share one 3px ring recipe (mission-a11y.css); Agents window phone state lives in the component, layout in CSS.
+- **Rejected:** Manual screenshot checks only; a global --focus change for the whole app; popstate-driven sheet navigation (no modal in the app is history-aware).
+
+---
+
+### ADR-405: Info sidebar never overflows; gone Outputs files are hidden
+- **Date:** 2026-11-02
+- **Section:** Iterate - change: Info sidebar overflow, Outputs ellipsis, hide missing outputs
+- **Run-ID:** iterate-2026-11-02-info-sidebar-overflow-outputs
+- **Context:** A long Outputs file name widened the Info pane: .env-panel was a grid with an implicit auto track, so a nowrap row grew the track past the pane (clipped values, horizontal scroll). The previous iterate also showed gone files as a missing row.
+- **Decision:** The panel track is minmax(0,1fr) with min-width:0 cards; .env-v and Outputs names ellipsize with tooltips; Outputs rows are probed as a list (useOpenableMap) and hidden only when the server says not_found; the missing tag is removed.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Fixing the grid track is the root cause; hiding only on not_found avoids silently dropping existing files the viewer cannot preview.
+- **Consequences:** The Info pane cannot overflow; counts reflect visible rows; present-but-unviewable files stay listed; on first load rows show briefly before a definitive no hides them.
+- **Rejected:** Hiding on any probe no (drops existing unpreviewable files); a per-row hook (cannot count visible rows).
+- **Details:** [iterate-2026-11-02-info-sidebar-overflow-outputs.md](../planning/adr/iterate-2026-11-02-info-sidebar-overflow-outputs.md)
+
+---
+
+### ADR-406: Mission document links open in the Info sidebar Viewer; a read-only probe keeps dead paths from being links
+- **Date:** 2026-11-02
+- **Section:** Iterate - bug: Mission links open in the Info Viewer, dead paths are not links
+- **Run-ID:** iterate-2026-11-02-mission-links-viewer-probe
+- **Context:** After #563/#564 Mission links still opened a second viewer, a hand-off path did nothing and Outputs rows said File not found (171 of 214 write targets lived in removed iterate worktrees).
+- **Decision:** All Mission document links become tabs of the Info sidebar Viewer (no middle panel; phone tabs Overview/Activity/Info). New POST session-file/probe reuses the V4 decision core (yes/no only, 40 paths, 30 calls/10s); chips, Outputs rows and terminal links use it and fail open.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reusing decideSessionFileAccess keeps one security rule; yes/no with a generic unavailable reason avoids an existence oracle; fail-open keeps the Viewer authoritative.
+- **Consequences:** One viewer surface; dead chat/terminal paths are plain text; missing Outputs show a missing tag. New read-only route, cached client probe; the feed min-width floor now applies from 1200px.
+- **Rejected:** Mapping removed worktree paths onto the merged main-tree file (guessing); probing inside every GET (extra reads); a second Detail panel kept for phones.
+
+---
+
+### ADR-407: One row type size, shared column layout, Agents pill in the Environment card
+- **Date:** 2026-11-02
+- **Section:** Iterate — change: mission style v2 visual polish
+- **Run-ID:** iterate-2026-11-02-mission-style-v2-visual-polish
+- **Context:** After the live trial of mission-desktop-style-v2 the product owner wanted visual polish only: oversized tree/Outputs/chat type, Info cards blending into the glass, differing tabs and column gutters between Mission and Files & Terminal.
+- **Decision:** Introduce --fs-row (13px) and --sh-elev tokens; chat scale 14/12; Info tabs reuse the 46px .ft-head + ft-seg; PaneSplitter becomes a 16px gutter with 248/400 default widths matching Mission; the Agents pill moves into an Environment-card row shared by both tabs.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Token reuse keeps tree, Environment and Outputs rows provably the same size; reusing the shared sidebar makes the Agents entry point exist in both tabs without a second implementation.
+- **Consequences:** Mission and Files & Terminal now start columns at identical x (default widths; user-dragged widths stay per tab). The Mission chat column is ~80px narrower at 1440px because the sidebar default grew 320 to 400.
+- **Rejected:** Per-tab hard-coded gaps (drift again), keeping the chat chip plus a new row (duplicate entry point), sharing one persisted width store across tabs (larger behaviour change).
+
+---
+
+### ADR-408: Mission follow-up: five fixes
+- **Date:** 2026-11-02
+- **Section:** Iterate - bug: Mission viewer tabs/routing, running-agent staleness, compaction row, hand-back cap
+- **Run-ID:** iterate-2026-11-02-mission-viewer-routing-polish
+- **Context:** Five Mission issues: viewer tab width followed the file name, the Mission Info Viewer lacked open-file tabs, finished subagents showed as running, a compaction summary rendered as a giant user bubble, long hand-back reports.
+- **Decision:** Cap viewer tabs at 200px with ellipsis and tooltip; give the Mission Info Viewer the same tab bar; make a quiet resumed subagent finished-stale; render compaction as a collapsed system row (parser flag plus fingerprint, new CompactionRow); cap hand-back and subrunner reports via CappedBody.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Smallest change per symptom; new logic lives in new files so session-parser.ts stays at its 775-line baseline.
+- **Consequences:** A quiet resumed agent flips to finished-stale after the stale budget and back on the next write. Left-pane structured artifact cards keep their detail panel (opaque document ids, no path).
+- **Rejected:** Routing structured artifact documents into the file Viewer: they have no file path (signed opaque ids) and would need a new server contract.
+
+---
+
+### ADR-409: HTML preview loads page resources through a bounded client loader and an assetOf server rule
+- **Date:** 2026-11-02
+- **Section:** Iterate - bug: HTML preview shows images, fonts and imported CSS
+- **Run-ID:** iterate-2026-11-02-smartviewer-html-images
+- **Context:** The sandboxed srcdoc preview has no base URL, so relative images never loaded and outside-project pages got no stylesheets either.
+- **Decision:** Client inlines images, fonts, CSS url() and @import as data URIs under hard caps; server adds session-file assetOf: same folder tree, allowlisted types, memoized owner proof.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Keeps the sandbox intact (no allow-same-origin, no base URL) and reuses the evidence-gated file routes; review-found fan-out and scan-queue starvation were fixed.
+- **Consequences:** Images and CSS show for project and outside pages and in pop-out. Accepted risk: a scripted page can forward the files it names in its own folder tree.
+- **Rejected:** allow-same-origin or a base URL (breaks isolation), separate origin (too large), server-side HTML rewriting (parses untrusted markup), per-asset evidence scan (starves queue).
+
+---
+
+### ADR-410: Terminal file links: touch answers from the probe cache, spec 106 asserts post-565 behaviour
+- **Date:** 2026-11-03
+- **Section:** Iterate - bug: terminal file links first tap on touch and spec 106 expectations
+- **Run-ID:** iterate-2026-11-03-e2e106-probe-expectations
+- **Context:** PR #565 made terminal file links wait for an async openable probe. A touch tap has no hover before mousedown/up, so the first tap on an unprobed path found no link and opened nothing (spec 106 phone test). The unevidenced-outside test still expected the pre-565 notice.
+- **Decision:** On a coarse pointer the link provider answers from the probe cache only (fresh no hides, unknown stays a link) and probes in the background; desktop still waits. Spec 106 outside-unevidenced test asserts the probe verdicts and that a click opens nothing and shows no notice. Server V4 rule untouched.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Phone failure was a real regression (differential observed); the other was a stale expectation after an intended behaviour change.
+- **Consequences:** A dead path is offered as a link on its first touch look and the Viewer reports the real state; mouse-primary hybrid devices keep the async path (a missed first tap, never a wrong open).
+- **Rejected:** Widening the server file-read rule or relaxing the probe for outside paths; deleting the stale test.
+
+---
+
+### ADR-411: Join wrapped terminal paths into one logical line, hard wraps only by a conservative heuristic
+- **Date:** 2026-11-03
+- **Section:** Iterate - bug: terminal file links across wrapped rows
+- **Run-ID:** iterate-2026-11-03-terminal-wrapped-path-links
+- **Context:** The link provider already joined terminal soft wraps (isWrapped). Claude's TUI hard-wraps long paths with a real newline at the last column, so a path showed as two partial links with wrong targets.
+- **Decision:** buildLogicalLine (terminalLogicalLine.ts) joins soft wraps always and hard wraps only when the previous row is full to the last column with a separator-carrying tail and the next row opens with a path-like, non-new-path token (indent <= 6); 20-row cap; the provider scans the joined text and maps ranges back per cell.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Heuristics fail closed: any doubt leaves two rows separate, which is the old behaviour; the openable probe also drops a wrong joined path.
+- **Consequences:** One path is one link over both rows and the probe runs on the full path. Remaining limits: TUI box-bordered rows, a break right before a separator, and hard-wrapped URLs are not joined; a list of relative paths ending exactly at the last column is guarded but a rare false join remains possible.
+- **Rejected:** Joining every full-width row (merges lists of paths); a custom web-links provider for hard-wrapped URLs (out of scope, xterm already joins soft-wrapped URLs).
+
+---
+
+### ADR-412: Readiness banner: Codex is info, Standalone skips plugin checks
+- **Date:** 2026-11-04
+- **Section:** Iterate â€” change: readable empty state + calmer readiness banner
+- **Run-ID:** iterate-2026-11-04-empty-state-readiness-calm
+- **Context:** The empty Projects state and the register-manually line sat bare on the photo and were unreadable; the first-run banner alerted on the optional Codex CLI and, in Standalone view, on plugins/cache.
+- **Decision:** Put those lines on a dark glass ground; show Codex only as an info note; when Standalone view is on, drop plugins/cache rows and recompute ready client-side via readyWithoutPlugins (engine gate kept).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Standalone is a per-browser client preference, so a client-side derivation avoids touching the server probe contract.
+- **Consequences:** Standalone users reach ready without Shipwright plugins. Client mirrors the server ready formula, so the two must stay in sync (commented).
+- **Rejected:** Server-side standalone query flag: needs a new API param for a presentational preference.
+
+---
+
+### ADR-413: ListLoadErrorState on a dark glass panel
+- **Date:** 2026-11-04
+- **Section:** Iterate — change: load-error state readable on photo
+- **Run-ID:** iterate-2026-11-04-load-error-state-legibility
+- **Context:** The shared list load-error state ('Couldn't load projects') rendered bare dark text over the photo backdrop and was unreadable on Projects, Task Board, Ship's Log and Triage.
+- **Decision:** Give the shared ListLoadErrorState a dark glass panel and the flipped light --ink/--muted tokens, mirroring the Projects empty state.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Every call site sits inside the .on-photo scene shell, so one shared fix covers all.
+- **Consequences:** All four call sites become readable with one change; no logic or testid change.
+- **Rejected:** Per-page wrappers: four copies of the same styling.
+
+---
+
+### ADR-414: Reconcile B7, G2, H1 and I5 audit findings
+- **Date:** 2026-11-04
+- **Section:** Iterate — change: reconcile compliance B7, G2, H1, I5
+- **Run-ID:** iterate-2026-11-04-reconcile-compliance-b7-g2-h1-i5
+- **Context:** The detective audit reported a commit with no event, two unlisted commit scopes, four files over 300 lines and a spec table row whose Basis cell was split by a literal pipe.
+- **Decision:** Backfill the missing event, list the scopes in g2_stoplist, split the four files by pure moves, and replace the pipe in FR-01.66 with slashes.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Follows the earlier reconcile runs: extract rather than raise baselines, backfill rather than exclude.
+- **Consequences:** Audit groups B, G, H and I report no failures. No runtime behavior changed.
+- **Rejected:** Raising bloat baseline entries for the four files; excluding the commit from B7.

@@ -1,1 +1,0 @@
-The Command Center now keeps its own per-project files (custom actions.json, pasted screenshots, .code-workspace) in ~/.shipwright-webui/projects/<id>/ instead of the repo; tick 'Keep Web UI data in the repo' to opt back in, or use 'Move to user folder' for existing projects

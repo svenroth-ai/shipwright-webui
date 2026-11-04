@@ -7,6 +7,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-11-04
+
+### Added
+
+- Task Detail (phone/tablet): an Expand-terminal toggle in the header and a tap Paste key in the terminal key bar.
+- Ship's-wheel favicon, iOS home-screen icon (apple-touch-icon) and web manifest.
+- SmartViewer renders .html/.htm files in a sandboxed iframe (scripts run, network and forms blocked) with a Preview/Source toggle.
+- Preview works for projects that use their own stack profile (project or personal), and the Adopt screen now reads the repository's stack profile live instead of showing a sample.
+- Settings → Stack profiles: see the project's, your own and the built-in stack profiles with where each comes from and whether it is valid, re-check one, and create a copy of a built-in profile to edit.
+- Intent Wizard: if you already keep your own tech stack, you can pick it right after describing your idea and the questions it already answers are skipped; newcomers get the usual guided questions.
+- The adopt snapshot's profile source and warnings (schema 1.1) are read tolerantly, so older snapshots keep working.
+- The Adopt result screen reads its Stack, Routes, Tests, CI, Conventions and Commands rows live from the repo scan and marks the rows that are still samples.
+- Inbox now lists a guided-mode phase that is paused at a decision gate and waits for your answer in its terminal, so a run waiting on you is visible from the Inbox alone.
+- Standalone mode: register a repo as Standalone and the Command Center writes nothing into it (no .shipwright-webui, .code-workspace or .gitignore edit); per-project files live in ~/.shipwright-webui/projects/<id>/ (relocatable via SHIPWRIGHT_DATA_DIR), and no Shipwright plugins are required
+- Settings → Standalone view: one per-browser switch hides Triage and the project Ship's Log (sidebar, command palette, campaign link, task-page Shiplog button); opening a project then lands on the task board filtered to it
+- feat(mission): read-only GET /api/external/tasks/:id/session-info - context tokens, outputs, Remote Control and subagents (incl. campaign depth-2) derived from Claude's session files (M2)
+- feat(mission): right sidebar in the Mission tab with Info (environment, context tokens and model, outputs), Folders and Viewer segments; resizable, remembered, refreshed on demand with no background polling
+- feat(mission): Agents window - bottom-bar chip opens a modal with Active/Finished agent tree, prompt, answer and read-only transcript; subrunner cards open the same detail (killed/stopped handled)
+- feat(mission): the Mission chat now looks like the Claude desktop app, and an answered question shows one card per question with the chosen option highlighted
+- feat(server): read-only GET /tasks/:id/session-file serves project files and files outside the project that the session wrote or named, with credential locations always refused
+- Mission Folders and Files & Terminal tree: flat layout, 15px rows, and a right-click / touch row menu with Open in Viewer, Copy Path and Copy Relative Path
+- feat(mission): info sidebar as three cards, every Output opens in the Viewer (also files outside the project), clickable file chips in the chat, and an Outside project header with Copy path in the Viewer
+- feat(terminal): file paths printed in the embedded terminal are now clickable and open in the file viewer, including paths outside the project when the session used them; otherwise a short 'Not part of this session' hint appears. Web links behave as before.
+- feat(mission): phone polish and accessibility guards - the Agents window is a full-screen list-then-detail sheet with Back and 56px rows, controls are 44px on touch, the focus ring is a visible 3px teal ring, sub-12px text and ungated motion are removed, and tests now check Mission contrast, text size, motion and tap targets
+- Mission: a read-only session-file probe so chat file chips, terminal file links and Outputs rows are only links when the file can really be opened; Outputs rows for files that no longer exist show a quiet "missing" tag.
+
+### Changed
+
+- Compliance audit G2 now accepts the pr-review commit scope.
+- Task Detail (phone): the Description toggle now sits beside the status pill instead of below it.
+- Triage list: tighter spacing between cards, filter bar and sections.
+- Task header: the Description toggle now sits next to the 'Started · last event · model' line, and the tab row below it is tighter.
+- Embedded terminal: http(s) links always open in a new tab (noopener).
+- Compliance findings G2 and H1 reconciled; the intent-wizard stub reports and the custom-profile command policy now live in their own small modules.
+- The campaign board now says there are two ways to start a campaign, launching each step yourself or an autonomous run that starts every ready step at once, instead of claiming no autonomous run is set up.
+- README and user guide now state plainly that the Command Center works without Shipwright (new guide section 5.4 and SHIPWRIGHT_DATA_DIR)
+- The Command Center now keeps its own per-project files (custom actions.json, pasted screenshots, .code-workspace) in ~/.shipwright-webui/projects/<id>/ instead of the repo; tick 'Keep Web UI data in the repo' to opt back in, or use 'Move to user folder' for existing projects
+- README: the Standalone-mode section now sits directly before 'Develop or contribute'; README and guide §5.4 describe the Standalone view setting
+- feat(mission): failed commands no longer show an error/blocker card in the Mission activity feed (errors live in the terminal); the subrunner report link's status check is now line-size
+- Mission chat shows agent and user messages in full (Show more remains for raw tool output only), with larger type, wider turn spacing, dark-friendly tables and light-teal underlined links
+- feat(mission): a subagent's hand-back shows as its own card instead of your message, the Open tests/requirement/decision/review/commit lines become one Run result card, and a subagent is a distinct row
+- Smart Viewer wraps long code lines by default, with a remembered "Wrap lines" toggle, and shows code at 13px/1.6
+- feat(mission): the subrunner panel shows the agent real answer, agent hashes open that agent, the Agents window drops the dot on finished agents and gets a grey list column, and its Transcript tab uses the Mission chat look with the session prompt as a card
+- feat(task-detail): Files & Terminal now uses the same file tree and the same Info | Viewer sidebar as the Mission tab, with the tabs in the shared header band, open files as tabs above the viewer, and on a phone one bar Files | Terminal | Info | Viewer plus Expand
+- Outputs hides files that are no longer on disk instead of showing a missing row; the file count and Show all N count only visible files.
+- Mission and Files & Terminal tree, Environment and Outputs rows share one 13px row size; Outputs rows are tighter (44px tap targets only on touch screens)
+- Info sidebar cards are solid with a soft shadow so they stand out from the glass background
+- Mission chat text is one to two steps smaller (14px body, 12px tool lines and tables)
+- Info tabs look the same in Mission and Files & Terminal, and both tabs share identical 16px column gaps and column start positions
+- The Agents pill moved from the chat footer into a new Agents row under Remote Control in the Environment card, also available in Files & Terminal
+- Viewer tabs have a fixed maximum width: long file names are cut with an ellipsis and the full path shows on hover; the Mission tab Info Viewer now keeps opened files as tabs like Files & Terminal
+- A context compaction shows as one quiet Context compacted row with the summary collapsed behind Show summary / Hide summary instead of a giant message
+- Long subagent reports in the Mission chat are capped at about 12 lines with a fade and a Show more / Show less button
+- The first-run readiness banner shows the optional Codex CLI as a quiet info note instead of an alert, and in Standalone view no longer asks for Shipwright plugins or the plugin cache.
+- Compliance audit findings B7, G2, H1 and I5 are cleared; oversized test files and narrator-facts were split with no behavior change.
+
+### Removed
+
+- The Standalone write lock: Markdown editing, design feedback, triage and campaign actions now work for every project (the 'Standalone view' display setting stays)
+
+### Fixed
+
+- Soft keyboard: the New Task dialog and the terminal input line now sit directly on the keyboard instead of leaving a gap.
+- Terminal: Ctrl+V and Alt+V now paste an image from the browser clipboard (previously only right-click Paste did), including when the WebUI is used from a remote machine.
+- Triage: removed the large empty gaps between cards on iPad/iPhone Safari.
+- Task Board header: project dropdown, Board/List toggle, filter and density buttons are now exactly the same height (32px, 44px on touch).
+- Compliance audit findings B7, D1, D-layer and H1 reconciled; the terminal link opener now lives in its own small module.
+- The wizard now names the chosen stack profile first in the brief and cleans typed text, so a profile choice can no longer get lost on its way to the run; only valid profile names can be chosen.
+- Preview now opens the host named by the profile's `dev_server.host` (`127.0.0.1` or `localhost`), so a Host-header-checking companion no longer answers 403.
+- The file viewer now applies the relative stylesheets of an HTML file and offers the same Pop out view as Markdown.
+- The HTML preview no longer freezes on malformed markup, no longer waits forever on a stalled stylesheet, and no longer briefly shows another project's styles.
+- The Info sidebar no longer overflows sideways: a long Outputs file name no longer pushes Environment values, Remote Control and Agents out of view, and long names and values end in an ellipsis with the full text on hover.
+- Mission: every document link (left Analysis/Spec/Tests/Review, Run-result buttons, narrative links) now opens as a tab of the Info sidebar Viewer instead of a second panel; phone tabs are Overview, Activity, Info.
+- Subagents that finished long ago but wrote once after their completion notice no longer show as running in the Agents window
+- An HTML page opened in the file viewer now shows its images, fonts and imported stylesheets (including CSS background images), also for pages outside the project folder that the session has mentioned, and in the pop-out view.
+- Embedded terminal on a phone: the first tap on a file path now opens it straight away instead of needing a second tap
+- Embedded terminal: a long file path that runs over two or more rows (wrapped by the terminal or broken by Claude's own screen) is now one link that opens the full path instead of two broken pieces
+- The empty Projects screen and the "Already set up with Shipwright?" line are readable on the photo background.
+- The "Couldn't load projects/tasks" error state is readable on the photo background.
+
+### Security
+
+- Renewed the accepted risk for the @hono/node-server Windows serve-static advisory (GHSA-frvp-7c67-39w9) until 2027-01-28 after re-checking that the fix is still blocked upstream and the advisory is not reachable.
+- The file viewer now inlines only .css stylesheets of an opened HTML file, so such a page can no longer read other project files (for example .env) through a stylesheet link.
+- Session files outside the project can now serve sibling images, fonts and .css of an already-mentioned HTML page (new assetOf rule: same folder tree, no hidden folders, no sensitive or broad folders, allowlisted types). A scripted page could read and forward the files it names in its own folder; this is a documented accepted risk.
+
 ## [0.28.0] - 2026-10-09
 
 ### Added

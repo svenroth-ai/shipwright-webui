@@ -1,1 +1,0 @@
-feat(mission): a subagent's hand-back shows as its own card instead of your message, the Open tests/requirement/decision/review/commit lines become one Run result card, and a subagent is a distinct row
