@@ -31,6 +31,29 @@ test.describe("standalone view", () => {
     }
   });
 
+  // @covers FR-01.51 — no actions.json: only the plain Claude button, no "New" menu.
+  test("a project without actions.json offers only plain Claude", async ({ page }) => {
+    const act = (id: string) => ({ id, label: id, kind: "external_launch", description: id });
+    const actionsBody = (fromUser: boolean, ids: string[]) => ({
+      actions: ids.map(act), phases: [], defaults: { autonomy: "guided" },
+      preview: { enabled: false, command: null, port: null, ready_path: null, ready_timeout_seconds: null },
+      diagnostics: [], fromUser,
+    });
+    let body = actionsBody(false, ["new-plain", "new-iterate", "new-task"]);
+    await page.route("**/api/projects", (r) =>
+      r.fulfill({ json: { data: [{ id: "p1", name: "Proj", path: "C:/proj" }] } }));
+    await page.route("**/api/external/tasks", (r) => r.fulfill({ json: { tasks: [] } }));
+    await page.route("**/api/external/projects/p1/actions", (r) => r.fulfill({ json: body }));
+    await page.addInitScript(() => localStorage.setItem("webui.activeProjectId", "p1"));
+    await page.goto("/");
+    await expect(page.getByTestId("plain-claude-button")).toBeVisible();
+    await expect(page.getByTestId("create-menu-split-button")).toHaveCount(0);
+    // With the user's own actions.json the configured New button comes back.
+    body = actionsBody(true, ["new-plain", "my-custom"]);
+    await page.reload();
+    await expect(page.getByTestId("create-menu-split-button")).toBeVisible();
+  });
+
   // @covers FR-01.51
   test("settings hides Stack Profiles", async ({ page }) => {
     await page.goto("/settings");

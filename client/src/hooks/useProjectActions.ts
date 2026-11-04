@@ -16,6 +16,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
+import { useStandaloneView } from "../lib/standaloneView";
 import {
   getProjectActions,
   resetActionsJson,
@@ -32,12 +33,26 @@ const ACTIONS_KEY = (projectId: string | null | undefined) =>
  * disable the query (e.g. while the active project is still resolving).
  */
 export function useProjectActions(projectId: string | null | undefined) {
+  const standalone = useStandaloneView();
   return useQuery<ResolvedProjectActions>({
     queryKey: ACTIONS_KEY(projectId),
     queryFn: () => getProjectActions(projectId!),
     enabled: Boolean(projectId),
     staleTime: 30_000,
+    select: standalone ? plainOnlyUnlessConfigured : undefined,
   });
+}
+
+/**
+ * Standalone view: without the user's own actions.json the server falls back to
+ * the bundled Shipwright catalog (run / iterate / phase actions that need the
+ * plugins). Offer only plain Claude then; a project WITH an actions.json keeps
+ * exactly what the user configured. A stable function reference, so TanStack
+ * memoises the selection.
+ */
+function plainOnlyUnlessConfigured(data: ResolvedProjectActions): ResolvedProjectActions {
+  if (data.fromUser === true) return data;
+  return { ...data, actions: data.actions.filter((a) => a.id === "new-plain") };
 }
 
 /**
