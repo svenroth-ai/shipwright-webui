@@ -1,8 +1,8 @@
 # Compliance Dashboard
 
-Generated: 2026-10-09T15:49:55.718376+00:00
-Source-State: run=iterate-2026-10-09-e2e-spec-repair base=5e852211f1fa release=v0.28.0
-Consistency-audit: last run 2026-09-29 (10 days earlier) — PASS
+Generated: 2026-11-04T09:40:42.133156+00:00
+Source-State: run=iterate-2026-11-04-load-error-state-legibility base=1ebffeb1554b release=v0.29.0
+Consistency-audit: last run 2026-09-29 (36 days earlier) — PASS
 Profile: vite-hono
 Scope: full_app
 
@@ -14,29 +14,29 @@ Scope: full_app
 
 | | Dimension | Signal | Anchor |
 |---|-----------|--------|--------|
-| ✅ | Requirement traceability | 31/34 FRs covered; 499/523 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
-| ✅ | Test health | latest full suite 4636/4649 (2026-09-30) | automated tests pass (OpenSSF Scorecard) |
-| ✅ | Change traceability | 523/523 changes linked to a commit, ADR or test run | change provenance (SLSA) |
-| ✅ | Change reconciliation | 0/32 behavior-touched FRs not re-verified | re-verify changed requirements (ISO/IEC/IEEE 12207) |
+| ✅ | Requirement traceability | 32/35 FRs covered; 550/574 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
+| ✅ | Test health | latest full suite 4985/4985 (2026-11-04) | automated tests pass (OpenSSF Scorecard) |
+| ✅ | Change traceability | 574/574 changes linked to a commit, ADR or test run | change provenance (SLSA) |
+| ✅ | Change reconciliation | 0/34 behavior-touched FRs not re-verified | re-verify changed requirements (ISO/IEC/IEEE 12207) |
 | ✅ | Security | 0 open high/critical | no open high/critical vulns (NIST SSDF) |
-| ✅ | Size / maintainability discipline | ratchet delta -12 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
-| ✅ | Dependency hygiene | 0 unresolved / 73 licenses; 0 copyleft | dependency license & risk (OWASP) |
+| ✅ | Size / maintainability discipline | ratchet delta -187 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
+| ✅ | Dependency hygiene | 0 unresolved / 75 licenses; 0 copyleft | dependency license & risk (OWASP) |
 
 > 📊 **Test-Health · diff-coverage (Control-Grade input · target ≥80%):** not measured this session — per-PR signal; see the CI "Diff coverage" artifact.
 
-Verified from: `shipwright_events.jsonl (523 events, 2026-05-01 → 2026-10-09)`
+Verified from: `shipwright_events.jsonl (574 events, 2026-05-01 → 2026-11-04)`
 
 _Grade = importance-weighted average over the measurable dimensions (n/a excluded from the denominator), modeled on OpenSSF Scorecard. Age is neutral; only unreconciled change and net growth are control failures. Each Anchor names the open standard the dimension follows — see the guide's Control-Grade dimensions table._
 
 ## 🛡️ CI Security (fail-closed gate)
 
-Latest scan: **2026-10-05** · source `security.yml#37317856570` · critical-gate **✅ PASS**
+Latest scan: **2026-11-02** · source `security.yml#41464728218` · critical-gate **✅ PASS**
 
 | Severity | Count |
 |----------|-------|
 | Critical | 0 |
 | High | 0 |
-| Medium | 15 |
+| Medium | 2 |
 | Low | 2 |
 
 Prompt-injection findings: **0**
@@ -45,7 +45,7 @@ Prompt-injection findings: **0**
 
 | ID | Target | Expires | Status | Recorded under |
 |----|--------|---------|--------|----------------|
-| ar-2026-07-28-hono-node-server-serve-static-windows | trivy-ignore | 2026-10-28 | active | iterate-2026-07-28-security-accepted-risk-register |
+| ar-2026-07-28-hono-node-server-serve-static-windows | trivy-ignore | 2027-01-28 | active | iterate-2026-07-28-security-accepted-risk-register |
 | ar-2026-07-28-react-router-rsc-csrf | trivy-ignore | 2027-01-28 | active | iterate-2026-07-28-security-accepted-risk-register |
 | ar-2026-07-18-gh-owned-action-mutable-tags | trivy-ignore | 2027-07-18 | active | iterate-2026-07-18-unpin-actions-no-dependabot |
 
@@ -67,22 +67,22 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 | Metric | Value | Status | Why warn? |
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
-| Work events (iterate) | 453 changes | INFO |  |
-| Recent changes traced to an FR | 13/30 (43%) | INFO | feature vs. maintenance mix — informational, does not affect the Control Grade |
-| All unit tests passing | 4636/4649 | WARN | 13/4649 not green in last full suite — see test-evidence.md; +6 change(s) since last full suite |
-| Architecture decisions | 368 ADRs | INFO |  |
-| Iterate tests passing | 214/297 testable changes tested | WARN | 83 testable change(s) without tests — see test-evidence.md |
-| Dependencies | 73 packages | INFO |  |
+| Work events (iterate) | 504 changes | INFO |  |
+| Recent changes traced to an FR | 29/30 (97%) | INFO | feature vs. maintenance mix — informational, does not affect the Control Grade |
+| All unit tests passing | 4985/4985 | PASS |  |
+| Architecture decisions | 412 ADRs | INFO |  |
+| Iterate tests passing | 259/342 testable changes tested | WARN | 83 testable change(s) without tests — see test-evidence.md |
+| Dependencies | 75 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
-| Triage open | 5 open | WARN | 5 actionable item(s) — see ../agent_docs/triage_inbox.md |
-| Bloat over-limit (grandfathered) | 90 | INFO |  |
+| Triage open | 3 open | WARN | 3 actionable item(s) — see ../agent_docs/triage_inbox.md |
+| Bloat over-limit (grandfathered) | 89 | INFO |  |
 | Bloat in allowlist | 107 entries | INFO |  |
-| Bloat ratchet delta | -12 lines | PASS |  |
+| Bloat ratchet delta | -187 lines | PASS |  |
 
 ## Project Velocity
 
-- Iterate: 453 changes (2026-05-01 → 2026-10-09)
-- Last activity: 2026-10-09
+- Iterate: 504 changes (2026-05-01 → 2026-11-04)
+- Last activity: 2026-11-04
 
 ## External LLM Review Evidence
 
@@ -94,7 +94,7 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 
 ## 🔎 Consistency Audit
 
-**Last run 2026-09-29 (10 days earlier): PASS** · 62 checks — 55 pass, 0 fail, 7 skip.
+**Last run 2026-09-29 (36 days earlier): PASS** · 62 checks — 55 pass, 0 fail, 7 skip.
 
 _On demand by design: the audit has no schedule and no CI trigger, so it never runs on its own, so this date is how far back the last cross-check reaches — anything that drifted after it is unmeasured._
 

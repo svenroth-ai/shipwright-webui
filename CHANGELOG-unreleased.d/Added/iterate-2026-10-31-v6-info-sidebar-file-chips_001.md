@@ -1,1 +1,0 @@
-feat(mission): info sidebar as three cards, every Output opens in the Viewer (also files outside the project), clickable file chips in the chat, and an Outside project header with Copy path in the Viewer

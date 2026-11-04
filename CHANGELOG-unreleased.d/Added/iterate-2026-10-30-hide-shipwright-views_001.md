@@ -1,1 +1,0 @@
-Settings → Standalone view: one per-browser switch hides Triage and the project Ship's Log (sidebar, command palette, campaign link, task-page Shiplog button); opening a project then lands on the task board filtered to it

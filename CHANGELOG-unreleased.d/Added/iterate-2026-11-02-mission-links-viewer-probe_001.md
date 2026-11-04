@@ -1,1 +1,0 @@
-Mission: a read-only session-file probe so chat file chips, terminal file links and Outputs rows are only links when the file can really be opened; Outputs rows for files that no longer exist show a quiet "missing" tag.

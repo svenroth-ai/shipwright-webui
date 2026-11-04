@@ -1,1 +1,0 @@
-The Info sidebar no longer overflows sideways: a long Outputs file name no longer pushes Environment values, Remote Control and Agents out of view, and long names and values end in an ellipsis with the full text on hover.

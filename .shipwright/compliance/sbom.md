@@ -1,30 +1,30 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-10-09T15:49:55.718376+00:00
-Source-State: run=iterate-2026-10-09-e2e-spec-repair base=5e852211f1fa release=v0.28.0
-Consistency-audit: last run 2026-09-29 (10 days earlier) — PASS
+Generated: 2026-11-04T09:40:42.133156+00:00
+Source-State: run=iterate-2026-11-04-load-error-state-legibility base=1ebffeb1554b release=v0.29.0
+Consistency-audit: last run 2026-09-29 (36 days earlier) — PASS
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
 | Runtime dependencies | 47 (deduplicated) |
-| Dev dependencies | 26 |
-| Total packages | 73 |
-| Licenses resolved | 68 / 73 |
+| Dev dependencies | 28 |
+| Total packages | 75 |
+| Licenses resolved | 69 / 75 |
 | Unique licenses | 5 (Apache-2.0, BSD-3-Clause, ISC, MIT, OFL-1.1) |
 | Copyleft licenses | 0 |
 
 ## License Distribution
 
 ```mermaid
-pie title License Distribution (all 73 packages)
-    "MIT" : 61
+pie title License Distribution (all 75 packages)
+    "MIT" : 62
     "Apache-2.0" : 3
     "OFL-1.1" : 2
     "BSD-3-Clause" : 1
     "ISC" : 1
-    "unknown" : 5
+    "unknown" : 6
 ```
 
 ## Runtime Dependencies
@@ -45,10 +45,10 @@ pie title License Distribution (all 73 packages)
 | @radix-ui/react-tooltip | ^1.1.0 | MIT |
 | @tanstack/react-query | ^5.0.0 | MIT |
 | @tanstack/react-virtual | ^3.13.24 | MIT |
-| @tiptap/extension-link | ^2.27.2 | MIT |
-| @tiptap/pm | ^2.27.2 | MIT |
-| @tiptap/react | ^2.27.2 | MIT |
-| @tiptap/starter-kit | ^2.27.2 | MIT |
+| @tiptap/extension-link | 3.32.0 | MIT |
+| @tiptap/pm | 3.32.0 | MIT |
+| @tiptap/react | 3.32.0 | MIT |
+| @tiptap/starter-kit | 3.32.0 | MIT |
 | @xterm/addon-fit | 0.11.0 | MIT |
 | @xterm/addon-serialize | 0.14.0 | MIT |
 | @xterm/addon-web-links | 0.12.0 | MIT |
@@ -76,7 +76,7 @@ pie title License Distribution (all 73 packages)
 | remark-gfm | ^4.0.1 | MIT |
 | shell-quote | ^1.8.4 | MIT |
 | strip-ansi | ^7.2.0 | MIT |
-| tiptap-markdown | ^0.8.10 | MIT |
+| tiptap-markdown | 0.9.0 | MIT |
 | zustand | ^4.5.7 | MIT |
 
 ## Dev Dependencies
@@ -98,6 +98,7 @@ pie title License Distribution (all 73 packages)
 | @types/shell-quote | ^1.7.5 | - |
 | @vitejs/plugin-react | ^4.0.0 | MIT |
 | @vitest/coverage-v8 | ^4.1.10 | - |
+| @vitest/coverage-v8 | ^4.1.12 | MIT |
 | esbuild | ^0.25.12 | MIT |
 | jsdom | ^25.0.0 | MIT |
 | msw | ^2.0.0 | MIT |
@@ -108,9 +109,10 @@ pie title License Distribution (all 73 packages)
 | typescript | ^5.7.0 | Apache-2.0 |
 | typescript | ^5.6.0 | Apache-2.0 |
 | vite | ^6.0.0 | MIT |
-| vitest | ^4.1.8 | MIT |
+| vitest | ^4.1.12 | MIT |
+| vitest | ^4.1.8 | - |
 
 ## License Compliance
 
-**5 dependency(ies) could not be resolved in this scan** - license unverified; verify before distribution.
+**6 dependency(ies) could not be resolved in this scan** - license unverified; verify before distribution.
 
