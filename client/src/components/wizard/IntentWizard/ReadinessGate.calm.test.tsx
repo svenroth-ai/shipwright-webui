@@ -41,6 +41,7 @@ const state = (over: Partial<ReadinessState> = {}): ReadinessState => ({
 });
 
 describe("ReadinessGate calm", () => {
+  // @covers FR-01.51
   it("shows Codex as an info note, not an alert row", () => {
     render(<ReadinessGate state={state()} />);
     expect(screen.queryByTestId("readiness-missing-codex")).toBeNull();
@@ -48,6 +49,7 @@ describe("ReadinessGate calm", () => {
     expect(screen.getByTestId("readiness-missing-plugins")).toBeTruthy();
   });
 
+  // @covers FR-01.51
   it("standalone hides plugins/cache rows and the npx repair command", () => {
     render(<ReadinessGate state={state({ standalone: true })} />);
     expect(screen.queryByTestId("readiness-missing-plugins")).toBeNull();
@@ -55,6 +57,7 @@ describe("ReadinessGate calm", () => {
     expect(screen.queryByTestId("readiness-repair-command")).toBeNull();
   });
 
+  // @covers FR-01.51
   it("readyWithoutPlugins ignores plugins/cache but still needs an engine", () => {
     expect(readyWithoutPlugins(report)).toBe(true);
     const noEngine = {

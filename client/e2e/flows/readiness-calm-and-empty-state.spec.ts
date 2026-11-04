@@ -28,6 +28,7 @@ async function mockReadiness(page: Page, standalone: boolean) {
 }
 
 test.describe("readiness banner calm", () => {
+  // @covers FR-01.51
   test("normal view: codex is an info note, plugins stay an alert", async ({ page }) => {
     await mockReadiness(page, false);
     await page.goto("/first-contact");
@@ -38,6 +39,7 @@ test.describe("readiness banner calm", () => {
     await expect(page.getByTestId("wizard-add-existing-line")).toBeVisible();
   });
 
+  // @covers FR-01.51
   test("standalone view: no plugins / cache / npx rows", async ({ page }) => {
     await mockReadiness(page, true);
     await page.goto("/first-contact");
@@ -48,6 +50,7 @@ test.describe("readiness banner calm", () => {
   });
 });
 
+// @covers FR-01.51
 test("empty projects state sits on a dark glass panel", async ({ page }) => {
   await page.route("**/api/projects", (r) => r.fulfill({ json: { data: [] } }));
   await page.goto("/projects");
