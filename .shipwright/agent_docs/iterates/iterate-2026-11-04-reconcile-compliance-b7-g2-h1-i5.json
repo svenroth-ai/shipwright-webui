@@ -1,0 +1,71 @@
+{
+  "run_id": "iterate-2026-11-04-reconcile-compliance-b7-g2-h1-i5",
+  "date": "2026-11-04T07:51:17.737150Z",
+  "event_at": "2026-11-04T07:44:05.816312+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/reconcile-compliance-b7-g2-h1-i5",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-04-reconcile-compliance-b7-g2-h1-i5",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "moved narrator stripFlags still feeds the ask line (narrator-facts imports narrator-flags)",
+        "disposition": "tested",
+        "evidence": "src/lib/narrator* vitest PASSED"
+      },
+      {
+        "behavior": "moved SmartViewer wrap, resource-loader and preview URL tests keep running and passing",
+        "disposition": "tested",
+        "evidence": "SmartViewer/* client vitest and preview-child-lifecycle* server vitest PASSED"
+      },
+      {
+        "behavior": "H1 clears: four files under 300 lines",
+        "disposition": "tested",
+        "evidence": "run_audit.py --only B,G,H,I: H1 pass"
+      },
+      {
+        "behavior": "G2 clears: viewer and task-detail in g2_stoplist",
+        "disposition": "tested",
+        "evidence": "run_audit.py --only B,G,H,I: G2 pass"
+      },
+      {
+        "behavior": "B7 clears: backfill work_completed event for 7b7be040",
+        "disposition": "tested",
+        "evidence": "run_audit.py --only B,G,H,I: B7 pass"
+      },
+      {
+        "behavior": "I5 clears: FR-01.66 Basis column parses",
+        "disposition": "tested",
+        "evidence": "run_audit.py --only B,G,H,I: I5 pass"
+      }
+    ],
+    "counts": {
+      "testable": 6,
+      "tested": 6,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 6,
+      "covered_acs": 6
+    }
+  },
+  "surface_verification": {
+    "surface": "none",
+    "runner": "n/a",
+    "exit_code": 0,
+    "tests_run": 0,
+    "evidence_path": "",
+    "timestamp": "2026-11-04T08:15:00+00:00",
+    "justification": "Behavior-preserving test and helper moves plus compliance config, event backfill and a spec table fix; no UI, API or message-contract behavior changed."
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

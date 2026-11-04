@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-04-reconcile-compliance-b7-g2-h1-i5",
+  "date": "2026-11-04",
+  "section": "Iterate — change: reconcile compliance B7, G2, H1, I5",
+  "title": "Reconcile B7, G2, H1 and I5 audit findings",
+  "context": "The detective audit reported a commit with no event, two unlisted commit scopes, four files over 300 lines and a spec table row whose Basis cell was split by a literal pipe.",
+  "decision": "Backfill the missing event, list the scopes in g2_stoplist, split the four files by pure moves, and replace the pipe in FR-01.66 with slashes.",
+  "consequences": "Audit groups B, G, H and I report no failures. No runtime behavior changed.",
+  "rationale": "Follows the earlier reconcile runs: extract rather than raise baselines, backfill rather than exclude.",
+  "rejected": "Raising bloat baseline entries for the four files; excluding the commit from B7.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
