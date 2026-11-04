@@ -72,14 +72,28 @@ export function DoorGrid({
           opens the expert ProjectWizard via /projects?new=1 — the same target
           every "Register a project manually…" menu item uses — so the wizard is
           the single, always-complete project-creation hub. */}
-      <div style={{ marginTop: 14, fontSize: 12.5, color: "var(--muted)" }}>
+      {/* Rides on the photo: a dark glass band + the flipped light tokens keep
+          the line and its link readable (the dark-green link vanished on the
+          rigging). */}
+      <div
+        className="glass-d"
+        data-testid="wizard-add-existing-line"
+        style={{
+          marginTop: 14,
+          padding: "8px 14px",
+          borderRadius: 10,
+          fontSize: 12.5,
+          color: "var(--body)",
+          display: "inline-block",
+        }}
+      >
         Already set up with Shipwright?{" "}
         <button
           type="button"
           data-testid="wizard-add-existing"
           onClick={() => navigate("/projects?new=1")}
           style={{
-            color: "var(--accent-deep)",
+            color: "var(--accent)",
             textDecoration: "underline",
             cursor: "pointer",
             background: "none",
