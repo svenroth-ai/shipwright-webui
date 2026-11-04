@@ -5907,3 +5907,29 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Follows the earlier reconcile runs: extract rather than raise baselines, backfill rather than exclude.
 - **Consequences:** Audit groups B, G, H and I report no failures. No runtime behavior changed.
 - **Rejected:** Raising bloat baseline entries for the four files; excluding the commit from B7.
+
+---
+
+### ADR-415: Standalone view: no actions.json means plain Claude only
+- **Date:** 2026-11-04
+- **Section:** Iterate — change: Standalone view offers only plain Claude without actions.json
+- **Run-ID:** iterate-2026-11-04-standalone-plain-only-actions
+- **Context:** Without a user actions.json the server returns the bundled Shipwright catalog, so Standalone users saw a New button with plugin actions (run, iterate, phases) that need plugins they do not use.
+- **Decision:** useProjectActions applies a select in Standalone: when fromUser is not true only new-plain is kept; with an actions.json the list is untouched. CreateControls hides the empty New split button in Standalone.
+- **Commit:** (assigned post-merge)
+- **Rationale:** One central filter covers every dropdown, menu and modal and reuses the server fromUser flag.
+- **Consequences:** Standalone boards show just the Plain Claude button until the user adds an actions.json. All-Projects cascade shows an empty submenu for unconfigured projects. No server change.
+- **Rejected:** Filtering in each component: many consumers, easy to miss one.
+
+---
+
+### ADR-416: Standalone view drops the Intent Wizard; New task opens its dialog
+- **Date:** 2026-11-04
+- **Section:** Iterate — feature: Standalone view hides the Intent Wizard
+- **Run-ID:** iterate-2026-11-04-standalone-ui-followups
+- **Context:** In Standalone view the guided doors, Grade it and Stack Profiles need Shipwright plugins; the empty-board New task button opened the wizard instead of the New Task dialog; Codex run-mode settings showed on Claude only.
+- **Decision:** DoorGrid renders a single Register-existing-project card in Standalone, wizard door deep links redirect to the picker, Create menus omit the guided section, Grade it and Stack Profiles are hidden. Empty-board New task opens the plain-action dialog. Codex run-mode and stall-timeout hide on Claude only.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reuses the existing useStandaloneView switch and the shared DoorGrid, so welcome screen and wizard stay in sync.
+- **Consequences:** Standalone users see one clear first step. The view stays a per-browser client preference; no server change.
+- **Rejected:** A separate Standalone welcome page: duplicates DoorGrid and drifts.

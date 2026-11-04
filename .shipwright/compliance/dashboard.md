@@ -1,7 +1,7 @@
 # Compliance Dashboard
 
-Generated: 2026-11-04T09:40:42.133156+00:00
-Source-State: run=iterate-2026-11-04-load-error-state-legibility base=1ebffeb1554b release=v0.29.0
+Generated: 2026-11-04T16:06:37.790121+00:00
+Source-State: run=iterate-2026-11-04-standalone-plain-only-actions base=5b875a16eec2 release=v0.29.1
 Consistency-audit: last run 2026-09-29 (36 days earlier) — PASS
 Profile: vite-hono
 Scope: full_app
@@ -14,17 +14,17 @@ Scope: full_app
 
 | | Dimension | Signal | Anchor |
 |---|-----------|--------|--------|
-| ✅ | Requirement traceability | 32/35 FRs covered; 550/574 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
-| ✅ | Test health | latest full suite 4985/4985 (2026-11-04) | automated tests pass (OpenSSF Scorecard) |
-| ✅ | Change traceability | 574/574 changes linked to a commit, ADR or test run | change provenance (SLSA) |
+| ✅ | Requirement traceability | 32/35 FRs covered; 552/576 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
+| ✅ | Test health | latest full suite 5000/5000 (2026-11-04) | automated tests pass (OpenSSF Scorecard) |
+| ✅ | Change traceability | 576/576 changes linked to a commit, ADR or test run | change provenance (SLSA) |
 | ✅ | Change reconciliation | 0/34 behavior-touched FRs not re-verified | re-verify changed requirements (ISO/IEC/IEEE 12207) |
 | ✅ | Security | 0 open high/critical | no open high/critical vulns (NIST SSDF) |
-| ✅ | Size / maintainability discipline | ratchet delta -187 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
-| ✅ | Dependency hygiene | 0 unresolved / 75 licenses; 0 copyleft | dependency license & risk (OWASP) |
+| ✅ | Size / maintainability discipline | ratchet delta -182 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
+| ✅ | Dependency hygiene | 0 unresolved / 73 licenses; 0 copyleft | dependency license & risk (OWASP) |
 
 > 📊 **Test-Health · diff-coverage (Control-Grade input · target ≥80%):** not measured this session — per-PR signal; see the CI "Diff coverage" artifact.
 
-Verified from: `shipwright_events.jsonl (574 events, 2026-05-01 → 2026-11-04)`
+Verified from: `shipwright_events.jsonl (576 events, 2026-05-01 → 2026-11-04)`
 
 _Grade = importance-weighted average over the measurable dimensions (n/a excluded from the denominator), modeled on OpenSSF Scorecard. Age is neutral; only unreconciled change and net growth are control failures. Each Anchor names the open standard the dimension follows — see the guide's Control-Grade dimensions table._
 
@@ -67,21 +67,21 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 | Metric | Value | Status | Why warn? |
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
-| Work events (iterate) | 504 changes | INFO |  |
+| Work events (iterate) | 506 changes | INFO |  |
 | Recent changes traced to an FR | 29/30 (97%) | INFO | feature vs. maintenance mix — informational, does not affect the Control Grade |
-| All unit tests passing | 4985/4985 | PASS |  |
-| Architecture decisions | 412 ADRs | INFO |  |
-| Iterate tests passing | 259/342 testable changes tested | WARN | 83 testable change(s) without tests — see test-evidence.md |
-| Dependencies | 75 packages | INFO |  |
+| All unit tests passing | 5000/5000 | PASS |  |
+| Architecture decisions | 414 ADRs | INFO |  |
+| Iterate tests passing | 261/344 testable changes tested | WARN | 83 testable change(s) without tests — see test-evidence.md |
+| Dependencies | 73 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
-| Triage open | 3 open | WARN | 3 actionable item(s) — see ../agent_docs/triage_inbox.md |
+| Triage open | 4 open | WARN | 4 actionable item(s) — see ../agent_docs/triage_inbox.md |
 | Bloat over-limit (grandfathered) | 89 | INFO |  |
 | Bloat in allowlist | 107 entries | INFO |  |
-| Bloat ratchet delta | -187 lines | PASS |  |
+| Bloat ratchet delta | -182 lines | PASS |  |
 
 ## Project Velocity
 
-- Iterate: 504 changes (2026-05-01 → 2026-11-04)
+- Iterate: 506 changes (2026-05-01 → 2026-11-04)
 - Last activity: 2026-11-04
 
 ## External LLM Review Evidence

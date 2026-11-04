@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.29.1] - 2026-11-04
+
+### Changed
+
+- In Standalone view a project without its own actions.json now offers only the plain Claude button: the "New" menu with Shipwright plugin tasks no longer appears. With an actions.json the New button shows exactly the configured actions.
+- In Standalone view the Intent Wizard is gone: the welcome screen and Create Project offer a single "Register an existing project" card, the Create menus skip the guided entry, and "Grade it" and Settings > Stack Profiles are hidden.
+- Settings > Codex hides "How a Codex task actually runs" and the stall timeout when only Claude is selected.
+
+### Fixed
+
+- The empty Task Board's "New task" button opens the New Task dialog instead of the Intent Wizard, and the empty state is readable on the photo background.
+
 ## [0.29.0] - 2026-11-04
 
 ### Added

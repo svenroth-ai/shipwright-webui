@@ -1,7 +1,7 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-11-04T09:40:42.133156+00:00
-Source-State: run=iterate-2026-11-04-load-error-state-legibility base=1ebffeb1554b release=v0.29.0
+Generated: 2026-11-04T16:06:37.790121+00:00
+Source-State: run=iterate-2026-11-04-standalone-plain-only-actions base=5b875a16eec2 release=v0.29.1
 Consistency-audit: last run 2026-09-29 (36 days earlier) — PASS
 
 ## Summary
@@ -9,22 +9,21 @@ Consistency-audit: last run 2026-09-29 (36 days earlier) — PASS
 | Metric | Value |
 |--------|-------|
 | Runtime dependencies | 47 (deduplicated) |
-| Dev dependencies | 28 |
-| Total packages | 75 |
-| Licenses resolved | 69 / 75 |
+| Dev dependencies | 26 |
+| Total packages | 73 |
+| Licenses resolved | 73 / 73 |
 | Unique licenses | 5 (Apache-2.0, BSD-3-Clause, ISC, MIT, OFL-1.1) |
 | Copyleft licenses | 0 |
 
 ## License Distribution
 
 ```mermaid
-pie title License Distribution (all 75 packages)
-    "MIT" : 62
+pie title License Distribution (all 73 packages)
+    "MIT" : 66
     "Apache-2.0" : 3
     "OFL-1.1" : 2
     "BSD-3-Clause" : 1
     "ISC" : 1
-    "unknown" : 6
 ```
 
 ## Runtime Dependencies
@@ -90,29 +89,27 @@ pie title License Distribution (all 75 packages)
 | @testing-library/user-event | ^14.0.0 | MIT |
 | @types/diff | ^7.0.2 | MIT |
 | @types/markdown-it | ^14.1.2 | MIT |
-| @types/node | ^22.0.0 | - |
 | @types/node | ^25.6.2 | MIT |
-| @types/proper-lockfile | ^4.1.4 | - |
+| @types/node | ^22.0.0 | MIT |
+| @types/proper-lockfile | ^4.1.4 | MIT |
 | @types/react | ^19.0.0 | MIT |
 | @types/react-dom | ^19.0.0 | MIT |
-| @types/shell-quote | ^1.7.5 | - |
+| @types/shell-quote | ^1.7.5 | MIT |
 | @vitejs/plugin-react | ^4.0.0 | MIT |
-| @vitest/coverage-v8 | ^4.1.10 | - |
 | @vitest/coverage-v8 | ^4.1.12 | MIT |
 | esbuild | ^0.25.12 | MIT |
 | jsdom | ^25.0.0 | MIT |
 | msw | ^2.0.0 | MIT |
 | oxlint | ^1.66.0 | MIT |
 | tailwindcss | ^4.0.0 | MIT |
-| tsx | ^4.19.0 | - |
 | tsx | ^4.21.0 | MIT |
+| tsx | ^4.19.0 | MIT |
 | typescript | ^5.7.0 | Apache-2.0 |
 | typescript | ^5.6.0 | Apache-2.0 |
 | vite | ^6.0.0 | MIT |
 | vitest | ^4.1.12 | MIT |
-| vitest | ^4.1.8 | - |
 
 ## License Compliance
 
-**6 dependency(ies) could not be resolved in this scan** - license unverified; verify before distribution.
+No license concerns: all 73 packages resolved (0 unknown, 0 copyleft).
 
