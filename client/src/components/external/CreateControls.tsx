@@ -26,6 +26,7 @@ import { PreviewButton } from "./PreviewButton";
 import { ProjectCreateMenu } from "./ProjectCreateCascade";
 import { ProjectPlainPicker } from "./ProjectPlainPicker";
 import type { ActionDefinition } from "../../lib/externalApi";
+import { useStandaloneView } from "../../lib/standaloneView";
 import type { Project } from "../../types";
 
 export interface CreateControlsProps {
@@ -63,6 +64,11 @@ export function CreateControls({
   onSelect,
 }: CreateControlsProps) {
   const allProjects = activeProjectId === null;
+  // Standalone view: a project with nothing but plain Claude has no "New" menu
+  // to offer — hide the (otherwise disabled) button instead of showing it empty.
+  const standalone = useStandaloneView();
+  const menuActions = actionsList.filter((a) => a.id !== "new-plain");
+  const showMenu = !standalone || actionsLoading || menuActions.length > 0;
   return (
     <div className="flex items-center gap-2">
       {allProjects ? (
@@ -99,11 +105,13 @@ export function CreateControls({
             onSelect={(a) => onSelect(a)}
             isLoading={actionsLoading}
           />
-          <CreateMenuSplitButton
-            actions={actionsList.filter((a) => a.id !== "new-plain")}
-            onSelect={(a) => onSelect(a)}
-            isLoading={actionsLoading}
-          />
+          {showMenu && (
+            <CreateMenuSplitButton
+              actions={menuActions}
+              onSelect={(a) => onSelect(a)}
+              isLoading={actionsLoading}
+            />
+          )}
         </>
       )}
     </div>

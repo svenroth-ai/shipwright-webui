@@ -12,6 +12,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { setStandaloneViewEnabled } from "../../lib/standaloneView";
 import { render, screen, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
@@ -119,5 +120,28 @@ describe("CreateControls", () => {
     // Preview is scope-gated.
     expect(screen.getByTestId("create-menu-split-button")).toBeTruthy();
     expect(screen.getByTestId("plain-claude-button")).toBeTruthy();
+  });
+
+  // @covers FR-01.51 — Standalone: a project with only plain Claude has no "New" menu.
+  it("Standalone hides the New menu when only plain Claude is available", () => {
+    setStandaloneViewEnabled(true);
+    try {
+      wrap(<CreateControls {...base} activeProjectId="p1" actionsList={[ACTIONS[1]]} />);
+      expect(screen.getByTestId("plain-claude-button")).toBeTruthy();
+      expect(screen.queryByTestId("create-menu-split-button")).toBeNull();
+    } finally {
+      setStandaloneViewEnabled(false);
+    }
+  });
+
+  // @covers FR-01.51
+  it("Standalone keeps the New menu for a configured (non-plain) action", () => {
+    setStandaloneViewEnabled(true);
+    try {
+      wrap(<CreateControls {...base} activeProjectId="p1" />);
+      expect(screen.getByTestId("create-menu-split-button")).toBeTruthy();
+    } finally {
+      setStandaloneViewEnabled(false);
+    }
   });
 });

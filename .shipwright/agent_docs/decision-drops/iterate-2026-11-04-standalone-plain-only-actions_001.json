@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-04-standalone-plain-only-actions",
+  "date": "2026-11-04",
+  "section": "Iterate — change: Standalone view offers only plain Claude without actions.json",
+  "title": "Standalone view: no actions.json means plain Claude only",
+  "context": "Without a user actions.json the server returns the bundled Shipwright catalog, so Standalone users saw a New button with plugin actions (run, iterate, phases) that need plugins they do not use.",
+  "decision": "useProjectActions applies a select in Standalone: when fromUser is not true only new-plain is kept; with an actions.json the list is untouched. CreateControls hides the empty New split button in Standalone.",
+  "consequences": "Standalone boards show just the Plain Claude button until the user adds an actions.json. All-Projects cascade shows an empty submenu for unconfigured projects. No server change.",
+  "rationale": "One central filter covers every dropdown, menu and modal and reuses the server fromUser flag.",
+  "rejected": "Filtering in each component: many consumers, easy to miss one.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
