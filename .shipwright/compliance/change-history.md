@@ -1,21 +1,21 @@
 # Commit Change Log
 
-Generated: 2026-11-04T09:40:42.133156+00:00
-Source-State: run=iterate-2026-11-04-load-error-state-legibility base=1ebffeb1554b release=v0.29.0
+Generated: 2026-11-04T16:06:37.790121+00:00
+Source-State: run=iterate-2026-11-04-standalone-plain-only-actions base=5b875a16eec2 release=v0.29.1
 Consistency-audit: last run 2026-09-29 (36 days earlier) — PASS
-Total commits: 992
+Total commits: 995
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 395
-    "feat" : 259
+    "feat" : 261
     "chore" : 164
     "docs" : 79
     "refactor" : 37
     "test" : 34
-    "other" : 10
+    "other" : 11
     "ci" : 8
     "perf" : 5
     "build" : 1
@@ -423,10 +423,12 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 259 commits
+### Features (feat) — 261 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-04 | standalone | plain Claude only without an actions.json (#575) | 5b875a16eec2 |
+| 2026-11-04 | standalone | hide Intent Wizard, Grade it and Stack Profiles; New task opens its dialog (#574) | c83fa6e67994 |
 | 2026-11-02 | mission | visual polish - one row size, lifted Info cards, smaller chat, shared columns, Agents pill row (#563) | 1713b11e507a |
 | 2026-11-01 | terminal | clickable file paths in the embedded terminal open in the Smart Viewer (#562) | d0e890708649 |
 | 2026-11-01 | mission | phone Agents sheet, 44px touch targets and a11y/motion guards (V9) (#561) | 6eaef265b5ad |
@@ -1021,10 +1023,11 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
-### Other (other) — 10 commits
+### Other (other) — 11 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-04 | — | Release v0.29.0 (#573) | ff8c56e43e14 |
 | 2026-10-09 | — | Release v0.28.0 (#519) | 676fe5c80824 |
 | 2026-09-07 | — | iterate(w4): tag-backfill — 1196 tests, 15.75%->31.97% coverage (#437) | 1a5c3df339a5 |
 | 2026-09-07 | — | iterate(w2): form-convergence — Origin->Basis, Layers column, 29-vs-35 diagnosis (#435) | e3bbc1edcd38 |
@@ -1069,7 +1072,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 992 |
+| Total commits | 995 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 992 |
+| Human-authored commits | 995 |
 

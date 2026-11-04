@@ -422,3 +422,5 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_decision_log_index.py 
 - [ADR-412 — Readiness banner: Codex is info, Standalone skips plugin checks](decision_log.md#adr-412-readiness-banner-codex-is-info-standalone-skips-plugin-checks)
 - [ADR-413 — ListLoadErrorState on a dark glass panel](decision_log.md#adr-413-listloaderrorstate-on-a-dark-glass-panel)
 - [ADR-414 — Reconcile B7, G2, H1 and I5 audit findings](decision_log.md#adr-414-reconcile-b7-g2-h1-and-i5-audit-findings)
+- [ADR-415 — Standalone view: no actions.json means plain Claude only](decision_log.md#adr-415-standalone-view-no-actionsjson-means-plain-claude-only)
+- [ADR-416 — Standalone view drops the Intent Wizard; New task opens its dialog](decision_log.md#adr-416-standalone-view-drops-the-intent-wizard-new-task-opens-its-dialog)

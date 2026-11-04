@@ -1,1 +1,0 @@
-In Standalone view a project without its own actions.json now offers only the plain Claude button: the "New" menu with Shipwright plugin tasks no longer appears. With an actions.json the New button shows exactly the configured actions.

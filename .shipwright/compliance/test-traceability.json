@@ -1,9 +1,9 @@
 {
   "schema_version": 4,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-11-04T09:40:42.133156+00:00",
-  "source_commit": "1ebffeb1554b6441781886f91f2434d43229c19f",
-  "spec_hash": "sha256:5cfb6501629f1432bd854f4865afc4bc5f33d236e7becef0fb888cb745ce63e6",
+  "generated_at": "2026-11-04T16:06:37.790121+00:00",
+  "source_commit": "5b875a16eec285dd22f30e45cb3a3c3e77408976",
+  "spec_hash": "sha256:379a2971f5bbcf0cb4158b11475a3e987d84feffdf4f927c582cfaa3dfbbbac0",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
@@ -22731,7 +22731,7 @@
     "01::FR-01.51": {
       "id": "FR-01.51",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "A friendly three-door front entrance before the expert setup wizard. New walks you through plain questions and shows a plan of the pipeline phases with a live 'because you said X, we'll do Y' rail. Adopt points at a folder and shows exactly what onboarding would write. Grade points at a folder or GitHub URL and shows a Control-Grade card, honestly marking anything it cannot score as 'n/a' rather than inventing a number. A readiness check gates all three doors - if a prerequisite is missing the doors are disabled and the fix named.<br>**Updates:** Gained the real create-then-launch wiring for the New and Adopt doors and the real read-only Grade result. Became the reachable front door of every create surface - the Board \"New\" menus (single-project and All-Projects), the Projects \"Create Project\" button and the Ship's Log header all lead with a \"Guided - Intent Wizard\" entry - and gained a permanent \"Register a project manually\" escape hatch inside the wizard, so it is the single, always-complete way to start or onboard a project. Gained a dedicated First Contact hero at the root route: the first screen a brand-new user sees after install (empty Command Center - zero projects and zero tasks) is the lighthouse-framed version of the three-door picker with the \"Welcome to the Command Center / Say what you want\" promise; once any project or task exists the root is the board as normal, and a permanent /first-contact route keeps it revisitable. The readiness banner shows the optional Codex CLI as a quiet info note, never an alert, and in Standalone view omits the Shipwright plugins / plugin-cache checks (they are not needed there).",
+      "title": "A friendly three-door front entrance before the expert setup wizard. New walks you through plain questions and shows a plan of the pipeline phases with a live 'because you said X, we'll do Y' rail. Adopt points at a folder and shows exactly what onboarding would write. Grade points at a folder or GitHub URL and shows a Control-Grade card, honestly marking anything it cannot score as 'n/a' rather than inventing a number. A readiness check gates all three doors - if a prerequisite is missing the doors are disabled and the fix named.<br>**Updates:** Gained the real create-then-launch wiring for the New and Adopt doors and the real read-only Grade result. Became the reachable front door of every create surface - the Board \"New\" menus (single-project and All-Projects), the Projects \"Create Project\" button and the Ship's Log header all lead with a \"Guided - Intent Wizard\" entry - and gained a permanent \"Register a project manually\" escape hatch inside the wizard, so it is the single, always-complete way to start or onboard a project. Gained a dedicated First Contact hero at the root route: the first screen a brand-new user sees after install (empty Command Center - zero projects and zero tasks) is the lighthouse-framed version of the three-door picker with the \"Welcome to the Command Center / Say what you want\" promise; once any project or task exists the root is the board as normal, and a permanent /first-contact route keeps it revisitable. The readiness banner shows the optional Codex CLI as a quiet info note, never an alert, and in Standalone view omits the Shipwright plugins / plugin-cache checks (they are not needed there). In Standalone view the guided doors disappear everywhere (welcome screen, wizard route, every Create menu): the only first step is a single \"Register an existing project\" card, the Create Project button leads to that picker, and Projects cards no longer offer \"Grade it\". The Task Board empty-state \"New task\" opens the New Task dialog, not the wizard. In Standalone view a project without its own actions configuration offers only the plain Claude action (no Shipwright plugin actions, no \"New\" menu); with one, the New menu shows exactly the configured actions.",
       "priority": "Should",
       "status": "active",
       "required_layers": [],
@@ -23259,6 +23259,22 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/components/external/CreateControls.test.tsx::Standalone hides the New menu when only plain Claude is available",
+            "path": "client/src/components/external/CreateControls.test.tsx::Standalone hides the New menu when only plain Claude is available",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/CreateControls.test.tsx::Standalone keeps the New menu for a configured (non-plain) action",
+            "path": "client/src/components/external/CreateControls.test.tsx::Standalone keeps the New menu for a configured (non-plain) action",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/components/external/ProjectCreatePhoneMenu.test.tsx::shows the guided wizard + register-manually at the project-list level",
             "path": "client/src/components/external/ProjectCreatePhoneMenu.test.tsx::shows the guided wizard + register-manually at the project-list level",
             "layer": "unit",
@@ -23523,6 +23539,54 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::DoorGrid shows only the Register card",
+            "path": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::DoorGrid shows only the Register card",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::the Register card leaves the wizard for the project registration dialog",
+            "path": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::the Register card leaves the wizard for the project registration dialog",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::DoorGrid keeps the three doors outside Standalone",
+            "path": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::DoorGrid keeps the three doors outside Standalone",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::Create menu guided section is omitted in Standalone only",
+            "path": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::Create menu guided section is omitted in Standalone only",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::hides run-mode and stall-timeout sections",
+            "path": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::hides run-mode and stall-timeout sections",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::shows them when Codex is available",
+            "path": "client/src/components/wizard/IntentWizard/standalone-doors.test.tsx::shows them when Codex is available",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/components/wizard/IntentWizard/useGradeReport.test.ts::is idle and fetches NOTHING when disabled or target is null",
             "path": "client/src/components/wizard/IntentWizard/useGradeReport.test.ts::is idle and fetches NOTHING when disabled or target is null",
             "layer": "unit",
@@ -23699,6 +23763,30 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/hooks/useProjectActions.standalone.test.tsx::bundled default catalog collapses to plain Claude only",
+            "path": "client/src/hooks/useProjectActions.standalone.test.tsx::bundled default catalog collapses to plain Claude only",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useProjectActions.standalone.test.tsx::a user actions.json is shown exactly as configured",
+            "path": "client/src/hooks/useProjectActions.standalone.test.tsx::a user actions.json is shown exactly as configured",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useProjectActions.standalone.test.tsx::outside Standalone the bundled catalog stays complete",
+            "path": "client/src/hooks/useProjectActions.standalone.test.tsx::outside Standalone the bundled catalog stays complete",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/pages/RootRoute.test.tsx::empty registry AND no tasks → First Contact",
             "path": "client/src/pages/RootRoute.test.tsx::empty registry AND no tasks → First Contact",
             "layer": "unit",
@@ -23725,6 +23813,14 @@
           {
             "id": "client/src/pages/ShipsLogPage.test.tsx::header launcher trigger uses the standard .btn-primary",
             "path": "client/src/pages/ShipsLogPage.test.tsx::header launcher trigger uses the standard .btn-primary",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TaskBoardPage.test.tsx::empty-state New task is disabled while no plain action exists",
+            "path": "client/src/pages/TaskBoardPage.test.tsx::empty-state New task is disabled while no plain action exists",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -23815,6 +23911,38 @@
           {
             "id": "client/e2e/flows/readiness-calm-and-empty-state.spec.ts::empty projects state sits on a dark glass panel",
             "path": "client/e2e/flows/readiness-calm-and-empty-state.spec.ts::empty projects state sits on a dark glass panel",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/standalone-doors-and-settings.spec.ts::welcome + /wizard offer only the Register card",
+            "path": "client/e2e/flows/standalone-doors-and-settings.spec.ts::welcome + /wizard offer only the Register card",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/standalone-doors-and-settings.spec.ts::a project without actions.json offers only plain Claude",
+            "path": "client/e2e/flows/standalone-doors-and-settings.spec.ts::a project without actions.json offers only plain Claude",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/standalone-doors-and-settings.spec.ts::settings hides Stack Profiles",
+            "path": "client/e2e/flows/standalone-doors-and-settings.spec.ts::settings hides Stack Profiles",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/standalone-doors-and-settings.spec.ts::Claude only hides the Codex run-mode and stall-timeout sections",
+            "path": "client/e2e/flows/standalone-doors-and-settings.spec.ts::Claude only hides the Codex run-mode and stall-timeout sections",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -30673,6 +30801,7 @@
     "client/src/pages/ShipsLogPage.test.tsx::header launcher offers the guided wizard + register-manually",
     "client/src/pages/ShipsLogPage.test.tsx::renders the Documents panel as a second column, for the current project",
     "client/src/pages/TaskBoardPage.test.tsx::clears an already-active claim filter the moment org-chart presence resolves to absent, instead of leaving it stuck",
+    "client/src/pages/TaskBoardPage.test.tsx::empty-state New task opens the New Task dialog",
     "client/src/pages/TaskBoardPage.test.tsx::renders a distinct load-error state (not the onboarding empty state) when the tasks fetch fails",
     "client/src/pages/TaskDetailPage.test.tsx::does NOT focus the terminal on a non-Inbox open (AC2)",
     "client/src/pages/TaskDetailPage.test.tsx::flips to the Files & Terminal tab + calls .focus() when LaunchCoordinator dispatchAutoLaunch fires (ADR-068-A1)",
