@@ -54,7 +54,7 @@ export function ReadinessGate({ state }: { state: ReadinessState }) {
   // WHAT is wrong, so keep npx as the generic recovery — it also restarts the
   // Command Center, which is often the actual fix for an unreachable probe.
   const npxFixes =
-    !standalone && (!report || bad.some((c) => c.key === "plugins" || c.key === "cache"));
+    (!report || (!standalone && bad.some((c) => c.key === "plugins" || c.key === "cache")));
   // A just-installed tool stays invisible until a new shell — and this server —
   // pick up the changed PATH. Say so once, when a tool with an install hint fails.
   const anyToolHint = bad.some((c) => c.hint);
