@@ -1,0 +1,93 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-04-empty-state-readiness-calm",
+    "date": "2026-11-04",
+    "unit": {
+      "status": "passed",
+      "passed": 4982,
+      "skipped": 0,
+      "total": 4982
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 3,
+      "total": 3
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium readiness-calm-and-empty-state",
+      "exit_code": 0,
+      "tests_run": 3,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\empty-state-readiness-calm\\.shipwright\\runs\\iterate-2026-11-04-empty-state-readiness-calm\\surface_verification.log",
+      "timestamp": "2026-11-04T08:58:18.991Z",
+      "attempts": 1
+    },
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Codex CLI missing renders an info note, never an alert row",
+          "disposition": "tested",
+          "evidence": "ReadinessGate.calm.test.tsx + readiness-calm-and-empty-state.spec.ts (passed)"
+        },
+        {
+          "behavior": "Standalone view hides plugins/cache rows and npx repair command",
+          "disposition": "tested",
+          "evidence": "ReadinessGate.calm.test.tsx + e2e standalone test (passed)"
+        },
+        {
+          "behavior": "readyWithoutPlugins ignores plugins/cache but still requires an engine and fails closed without a report",
+          "disposition": "tested",
+          "evidence": "ReadinessGate.calm.test.tsx (passed)"
+        },
+        {
+          "behavior": "Empty Projects state renders on a dark glass panel",
+          "disposition": "tested",
+          "evidence": "e2e empty projects test asserts glass-d + visual screenshot check (passed)"
+        },
+        {
+          "behavior": "Register-manually line rides on a glass band and is visible",
+          "disposition": "tested",
+          "evidence": "e2e normal-view test asserts wizard-add-existing-line visible (passed)"
+        }
+      ],
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

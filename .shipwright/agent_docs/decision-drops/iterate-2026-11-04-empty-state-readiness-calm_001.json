@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-04-empty-state-readiness-calm",
+  "date": "2026-11-04",
+  "section": "Iterate â€” change: readable empty state + calmer readiness banner",
+  "title": "Readiness banner: Codex is info, Standalone skips plugin checks",
+  "context": "The empty Projects state and the register-manually line sat bare on the photo and were unreadable; the first-run banner alerted on the optional Codex CLI and, in Standalone view, on plugins/cache.",
+  "decision": "Put those lines on a dark glass ground; show Codex only as an info note; when Standalone view is on, drop plugins/cache rows and recompute ready client-side via readyWithoutPlugins (engine gate kept).",
+  "consequences": "Standalone users reach ready without Shipwright plugins. Client mirrors the server ready formula, so the two must stay in sync (commented).",
+  "rationale": "Standalone is a per-browser client preference, so a client-side derivation avoids touching the server probe contract.",
+  "rejected": "Server-side standalone query flag: needs a new API param for a presentational preference.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

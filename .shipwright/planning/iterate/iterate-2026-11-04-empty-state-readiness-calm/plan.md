@@ -1,0 +1,1 @@
+Goal: Make the empty Projects state and the register-manually line readable on the photo, show the optional Codex CLI as info only, and hide plugin/cache checks in Standalone view. | Reason: The text sat bare on the photo (unreadable) and the first-run banner raised alerts for things a Standalone or Claude-only user does not need. | Reference: operator request with screenshots

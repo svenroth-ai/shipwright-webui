@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-04-empty-state-readiness-calm",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-04T08:53:11.370600+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-04T08:54:58.176650+00:00",
+      "disposition": "small iterate: plan/architecture/external/doubt passes apply at medium+ or to risk-flagged touches; none here",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/wizard/IntentWizard/ReadinessGate.tsx",
+          "line": 106,
+          "finding": "When neither claude nor codex is installed the codex note says 'Optional ... as well', misleading because codex is then an acceptable engine.",
+          "suggestion": "Reword when claude is also not ok.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/components/wizard/IntentWizard/useReadiness.ts",
+          "line": 20,
+          "finding": "readyWithoutPlugins duplicates the server ready formula; can drift.",
+          "suggestion": "Comment pointing at readiness-probe.ts as source of truth.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/wizard/IntentWizard/DoorGrid.tsx",
+          "line": 13,
+          "finding": "Register line styled inline; inline-block may wrap awkwardly on narrow viewports.",
+          "suggestion": "Consider display:block with max-width.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-04T08:54:43.147164+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-04T08:54:58.177179+00:00",
+      "disposition": "small iterate: plan/architecture/external/doubt passes apply at medium+ or to risk-flagged touches; none here",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-04T08:54:58.177179+00:00",
+      "disposition": "small iterate: plan/architecture/external/doubt passes apply at medium+ or to risk-flagged touches; none here",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-04T08:53:53.379270+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-04T08:54:58.177179+00:00",
+      "disposition": "small iterate: plan/architecture/external/doubt passes apply at medium+ or to risk-flagged touches; none here",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-04T08:54:58.177179+00:00",
+      "disposition": "small iterate: plan/architecture/external/doubt passes apply at medium+ or to risk-flagged touches; none here",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}
