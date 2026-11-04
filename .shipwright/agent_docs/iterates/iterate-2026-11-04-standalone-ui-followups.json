@@ -1,0 +1,76 @@
+{
+  "run_id": "iterate-2026-11-04-standalone-ui-followups",
+  "date": "2026-11-04T13:06:21.103099Z",
+  "event_at": "2026-11-04T11:26:07.884284+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/standalone-ui-followups",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-04-standalone-ui-followups",
+  "risk_flags": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Standalone: DoorGrid shows only the Register card, no doors, no register line",
+        "disposition": "tested",
+        "evidence": "standalone-doors.test.tsx + e2e standalone welcome//wizard/adopt (passed)"
+      },
+      {
+        "behavior": "Outside Standalone the three doors are unchanged",
+        "disposition": "tested",
+        "evidence": "standalone-doors.test.tsx (passed)"
+      },
+      {
+        "behavior": "Create menus omit the guided section in Standalone only",
+        "disposition": "tested",
+        "evidence": "standalone-doors.test.tsx (passed)"
+      },
+      {
+        "behavior": "/wizard/<door> deep links redirect to the reduced picker in Standalone",
+        "disposition": "tested",
+        "evidence": "e2e standalone-doors-and-settings (passed)"
+      },
+      {
+        "behavior": "Stack Profiles card hidden in Standalone",
+        "disposition": "tested",
+        "evidence": "e2e standalone-doors-and-settings (passed)"
+      },
+      {
+        "behavior": "Claude only hides Codex run-mode and stall-timeout; Both shows them",
+        "disposition": "tested",
+        "evidence": "standalone-doors.test.tsx + e2e (passed)"
+      },
+      {
+        "behavior": "Task Board empty-state New task opens the New Task dialog; disabled without plain action",
+        "disposition": "tested",
+        "evidence": "TaskBoardBody/EmptyState/TaskBoardPage vitest suites (passed)"
+      }
+    ],
+    "counts": {
+      "testable": 7,
+      "tested": 7,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 7,
+      "covered_acs": 7
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium standalone-doors-and-settings readiness-calm-and-empty-state",
+    "exit_code": 0,
+    "tests_run": 6,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\standalone-ui-followups\\.shipwright\\runs\\iterate-2026-11-04-standalone-ui-followups\\surface_verification.log",
+    "timestamp": "2026-11-04T13:05:21.508Z",
+    "attempts": 1
+  }
+}

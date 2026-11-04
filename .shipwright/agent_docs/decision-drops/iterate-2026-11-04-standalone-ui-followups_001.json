@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-04-standalone-ui-followups",
+  "date": "2026-11-04",
+  "section": "Iterate — feature: Standalone view hides the Intent Wizard",
+  "title": "Standalone view drops the Intent Wizard; New task opens its dialog",
+  "context": "In Standalone view the guided doors, Grade it and Stack Profiles need Shipwright plugins; the empty-board New task button opened the wizard instead of the New Task dialog; Codex run-mode settings showed on Claude only.",
+  "decision": "DoorGrid renders a single Register-existing-project card in Standalone, wizard door deep links redirect to the picker, Create menus omit the guided section, Grade it and Stack Profiles are hidden. Empty-board New task opens the plain-action dialog. Codex run-mode and stall-timeout hide on Claude only.",
+  "consequences": "Standalone users see one clear first step. The view stays a per-browser client preference; no server change.",
+  "rationale": "Reuses the existing useStandaloneView switch and the shared DoorGrid, so welcome screen and wizard stay in sync.",
+  "rejected": "A separate Standalone welcome page: duplicates DoorGrid and drifts.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
