@@ -84,7 +84,9 @@ export function DoorGrid({
           borderRadius: 10,
           fontSize: 12.5,
           color: "var(--body)",
-          display: "inline-block",
+          display: "block",
+          width: "fit-content",
+          maxWidth: "100%",
         }}
       >
         Already set up with Shipwright?{" "}

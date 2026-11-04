@@ -36,6 +36,7 @@ export function ReadinessGate({ state }: { state: ReadinessState }) {
   // below. In Standalone view the Shipwright plugins/cache are not needed either.
   const standalone = state.standalone === true;
   const codex = report?.checks.find((c) => c.key === "codex");
+  const claudeOk = report?.checks.find((c) => c.key === "claude")?.ok === true;
   const bad = report
     ? report.checks.filter(
         (c) =>
@@ -110,7 +111,9 @@ export function ReadinessGate({ state }: { state: ReadinessState }) {
         >
           <div style={{ fontSize: 12.5, color: "var(--muted)" }}>
             <Info size={13} style={{ display: "inline", verticalAlign: "-2px", marginRight: 6 }} />
-            Optional: to run tasks with the Codex CLI as well, install it first.
+            {claudeOk
+              ? "Optional: to run tasks with the Codex CLI as well, install it first."
+              : "Alternatively, install the Codex CLI and use it as your engine."}
           </div>
           {codex.hint ? (
             <div

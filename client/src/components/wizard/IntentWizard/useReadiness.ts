@@ -21,7 +21,9 @@ async function fetchReadiness(): Promise<ReadinessReport> {
  *  user (plain Claude task board) needs neither the plugins nor their cache. */
 export const SHIPWRIGHT_ONLY_CHECKS: readonly string[] = ["plugins", "cache"];
 
-/** Server `ready`, recomputed WITHOUT the Shipwright-only checks. The server
+/** Mirrors the server formula in server/src/core/readiness-probe.ts
+ *  (`engineReady && every critical check ok`) — keep in sync.
+ *  Server `ready`, recomputed WITHOUT the Shipwright-only checks. The server
  *  keeps the "at least one engine" gate separate from the checks, so derive it
  *  from the claude/codex rows. Fails closed when the report is absent. */
 export function readyWithoutPlugins(report: ReadinessReport | undefined): boolean {
