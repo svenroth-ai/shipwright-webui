@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Covers all 4 asks: readable empty state, readable register line, Codex as info only, standalone hides plugins/cache."},
+{"name":"Error Handling","verdict":"pass","note":"readyWithoutPlugins fails closed on missing report; probe error keeps doors inert."},
+{"name":"Security Basics","verdict":"pass","note":"Presentational client change only; no new inputs or routes."},
+{"name":"Test Quality","verdict":"pass","note":"ReadinessGate.calm.test.tsx asserts outcomes (codex info not alert, standalone hides rows, engine gate kept); 160 existing wizard/projects tests green."},
+{"name":"Performance Basics","verdict":"pass","note":"One extra useSyncExternalStore subscription."},
+{"name":"Naming & Structure","verdict":"pass","note":"Files stay under 300 LOC; SHIPWRIGHT_ONLY_CHECKS shared by hook and gate."},
+{"name":"Affected Boundaries","verdict":"pass","note":"Server readiness contract unchanged; standalone flag read from the existing per-browser localStorage pref."},
+{"name":"Test Hygiene Probe","verdict":"n/a","note":"No skips or .only added."}
+]}

@@ -10,9 +10,9 @@
  * affordance and MUST NOT ship (no-fcdemo.test.ts asserts its absence).
  */
 
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 
-import type { ReadinessState } from "./useReadiness";
+import { SHIPWRIGHT_ONLY_CHECKS, type ReadinessState } from "./useReadiness";
 
 export function ReadinessGate({ state }: { state: ReadinessState }) {
   if (state.loading) {
@@ -32,7 +32,19 @@ export function ReadinessGate({ state }: { state: ReadinessState }) {
   const report = state.report;
   // Error OR not-ready → show the closed-doors banner. On a probe error we
   // cannot prove readiness, so we treat it as not-ready (never assume success).
-  const bad = report ? report.checks.filter((c) => !c.ok) : [];
+  // Codex CLI is optional — never an alert. It is shown as a quiet info note
+  // below. In Standalone view the Shipwright plugins/cache are not needed either.
+  const standalone = state.standalone === true;
+  const codex = report?.checks.find((c) => c.key === "codex");
+  const claudeOk = report?.checks.find((c) => c.key === "claude")?.ok === true;
+  const bad = report
+    ? report.checks.filter(
+        (c) =>
+          !c.ok &&
+          c.key !== "codex" &&
+          !(standalone && SHIPWRIGHT_ONLY_CHECKS.includes(c.key)),
+      )
+    : [];
   const repair = report?.repairCommand ?? "npx @svenroth-ai/shipwright@latest";
   // npx installs the Shipwright PLUGINS + CACHE — never the toolchain. So show
   // the repair command when a check it actually fixes is failing (plugins/cache);
@@ -41,7 +53,8 @@ export function ReadinessGate({ state }: { state: ReadinessState }) {
   // install a missing Python"). On a probe ERROR (no report at all) we can't tell
   // WHAT is wrong, so keep npx as the generic recovery — it also restarts the
   // Command Center, which is often the actual fix for an unreachable probe.
-  const npxFixes = !report || bad.some((c) => c.key === "plugins" || c.key === "cache");
+  const npxFixes =
+    (!report || (!standalone && bad.some((c) => c.key === "plugins" || c.key === "cache")));
   // A just-installed tool stays invisible until a new shell — and this server —
   // pick up the changed PATH. Say so once, when a tool with an install hint fails.
   const anyToolHint = bad.some((c) => c.hint);
@@ -89,6 +102,28 @@ export function ReadinessGate({ state }: { state: ReadinessState }) {
         <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
           Just installed one of these? Open a new terminal so it’s on your PATH, then restart the
           Command Center.
+        </div>
+      ) : null}
+      {codex && !codex.ok ? (
+        <div
+          data-testid="readiness-info-codex"
+          style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line)" }}
+        >
+          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>
+            <Info size={13} style={{ display: "inline", verticalAlign: "-2px", marginRight: 6 }} />
+            {claudeOk
+              ? "Optional: to run tasks with the Codex CLI as well, install it first."
+              : "Alternatively, install the Codex CLI and use it as your engine."}
+          </div>
+          {codex.hint ? (
+            <div
+              className="mono"
+              data-testid="readiness-hint-codex"
+              style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--body)", margin: "3px 0 0 19px" }}
+            >
+              {codex.hint}
+            </div>
+          ) : null}
         </div>
       ) : null}
       {npxFixes ? (

@@ -190,13 +190,22 @@ export default function ProjectsPage() {
               onRetry={() => void refetchProjects()}
             />
           ) : projects.length === 0 ? (
+            // The page sits on the photo backdrop: bare dark text over sky/sails
+            // was unreadable. A dark glass panel + the .on-photo flipped
+            // (light) tokens give it a reading ground.
             <div
-              className="flex flex-col items-center text-center"
-              style={{ padding: "64px 16px", color: "var(--color-muted)" }}
+              className="glass-d flex flex-col items-center text-center"
+              style={{
+                padding: "40px 32px",
+                margin: "64px auto",
+                maxWidth: 520,
+                borderRadius: 16,
+                color: "var(--muted)",
+              }}
               data-testid="projects-empty"
             >
-              <FolderOpen size={48} className="mb-3 opacity-50" />
-              <p className="text-lg" style={{ color: "var(--color-text)" }}>
+              <FolderOpen size={48} className="mb-3 opacity-60" />
+              <p className="text-lg" style={{ color: "var(--ink)" }}>
                 No projects yet
               </p>
               {/* A07 teaching empty state — one sentence + exactly one action. */}
