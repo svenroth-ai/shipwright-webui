@@ -1,0 +1,66 @@
+{
+  "run_id": "iterate-2026-11-04-standalone-plain-only-actions",
+  "date": "2026-11-04T16:06:37.066109Z",
+  "event_at": "2026-11-04T13:06:21.277682+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/standalone-plain-only-actions",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-04-standalone-plain-only-actions",
+  "risk_flags": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Standalone: project without actions.json offers only new-plain from useProjectActions",
+        "disposition": "tested",
+        "evidence": "useProjectActions.standalone.test.tsx (passed)"
+      },
+      {
+        "behavior": "Standalone: project with actions.json shows the configured actions unchanged",
+        "disposition": "tested",
+        "evidence": "useProjectActions.standalone.test.tsx (passed)"
+      },
+      {
+        "behavior": "Outside Standalone the bundled catalog stays complete",
+        "disposition": "tested",
+        "evidence": "useProjectActions.standalone.test.tsx (passed)"
+      },
+      {
+        "behavior": "Standalone: single-project New split button hidden when only plain Claude remains",
+        "disposition": "tested",
+        "evidence": "CreateControls.test.tsx + e2e standalone-doors-and-settings (passed)"
+      },
+      {
+        "behavior": "Standalone: configured non-plain action keeps the New button",
+        "disposition": "tested",
+        "evidence": "CreateControls.test.tsx + e2e (passed)"
+      }
+    ],
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium standalone-doors-and-settings",
+    "exit_code": 0,
+    "tests_run": 4,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\standalone-plain-only-actions\\.shipwright\\runs\\iterate-2026-11-04-standalone-plain-only-actions\\surface_verification.log",
+    "timestamp": "2026-11-04T16:04:39.205Z",
+    "attempts": 1
+  }
+}
