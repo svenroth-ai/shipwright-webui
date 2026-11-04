@@ -1,0 +1,100 @@
+{
+  "last_updated": "2026-11-04",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-04-reconcile-compliance-b7-g2-h1-i5",
+    "date": "2026-11-04",
+    "unit": {
+      "status": "passed",
+      "passed": 9912,
+      "skipped": 15,
+      "total": 9927
+    },
+    "integration": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "skipped"
+    },
+    "degraded": [
+      "standaloneView.test.tsx times out at the default 5s on untouched main too (cold router import); passes with --testTimeout=30000"
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "moved narrator stripFlags still feeds the ask line (narrator-facts imports narrator-flags)",
+          "disposition": "tested",
+          "evidence": "src/lib/narrator* vitest PASSED"
+        },
+        {
+          "behavior": "moved SmartViewer wrap, resource-loader and preview URL tests keep running and passing",
+          "disposition": "tested",
+          "evidence": "SmartViewer/* client vitest and preview-child-lifecycle* server vitest PASSED"
+        },
+        {
+          "behavior": "H1 clears: four files under 300 lines",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only B,G,H,I: H1 pass"
+        },
+        {
+          "behavior": "G2 clears: viewer and task-detail in g2_stoplist",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only B,G,H,I: G2 pass"
+        },
+        {
+          "behavior": "B7 clears: backfill work_completed event for 7b7be040",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only B,G,H,I: B7 pass"
+        },
+        {
+          "behavior": "I5 clears: FR-01.66 Basis column parses",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only B,G,H,I: I5 pass"
+        }
+      ],
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 6,
+        "covered_acs": 6
+      }
+    },
+    "surface_verification": {
+      "surface": "none",
+      "runner": "n/a",
+      "exit_code": 0,
+      "tests_run": 0,
+      "evidence_path": "",
+      "timestamp": "2026-11-04T08:15:00+00:00",
+      "justification": "Behavior-preserving test and helper moves plus compliance config, event backfill and a spec table fix; no UI, API or message-contract behavior changed."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
