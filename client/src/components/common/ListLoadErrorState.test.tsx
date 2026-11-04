@@ -22,4 +22,10 @@ describe("ListLoadErrorState", () => {
     expect(screen.getByText(/couldn.t load projects/i)).toBeInTheDocument();
     expect(screen.getByTestId("projects-load-error-retry")).toBeInTheDocument();
   });
+
+  // @covers FR-01.01
+  it("sits on a dark glass panel so it is readable over the photo backdrop", () => {
+    render(<ListLoadErrorState testId="x-load-error" label="things" onRetry={() => {}} />);
+    expect(screen.getByTestId("x-load-error").className).toContain("glass-d");
+  });
 });

@@ -1,0 +1,78 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-04-load-error-state-legibility",
+    "date": "2026-11-04",
+    "unit": {
+      "status": "passed",
+      "passed": 4983,
+      "skipped": 0,
+      "total": 4983
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 2,
+      "total": 2
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium list-load-error-state",
+      "exit_code": 0,
+      "tests_run": 2,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\load-error-state-legibility\\.shipwright\\runs\\iterate-2026-11-04-load-error-state-legibility\\surface_verification.log",
+      "timestamp": "2026-11-04T09:39:28.005Z",
+      "attempts": 1
+    },
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "ListLoadErrorState renders on a dark glass panel readable over the photo backdrop",
+          "disposition": "tested",
+          "evidence": "ListLoadErrorState.test.tsx glass-d + visual check (passed)"
+        },
+        {
+          "behavior": "Load-error state still distinct from empty state and recovers on Retry (Projects, Task Board)",
+          "disposition": "tested",
+          "evidence": "e2e list-load-error-state.spec.ts 2/2 passed"
+        }
+      ],
+      "counts": {
+        "testable": 2,
+        "tested": 2,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 2,
+        "covered_acs": 2
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

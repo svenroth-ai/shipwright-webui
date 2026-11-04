@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-04-load-error-state-legibility",
+  "date": "2026-11-04",
+  "section": "Iterate — change: load-error state readable on photo",
+  "title": "ListLoadErrorState on a dark glass panel",
+  "context": "The shared list load-error state ('Couldn't load projects') rendered bare dark text over the photo backdrop and was unreadable on Projects, Task Board, Ship's Log and Triage.",
+  "decision": "Give the shared ListLoadErrorState a dark glass panel and the flipped light --ink/--muted tokens, mirroring the Projects empty state.",
+  "consequences": "All four call sites become readable with one change; no logic or testid change.",
+  "rationale": "Every call site sits inside the .on-photo scene shell, so one shared fix covers all.",
+  "rejected": "Per-page wrappers: four copies of the same styling.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

@@ -20,13 +20,22 @@ interface ListLoadErrorStateProps {
 
 export function ListLoadErrorState({ testId, label, onRetry }: ListLoadErrorStateProps) {
   return (
+    // Every call site sits on the photo backdrop, where bare dark text was
+    // unreadable: a dark glass panel + the flipped light tokens of the
+    // .on-photo shell (--ink / --muted) give it a reading ground.
     <div
-      className="flex flex-col items-center text-center"
-      style={{ padding: "64px 16px", color: "var(--color-muted)" }}
+      className="glass-d flex flex-col items-center text-center"
+      style={{
+        padding: "40px 32px",
+        margin: "64px auto",
+        maxWidth: 520,
+        borderRadius: 16,
+        color: "var(--muted)",
+      }}
       data-testid={testId}
     >
-      <AlertTriangle size={48} className="mb-3 opacity-50" aria-hidden="true" />
-      <p className="text-lg" style={{ color: "var(--color-text)" }}>
+      <AlertTriangle size={48} className="mb-3 opacity-60" aria-hidden="true" />
+      <p className="text-lg" style={{ color: "var(--ink)" }}>
         Couldn&rsquo;t load {label}
       </p>
       <p className="text-sm mb-4" data-testid={`${testId}-sentence`}>

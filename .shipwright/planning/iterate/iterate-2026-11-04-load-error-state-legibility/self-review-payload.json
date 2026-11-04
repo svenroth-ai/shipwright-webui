@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Shared ListLoadErrorState now on a dark glass panel with flipped light tokens; covers Projects, Task Board, Ship's Log, Triage."},
+{"name":"Error Handling","verdict":"pass","note":"No logic change; retry behaviour and testids unchanged."},
+{"name":"Security Basics","verdict":"pass","note":"Presentational only."},
+{"name":"Test Quality","verdict":"pass","note":"New unit test asserts glass-d; existing e2e list-load-error-state spec (2) passes in real Chromium."},
+{"name":"Performance Basics","verdict":"pass","note":"No change."},
+{"name":"Naming & Structure","verdict":"pass","note":"One component edited, mirrors the ProjectsPage empty-state treatment."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No IO boundary."},
+{"name":"Test Hygiene Probe","verdict":"n/a","note":"No skips added."}]}
