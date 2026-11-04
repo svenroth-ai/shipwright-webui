@@ -1,0 +1,1 @@
+{"items":[{"severity":"low","category":"self-review","finding":"7-point checklist done: hooks order ok, tsc+oxlint clean, Standalone behaviour gated, reviewer findings (CTA fallback, route const, indentation, testid) fixed."}]}

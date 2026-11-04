@@ -1,0 +1,1 @@
+In Standalone view the Intent Wizard is gone: the welcome screen and Create Project offer a single "Register an existing project" card, the Create menus skip the guided entry, and "Grade it" and Settings > Stack Profiles are hidden.

@@ -112,7 +112,7 @@ export function ProjectLogCard({
         <span className="grow" />
         {project.synthesized ? null : hasGrade ? (
           <ComplianceGradeBadge projectId={project.id} />
-        ) : complianceSettled ? (
+        ) : complianceSettled && !standaloneView ? (
           <button
             type="button"
             className="lc-gradeit"

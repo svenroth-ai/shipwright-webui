@@ -25,6 +25,8 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { FolderPlus, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import { useStandaloneView } from "../../lib/standaloneView";
+
 /** The two entry routes — exported so tests + callers reference one constant. */
 export const GUIDED_WIZARD_ROUTE = "/wizard";
 export const REGISTER_MANUALLY_ROUTE = "/projects?new=1";
@@ -99,5 +101,22 @@ export function RegisterManuallyMenuItem() {
       </span>
       <span className="flex-1">Register a project manually…</span>
     </DropdownMenu.Item>
+  );
+}
+
+/**
+ * Heading + Guided item + divider as ONE unit. The Intent Wizard needs the
+ * Shipwright plugins, so the Standalone view omits the whole unit (a bare
+ * heading over nothing would be worse than none).
+ */
+export function GuidedWizardSection() {
+  const standalone = useStandaloneView();
+  if (standalone) return null;
+  return (
+    <>
+      <CreateMenuHeading />
+      <GuidedWizardMenuItem />
+      <CreateMenuSeparator />
+    </>
   );
 }

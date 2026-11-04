@@ -29,10 +29,12 @@ import { TerminalSettingsCard } from "../components/settings/TerminalSettingsCar
 import { StandaloneViewCard } from "../components/settings/StandaloneViewCard";
 import { CodexSettingsCard } from "../components/settings/CodexSettingsCard";
 import { StackProfilesCard } from "../components/settings/StackProfilesCard";
+import { useStandaloneView } from "../lib/standaloneView";
 import { PageHead } from "../components/common/PageHead";
 
 export default function SettingsPage() {
   const { data: projects = [] } = useProjects();
+  const standaloneView = useStandaloneView();
   return (
     <div
       className="flex h-full flex-col"
@@ -70,7 +72,7 @@ export default function SettingsPage() {
           {/* Codex Light AC1/AC5 — global runtime default + stall timeout. */}
           <CodexSettingsCard />
           {/* Custom stack profiles (project / user / built-in) via the resolver. */}
-          <StackProfilesCard projects={projects} />
+          {!standaloneView && <StackProfilesCard projects={projects} />}
           {/* FR-01.27 — per-project actions.json upload + reset. */}
           <ActionsConfigCard projects={projects} />
         </div>

@@ -14,6 +14,7 @@
 
 import { statsLine, type ProjectLogModel } from "../../lib/projectLogStats";
 import { ProjectRunSparkline } from "./ProjectRunSparkline";
+import { useStandaloneView } from "../../lib/standaloneView";
 
 export function ProjectLogCardBody({
   projectId,
@@ -30,6 +31,7 @@ export function ProjectLogCardBody({
   /** Session (task) count for this project — drives the non-Shipwright state. */
   taskCount: number;
 }) {
+  const standalone = useStandaloneView();
   if (model.graded) {
     return (
       <>
@@ -59,13 +61,13 @@ export function ProjectLogCardBody({
     if (taskCount > 0) {
       return (
         <div className="lc-empty" data-testid={`projects-card-${projectId}-sessions`}>
-          {taskCount} session{taskCount === 1 ? "" : "s"} — open the log to view them.
+          {taskCount} session{taskCount === 1 ? "" : "s"} — open the {standalone ? "board" : "log"} to view them.
         </div>
       );
     }
     return (
       <div className="lc-empty" data-testid={`projects-card-${projectId}-empty`}>
-        No runs yet. Grade or adopt it to open the logbook.
+        {standalone ? "No runs yet." : "No runs yet. Grade or adopt it to open the logbook."}
       </div>
     );
   }

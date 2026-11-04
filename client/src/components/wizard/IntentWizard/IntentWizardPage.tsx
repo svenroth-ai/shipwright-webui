@@ -8,7 +8,9 @@
  * scene-fore, so the `.wz` grid fills the backdrop.
  */
 
-import { useLocation, useParams } from "react-router-dom";
+import { Navigate, useLocation, useParams } from "react-router-dom";
+
+import { useStandaloneView } from "../../../lib/standaloneView";
 
 import { IntentWizard } from "./IntentWizard";
 import type { WizardDoor } from "./types";
@@ -26,5 +28,9 @@ function doorFromParam(seg: string | undefined): WizardDoor | null {
 export default function IntentWizardPage() {
   const { door } = useParams();
   const { pathname } = useLocation();
+  const standalone = useStandaloneView();
+  // Standalone: no guided flows (they need the plugins) — only the picker,
+  // which then offers just "Register an existing project".
+  if (standalone && door) return <Navigate to="/wizard" replace />;
   return <IntentWizard key={pathname} initialDoor={doorFromParam(door)} />;
 }

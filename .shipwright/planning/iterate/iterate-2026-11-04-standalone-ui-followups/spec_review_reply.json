@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"All three spec items implemented: CTA opens New Task modal on the plain action; Codex run-mode + stall timeout hidden on claude_only; Standalone removes Intent Wizard doors/menus/deep links, adds Register card, hides Grade it and Stack Profiles. Nothing beyond spec."}

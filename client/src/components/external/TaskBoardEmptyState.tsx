@@ -22,12 +22,20 @@ export function TaskBoardEmptyState({ onCreate, canCreate }: TaskBoardEmptyState
   return (
     <div className="page-container w-full pt-10 pb-8">
       <div
-        className="flex flex-col items-center text-center"
-        style={{ padding: "64px 16px", color: "var(--color-muted)" }}
+        // On the photo backdrop: a dark glass panel + the flipped light tokens
+        // of the .on-photo shell give the text a reading ground.
+        className="glass-d flex flex-col items-center text-center"
+        style={{
+          padding: "40px 32px",
+          margin: "32px auto",
+          maxWidth: 520,
+          borderRadius: 16,
+          color: "var(--muted)",
+        }}
         data-testid="task-board-empty"
       >
-        <LayoutGrid size={48} className="mb-3 opacity-50" aria-hidden="true" />
-        <p className="text-lg" style={{ color: "var(--color-text)" }}>
+        <LayoutGrid size={48} className="mb-3 opacity-60" aria-hidden="true" />
+        <p className="text-lg" style={{ color: "var(--ink)" }}>
           No tasks yet
         </p>
         <p className="text-sm mb-4" data-testid="task-board-empty-sentence">

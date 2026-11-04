@@ -25,6 +25,8 @@ interface TaskBoardBodyProps {
   projectFiltered: ExternalTask[];
   filteredTasks: ExternalTask[];
   onCreate: () => void;
+  /** False until the plain-session action is available (CTA disabled, not dead). */
+  canCreate?: boolean;
 }
 
 export function TaskBoardBody({
@@ -37,6 +39,7 @@ export function TaskBoardBody({
   projectFiltered,
   filteredTasks,
   onCreate,
+  canCreate = true,
 }: TaskBoardBodyProps) {
   if (isLoading) {
     return <div className="p-6 text-sm text-[var(--color-muted)]">Loading…</div>;
@@ -81,7 +84,7 @@ export function TaskBoardBody({
     // A07 teaching empty state (zero tasks). A08 (FR-01.51): its CTA opens
     // the guided Intent Wizard — direct/expert create stays in the header
     // split button.
-    return <TaskBoardEmptyState canCreate onCreate={onCreate} />;
+    return <TaskBoardEmptyState canCreate={canCreate} onCreate={onCreate} />;
   }
 
   // iterate-2026-06-17 — grid + grouping + drag-and-drop extracted to

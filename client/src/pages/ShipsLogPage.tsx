@@ -25,9 +25,7 @@ import { getProjectColor } from "../lib/projectColor";
 import { CaptainsDrawer } from "../components/shipslog/CaptainsDrawer";
 import { ScopedIteratePromptbox } from "../components/shipslog/ScopedIteratePromptbox";
 import {
-  CreateMenuHeading,
-  CreateMenuSeparator,
-  GuidedWizardMenuItem,
+  GuidedWizardSection,
   RegisterManuallyMenuItem,
 } from "../components/external/CreateMenuIntentItems";
 import { SURFACE_CLS } from "../components/external/ProjectCreateCascade";
@@ -150,9 +148,7 @@ export default function ShipsLogPage() {
                   data-testid="shipslog-create-content"
                   className={`${SURFACE_CLS} min-w-[240px]`}
                 >
-                  <CreateMenuHeading />
-                  <GuidedWizardMenuItem />
-                  <CreateMenuSeparator />
+                  <GuidedWizardSection />
                   <RegisterManuallyMenuItem />
                 </DropdownMenu.Content>
               </DropdownMenu.Portal>
