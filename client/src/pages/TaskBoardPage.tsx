@@ -54,7 +54,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
 import type {
@@ -107,7 +107,6 @@ function readStoredView(): TaskBoardView {
 
 export default function TaskBoardPage() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const { activeProjectId } = useProjectFilter();
   // Phone (≤767px): the project dropdown moves up into the global top bar and
   // the status filter collapses to an icon menu (iterate-2026-06-15 AC-1/AC-2).
@@ -410,7 +409,13 @@ export default function TaskBoardPage() {
         view={view}
         projectFiltered={projectFiltered}
         filteredTasks={filteredTasks}
-        onCreate={() => navigate("/wizard")}
+        canCreate={actionsList.some((a) => a.id === "new-plain")}
+        onCreate={() => {
+          // "New task" opens the New Task dialog (the plain-session action),
+          // not the Intent Wizard.
+          const plain = actionsList.find((a) => a.id === "new-plain");
+          if (plain) openModal(plain);
+        }}
       />
 
       <NewIssueModal

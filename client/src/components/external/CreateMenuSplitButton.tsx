@@ -50,9 +50,8 @@ import {
 import type { ActionDefinition } from "../../lib/externalApi";
 import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
 import {
-  CreateMenuHeading,
   CreateMenuSeparator,
-  GuidedWizardMenuItem,
+  GuidedWizardSection,
   RegisterManuallyMenuItem,
 } from "./CreateMenuIntentItems";
 
@@ -185,9 +184,7 @@ export function CreateMenuSplitButton({
                 (iterate-2026-07-23-intent-launcher-front-door). It leads; the
                 direct pipeline/task/iterate actions follow; register-manually is
                 the escape hatch. */}
-            <CreateMenuHeading />
-            <GuidedWizardMenuItem />
-            <CreateMenuSeparator />
+            <GuidedWizardSection />
             {actions.map((a) => {
               const v = ACTION_VISUALS[a.id] ?? DEFAULT_VISUAL;
               const Icon = v.icon;

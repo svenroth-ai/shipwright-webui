@@ -102,103 +102,108 @@ export function CodexSettingsCardFields({
         </div>
       </div>
 
-      <div
-        className="flex flex-col gap-[6px]"
-        style={{ marginTop: "12px" }}
-        data-testid="settings-codex-integration-mode"
-      >
-        <span className="font-medium" style={{ fontSize: "14px", color: "var(--color-text)" }}>
-          How a Codex task actually runs
-        </span>
-        <span style={{ fontSize: "13px", color: "var(--color-muted)" }}>
-          "Codex Light" runs the real Codex CLI in its own terminal.
-          "Codextender" instead runs a normal Claude session pointed at your
-          Codex-plan subscription through a local proxy you start yourself —
-          same Claude/Codex UX either way, just a different setup happens in
-          the background.
-        </span>
-        <select
-          value={integrationMode}
-          onChange={(e) => changeIntegrationMode(e.target.value as IntegrationMode)}
-          data-testid="settings-codex-integration-mode-select"
-          style={selectStyle}
+      {/* Claude only: Codex never runs, so how it runs / its stall timeout are moot. */}
+      {availability !== "claude_only" && (
+      <>
+        <div
+          className="flex flex-col gap-[6px]"
+          style={{ marginTop: "12px" }}
+          data-testid="settings-codex-integration-mode"
         >
-          <option value="light">Codex Light</option>
-          <option value="codextender">Codextender</option>
-        </select>
-        {/* iterate-2026-09-26-runtime-badge-and-leads-gate: moved here from
-            every individual task's Runtime field — this is a global posture
-            of the "Codex Light" mechanism, worth stating once where the
-            mechanism is chosen, not repeated on every task. Shown whenever
-            Codex Light is active and Codex is reachable at all (Claude-only
-            makes the limitation moot). */}
-        {integrationMode === "light" && availability !== "claude_only" && (
-          <p
-            className="mt-1 text-[13px] text-[var(--color-muted)]"
-            data-testid="settings-codex-light-limitation-hint"
+          <span className="font-medium" style={{ fontSize: "14px", color: "var(--color-text)" }}>
+            How a Codex task actually runs
+          </span>
+          <span style={{ fontSize: "13px", color: "var(--color-muted)" }}>
+            "Codex Light" runs the real Codex CLI in its own terminal.
+            "Codextender" instead runs a normal Claude session pointed at your
+            Codex-plan subscription through a local proxy you start yourself —
+            same Claude/Codex UX either way, just a different setup happens in
+            the background.
+          </span>
+          <select
+            value={integrationMode}
+            onChange={(e) => changeIntegrationMode(e.target.value as IntegrationMode)}
+            data-testid="settings-codex-integration-mode-select"
+            style={selectStyle}
           >
-            Codex Light doesn't support campaign or multi-phase pipeline
-            launches yet. Use{" "}
-            {availability === "codex_only" ? "Codex" : "Claude or Codex"} over
-            Codextender for those.
-          </p>
-        )}
-      </div>
+            <option value="light">Codex Light</option>
+            <option value="codextender">Codextender</option>
+          </select>
+          {/* iterate-2026-09-26-runtime-badge-and-leads-gate: moved here from
+              every individual task's Runtime field — this is a global posture
+              of the "Codex Light" mechanism, worth stating once where the
+              mechanism is chosen, not repeated on every task. Shown whenever
+              Codex Light is active and Codex is reachable at all (Claude-only
+              makes the limitation moot). */}
+          {integrationMode === "light" && (
+            <p
+              className="mt-1 text-[13px] text-[var(--color-muted)]"
+              data-testid="settings-codex-light-limitation-hint"
+            >
+              Codex Light doesn't support campaign or multi-phase pipeline
+              launches yet. Use{" "}
+              {availability === "codex_only" ? "Codex" : "Claude or Codex"} over
+              Codextender for those.
+            </p>
+          )}
+        </div>
 
-      {integrationMode === "codextender" && (
+        {integrationMode === "codextender" && (
+          <label
+            className="flex flex-col gap-[6px]"
+            style={{ marginTop: "12px" }}
+            data-testid="settings-codextender-port"
+          >
+            <span className="font-medium" style={{ fontSize: "14px", color: "var(--color-text)" }}>
+              Codextender proxy port
+            </span>
+            <span style={{ fontSize: "13px", color: "var(--color-muted)" }}>
+              The port your local Codextender proxy is listening on
+              (`codextender --port {defaultPort}`).
+            </span>
+            <input
+              type="number"
+              min={1}
+              value={port}
+              onChange={(e) => changePort(e.target.value)}
+              data-testid="settings-codextender-port-input"
+              style={numberInputStyle}
+            />
+          </label>
+        )}
+
         <label
           className="flex flex-col gap-[6px]"
           style={{ marginTop: "12px" }}
-          data-testid="settings-codextender-port"
+          data-testid="settings-codex-stall-timeout"
         >
           <span className="font-medium" style={{ fontSize: "14px", color: "var(--color-text)" }}>
-            Codextender proxy port
+            Codex stall timeout (minutes)
           </span>
           <span style={{ fontSize: "13px", color: "var(--color-muted)" }}>
-            The port your local Codextender proxy is listening on
-            (`codextender --port {defaultPort}`).
+            How long a Codex task's terminal can go silent before Shipwright
+            checks in and, if the work genuinely isn't done, sends a nudge.
+            Minimum {minStallTimeoutMinutes} minutes.
           </span>
           <input
             type="number"
-            min={1}
-            value={port}
-            onChange={(e) => changePort(e.target.value)}
-            data-testid="settings-codextender-port-input"
+            min={minStallTimeoutMinutes}
+            value={stallMinutes}
+            onChange={(e) => changeStallMinutes(e.target.value)}
+            data-testid="settings-codex-stall-timeout-input"
             style={numberInputStyle}
           />
+          {stallError ? (
+            <span
+              style={{ fontSize: "12px", color: "var(--color-danger, #b91c1c)" }}
+              data-testid="settings-codex-stall-timeout-error"
+            >
+              {stallError}
+            </span>
+          ) : null}
         </label>
+      </>
       )}
-
-      <label
-        className="flex flex-col gap-[6px]"
-        style={{ marginTop: "12px" }}
-        data-testid="settings-codex-stall-timeout"
-      >
-        <span className="font-medium" style={{ fontSize: "14px", color: "var(--color-text)" }}>
-          Codex stall timeout (minutes)
-        </span>
-        <span style={{ fontSize: "13px", color: "var(--color-muted)" }}>
-          How long a Codex task's terminal can go silent before Shipwright
-          checks in and, if the work genuinely isn't done, sends a nudge.
-          Minimum {minStallTimeoutMinutes} minutes.
-        </span>
-        <input
-          type="number"
-          min={minStallTimeoutMinutes}
-          value={stallMinutes}
-          onChange={(e) => changeStallMinutes(e.target.value)}
-          data-testid="settings-codex-stall-timeout-input"
-          style={numberInputStyle}
-        />
-        {stallError ? (
-          <span
-            style={{ fontSize: "12px", color: "var(--color-danger, #b91c1c)" }}
-            data-testid="settings-codex-stall-timeout-error"
-          >
-            {stallError}
-          </span>
-        ) : null}
-      </label>
     </>
   );
 }

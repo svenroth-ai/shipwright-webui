@@ -60,9 +60,8 @@ import {
   type ProjectCascadeProps,
 } from "./ProjectCreateCascade";
 import {
-  CreateMenuHeading,
   CreateMenuSeparator,
-  GuidedWizardMenuItem,
+  GuidedWizardSection,
   RegisterManuallyMenuItem,
 } from "./CreateMenuIntentItems";
 import type { Project } from "../../types";
@@ -128,9 +127,7 @@ export function ProjectCreatePhoneMenu({
                 </div>
                 {/* Guided + register-manually frame the project drill-down
                     (iterate-2026-07-23-intent-launcher-front-door). */}
-                <CreateMenuHeading />
-                <GuidedWizardMenuItem />
-                <CreateMenuSeparator />
+                <GuidedWizardSection />
                 {projects.length === 0 ? (
                   <div className="px-2.5 py-2 text-[13px] text-[var(--color-muted)]">
                     No projects yet

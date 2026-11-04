@@ -16,9 +16,11 @@
  * into a broken run is worse than a closed one.
  */
 
-import { Sparkles, Wrench, Target, ChevronRight } from "lucide-react";
+import { Sparkles, Wrench, Target, ChevronRight, FolderPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import { REGISTER_MANUALLY_ROUTE } from "../../external/CreateMenuIntentItems";
+import { useStandaloneView } from "../../../lib/standaloneView";
 import { DOORS, type DoorDef } from "./stubData";
 import { ReadinessGate } from "./ReadinessGate";
 import type { ReadinessState } from "./useReadiness";
@@ -35,6 +37,36 @@ export function DoorGrid({
 }) {
   const navigate = useNavigate();
   const ready = readiness.ready;
+  // Standalone view: the guided doors all run Shipwright plugins, so the only
+  // first step is registering a repo — one card, same shape as the doors.
+  const standalone = useStandaloneView();
+
+  if (standalone) {
+    return (
+      <>
+        <div className="wz-opts">
+          <button
+            type="button"
+            className="wz-opt"
+            data-testid="wizard-door-register"
+            onClick={() => navigate(REGISTER_MANUALLY_ROUTE)}
+          >
+            <span className="iw-ic">
+              <FolderPlus size={26} />
+            </span>
+            <div>
+              <div className="ol">Register an existing project</div>
+              <div className="od">Point the Command Center at a folder — then run Claude tasks on its board.</div>
+            </div>
+            <span style={{ marginLeft: "auto", color: "var(--faint)", alignSelf: "center" }}>
+              <ChevronRight size={18} />
+            </span>
+          </button>
+        </div>
+        {ready ? null : <ReadinessGate state={readiness} />}
+      </>
+    );
+  }
 
   return (
     <>

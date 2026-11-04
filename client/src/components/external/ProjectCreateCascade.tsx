@@ -31,9 +31,8 @@ import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
 import { getProjectColor } from "../../lib/projectColor";
 import { ProjectCreatePhoneMenu } from "./ProjectCreatePhoneMenu";
 import {
-  CreateMenuHeading,
   CreateMenuSeparator,
-  GuidedWizardMenuItem,
+  GuidedWizardSection,
   RegisterManuallyMenuItem,
 } from "./CreateMenuIntentItems";
 import type { ActionDefinition } from "../../lib/externalApi";
@@ -189,9 +188,7 @@ export function ProjectCreateMenu({
             {/* Guided wizard leads even in All-Projects mode (it needs no active
                 project); the per-project action submenus follow; register-manually
                 closes (iterate-2026-07-23-intent-launcher-front-door). */}
-            <CreateMenuHeading />
-            <GuidedWizardMenuItem />
-            <CreateMenuSeparator />
+            <GuidedWizardSection />
             {projects.length === 0 ? (
               <div className="px-2.5 py-2 text-[13px] text-[var(--color-muted)]">
                 No projects yet
