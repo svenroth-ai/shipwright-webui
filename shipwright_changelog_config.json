@@ -2,6 +2,9 @@
   "published_manifests": [
     { "path": "bootstrapper/package.json", "format": "package_json" },
     { "path": "server/package.json", "format": "package_json" },
-    { "path": "client/package.json", "format": "package_json" }
+    { "path": "client/package.json", "format": "package_json" },
+    { "path": "bootstrapper/package-lock.json", "format": "package_lock_json" },
+    { "path": "server/package-lock.json", "format": "package_lock_json" },
+    { "path": "client/package-lock.json", "format": "package_lock_json" }
   ]
 }
