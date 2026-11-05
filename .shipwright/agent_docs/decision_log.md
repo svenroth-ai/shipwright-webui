@@ -5933,3 +5933,16 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Reuses the existing useStandaloneView switch and the shared DoorGrid, so welcome screen and wizard stay in sync.
 - **Consequences:** Standalone users see one clear first step. The view stays a per-browser client preference; no server change.
 - **Rejected:** A separate Standalone welcome page: duplicates DoorGrid and drifts.
+
+---
+
+### ADR-417: Readable worktree names via {task.slug} and {task.short_id}
+- **Date:** 2026-11-05
+- **Section:** Iterate — feature: task.slug / task.short_id placeholders
+- **Run-ID:** iterate-2026-11-05-task-slug-placeholders
+- **Context:** Command templates could only inject the raw task UUID, so `claude -w wt-{task.uuid}` produced unreadable worktree names.
+- **Decision:** Add {task.slug} (title -> strict [a-z0-9-], de transliteration, 30-char cap, fallback 'task') and {task.short_id} (first 6 uuid chars), implemented in core/task-slug.ts and substituted unquoted.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Unquoted like task.uuid keeps templates simple; strict sanitising by construction avoids shell injection via the title.
+- **Consequences:** Unquoted substitution makes the slugifier a security boundary: every char outside [a-z0-9] becomes '-', guarded by tests incl. shell metachars and exotic code points.
+- **Rejected:** Quoting the slug via q() (would change worktree-name shape per shell); stripping diacritics beyond de umlauts (spec says everything else -> '-').

@@ -424,3 +424,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_decision_log_index.py 
 - [ADR-414 — Reconcile B7, G2, H1 and I5 audit findings](decision_log.md#adr-414-reconcile-b7-g2-h1-and-i5-audit-findings)
 - [ADR-415 — Standalone view: no actions.json means plain Claude only](decision_log.md#adr-415-standalone-view-no-actionsjson-means-plain-claude-only)
 - [ADR-416 — Standalone view drops the Intent Wizard; New task opens its dialog](decision_log.md#adr-416-standalone-view-drops-the-intent-wizard-new-task-opens-its-dialog)
+- [ADR-417 — Readable worktree names via {task.slug} and {task.short_id}](decision_log.md#adr-417-readable-worktree-names-via-taskslug-and-taskshort_id)
