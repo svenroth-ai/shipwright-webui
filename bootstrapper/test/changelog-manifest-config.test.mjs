@@ -18,13 +18,21 @@ const CONFIG = path.join(REPO, "shipwright_changelog_config.json");
  *
  * The field names/format value mirror the plugin's parser
  * (`load_declared_manifests` in `manifest_sync_core.py`): a `published_manifests`
- * array of `{ path, format }` objects with `format: "package_json"`.
+ * array of `{ path, format }` objects with `format: "package_json"` or `"package_lock_json"`.
  */
 const EXPECTED_PATHS = [
   "bootstrapper/package.json",
   "server/package.json",
   "client/package.json",
+  "bootstrapper/package-lock.json",
+  "server/package-lock.json",
+  "client/package-lock.json",
 ];
+const FORMAT_BY_SUFFIX = {
+  "package.json": "package_json",
+  "package-lock.json": "package_lock_json",
+};
+const formatFor = (p) => FORMAT_BY_SUFFIX[path.basename(p)];
 
 // Read + parse lazily inside each test (never at collection time) so a deleted
 // or malformed file surfaces as the "exists"/"valid JSON" test failing with a
@@ -54,12 +62,12 @@ describe("shipwright_changelog_config.json — published-manifest declaration", 
     expect(parsed.published_manifests.length).toBeGreaterThan(0);
   });
 
-  it("every entry is a { path, format: 'package_json' } object with a non-empty path", () => {
+  it("every entry is a { path, format } object whose format matches the file kind with a non-empty path", () => {
     for (const entry of loadConfig().published_manifests) {
       expect(typeof entry).toBe("object");
       expect(typeof entry.path).toBe("string");
       expect(entry.path.length).toBeGreaterThan(0);
-      expect(entry.format).toBe("package_json");
+      expect(entry.format).toBe(formatFor(entry.path));
     }
   });
 
@@ -70,17 +78,21 @@ describe("shipwright_changelog_config.json — published-manifest declaration", 
     expect(new Set(paths).size).toBe(paths.length);
   });
 
-  it("declares exactly the three shipped manifests (bootstrapper, server, client)", () => {
+  it("declares exactly the three package.json and three package-lock.json manifests", () => {
     const declared = loadConfig().published_manifests.map((e) => e.path).sort();
     expect(declared).toEqual([...EXPECTED_PATHS].sort());
   });
 
-  it("every declared manifest exists and is a package.json carrying a version string", () => {
+  it("every declared manifest exists and carries a version string (lockfiles in both places)", () => {
     for (const entry of loadConfig().published_manifests) {
       const abs = path.join(REPO, entry.path);
       expect(existsSync(abs), `${entry.path} must exist`).toBe(true);
       const pkg = JSON.parse(readFileSync(abs, "utf-8"));
       expect(typeof pkg.version, `${entry.path} needs a version`).toBe("string");
+      if (entry.format === "package_lock_json") {
+        const root = pkg.packages?.[""]?.version;
+        expect(root, `${entry.path} packages[""].version must match version`).toBe(pkg.version);
+      }
     }
   });
 
