@@ -1,0 +1,1 @@
+Goal: Add {task.slug} and {task.short_id} command-template placeholders so worktrees get readable names. | Reason: claude -w wt-{task.uuid} is unreadable; users want wt-gap-analyse-3d9e8b. | Reference: user brief (screenshot) 2026-11-05

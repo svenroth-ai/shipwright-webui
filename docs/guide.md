@@ -1149,6 +1149,8 @@ toggle.
 | `{project.path}` | Project folder absolute path, shell-escaped. |
 | `{cd.prefix}` | `cd <path> && ` (POSIX) / `cd /d <path> && ` (cmd, the `/d` also switches drive) / `Set-Location <path> -ErrorAction Stop; ` (PowerShell). |
 | `{task.uuid}` | Pre-bound session UUID, raw. Use after `--session-id`. |
+| `{task.slug}` | Title as a slug, raw (unquoted): lowercase `[a-z0-9-]` only — umlauts transliterated (`ä→ae`, `ö→oe`, `ü→ue`, `ß→ss`), everything else `-`, runs collapsed, edge dashes trimmed, cut to ~30 chars; empty result → `task`. E.g. `Gap Analyse` → `gap-analyse`. |
+| `{task.short_id}` | First 6 characters of `{task.uuid}`, raw. Combine for readable worktrees: `claude -w wt-{task.slug}-{task.short_id}` → `wt-gap-analyse-3d9e8b`. |
 | `{task.title}` | Task title, shell-escaped. Use bare after `--name`, never `--name "{task.title}"` (the value is already a quoted token; wrapping it double-quotes the name). |
 | `{task.session_name}` | Claude session display name, shell-escaped as one token: `Pipeline: <title>` / `Iterate: <title>` / `<phase>: <title>` for the bundled actions, bare `<title>` for `new-plain` and custom actions. Use bare after `--name`. |
 | `{task.description?}` | Trailing space + escaped description, or empty. Newlines rejected. |

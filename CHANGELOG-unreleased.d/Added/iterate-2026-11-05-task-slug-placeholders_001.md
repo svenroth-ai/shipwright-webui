@@ -1,0 +1,1 @@
+Command templates accept `{task.slug}` (readable, shell-safe lowercase title slug) and `{task.short_id}` (first 6 characters of the task UUID), e.g. `claude -w wt-{task.slug}-{task.short_id}` -> `wt-gap-analyse-3d9e8b`.

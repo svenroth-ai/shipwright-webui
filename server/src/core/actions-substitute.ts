@@ -33,9 +33,10 @@
  * Security:
  *   User-derived placeholders (`{task.title}`, `{task.description?}`,
  *   `{task.phase_label}`, `{project.path}`) are always shell-escaped.
- *   Server-generated literals (`{task.uuid}`, `{project.id}`,
- *   `{task.phase}`) pass through unquoted — they are UUIDs or allowlist
- *   ids and safe as raw tokens.
+ *   Server-generated literals (`{task.uuid}`, `{task.short_id}`,
+ *   `{task.slug}`, `{project.id}`, `{task.phase}`) pass through unquoted —
+ *   UUIDs, allowlist ids, or a strictly `[a-z0-9-]` title slug
+ *   (task-slug.ts); safe as raw tokens.
  *
  *   `{plugin.dirs}` expands into a space-joined sequence of
  *   `--plugin-dir <escaped>` pairs.
@@ -43,6 +44,7 @@
 
 import { qPs, qCmd, qPosix, toPosixPath, buildCdPrefix } from "./launcher.js";
 import type { ResolvedParam } from "../types/action-schema.js";
+import { slugifyTitle, shortTaskId } from "./task-slug.js";
 
 export type ShellForm = "powershell" | "cmd" | "posix";
 
@@ -161,6 +163,8 @@ const ALLOWED_PLACEHOLDERS = new Set([
   "project.id",
   "project.path",
   "task.uuid",
+  "task.slug",
+  "task.short_id",
   "task.title",
   "task.session_name",
   "task.description?",
@@ -337,6 +341,10 @@ function substituteOne(
       return q(transformPath(shellForm, ctx.project.path));
     case "task.uuid":
       return ctx.task.uuid;
+    case "task.slug": // [a-z0-9-] by construction (task-slug.ts) — unquoted
+      return slugifyTitle(ctx.task.title);
+    case "task.short_id":
+      return shortTaskId(ctx.task.uuid);
     case "task.title":
       return q(ctx.task.title);
     case "task.session_name": {
@@ -450,17 +458,9 @@ function substituteOne(
         .join(" ");
     }
     case "cd.prefix": {
-      // 2026-04-23 — iterate-20260423-launch-cwd-prefix.
-      //
-      // `--add-dir <path>` only grants Claude tool-access to that
-      // directory; it does NOT change the shell's working directory.
-      // When the user pastes the copy command in a terminal parked in
-      // $HOME, the skill runs with `pwd === $HOME`, fails to find
-      // shipwright_run_config.json, and exits immediately. The cd.prefix
-      // placeholder expands to a shell-specific `cd` command + separator
-      // so the slash command runs with the project as cwd regardless of
-      // where the terminal happened to be.
-      //
+      // iterate-20260423-launch-cwd-prefix — `--add-dir` does NOT change the
+      // shell cwd, so expand to a shell-specific `cd` + separator; the skill
+      // must run with the project as cwd wherever the terminal was parked.
       // Form per shell:
       //   PowerShell — `Set-Location <escaped> -ErrorAction Stop; `
       //                (PS5 lacks `&&`; `-ErrorAction Stop` upgrades the
@@ -472,10 +472,7 @@ function substituteOne(
       //                also change drive letter on Windows)
       //   POSIX      — `cd <escaped> && ` (standard short-circuit)
       //
-      // Empty project.path → empty string. The pasted command degrades
-      // to current behavior (runs in whatever cwd the terminal had);
-      // surfacing the empty-path case as a UI/server error is out of
-      // scope for this iterate.
+      // Empty project.path → empty string (degrades to the terminal's cwd).
       //
       // Security: the same `qPs/qCmd/qPosix` escapers used for
       // `{project.path}` are reused here. The `qCmd` trailing-backslash

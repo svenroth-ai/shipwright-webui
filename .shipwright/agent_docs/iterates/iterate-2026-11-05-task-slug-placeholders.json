@@ -1,0 +1,57 @@
+{
+  "run_id": "iterate-2026-11-05-task-slug-placeholders",
+  "date": "2026-11-05T08:17:44.933036Z",
+  "event_at": "2026-11-04T16:06:37.790121+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/task-slug-placeholders",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-05-task-slug-placeholders",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "slug lowercases/hyphenates; umlaut+\u00df transliteration (also NFD)",
+        "disposition": "tested",
+        "evidence": "actions-substitute.slug.test.ts slug cases PASSED"
+      },
+      {
+        "behavior": "slug collapses dashes, trims edges, truncates to 30, falls back to 'task'",
+        "disposition": "tested",
+        "evidence": "actions-substitute.slug.test.ts truncation/fallback PASSED"
+      },
+      {
+        "behavior": "slug of shell-metachar/exotic titles is only [a-z0-9-]; identical across powershell/cmd/posix",
+        "disposition": "tested",
+        "evidence": "actions-substitute.slug.test.ts metachar + exotic + cross-shell PASSED"
+      },
+      {
+        "behavior": "short_id is the 6-char uuid prefix in all shells",
+        "disposition": "tested",
+        "evidence": "actions-substitute.slug.test.ts short_id PASSED"
+      },
+      {
+        "behavior": "validateTemplate accepts the new placeholders; worktree template renders wt-gap-analyse-3d9e8b",
+        "disposition": "tested",
+        "evidence": "actions-substitute.slug.test.ts worktree template PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    }
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

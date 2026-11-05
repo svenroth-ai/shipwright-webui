@@ -1,0 +1,9 @@
+{"items": [
+{"name": "spec-match", "verdict": "pass", "note": "all request bullets implemented incl. docs + tests"},
+{"name": "tests", "verdict": "pass", "note": "114 passed in actions-substitute* suites"},
+{"name": "security", "verdict": "pass", "note": "slug is [a-z0-9-] by construction; unquoted like task.uuid; fuzz-style cases added"},
+{"name": "scope", "verdict": "pass", "note": "no extra features; cd.prefix comment trimmed only to hold bloat baseline"},
+{"name": "conventions", "verdict": "pass", "note": "new logic in task-slug.ts, test in separate file (<300 lines)"},
+{"name": "typecheck-lint", "verdict": "pass", "note": "tsc --noEmit and oxlint clean"},
+{"name": "boundaries", "verdict": "n/a", "note": "no io boundary touched"},
+{"name": "docs", "verdict": "pass", "note": "docs/guide.md placeholder table updated"}]}
