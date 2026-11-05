@@ -1,9 +1,9 @@
 {
   "schema_version": 4,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-11-04T16:06:37.790121+00:00",
-  "source_commit": "5b875a16eec285dd22f30e45cb3a3c3e77408976",
-  "spec_hash": "sha256:379a2971f5bbcf0cb4158b11475a3e987d84feffdf4f927c582cfaa3dfbbbac0",
+  "generated_at": "2026-11-05T08:17:45.132052+00:00",
+  "source_commit": "6bb0cf3889a82a4448acc0bdebe8517c8a315b70",
+  "spec_hash": "sha256:a4dde1e822c0048f1160f6a61d7c626435c98da57b3f138cac21889c32abad23",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
@@ -18966,13 +18966,117 @@
     "01::FR-01.37": {
       "id": "FR-01.37",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "A custom action can name a slash command (for example '/content-orchestrator') so that the task's description is combined with that command into a single prompt sent to Claude. If a custom action needs this but names no valid slash command, the app reports a clear error up front rather than failing silently or breaking at launch.",
+      "title": "A custom action can name a slash command (for example '/content-orchestrator') so that the task's description is combined with that command into a single prompt sent to Claude. If a custom action needs this but names no valid slash command, the app reports a clear error up front rather than failing silently or breaking at launch.<br>**Updates:** A command template can also insert the task title as a readable, shell-safe lowercase slug and the first six characters of the task id, so a worktree can be named like 'wt-gap-analyse-3d9e8b'.",
       "priority": "Should",
       "status": "active",
       "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::lowercases and hyphenates",
+            "path": "server/src/core/actions-substitute.slug.test.ts::lowercases and hyphenates",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::transliterates umlauts and ß",
+            "path": "server/src/core/actions-substitute.slug.test.ts::transliterates umlauts and ß",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::collapses runs and trims edge dashes",
+            "path": "server/src/core/actions-substitute.slug.test.ts::collapses runs and trims edge dashes",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::truncates a long title to ~30 chars without a trailing dash",
+            "path": "server/src/core/actions-substitute.slug.test.ts::truncates a long title to ~30 chars without a trailing dash",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::transliterates decomposed (NFD) umlauts like precomposed ones",
+            "path": "server/src/core/actions-substitute.slug.test.ts::transliterates decomposed (NFD) umlauts like precomposed ones",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::stays [a-z0-9-] for exotic code points (İ, Kelvin sign, emoji)",
+            "path": "server/src/core/actions-substitute.slug.test.ts::stays [a-z0-9-] for exotic code points (İ, Kelvin sign, emoji)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::cuts mid-word at 30 chars",
+            "path": "server/src/core/actions-substitute.slug.test.ts::cuts mid-word at 30 chars",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::falls back to 'task' when nothing survives",
+            "path": "server/src/core/actions-substitute.slug.test.ts::falls back to 'task' when nothing survives",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::shell metacharacters can only ever yield [a-z0-9-]",
+            "path": "server/src/core/actions-substitute.slug.test.ts::shell metacharacters can only ever yield [a-z0-9-]",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::is identical across powershell, cmd and posix",
+            "path": "server/src/core/actions-substitute.slug.test.ts::is identical across powershell, cmd and posix",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::is exactly the first 6 chars of the uuid, same in all shells",
+            "path": "server/src/core/actions-substitute.slug.test.ts::is exactly the first 6 chars of the uuid, same in all shells",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::renders the readable worktree name",
+            "path": "server/src/core/actions-substitute.slug.test.ts::renders the readable worktree name",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-substitute.slug.test.ts::validateTemplate accepts the new placeholders",
+            "path": "server/src/core/actions-substitute.slug.test.ts::validateTemplate accepts the new placeholders",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
           {
             "id": "server/src/core/actions-substitute.test.ts::substitutes project.path with embedded spaces (single quotes / double quotes)",
             "path": "server/src/core/actions-substitute.test.ts::substitutes project.path with embedded spaces (single quotes / double quotes)",

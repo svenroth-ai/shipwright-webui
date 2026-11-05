@@ -1,8 +1,8 @@
 # Compliance Dashboard
 
-Generated: 2026-11-04T16:06:37.790121+00:00
-Source-State: run=iterate-2026-11-04-standalone-plain-only-actions base=5b875a16eec2 release=v0.29.1
-Consistency-audit: last run 2026-09-29 (36 days earlier) — PASS
+Generated: 2026-11-05T08:17:45.132052+00:00
+Source-State: run=iterate-2026-11-05-task-slug-placeholders base=6bb0cf3889a8 release=v0.30.0
+Consistency-audit: last run 2026-09-29 (37 days earlier) — PASS
 Profile: vite-hono
 Scope: full_app
 
@@ -14,17 +14,17 @@ Scope: full_app
 
 | | Dimension | Signal | Anchor |
 |---|-----------|--------|--------|
-| ✅ | Requirement traceability | 32/35 FRs covered; 552/576 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
+| ✅ | Requirement traceability | 32/35 FRs covered; 553/577 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
 | ✅ | Test health | latest full suite 5000/5000 (2026-11-04) | automated tests pass (OpenSSF Scorecard) |
-| ✅ | Change traceability | 576/576 changes linked to a commit, ADR or test run | change provenance (SLSA) |
+| ✅ | Change traceability | 577/577 changes linked to a commit, ADR or test run | change provenance (SLSA) |
 | ✅ | Change reconciliation | 0/34 behavior-touched FRs not re-verified | re-verify changed requirements (ISO/IEC/IEEE 12207) |
 | ✅ | Security | 0 open high/critical | no open high/critical vulns (NIST SSDF) |
-| ✅ | Size / maintainability discipline | ratchet delta -182 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
+| ✅ | Size / maintainability discipline | ratchet delta -185 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
 | ✅ | Dependency hygiene | 0 unresolved / 73 licenses; 0 copyleft | dependency license & risk (OWASP) |
 
 > 📊 **Test-Health · diff-coverage (Control-Grade input · target ≥80%):** not measured this session — per-PR signal; see the CI "Diff coverage" artifact.
 
-Verified from: `shipwright_events.jsonl (576 events, 2026-05-01 → 2026-11-04)`
+Verified from: `shipwright_events.jsonl (577 events, 2026-05-01 → 2026-11-05)`
 
 _Grade = importance-weighted average over the measurable dimensions (n/a excluded from the denominator), modeled on OpenSSF Scorecard. Age is neutral; only unreconciled change and net growth are control failures. Each Anchor names the open standard the dimension follows — see the guide's Control-Grade dimensions table._
 
@@ -67,22 +67,22 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 | Metric | Value | Status | Why warn? |
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
-| Work events (iterate) | 506 changes | INFO |  |
+| Work events (iterate) | 507 changes | INFO |  |
 | Recent changes traced to an FR | 29/30 (97%) | INFO | feature vs. maintenance mix — informational, does not affect the Control Grade |
-| All unit tests passing | 5000/5000 | PASS |  |
-| Architecture decisions | 414 ADRs | INFO |  |
-| Iterate tests passing | 261/344 testable changes tested | WARN | 83 testable change(s) without tests — see test-evidence.md |
+| All unit tests passing | 5000/5000 | PASS | +1 change(s) since last full suite |
+| Architecture decisions | 415 ADRs | INFO |  |
+| Iterate tests passing | 262/345 testable changes tested | WARN | 83 testable change(s) without tests — see test-evidence.md |
 | Dependencies | 73 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
 | Triage open | 4 open | WARN | 4 actionable item(s) — see ../agent_docs/triage_inbox.md |
 | Bloat over-limit (grandfathered) | 89 | INFO |  |
 | Bloat in allowlist | 107 entries | INFO |  |
-| Bloat ratchet delta | -182 lines | PASS |  |
+| Bloat ratchet delta | -185 lines | PASS |  |
 
 ## Project Velocity
 
-- Iterate: 506 changes (2026-05-01 → 2026-11-04)
-- Last activity: 2026-11-04
+- Iterate: 507 changes (2026-05-01 → 2026-11-05)
+- Last activity: 2026-11-05
 
 ## External LLM Review Evidence
 
@@ -94,7 +94,7 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 
 ## 🔎 Consistency Audit
 
-**Last run 2026-09-29 (36 days earlier): PASS** · 62 checks — 55 pass, 0 fail, 7 skip.
+**Last run 2026-09-29 (37 days earlier): PASS** · 62 checks — 55 pass, 0 fail, 7 skip.
 
 _On demand by design: the audit has no schedule and no CI trigger, so it never runs on its own, so this date is how far back the last cross-check reaches — anything that drifted after it is unmeasured._
 

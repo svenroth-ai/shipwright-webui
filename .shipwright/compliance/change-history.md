@@ -1,24 +1,24 @@
 # Commit Change Log
 
-Generated: 2026-11-04T16:06:37.790121+00:00
-Source-State: run=iterate-2026-11-04-standalone-plain-only-actions base=5b875a16eec2 release=v0.29.1
-Consistency-audit: last run 2026-09-29 (36 days earlier) — PASS
-Total commits: 995
+Generated: 2026-11-05T08:17:45.132052+00:00
+Source-State: run=iterate-2026-11-05-task-slug-placeholders base=6bb0cf3889a8 release=v0.30.0
+Consistency-audit: last run 2026-09-29 (37 days earlier) — PASS
+Total commits: 999
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 395
-    "feat" : 261
-    "chore" : 164
+    "feat" : 262
+    "chore" : 166
     "docs" : 79
     "refactor" : 37
     "test" : 34
     "other" : 11
     "ci" : 8
     "perf" : 5
-    "build" : 1
+    "build" : 2
 ```
 
 ## Changes by Type
@@ -423,10 +423,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 261 commits
+### Features (feat) — 262 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-05 | actions | add {task.slug} and {task.short_id} command-template placeholders (#578) | 32ba62825a8f |
 | 2026-11-04 | standalone | plain Claude only without an actions.json (#575) | 5b875a16eec2 |
 | 2026-11-04 | standalone | hide Intent Wizard, Grade it and Stack Profiles; New task opens its dialog (#574) | c83fa6e67994 |
 | 2026-11-02 | mission | visual polish - one row size, lifted Info cards, smaller chat, shared columns, Agents pill row (#563) | 1713b11e507a |
@@ -689,10 +690,12 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 164 commits
+### Chores (chore) — 166 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-05 | deps | sync lockfile versions to 0.29.1 (#577) | d9879c05e53c |
+| 2026-11-04 | release | v0.29.1 (#576) | eb3212116adc |
 | 2026-11-04 | compliance | reconcile B7, G2, H1 and I5 audit findings (#570) | 7f30c2a1d01d |
 | 2026-10-26 | compliance | reconcile G2 and H1 audit findings (#537) | 297b4a635d43 |
 | 2026-10-24 | compliance | reconcile B7, D1, D-layer and H1 audit findings (#533) | 89f4e86f48e1 |
@@ -1062,17 +1065,18 @@ pie title Commit Types
 | 2026-07-21 | mission | pay the run-identity scan once per task, not once per poll (FR-01.66) (#311) | 835393c7a3cf |
 | 2026-07-21 | mission | run resolver git off the event loop + cache root-set/event-log reads (FR-01.66) (#302) | 20285143cda9 |
 
-### Build (build) — 1 commits
+### Build (build) — 2 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-05 | release | sync package-lock.json files with package.json at release (#579) | 6bb0cf3889a8 |
 | 2026-04-26 | webui | autostart script builds server too + launches via node | 6fbc5c517ed1 |
 
 ## AI Attribution
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 995 |
+| Total commits | 999 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 995 |
+| Human-authored commits | 999 |
 
