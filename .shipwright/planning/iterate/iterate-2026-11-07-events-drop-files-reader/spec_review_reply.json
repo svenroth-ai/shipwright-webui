@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "Round 2 (round 1 REJECT: AC1 symlink test missing for the fs loader; fixed in event-log-files.test.ts, ledger row 7). The unlistable-folder rule keeps Contracts 5 and 7, is tested, ledger row 20. Contracts 1-9 and AC1-AC10 are met."
+}

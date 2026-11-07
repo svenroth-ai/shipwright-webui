@@ -20,7 +20,7 @@ export { _clearResolverCache, _clearSupersessionMemo } from "./resolver-parts.js
 // Re-exported so the detail endpoint keeps its single import site (§5.2).
 export { readDocumentBody } from "./document-read.js";
 import { specPath } from "./fold-map.js";
-import { eventsPath } from "./iterate-record.js";
+import { eventLogRevPaths } from "../event-log-files.js";
 import { readIteratePointer } from "./pointer.js";
 import { detectScenario } from "./scenario.js";
 import { buildNonIterateContext } from "./slice3-sources.js";
@@ -71,7 +71,7 @@ export async function resolveMissionContext(
     hasCampaignRecord: req.hasCampaignRecord,
   });
 
-  const baseRevPaths = [specPath(projectRoot), eventsPath(projectRoot)];
+  const baseRevPaths = [specPath(projectRoot), ...eventLogRevPaths(projectRoot)];
 
   // A pointer that failed validation is an integrity signal, not an absence.
   if (decision.pointerInvalidReason) {

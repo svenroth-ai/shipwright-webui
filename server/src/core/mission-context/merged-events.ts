@@ -12,6 +12,10 @@
  * carry the merged row locally (origin is fetched at finalization), so this is
  * a read-path gap, not missing data.
  *
+ * Since events-drop-files (issue 978) the ref read is the ASSEMBLED log —
+ * legacy file + archive + drop files via `ls-tree` + one `cat-file --batch`
+ * (`ref-event-log.ts`), no longer a single `git show <ref>:<file>`.
+ *
  * Same read-only, ARG-ARRAY, `shell:false` git discipline as merge-check.ts.
  * The ref and the filename are both CONSTANTS — nothing here is attacker-
  * influenced and no path is built from user input. The result is a normal
@@ -28,7 +32,9 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { EVENTS_FILE, findWorkCompleted, type EventLookup } from "./iterate-record.js";
+import { findWorkCompleted, type EventLookup } from "./iterate-record.js";
+import { readAssembledEventLogAtRef, type BlobReader } from "./ref-event-log.js";
+import { absenceBlockers, type EventFileStatus } from "../event-log-assemble.js";
 import { projectEventLog, type RunProjection } from "../event-log-reader.js";
 import type { GitRunner } from "./worktree-roots.js";
 
@@ -67,6 +73,8 @@ interface RefEntry {
   runs: Map<string, RunProjection>;
   /** False when the ref blob could not be read at all (never fetched, no git). */
   ok: boolean;
+  /** Per-file status of the ref's event files (a damaged own drop blocks "absent"). */
+  files: EventFileStatus[];
 }
 
 /** Per-(projectRoot, ref) blob index, TTL'd so N tabs share ONE `git show`. */
@@ -74,6 +82,8 @@ const cache = new Map<string, RefEntry>();
 
 export interface MergedEventsDeps {
   git?: GitRunner;
+  /** Blob reader for `cat-file --batch`; tests inject a fake. */
+  readBlobs?: BlobReader;
   /** Default ref to read; overridden in tests with a real fixture repo. */
   ref?: string;
   now?: () => number;
@@ -85,19 +95,17 @@ async function loadRef(
   ref: string,
   git: GitRunner,
   now: () => number,
+  readBlobs?: BlobReader,
 ): Promise<RefEntry> {
-  try {
-    // `git show <ref>:<file>` — every token a separate argv member. The ref and
-    // file are constants; there is no command string to escape.
-    const text = await git(["show", `${ref}:${EVENTS_FILE}`], projectRoot);
-    const runs = new Map<string, RunProjection>();
-    for (const r of projectEventLog(text.split(/\r?\n/)).runs) runs.set(r.runId, r);
-    return { at: now(), runs, ok: true };
-  } catch {
-    // ref absent (never fetched), not a repo, git missing, or the file was not
-    // tracked at that ref — we cannot read the merged copy. NOT "no such run".
-    return { at: now(), runs: new Map(), ok: false };
-  }
+  // The ASSEMBLED log at the ref (legacy + archive + drops) via ONE `ls-tree` and
+  // ONE `cat-file --batch` (`ref-event-log.ts`); null = ref absent (never
+  // fetched), not a repo, git missing, or no event file at that ref — we cannot
+  // read the merged copy. NOT "no such run".
+  const log = await readAssembledEventLogAtRef(projectRoot, ref, git, readBlobs);
+  if (!log) return { at: now(), runs: new Map(), ok: false, files: [] };
+  const runs = new Map<string, RunProjection>();
+  for (const r of projectEventLog(log.effectiveLines).runs) runs.set(r.runId, r);
+  return { at: now(), runs, ok: true, files: log.files.filter((f) => f.kind !== "legacy") };
 }
 
 /**
@@ -121,14 +129,17 @@ export async function findWorkCompletedFromMergedRef(
 
   let entry = cache.get(key);
   if (!entry || now() - entry.at > ttl) {
-    entry = await loadRef(projectRoot, ref, git, now);
+    entry = await loadRef(projectRoot, ref, git, now, deps.readBlobs);
     if (cache.size >= CACHE_CAP) cache.clear();
     cache.set(key, entry);
   }
 
   if (!entry.ok) return { status: "unavailable" };
   const run = entry.runs.get(runId) ?? null;
-  return run ? { status: "found", run, mtimeMs: 0 } : { status: "absent", mtimeMs: 0 };
+  if (run) return { status: "found", run, mtimeMs: 0 };
+  return absenceBlockers(entry.files, runId).length > 0
+    ? { status: "unavailable" }
+    : { status: "absent", mtimeMs: 0 };
 }
 
 export interface ResolvedEvents {

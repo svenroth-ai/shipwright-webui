@@ -10,6 +10,10 @@
  * when the emitter produced none; the reader never synthesizes one.
  */
 
+import type { EventFileStatus } from "./event-log-assemble.js";
+
+export type { EventFileStatus } from "./event-log-assemble.js";
+
 /** Per-tree, version-controlled event log (parity with events_log.EVENT_FILE). */
 export const EVENT_FILE = "shipwright_events.jsonl";
 
@@ -111,6 +115,15 @@ export interface EventLogProjection {
   parsedLines: number;
   /** Non-empty lines that FAILED to parse (torn/corrupt) — skipped, not fatal. */
   skippedLines: number;
+  /**
+   * Per-file read status (events-drop-files, issue 978). PRESENT ONLY when an
+   * archive or drop file was read, so a legacy-only log returns exactly the
+   * payload it always did. Corrupt fragments of those files count in
+   * `totalLines` / `skippedLines` like a torn legacy line.
+   */
+  files?: EventFileStatus[];
+  /** Archive/drop ids seen with two different contents (both kept). Same presence rule. */
+  duplicateIds?: string[];
 }
 
 export interface ProjectEventLogOptions {

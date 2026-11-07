@@ -31,10 +31,11 @@ describe("readShipsLogDocs", () => {
     writeFileSync(abs, content, "utf-8");
   };
 
+  // @covers FR-01.59
   it("absent project entirely → all four groups empty, no throw", async () => {
     const root = tmp();
     const bundle = await readShipsLogDocs(root);
-    expect(bundle).toEqual({ requirements: [], iterateSpecs: [], agentDocs: [], compliance: [] });
+    expect(bundle).toEqual({ requirements: [], iterateSpecs: [], agentDocs: [], compliance: [], pendingDocUpdates: [], skippedDocUpdates: 0, pendingDocUpdatesUnreadable: false });
   });
 
   it("agentDocs / compliance: only existing curated files appear, others skipped silently", async () => {
@@ -87,8 +88,30 @@ describe("readShipsLogDocs", () => {
     expect(bundle.iterateSpecs.map((r) => r.label)).toEqual(["2026-08-30-b.md", "2026-08-01-a.md"]);
   });
 
+  // @covers FR-01.59
   it("unreadable project root → empty bundle, never throws", async () => {
     const bundle = await readShipsLogDocs(path.join(os.tmpdir(), "shipslogdocs-does-not-exist-xyz"));
-    expect(bundle).toEqual({ requirements: [], iterateSpecs: [], agentDocs: [], compliance: [] });
+    expect(bundle).toEqual({ requirements: [], iterateSpecs: [], agentDocs: [], compliance: [], pendingDocUpdates: [], skippedDocUpdates: 0, pendingDocUpdatesUnreadable: false });
+  });
+
+  // @covers FR-01.59
+  it("pending doc updates: valid bullet files listed in fold order, others counted (S5b)", async () => {
+    const root = tmp();
+    const dir = ".shipwright/agent_docs/decision-drops/bullets";
+    write(root, `${dir}/conventions--iterate-2026-11-02-b--0a1b2c3d--11111111.md`, "- **iterate-2026-11-02-b** second (2026-11-02)\n");
+    write(root, `${dir}/architecture--iterate-2026-11-01-a--0a1b2c3d--22222222.md`, "- **iterate-2026-11-01-a** first (2026-11-01)\n");
+    write(root, `${dir}/architecture--iterate-2026-11-01-a--0a1b2c3d--33333333.md`, "- one\n- two\n");
+    write(root, `${dir}/notes.md`, "- not a bullet name\n");
+    write(root, `${dir}/.gitkeep`, "");
+    const bundle = await readShipsLogDocs(root);
+    expect(bundle.pendingDocUpdates.map((r) => r.label)).toEqual([
+      "Architecture · **iterate-2026-11-01-a** first (2026-11-01)",
+      "Conventions · **iterate-2026-11-02-b** second (2026-11-02)",
+    ]);
+    expect(bundle.pendingDocUpdates[0]!.path).toBe(`${dir}/architecture--iterate-2026-11-01-a--0a1b2c3d--22222222.md`);
+    expect(bundle.pendingDocUpdates[0]!.when).not.toBeNull();
+    expect(bundle.skippedDocUpdates).toBe(2);
+    expect(bundle.pendingDocUpdatesUnreadable).toBe(false);
+    expect(bundle.agentDocs).toEqual([]); // the bullets never appear as an agent doc
   });
 });

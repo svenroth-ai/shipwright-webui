@@ -22,6 +22,7 @@
  */
 
 import type { DecisionRecord } from "./decisions.js";
+import type { RunDocUpdates } from "./doc-updates.js";
 import type { EventLookup } from "./iterate-record.js";
 import type { DecisionsArtifact } from "./types-slice2.js";
 
@@ -37,12 +38,21 @@ function hasOnlyCountedLoss(record: DecisionRecord): boolean {
   return record.malformedCount > 0 && !record.logOrScanLoss;
 }
 
+const NO_DOC_UPDATES: RunDocUpdates = { entries: [], conflicts: 0, malformed: 0, sawUnreadable: false };
+
+/**
+ * `docs` (events-drop-files S5b) is the run's documentation updates, folded +
+ * pending. It never adds an ADR entry; it is carried in the detail, and a run
+ * with doc updates but no ADR is still `available` (the updates ARE its record).
+ */
 export function buildDecisionsArtifact(
   record: DecisionRecord,
   events: EventLookup,
+  docs: RunDocUpdates = NO_DOC_UPDATES,
 ): DecisionsArtifact {
+  if (record.entries.length === 0 && (docs.entries.length > 0 || docs.conflicts > 0)) return docUpdatesOnly(record, docs);
   if (record.entries.length === 0) {
-    if (record.sawUnreadable) {
+    if (record.sawUnreadable || docUpdatesIncomplete(docs)) {
       // Something existed and could not be read. This must NEVER fall through
       // to the hidden branch below — a hidden artifact reads as "this run
       // decided nothing", which is precisely what we do not know.
@@ -52,7 +62,9 @@ export function buildDecisionsArtifact(
         state: "unavailable",
         summary: null,
         receipt: null,
-        note: "This run's decision records could not be read.",
+        note: record.sawUnreadable
+          ? "This run's decision records could not be read."
+          : "This run's documentation updates could not be read.",
         detail: null,
       };
     }
@@ -105,7 +117,10 @@ export function buildDecisionsArtifact(
     record.sawUnreadable && !hasOnlyCountedLoss(record)
       ? " Some of this run's decision records could not be read, so this list may be incomplete."
       : "";
-  const lost = `${counted}${uncounted}`;
+  // A doc-update loss is disclosed here too: a run WITH an ADR must not let an
+  // unreadable architecture.md / bullets folder read as "no documentation updates".
+  const docsLost = docUpdatesIncomplete(docs) ? " Its documentation updates could not all be read." : "";
+  const lost = `${counted}${uncounted}${docsLost}`;
 
   // The receipt is the ADR numbers when there are any, else a plain count —
   // never an invented identifier for an unnumbered decision.
@@ -125,6 +140,46 @@ export function buildDecisionsArtifact(
       entries: record.entries,
       truncated: record.truncated,
       malformedCount: record.malformedCount,
+      docUpdates: docs.entries,
+      docUpdateConflicts: docs.conflicts,
+    },
+  };
+}
+
+function docUpdatesIncomplete(docs: RunDocUpdates): boolean {
+  return docs.sawUnreadable || docs.malformed > 0;
+}
+
+/** A run whose only record is documentation updates (no ADR, folded or pending). */
+function docUpdatesOnly(record: DecisionRecord, docs: RunDocUpdates): DecisionsArtifact {
+  const pending = docs.entries.filter((e) => e.state === "pending").length;
+  const lead =
+    docs.entries.length > 0
+      ? plural(docs.entries.length, "documentation update", "documentation updates")
+      : `${plural(docs.conflicts, "documentation update", "documentation updates")} held back for a person to decide`;
+  const notYet =
+    pending === 0
+      ? ""
+      : pending === docs.entries.length
+        ? " Not yet published in a release."
+        : ` ${pending} not yet published in a release.`;
+  const lost =
+    record.sawUnreadable || docUpdatesIncomplete(docs)
+      ? " Some of this run's records could not be read, so this list may be incomplete."
+      : "";
+  return {
+    kind: "decisions",
+    label: "Decisions",
+    state: "available",
+    summary: `${lead}.${notYet}${lost}`,
+    receipt: lead,
+    detail: {
+      type: "decisions",
+      entries: [],
+      truncated: record.truncated,
+      malformedCount: record.malformedCount, // broken bullet files are not decision records (summary says so)
+      docUpdates: docs.entries,
+      docUpdateConflicts: docs.conflicts,
     },
   };
 }

@@ -238,6 +238,21 @@ export interface DecisionEntryView {
   source: DecisionSource;
 }
 
+/**
+ * One documentation update of the run (events-drop-files S5b): an entry of
+ * `## Architecture Updates` / `## Convention Updates` anchored on the run id
+ * (`folded` — already in the doc) or the run's bullet drop file that no release
+ * has folded yet (`pending`). Never an ADR: bullets carry no ADR number.
+ */
+export interface DocUpdateView {
+  target: "architecture" | "conventions";
+  /** `architecture.md` | `conventions.md` (under `.shipwright/agent_docs/`). */
+  doc: string;
+  /** The one-line Markdown bullet as written. */
+  text: string;
+  state: "folded" | "pending";
+}
+
 export interface DecisionsArtifact extends ArtifactBase {
   kind: "decisions";
   detail: {
@@ -250,5 +265,9 @@ export interface DecisionsArtifact extends ArtifactBase {
      * either — the UI states the count.
      */
     malformedCount: number;
+    /** The run's documentation updates, folded + pending (S5b). */
+    docUpdates: DocUpdateView[];
+    /** Pending updates held back because another one holds their anchor with other text. */
+    docUpdateConflicts: number;
   } | null;
 }

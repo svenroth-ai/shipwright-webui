@@ -1,0 +1,193 @@
+{
+  "last_updated": "2026-11-07",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-07-events-drop-files-reader",
+    "date": "2026-11-07",
+    "unit": {
+      "status": "passed",
+      "passed": 10007,
+      "skipped": 16,
+      "total": 10023
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 8,
+      "skipped": 0,
+      "total": 8
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "client src/lib/standaloneView.test.tsx > real router wiring: times out at the 5 s default on this machine (cold transform of the whole router, 5.1 s); fails identically on unmodified origin/main 498a6748; passes with --testTimeout=30000 (counted as passed on that rerun). Server 5005 passed / 16 skipped / 5021; client 5002 tests."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Assembled order: legacy file order, then extras by (instant, id), folder/name/in-file ties",
+          "disposition": "tested",
+          "evidence": "event-log-assemble.test.ts › order PASSED"
+        },
+        {
+          "behavior": "Per-file status ok/corrupt/empty/unreadable, legacy-zero = ok",
+          "disposition": "tested",
+          "evidence": "event-log-assemble.test.ts › per-file status PASSED"
+        },
+        {
+          "behavior": "Duplicate-id rule (collapse identical incl. differing `run`, keep+flag different, legacy never deduped)",
+          "disposition": "tested",
+          "evidence": "event-log-assemble.test.ts › duplicate-id rule PASSED"
+        },
+        {
+          "behavior": "Drop/archive amendments overlay run projections; legacy amendments do not",
+          "disposition": "tested",
+          "evidence": "event-log-assemble.test.ts › amendments; event-log-files.test.ts › per-file status and amendments PASSED"
+        },
+        {
+          "behavior": "KC1: campaign status + run projection identical unsplit vs split",
+          "disposition": "tested",
+          "evidence": "event-log-replay.test.ts (4 cases) PASSED"
+        },
+        {
+          "behavior": "Every fs reader sees a drop-only run; cache + sourceRev move on add/append",
+          "disposition": "tested",
+          "evidence": "event-log-files.test.ts PASSED"
+        },
+        {
+          "behavior": "Quarantine, `.tmp`, non-jsonl, sub-folders, symlinked files and folders never read; dot-named jsonl read",
+          "disposition": "tested",
+          "evidence": "event-log-files.test.ts › never reads…; › Python listing parity; › never reads a symlinked drop file or a symlinked archive folder (runs where the OS allows symlinks — CI Linux; skipped on Windows without the privilege) PASSED"
+        },
+        {
+          "behavior": "Fold racing a read re-lists, event kept, vanished file stays unreadable with its key",
+          "disposition": "tested",
+          "evidence": "event-log-files.race.test.ts PASSED"
+        },
+        {
+          "behavior": "findWorkCompleted unavailable on own damaged drop, absent on another run's",
+          "disposition": "tested",
+          "evidence": "event-log-files.test.ts PASSED"
+        },
+        {
+          "behavior": "origin/main read via ls-tree + one cat-file --batch, byte framing, unavailable on bad ref",
+          "disposition": "tested",
+          "evidence": "ref-event-log.test.ts (6, incl. real git); merged-events.test.ts (8) PASSED"
+        },
+        {
+          "behavior": "No-folder regression: payload has no new field, existing reader tests unchanged",
+          "disposition": "tested",
+          "evidence": "event-log-files.test.ts › exposes per-file status ONLY…; full server suite PASSED"
+        },
+        {
+          "behavior": "Campaign status ignores drop amendments (Python parity)",
+          "disposition": "tested",
+          "evidence": "event-log-files.test.ts › campaign status ignores a drop-file amendment PASSED"
+        },
+        {
+          "behavior": "instantKey rejects impossible dates/times/offsets; year < 100 not mapped to 19xx",
+          "disposition": "tested",
+          "evidence": "event-log-assemble.test.ts › treats a NAIVE timestamp as UTC (not local time) PASSED"
+        },
+        {
+          "behavior": "Bullet grammar, Python splitlines, strict UTF-8, fold order, skipped files, .gitkeep",
+          "disposition": "tested",
+          "evidence": "doc-bullets.test.ts (10) PASSED"
+        },
+        {
+          "behavior": "Run doc updates: folded + pending, folded wins, conflict, learnings out, unreadable",
+          "disposition": "tested",
+          "evidence": "doc-updates.test.ts › readRunDocUpdates PASSED"
+        },
+        {
+          "behavior": "Decisions artifact: doc-updates-only run available; unreadable doc → unavailable; no `.md` ever an ADR",
+          "disposition": "tested",
+          "evidence": "doc-updates.test.ts › Decisions artifact… PASSED"
+        },
+        {
+          "behavior": "Decisions detail renders doc updates (folded/pending note, conflicts), none when empty",
+          "disposition": "tested",
+          "evidence": "MissionDecisionsDetail.test.tsx PASSED"
+        },
+        {
+          "behavior": "Documents panel pending group: rows in fold order, skipped count, unreadable note, hidden when none",
+          "disposition": "tested",
+          "evidence": "shipslog-docs-reader.test.ts; ShipsLogDocumentsPanel.test.tsx PASSED"
+        },
+        {
+          "behavior": "Client/server type mirrors stay identical",
+          "disposition": "tested",
+          "evidence": "mission-context-types-sync.test.ts; shipslog-docs-mirror-sync.test.ts PASSED"
+        },
+        {
+          "behavior": "A run with an ADR still discloses unreadable doc updates; conflicts alone are not hidden",
+          "disposition": "tested",
+          "evidence": "doc-updates.test.ts › a run WITH an ADR still discloses…; › conflicts alone still surface PASSED"
+        },
+        {
+          "behavior": "A non-ok archive file blocks every run's absence verdict",
+          "disposition": "tested",
+          "evidence": "event-log-files.test.ts › a damaged ARCHIVE file blocks every run's absence; event-log-assemble.test.ts › absence blockers PASSED"
+        },
+        {
+          "behavior": "End to end: a drop-only finalized run shows in Mission with its pending doc update under Decisions, never as an ADR; the Documents column lists the pending bullet and opens it",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/E1-events-drop-files.spec.ts (2 tests) PASSED",
+          "category": "e2e"
+        },
+        {
+          "behavior": "A drop/archive folder that exists but cannot be listed is an `unreadable` row (key null) → absence blocked",
+          "disposition": "tested",
+          "evidence": "event-log-files.race.test.ts › a folder that exists but cannot be listed PASSED"
+        },
+        {
+          "behavior": "Fold racing a read (re-list), events_fold order archive-then-unlink, composed through every reader",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "event-log-files.race.test.ts + event-log-replay.test.ts (S0 fixture pair through campaign/run/Mission projections) PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 24,
+        "tested": 24,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 10,
+        "covered_acs": 10
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 8,
+      "exit_code": 0,
+      "runner_command": "node f05_runner.mjs (client: node e2e/isolated-stack.mjs --project=chromium e2e/flows/E1-events-drop-files.spec.ts e2e/flows/mission-artifacts-s1.spec.ts e2e/flows/A16b-shipslog-documents-panel.spec.ts)",
+      "justification": "The diff touches the Mission Decisions artifact and the Ship's-Log Documents panel; E1 drives both over a project whose only run record is a drop file plus a pending bullet, and the existing Mission S1 / Documents specs re-run unchanged (8 passed, isolated stack)."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-07-events-drop-files-reader",
+    "commit": "265048ec2fd9fd226749abaf00169fd6f4046b9e",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

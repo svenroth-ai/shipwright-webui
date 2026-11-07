@@ -1,0 +1,45 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 1,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "status": "error",
+      "reason": "openai package not installed"
+    },
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: server/src/core/event-log-assemble.ts:197\n- Finding: Each amendment replaces the target\u2019s entire accumulated overlay. If one amendment sets `{commit: \"abc\"}` and a later amendment sets `{summary: \"updated\"}`, the effective event loses the attached commit. Shallow overlays should retain earlier fields unless a later amendment overwrites those same fields. An invalid `fields` value also clears previous amendments.\n- Suggestion: Merge valid fields into the target\u2019s existing overlay and ignore invalid fields. Add a test with successive amendments changing different fields.\n\n- Category: bug\n- Severity: medium\n- File: server/src/core/event-log-files.ts:54\n- Finding: All folder-listing failures become an empty file list. If `shipwright_events.d/` exists but cannot be listed because of permissions or an I/O error, its files disappear from the fingerprint and `findWorkCompleted` returns `absent` for missing runs. This presents unavailable event data as \u201cno record,\u201d defeating the fail-closed behavior.\n- Suggestion: Distinguish an absent folder from a failed listing, propagate listing failures as unavailable, and prevent an absence verdict while the drops folder cannot be inspected. Test an injected `EACCES` listing failure.\n\nThe shared assembler approach fits the specification, but these correctness gaps need specific fixes before shipping. Overall assessment: ship-with-fixes.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "partially_degraded": true,
+  "partially_degraded_legs": [
+    "glm"
+  ],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-07-events-drop-files-reader",
+    "at": "2026-11-07T12:29:49.072968+00:00"
+  },
+  "verdicts": {
+    "glm": "unavailable",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "error",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered \u2014 glm did not (glm=unavailable, openai=revise)"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "1. **The question, answered in one sentence.** Yes \u2014 but this is barely a new mechanism: it is one shared reader module replacing direct file reads, and the alternative (D) makes the WebUI blind to the plugin's actual data layout.\n\n2. **The smallest thing that would do.** Option A, roughly as specified: one assembling reader plus one git variant, every existing projection reading through it unchanged. Option C (no archive, no per-file status) is smaller but not adequate \u2014 the release fold moves old runs into the archive, so a C-based WebUI would show history vanishing at each release, and the per-file status is what distinguishes \"run has no record\" from \"run's file is damaged\" (KC8), which is a correctness guarantee, not gold-plating. B scatters the order/dedup/amendment rules across six projections, which is the opposite of the smallest thing: the contract would have six copies to keep alive.\n\n3. **What it costs to keep.** A TypeScript twin of the Python contract that must track the monorepo on every future change to the layout or rules; the parity test against the shared fixture pair is the mechanism that keeps that honest, and it must be maintained when the monorepo changes fixtures. That is a real but bounded obligation, and the brief correctly names the monorepo as the contract owner.\n\n4. **What it forecloses.** Essentially nothing: it changes read plumbing behind unchanged projections. The main future cost is that any third layout change must again update the assembler and the git variant in lockstep with Python \u2014 which the parity test makes visible rather than silent.\n\n5. **Findings.**\n\n- Category: proportionality\n- Severity: low\n- Finding: Option C would be smaller in code but fails the stated goal \u2014 folded runs disappear and damaged own-files read as \"no record\", which the brief's own kill criterion forbids. A is the proportional choice, not an over-build.\n- Suggestion: none; confirm nothing beyond the assembler, the git variant, and the bullet reader is added \u2014 e.g., do not let per-file status leak into reader-specific recovery logic outside the shared module.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Yes:** the shared readers should exist because the planned plugin layout would otherwise make the WebUI report incomplete or misleading state.\n\n2. **Smallest thing:** choose **A**\u2014one shared assembler with filesystem and Git loading adapters, retaining existing projections above it and applying amendments only to run projections. Add one shared bullet reader for the two document views. B duplicates permanent rules; C cannot faithfully read the release-folded layout; D blocks the plugin migration.\n\n3. **Cost to keep:** maintain TypeScript parity with the Python contract, including ordering, duplicates, file status and amendments. The monorepo owns that contract; WebUI maintainers own adapting its readers and maintaining parity fixtures as the contract changes.\n\n4. **What it forecloses:** independent WebUI interpretation of these files. Future format changes require coordination across Python and TypeScript, while legacy compatibility remains an ongoing obligation.\n\n5. No findings.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "architecture",
+  "capture": {
+    "run_id": "iterate-2026-11-07-events-drop-files-reader",
+    "at": "2026-11-07T11:59:55.829487+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "approve"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+  }
+}

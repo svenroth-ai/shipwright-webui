@@ -1,0 +1,48 @@
+{
+ "stage": "doubt",
+ "gating": "advisory-must-address",
+ "trigger": "cross-repo read boundary + concurrency (fold / checkout racing a poll)",
+ "doubts": [
+  {
+   "severity": "medium",
+   "lens": "concurrency",
+   "claim_under_doubt": "(1) a fold racing a read never loses an event and never makes a run read 'absent'",
+   "disproof_attempt": "The guarantee depends on the writer adding the archive BEFORE deleting the drops. That is true for events_fold.apply_fold, but not for the most common way a fold reaches the main tree the WebUI watches: `git pull` / `merge` / `checkout` of the release-fold commit. git's unpack_trees/check_updates unlinks removed entries first, then writes new ones, and writes files in place (not tmp+rename). Window A: drops already unlinked, archive not yet written. The listing finds no D and no A, nothing vanished between listing and reading, so there is no retry and no `lost` row. The run has no events and no blocker, so findWorkCompleted returns `absent`, and the events, runs and campaigns routes drop the run (campaign steps flip to pending) for that poll. Window B: archive half-written. The torn tail makes it `corrupt`, the records after the tear are gone, and archive rows never block absence (see D2), so `absent` again. Mission partly hides this for finished runs (an absent result goes to the origin/main fallback, which has the fold), but not for the other three routes or for `isWorktree` runs. event-log-files.race.test.ts only models the fold's own order (renameSync drop -> archive), so this path is untested. Python has the same gap; that is parity, not safety.",
+   "file": "server/src/core/event-log-files.ts (listEventFiles / readAssembledEventLog)",
+   "what_would_resolve_it": "Either (a) treat the tree as mid-update while the gitdir's `index.lock` exists (resolve via `.git` file -> gitdir for worktrees): return null/unavailable, or retry once after a short delay; or (b) compare against the previous cached listing: a drop that disappeared while the archive set did not grow by a file containing it means unavailable/retry, never absent. Or rebut in writing: name the window as accepted and transient (self-heals next poll, fails toward 'absent' only for one poll, Mission covered by the ref fallback) and narrow claim 1 in the spec to 'a fold run by events_fold in this tree'."
+  },
+  {
+   "severity": "medium",
+   "lens": "boundary-contract",
+   "claim_under_doubt": "(3) a damaged/unreadable own file never reads as 'no record'",
+   "disproof_attempt": "After a fold, a run's ONLY record lives in an archive file. absenceBlockers filters `kind === 'drop'`. So an archive file that is corrupt (torn by a git checkout, see D1, or a botched merge of overlapping folds, which events_fold.py itself says git may call a rename conflict), unreadable, or over the 64 MB MAX_EVENT_FILE_BYTES cap makes every run folded into it read `absent`, not `unavailable`. The fail-closed divergence for an unlistable folder (External Code Review #2) is applied asymmetrically: failedDirs pushes the archive folder as kind 'archive', which never blocks. An unlistable `shipwright_events.archive/` therefore makes every archived run `absent`, which is exactly the case the fix was meant to close for drops. For drop files this is Python parity; for the unlistable folder the WebUI already chose to diverge, so leaving the archive out is inconsistent rather than by decision.",
+   "file": "server/src/core/event-log-assemble.ts (absenceBlockers); server/src/core/event-log-files.ts (failedDirs archive row)",
+   "what_would_resolve_it": "Let a non-ok archive row (file or unlistable folder) block every absence verdict, like a key-null drop, and add one test each. Or rebut: state in Divergences that archive damage reads as absent by Python parity, and explain why the unlistable-folder divergence stops at drops."
+  },
+  {
+   "severity": "low",
+   "lens": "concurrency",
+   "claim_under_doubt": "(5) caches invalidate on every add/append/delete",
+   "disproof_attempt": "resolver-iterate reads `events` (resolveWorkCompleted, line ~70) BEFORE computeSourceRev stats the paths (line ~91). The path list (eventLogRevPaths) was built even earlier, in resolver.ts. If a drop is created or appended between the read and the stat, the new dir/file mtime goes into `rev` while the cached context holds the pre-change lookup. For a live (`isWorktree`) run whose absent result is cacheable, the stale answer is pinned until some unrelated event file changes. This race class existed before for the legacy file; the diff keeps it rather than introducing it. The fingerprint cache inside findWorkCompleted is correctly ordered; the Mission context cache is not.",
+   "file": "server/src/core/mission-context/resolver-iterate.ts",
+   "what_would_resolve_it": "Compute the event-log part of the rev before the read (or recompute it after and refuse to cache on mismatch). Or note it as a pre-existing, unchanged race."
+  },
+  {
+   "severity": "low",
+   "lens": "boundary-contract",
+   "claim_under_doubt": "(2)/(4) the origin/main read behaves as before for a legacy-only repo",
+   "disproof_attempt": "`git show <ref>:shipwright_events.jsonl` resolves the path from the repo ROOT. `git ls-tree -r -z <ref> -- <paths>` resolves pathspecs and prints names relative to the CWD (projectRoot). For a project registered at a subdirectory of its git repo, the fallback used to read the root-level log and now reads `<subdir>/shipwright_events.jsonl` (or finds nothing, giving unavailable). The new behaviour is arguably more correct (it matches the working-tree reader), but it is a behaviour change the 'no change' claim does not mention.",
+   "file": "server/src/core/mission-context/ref-event-log.ts",
+   "what_would_resolve_it": "One sentence in the spec saying nested project roots now read their own subdirectory's log on the ref, or confirm projectRoot is always the repo top level."
+  },
+  {
+   "severity": "low",
+   "lens": "boundary-contract",
+   "claim_under_doubt": "the duplicate-id rule matches Python",
+   "disproof_attempt": "canonical() compares JSON.stringify of JS-parsed records; Python compares json.dumps of Python-parsed ones. `1.0` vs `1`, and integers beyond 2^53, are DIFFERENT content in Python (flagged, both kept) but collapse to one record in TS (not flagged). duplicateIds and the kept-record count then differ from the plugin for such ids.",
+   "file": "server/src/core/event-log-assemble.ts (canonical / dedupExtra)",
+   "what_would_resolve_it": "Accept and disclose (events carry no floats/bigints in id-colliding records), or compare raw line text when available."
+  }
+ ],
+ "summary": "2 medium, 3 low. D1 disproves claim 1 for git-applied folds (pull/checkout removes before it adds, so neither folder holds the events for one poll and the run reads absent). D2 shows archive-side damage, including an unlistable archive folder, never blocks absence, so claim 3 holds only for drop files. Claims 2, 4 and 5 hold apart from the low edges. Advisory: implementer must fix or rebut D1 and D2 (and acknowledge D3-D5) before commit."
+}

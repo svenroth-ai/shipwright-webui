@@ -1,0 +1,1 @@
+Reads the plugin's new documentation-update files (.shipwright/agent_docs/decision-drops/bullets/): the Mission Decisions view shows a run's Architecture and Conventions updates, both those already in the document and those waiting for the next release, and the Documents column gains a 'Pending doc updates' group. Such a file is never shown as an ADR.

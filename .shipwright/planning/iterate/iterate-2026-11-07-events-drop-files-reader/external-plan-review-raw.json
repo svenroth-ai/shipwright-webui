@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n**Category:** edge-case \u00b7 **Severity:** medium\n**Finding:** Corrupt fragments from archive/drop files are appended \"at the very end\" of `lines`, which makes in-file order depend on where corruption occurred. KC1 parity is only tested with a *content-only* splitter, so the corruption-placement path has no cross-implementation test. If Python's `event_lines_at` interleaves fragments differently (e.g., in-place), line-based counters and any downstream index offsets will silently diverge from the Python reference.\n**Suggestion:** Add a fixture variant with a corrupted middle line in one drop file and assert fragment placement matches `event_lines_at` output (or explicitly document the divergence in the contract if Python does place fragments at the end).\n\n**Category:** edge-case \u00b7 **Severity:** medium\n**Finding:** Amendment overlays (`effectiveLines`) are computed before/without an explicit statement of their interaction with dedup: an `event_amended` record that is duplicated across archive and drops collapses by id, fine \u2014 but an *amendment targeting an amended event* (chain) isn't addressed. \"Last in assembled order wins\" implies chains resolve by accident of ordering rather than design.\n**Suggestion:** Specify whether `amends` may point at another amendment's id, and either resolve transitively or explicitly ignore chains. One unit test either way.\n\n**Category:** risk \u00b7 **Severity:** low\n**Finding:** `eventLogFingerprint` (names + mtime + size) keyed caches: a same-size append within mtime granularity (coarse filesystem timestamps, e.g. 1s on some Linux configs) can miss an update. The AC5 test appends, which likely changes size \u2014 but the race exists in production.\n**Suggestion:** Cheap fix: include a cheap content element (e.g. last-line length or inode) or accept and document the staleness window; do not weaken AC5's \"cache moves on append\" test.\n\n**Category:** risk \u00b7 **Severity:** low\n**Finding:** The 8s timeout on the single `git cat-file --batch` for `origin/main` reads is a fixed bound; with hundreds of archive files over a slow filesystem this can flake, and a timeout currently maps to `unavailable` for the *whole* ref rather than per-file `corrupt`/`unreadable` statuses. That conflates \"ref unreadable\" with \"one blob slow\".\n**Suggestion:** On timeout, keep the whole log `unavailable` (safe), but ensure the absence-vs-unavailability rule (item 5) then answers `unavailable` for runs that might live in that ref \u2014 otherwise a slow ref reads as \"run absent\".\n\n**Category:** security \u00b7 **Severity:** low\n**Finding:** The merged-events reader takes a `<ref>` and passes it to `ls-tree` / `cat-file --batch`. If that ref is ever derived from request state rather than a fixed constant (`origin/main`), it's a git-argument injection vector.\n**Suggestion:** Confirm in implementation that the ref is hard-coded/config-sourced, not request-derived; if injected for tests, validate against a strict pattern.\n\n**Category:** dependency \u00b7 **Severity:** low\n**Finding:** The plan notes merged-events tests need updating because the fake runner answered `git show`; AC9's \"existing tests unchanged\" is therefore knowingly violated in one module \u2014 fine, but the KC1 splitter *port* (`shared/tests/_events_split.py` \u2192 TS) is a second drifting duplicate of the Python order/dedup logic.\n**Suggestion:** Keep the splitter port test-only, clearly marked as a copy with a pointer to the Python source, so drift is caught by the KC1 replay rather than by production behavior.\n\n**Category:** approach \u00b7 **Severity:** low\n**Finding:** The \"name does not follow the writer's shape\" absence-blocker heuristic means any manually-named file that happens to be another run's data can make *unrelated* runs answer `unavailable`. The spec accepts this (AC8), but the blast radius grows with the number of nonconforming files: one stray `notes.jsonl` in `shipwright_events.d/` flips every missing run to `unavailable`.\n**Suggestion:** Acceptable per spec; consider bounding blockers to files that are `ok`-readable-but-unknown *and* contain records, or at least surfacing blocker names in the payload for debuggability.\n\nThe architecture is sound: one assembler owning the order/dedup/overlay contract (the rejected alternative confirms this is the right factoring), pure core with thin fs/git loaders, and the no-folder byte-identity guarantee is the right safety net. Findings are refinements, mostly specification-of-detail rather than redesign.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category:** approach \u00b7 **Severity:** high  \n   **Finding:** The proposed `git ls-tree -z <ref> -- ...` command does not recursively enumerate the archive and drop directories. It returns tree entries for those directories, so the subsequent blob batch will miss drop-only runs.  \n   **Suggestion:** Use recursive enumeration (`git ls-tree -r -z`), filter eligible regular blobs, and fetch them through one `cat-file --batch`. Make the real-Git test include both archive-only and drop-only events.\n\n2. **Category:** edge-case \u00b7 **Severity:** high  \n   **Finding:** Re-reading a vanished file at its original path does not recover from a release fold that moved it between directories. Listing archive before the move and drops afterward can omit the event entirely; retrying the old filename still fails.  \n   **Suggestion:** On a vanished listed file, repeat the complete directory listing and read once. If the second attempt remains inconsistent, preserve an unavailable status rather than presenting a complete log. Add a test that moves an event from drops to archive between listing and reading.\n\n3. **Category:** approach \u00b7 **Severity:** high  \n   **Finding:** `findWorkCompleted` checks absence blockers only when no record was found. A corrupt own file can recover a `work_completed` record and therefore return `found`, although contract 5 requires `unavailable` when that file is not `ok`.  \n   **Suggestion:** Apply the run-specific blocker rule before returning either `found` or `absent`. Test a corrupt own file containing a recoverable completion record, alongside the unrelated-run corruption case.\n\n4. **Category:** risk \u00b7 **Severity:** medium  \n   **Finding:** Returning `null` whenever the legacy file is unreadable discards readable drop/archive events and their per-file statuses. Preserving this behavior without drop folders is required, but extending it to the mixed layout undermines the new read contract.  \n   **Suggestion:** Retain the existing failure behavior for legacy-only repositories. When eligible extra files exist, assemble their records and retain the legacy file\u2019s `unreadable` status; define how that partial availability affects each reader.\n\nThe shared assembler is a sound way to centralize ordering, deduplication, and amendment behavior, and the proposed regression coverage is appropriate. The Git enumeration and partial-read/race handling need concrete corrections before implementation.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-07-events-drop-files-reader",
+    "at": "2026-11-07T11:59:28.919604+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

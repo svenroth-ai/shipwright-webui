@@ -19,6 +19,9 @@ const EMPTY_BUNDLE: ShipsLogDocsBundle = {
   iterateSpecs: [],
   agentDocs: [],
   compliance: [],
+  pendingDocUpdates: [],
+  skippedDocUpdates: 0,
+  pendingDocUpdatesUnreadable: false,
 };
 
 function makeApp(

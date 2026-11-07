@@ -1,0 +1,10 @@
+{"items": [
+  {"name": "Spec coverage: every contract item and AC1-AC10 maps to a ledger row", "verdict": "pass", "note": "19 ledger rows, all tested"},
+  {"name": "Read-only observer: nothing writes under the project tree", "verdict": "pass", "note": "readers only; no fs write calls added"},
+  {"name": "No-folder regression: payload unchanged without drop folders", "verdict": "pass", "note": "files/duplicateIds only when an extra file was read; pending docs group hidden when empty; existing tests green"},
+  {"name": "Python parity: divergences listed and decided", "verdict": "pass", "note": "spec section Divergences from Python, by decision"},
+  {"name": "Fail closed: unreadable/damaged never reads as none", "verdict": "pass", "note": "absenceBlockers, sawUnreadable, pendingDocUpdatesUnreadable"},
+  {"name": "Path safety", "verdict": "pass", "note": "fixed folders, readdir names, symlink skip, pathGuard"},
+  {"name": "Size rules and bloat baseline", "verdict": "pass", "note": "anti_ratchet_check --worktree exit 0; MissionSlice2Details 313 to 256"},
+  {"name": "Client/server type mirrors", "verdict": "pass", "note": "mission-context-types-sync and shipslog-docs-mirror-sync green"}
+]}

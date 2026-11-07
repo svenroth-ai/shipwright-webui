@@ -1,7 +1,7 @@
 {
   "status": "completed",
-  "timestamp": "2026-11-01T12:04:54.234968+00:00",
-  "provider": "openrouter",
+  "timestamp": "2026-11-07T12:29:35.022176+00:00",
+  "provider": null,
   "findings_count": 11,
   "self_review_fallback_ran": false,
   "reason": null,

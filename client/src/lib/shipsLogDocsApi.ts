@@ -28,6 +28,13 @@ export interface ShipsLogDocsBundle {
   iterateSpecs: ShipsLogDocRow[];
   agentDocs: ShipsLogDocRow[];
   compliance: ShipsLogDocRow[];
+  /** One-line Architecture/Conventions/Learnings updates waiting for the next
+   *  release to fold them in (bullet drop files), in fold order. */
+  pendingDocUpdates: ShipsLogDocRow[];
+  /** Files in the bullets folder that are not a valid update (counted, never listed). */
+  skippedDocUpdates: number;
+  /** The bullets folder exists but could not be read — never shown as "none". */
+  pendingDocUpdatesUnreadable: boolean;
 }
 
 export interface ShipsLogDocsResponse extends ShipsLogDocsBundle {

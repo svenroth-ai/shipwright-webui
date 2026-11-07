@@ -17,6 +17,7 @@
 import { useState } from "react";
 
 import { useShipsLogDocs } from "../../hooks/useShipsLogDocs";
+import type { ShipsLogDocRow } from "../../lib/shipsLogDocsApi";
 import { ShipsLogSpecsTabs } from "./ShipsLogSpecsTabs";
 import { ShipsLogDocList } from "./ShipsLogDocList";
 import { SmartViewerModal } from "../external/SmartViewer/SmartViewerModal";
@@ -42,6 +43,42 @@ function DocGroup({ title, loading, loadError, children }: GroupProps) {
         {!loading && !loadError && children}
       </div>
     </div>
+  );
+}
+
+/**
+ * One-line Architecture / Conventions updates that a merged run wrote as their
+ * own small files (events-drop-files S5b); the next release adds them to the
+ * documents. Shown only when there is something to show, so a project without
+ * them looks exactly as before.
+ */
+function PendingDocUpdates({ rows, skipped, unreadable, onOpen }: {
+  rows: ShipsLogDocRow[];
+  skipped: number;
+  unreadable: boolean;
+  onOpen: (path: string) => void;
+}) {
+  if (rows.length === 0 && skipped === 0 && !unreadable) return null;
+  return (
+    <DocGroup title="Pending doc updates" loading={false} loadError={false}>
+      <div className="doc-empty" data-testid="shipslog-pending-doc-note">
+        {unreadable
+          ? "The pending documentation updates could not be read."
+          : "These lines are added to Architecture or Conventions at the next release."}
+      </div>
+      {unreadable ? null : (
+        <div className="doc-list-scroll">
+          <ShipsLogDocList rows={rows} emptyLabel="No pending doc updates." onOpen={onOpen} />
+        </div>
+      )}
+      {skipped > 0 ? (
+        <div className="doc-empty" data-testid="shipslog-pending-doc-skipped">
+          {skipped === 1
+            ? "One further file there is not a valid update and is not shown."
+            : `${skipped} further files there are not valid updates and are not shown.`}
+        </div>
+      ) : null}
+    </DocGroup>
   );
 }
 
@@ -89,6 +126,13 @@ export function ShipsLogDocumentsPanel({ projectId }: { projectId: string }) {
           />
         </div>
       </DocGroup>
+
+      <PendingDocUpdates
+        rows={bundle?.pendingDocUpdates ?? []}
+        skipped={bundle?.skippedDocUpdates ?? 0}
+        unreadable={bundle?.pendingDocUpdatesUnreadable ?? false}
+        onOpen={setOpenPath}
+      />
 
       {openPath && (
         <SmartViewerModal

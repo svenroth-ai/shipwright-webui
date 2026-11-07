@@ -1,0 +1,1 @@
+Compatibility: this WebUI release is the MINIMUM version required before the Shipwright plugin's drop-files release (per-run event files and bullet files) reaches users. Older WebUI versions do not see runs or documentation updates written in the new layout.

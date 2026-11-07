@@ -1,0 +1,93 @@
+{
+ "section": "iterate-2026-11-07-events-drop-files-reader",
+ "review": [
+  {
+   "severity": "medium",
+   "category": "readability",
+   "file": "server/src/core/mission-context/merged-events.test.ts",
+   "line": 53,
+   "finding": "Literal NUL byte inside the template string `100644 blob ${oid}<NUL>shipwright_events.jsonl<NUL>` makes git classify the file as binary: the diff shows only 'Binary files differ', so the test change was not reviewable, and PR review, CodeQL and editors treat it as binary from now on.",
+   "suggestion": "Replace the raw NUL bytes with the `\\0` escape (as ref-event-log.test.ts does with .join(\"\\0\")) and confirm `git diff` shows the file as text."
+  },
+  {
+   "severity": "medium",
+   "category": "correctness",
+   "file": "client/src/components/shipslog/ShipsLogDocumentsPanel.tsx",
+   "line": 803,
+   "finding": "When pendingDocUpdatesUnreadable is true the group shows 'could not be read' and then ShipsLogDocList with zero rows, which renders its emptyLabel 'No pending doc updates.' The panel claims both unreadable and none, contrary to the 'never shown as none' contract. The test only checks the note.",
+   "suggestion": "Do not render ShipsLogDocList (or pass no empty label) when unreadable; add an assertion that 'No pending doc updates.' is absent in the unreadable test."
+  },
+  {
+   "severity": "medium",
+   "category": "correctness",
+   "file": "server/src/core/mission-context/artifacts-decisions.ts",
+   "line": 127,
+   "finding": "docs.sawUnreadable and docs.malformed are only checked when the run has no ADR. For a run with an ADR, an unreadable architecture.md, conventions.md or bullets folder, or a malformed own bullet file, yields an empty docUpdates list that reads as 'no documentation updates' with nothing disclosed. Contradicts self-review #5 (fail closed).",
+   "suggestion": "Carry a docUpdatesIncomplete flag (or count) in the detail and add an 'updates may be incomplete' clause to the summary in the ADR branch too; render it in DocUpdates; add a doc-updates test for ADR + unreadable doc."
+  },
+  {
+   "severity": "medium",
+   "category": "performance",
+   "file": "server/src/core/event-log-assemble.ts",
+   "line": 1655,
+   "finding": "lazyLegacyStatus captures the whole legacy text (up to 64 MB) in a closure. The row is stored in findWorkCompleted's EventIndexEntry.files (cache cap 32) and in the merged-events ref cache, so the caches now keep full legacy logs in memory where they used to keep only the run index. Once drops exist, every events/runs response serialises `files`, which runs the getters and parses the legacy log a second time.",
+   "suggestion": "Evaluate the legacy row eagerly when hasExtraFiles is true, or store only {status, records, fragments} in caches and drop the text reference (e.g. compute once on first access and null out `text`); absenceBlockers never needs the legacy row, so caches can hold only the extra-file rows."
+  },
+  {
+   "severity": "low",
+   "category": "readability",
+   "file": "server/src/core/mission-context/artifacts-decisions.ts",
+   "line": 2488,
+   "finding": "docUpdatesOnly adds docs.malformed (broken bullet files) into malformedCount, which the client renders as 'N further decision records could not be read'; the no-ADR unavailable note likewise blames 'decision records' when the cause is an unreadable architecture.md/conventions.md.",
+   "suggestion": "Keep a separate docUpdateMalformed count and word it as documentation updates in the client."
+  },
+  {
+   "severity": "low",
+   "category": "correctness",
+   "file": "server/src/core/mission-context/artifacts-decisions.ts",
+   "line": 53,
+   "finding": "A run with no ADR, docs.entries empty and docs.conflicts > 0 falls through to the hidden not_applicable branch, and the client's early return ('This run recorded no decisions.') also hides the conflict note. Only reachable when a bullet without a run anchor collides with another run's folded entry.",
+   "suggestion": "Treat conflicts > 0 like entries > 0 for the docUpdatesOnly branch, and test the client early return on conflicts too."
+  },
+  {
+   "severity": "low",
+   "category": "correctness",
+   "file": "server/src/core/event-log-files.ts",
+   "line": 2118,
+   "finding": "readEventLog / readRunData / readCampaignEvents previously read the legacy log with no size limit; the shared loader now applies MAX_EVENT_FILE_BYTES (64 MB), so a legacy file over 64 MB turns every view empty — a change for repos without drop folders (contract 7).",
+   "suggestion": "Either disclose the cap as a deliberate divergence in the plan, or keep the cap only for the Mission index (where it always was) and leave the event routes uncapped."
+  },
+  {
+   "severity": "low",
+   "category": "correctness",
+   "file": "server/src/core/event-log-assemble.ts",
+   "line": 1637,
+   "finding": "The overlay prefilter `raw.includes(id)` misses a legacy target whose id contains non-ASCII characters, because Python json.dumps (ensure_ascii=True) writes them as \\uXXXX; the cost is O(lines x targets) per rebuild.",
+   "suggestion": "Prefilter on a JSON-escaped form of the id as well (or parse only lines containing '\"id\"'), and check membership through the Map rather than a linear `some` over targets."
+  },
+  {
+   "severity": "low",
+   "category": "performance",
+   "file": "server/src/core/mission-context/slice2-sources.ts",
+   "line": 3325,
+   "finding": "slice2RevPaths calls runBulletFiles, which reads the content of every bullet file only to compute a cache key, and readRunDocUpdates reads them all again; together with three event-folder listings per poll this is more work than the 'stat-only' disclosure (#9) states.",
+   "suggestion": "Derive the run's bullet file names from a readdir (name match on `--<key>--`) without reading contents for the rev paths."
+  },
+  {
+   "severity": "low",
+   "category": "correctness",
+   "file": "server/src/core/shipslog-docs-reader.ts",
+   "line": 3506,
+   "finding": "The Ship's-Log docs payload always gains pendingDocUpdates/skippedDocUpdates/pendingDocUpdatesUnreadable even without a bullets folder; AC9 states 'payload has no new field without folders'.",
+   "suggestion": "Either make the fields optional and omit them when the folder is absent, or narrow AC9's wording to the event-log payloads."
+  },
+  {
+   "severity": "low",
+   "category": "correctness",
+   "file": "server/src/core/doc-bullets.ts",
+   "line": 1155,
+   "finding": "iterEntries splits only on \\r\\n|\\n|\\r while Python iter_entries uses str.splitlines() (VT, FF, NEL, U+2028 too), and entryAnchor slices 60 UTF-16 code units vs Python's 60 code points — anchor and section boundaries can differ on unusual documents or emoji in an anchor-less bullet.",
+   "suggestion": "Reuse PY_LINE_BREAK in iterEntries and slice by code points ([...s].slice(0, 60).join(''))."
+  }
+ ]
+}

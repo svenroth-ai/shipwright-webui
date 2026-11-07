@@ -21,6 +21,7 @@ import { buildDecisionsArtifact } from "./artifacts-decisions.js";
 import { buildReviewArtifact } from "./artifacts-slice2.js";
 import { buildTestsArtifact } from "./artifacts-tests.js";
 import { decisionDropsDir, dropFilePaths } from "./decision-drops.js";
+import { docUpdateRevPaths, readRunDocUpdates, runBulletFiles } from "./doc-updates.js";
 import { readRunDecisionRecord, decisionLogPath } from "./decisions.js";
 import type { EventLookup } from "./iterate-record.js";
 import { readReviewState, reviewStatePaths } from "./review-state.js";
@@ -36,7 +37,7 @@ import { defaultGit, type GitRunner } from "./worktree-roots.js";
  * The run's COMMIT is deliberately absent: a sha is immutable, so the diff it
  * produces cannot change. The files below can and do.
  */
-export function slice2RevPaths(projectRoot: string, runId: string): string[] {
+export function slice2RevPaths(projectRoot: string, runId: string, docsRoot: string = projectRoot): string[] {
   return [
     traceabilityPath(projectRoot),
     decisionLogPath(projectRoot),
@@ -52,6 +53,9 @@ export function slice2RevPaths(projectRoot: string, runId: string): string[] {
     ...dropFilePaths(projectRoot, runId),
     ...reviewStatePaths(projectRoot, runId),
     testEvidencePath(projectRoot, runId),
+    // The run's documentation updates (S5b): both docs, the bullets folder AND
+    // the run's bullet files, read from the run's chosen root.
+    ...docUpdateRevPaths(docsRoot, runBulletFiles(docsRoot, runId)),
   ];
 }
 
@@ -62,6 +66,8 @@ export interface Slice2Input {
   /** The run's recorded commit sha, when it recorded one. */
   commit: string | null;
   git?: GitRunner;
+  /** Where the run's doc updates are read: its worktree while live, else the project root. */
+  docsRoot?: string;
 }
 
 export interface Slice2Result {
@@ -110,7 +116,11 @@ export async function buildSlice2Artifacts(input: Slice2Input): Promise<Slice2Re
       // drops ∪ decision_log, deduplicated by run_id (the log wins). A run's ADR
       // exists ONLY as a drop between its F3 and the next release aggregation,
       // which on this repo is the state of every unreleased run.
-      buildDecisionsArtifact(readRunDecisionRecord(projectRoot, runId), events),
+      buildDecisionsArtifact(
+        readRunDecisionRecord(projectRoot, runId),
+        events,
+        readRunDocUpdates(input.docsRoot ?? projectRoot, runId),
+      ),
     ],
     cacheable: !(diff.status === "unavailable" && diff.reason === "git_failed"),
   };

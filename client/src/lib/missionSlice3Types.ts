@@ -101,3 +101,16 @@ export interface SubIterateArtifact extends Slice3ArtifactBase {
   kind: "sub_iterate";
   detail: SubIterateDetail | null;
 }
+
+/**
+ * One documentation update of a run (events-drop-files S5b) — mirrors the server
+ * `DocUpdateView` in `types-slice2.ts`; it lives here because `missionContextApi.ts`
+ * sits at its bloat ceiling. `folded` = already a line of the doc, `pending` = the
+ * run's bullet file that the next release folds in. Never an ADR.
+ */
+export interface DocUpdateView {
+  target: "architecture" | "conventions";
+  doc: string;
+  text: string;
+  state: "folded" | "pending";
+}

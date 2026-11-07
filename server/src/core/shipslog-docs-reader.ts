@@ -34,6 +34,7 @@ import { realpathSync } from "node:fs";
 import path from "node:path";
 
 import { pathGuard, realPathGuard } from "./path-guard.js";
+import { readPendingDocUpdates } from "./shipslog-pending-docs.js";
 import type { ShipsLogDocRow, ShipsLogDocsBundle } from "./shipslog-docs-types.js";
 
 export type { ShipsLogDocRow, ShipsLogDocsBundle } from "./shipslog-docs-types.js";
@@ -180,7 +181,8 @@ export async function readShipsLogDocs(projectRoot: string): Promise<ShipsLogDoc
   } catch {
     // Project root itself unreadable — every group degrades to empty
     // rather than throwing (this is a read-only observer, spec AC-honesty).
-    return { requirements: [], iterateSpecs: [], agentDocs: [], compliance: [] };
+    return { requirements: [], iterateSpecs: [], agentDocs: [], compliance: [],
+      pendingDocUpdates: [], skippedDocUpdates: 0, pendingDocUpdatesUnreadable: false };
   }
 
   const [requirements, iterateSpecs, agentDocs, compliance] = await Promise.all([
@@ -189,5 +191,7 @@ export async function readShipsLogDocs(projectRoot: string): Promise<ShipsLogDoc
     curatedRows(projectRoot, realRoot, ".shipwright/agent_docs", AGENT_DOCS),
     curatedRows(projectRoot, realRoot, ".shipwright/compliance", COMPLIANCE_DOCS),
   ]);
-  return { requirements, iterateSpecs, agentDocs, compliance };
+  const pending = readPendingDocUpdates(projectRoot);
+  return { requirements, iterateSpecs, agentDocs, compliance, pendingDocUpdates: pending.rows,
+    skippedDocUpdates: pending.skipped, pendingDocUpdatesUnreadable: pending.unreadable };
 }

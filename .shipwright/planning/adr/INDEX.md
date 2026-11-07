@@ -68,3 +68,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Mission desktop-app style chat and answered-question cards](iterate-2026-10-30-m5-desktop-style-chat-desktop-chat.md)
 - [Agents window transcript in the chat renderer; subrunner answer; agent-hash chips (V3)](iterate-2026-11-01-v3-subrunner-answer-agents-window-chat-agents-window-transcript.md)
 - [HTML preview loads page resources (images, fonts, imported CSS)](iterate-2026-11-02-smartviewer-html-images-html-page-resources.md)
+- [One assembled event-log reader for both plugin layouts](iterate-2026-11-07-events-drop-files-reader-assembled-event-log.md)
