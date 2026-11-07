@@ -1,0 +1,583 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-07-events-drop-files-reader",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-07T12:29:34.868000+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Corrupt fragments from archive/drop files are appended \"at the very end\" of `lines`, which makes in-file order depend on where corruption occurred. KC1 parity is only tested with a content-only splitter, so the corruption-placement path has no cross-implementation test. If Python's `event_lines_at` interleaves fragments differently (e.g., in-place), line-based counters and any downstream index offsets will silently diverge from the Python reference.",
+          "suggestion": "Add a fixture variant with a corrupted middle line in one drop file and assert fragment placement matches `event_lines_at` output (or explicitly document the divergence in the contract if Python does place fragments at the end).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Amendment overlays (`effectiveLines`) are computed before/without an explicit statement of their interaction with dedup: an `event_amended` record that is duplicated across archive and drops collapses by id, fine — but an amendment targeting an amended event (chain) isn't addressed. \"Last in assembled order wins\" implies chains resolve by accident of ordering rather than design.",
+          "suggestion": "Specify whether `amends` may point at another amendment's id, and either resolve transitively or explicitly ignore chains. One unit test either way.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "eventLogFingerprint` (names + mtime + size) keyed caches: a same-size append within mtime granularity (coarse filesystem timestamps, e.g. 1s on some Linux configs) can miss an update. The AC5 test appends, which likely changes size — but the race exists in production.",
+          "suggestion": "Cheap fix: include a cheap content element (e.g. last-line length or inode) or accept and document the staleness window; do not weaken AC5's \"cache moves on append\" test.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "The 8s timeout on the single `git cat-file --batch` for `origin/main` reads is a fixed bound; with hundreds of archive files over a slow filesystem this can flake, and a timeout currently maps to `unavailable` for the whole ref rather than per-file `corrupt`/`unreadable` statuses. That conflates \"ref unreadable\" with \"one blob slow\".",
+          "suggestion": "On timeout, keep the whole log `unavailable` (safe), but ensure the absence-vs-unavailability rule (item 5) then answers `unavailable` for runs that might live in that ref — otherwise a slow ref reads as \"run absent\".",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security ·",
+          "file": null,
+          "line": null,
+          "finding": "The merged-events reader takes a `<ref>` and passes it to `ls-tree` / `cat-file --batch`. If that ref is ever derived from request state rather than a fixed constant (`origin/main`), it's a git-argument injection vector.",
+          "suggestion": "Confirm in implementation that the ref is hard-coded/config-sourced, not request-derived; if injected for tests, validate against a strict pattern.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The plan notes merged-events tests need updating because the fake runner answered `git show`; AC9's \"existing tests unchanged\" is therefore knowingly violated in one module — fine, but the KC1 splitter port (`shared/tests/_events_split.py` → TS) is a second drifting duplicate of the Python order/dedup logic.",
+          "suggestion": "Keep the splitter port test-only, clearly marked as a copy with a pointer to the Python source, so drift is caught by the KC1 replay rather than by production behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "The \"name does not follow the writer's shape\" absence-blocker heuristic means any manually-named file that happens to be another run's data can make unrelated runs answer `unavailable`. The spec accepts this (AC8), but the blast radius grows with the number of nonconforming files: one stray `notes.jsonl` in `shipwright_events.d/` flips every missing run to `unavailable`.",
+          "suggestion": "Acceptable per spec; consider bounding blockers to files that are `ok`-readable-but-unknown and contain records, or at least surfacing blocker names in the payload for debuggability.  The architecture is sound: one assembler owning the order/dedup/overlay contract (the rejected alternative confirms this is the right factoring), pure core with thin fs/git loaders, and the no-folder byte-identity guarantee is the right safety net. Findings are refinements, mostly specification-of-detail rather than redesign.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "The proposed `git ls-tree -z <ref> -- ...` command does not recursively enumerate the archive and drop directories. It returns tree entries for those directories, so the subsequent blob batch will miss drop-only runs.",
+          "suggestion": "Use recursive enumeration (`git ls-tree -r -z`), filter eligible regular blobs, and fetch them through one `cat-file --batch`. Make the real-Git test include both archive-only and drop-only events.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Re-reading a vanished file at its original path does not recover from a release fold that moved it between directories. Listing archive before the move and drops afterward can omit the event entirely; retrying the old filename still fails.",
+          "suggestion": "On a vanished listed file, repeat the complete directory listing and read once. If the second attempt remains inconsistent, preserve an unavailable status rather than presenting a complete log. Add a test that moves an event from drops to archive between listing and reading.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "findWorkCompleted` checks absence blockers only when no record was found. A corrupt own file can recover a `work_completed` record and therefore return `found`, although contract 5 requires `unavailable` when that file is not `ok`.",
+          "suggestion": "Apply the run-specific blocker rule before returning either `found` or `absent`. Test a corrupt own file containing a recoverable completion record, alongside the unrelated-run corruption case.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "Returning `null` whenever the legacy file is unreadable discards readable drop/archive events and their per-file statuses. Preserving this behavior without drop folders is required, but extending it to the mixed layout undermines the new read contract.",
+          "suggestion": "Retain the existing failure behavior for legacy-only repositories. When eligible extra files exist, assemble their records and retain the legacy file’s `unreadable` status; define how that partial availability affects each reader.  The shared assembler is a sound way to centralize ordering, deduplication, and amendment behavior, and the proposed regression coverage is appropriate. The Git enumeration and partial-read/race handling need concrete corrections before implementation.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-07T12:29:35.005232+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**Category:** edge-case · **Severity:** medium\n**Finding:** Corrupt fragments from archive/drop files are appended \"at the very end\" of `lines`, which makes in-file order depend on where corruption occurred. KC1 parity is only tested with a *content-only* splitter, so the corruption-placement path has no cross-implementation test. If Python's `event_lines_at` interleaves fragments differently (e.g., in-place), line-based counters and any downstream index offsets will silently diverge from the Python reference.\n**Suggestion:** Add a fixture variant with a corrupted middle line in one drop file and assert fragment placement matches `event_lines_at` output (or explicitly document the divergence in the contract if Python does place fragments at the end).\n\n**Category:** edge-case · **Severity:** medium\n**Finding:** Amendment overlays (`effectiveLines`) are computed before/without an explicit statement of their interaction with dedup: an `event_amended` record that is duplicated across archive and drops collapses by id, fine — but an *amendment targeting an amended event* (chain) isn't addressed. \"Last in assembled order wins\" implies chains resolve by accident of ordering rather than design.\n**Suggestion:** Specify whether `amends` may point at another amendment's id, and either resolve transitively or explicitly ignore chains. One unit test either way.\n\n**Category:** risk · **Severity:** low\n**Finding:** `eventLogFingerprint` (names + mtime + size) keyed caches: a same-size append within mtime granularity (coarse filesystem timestamps, e.g. 1s on some Linux configs) can miss an update. The AC5 test appends, which likely changes size — but the race exists in production.\n**Suggestion:** Cheap fix: include a cheap content element (e.g. last-line length or inode) or accept and document the staleness window; do not weaken AC5's \"cache moves on append\" test.\n\n**Category:** risk · **Severity:** low\n**Finding:** The 8s timeout on the single `git cat-fi […truncated]\n\n[openai] 1. **Category:** approach · **Severity:** high  \n   **Finding:** The proposed `git ls-tree -z <ref> -- ...` command does not recursively enumerate the archive and drop directories. It returns tree entries for those directories, so the subsequent blob batch will miss drop-only runs.  \n   **Suggestion:** Use recursive enumeration (`git ls-tree -r -z`), filter eligible regular blobs, and fetch them through one `cat-file --batch`. Make the real-Git test include both archive-only and drop-only events.\n\n2. **Category:** edge-case · **Severity:** high  \n   **Finding:** Re-reading a vanished file at its original path does not recover from a release fold that moved it between directories. Listing archive before the move and drops afterward can omit the event entirely; retrying the old filename still fails.  \n   **Suggestion:** On a vanished listed file, repeat the complete directory listing and read once. If the second attempt remains inconsistent, preserve an unavailable status rather than presenting a complete log. Add a test that moves an event from drops to archive between listing and reading.\n\n3. **Category:** approach · **Severity:** high  \n   **Finding:** `findWorkCompleted` checks absence blockers only when no record was found. A corrupt own file can recover a `work_completed` record and therefore return `found`, although contract 5 requires `unavailable` when that file is not `ok`.  \n   **Suggestion:** Apply the run-specific blocker rule before returning either `found` or `absent`. Test a corrupt own file containing a recoverable completion record, alongside the unrelated-run corruption case.\n\n4. **Category:** risk · **Severity:** medium  \n   **Finding:** Returning `null` whenever the legacy file is unreadable discards readable drop/archive events and their per-file statuses. Preserving this behavior without drop folders is required, but extending it to the mixed layout undermines the new read contract.  \n   **Suggestion:** Retain the existing failure b […truncated]",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": "server/src/core/mission-context/merged-events.test.ts",
+          "line": 53,
+          "finding": "Literal NUL byte inside the template string `100644 blob ${oid}<NUL>shipwright_events.jsonl<NUL>` makes git classify the file as binary: the diff shows only 'Binary files differ', so the test change was not reviewable, and PR review, CodeQL and editors treat it as binary from now on.",
+          "suggestion": "Replace the raw NUL bytes with the `\\0` escape (as ref-event-log.test.ts does with .join(\"\\0\")) and confirm `git diff` shows the file as text.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/shipslog/ShipsLogDocumentsPanel.tsx",
+          "line": 803,
+          "finding": "When pendingDocUpdatesUnreadable is true the group shows 'could not be read' and then ShipsLogDocList with zero rows, which renders its emptyLabel 'No pending doc updates.' The panel claims both unreadable and none, contrary to the 'never shown as none' contract. The test only checks the note.",
+          "suggestion": "Do not render ShipsLogDocList (or pass no empty label) when unreadable; add an assertion that 'No pending doc updates.' is absent in the unreadable test.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/artifacts-decisions.ts",
+          "line": 127,
+          "finding": "docs.sawUnreadable and docs.malformed are only checked when the run has no ADR. For a run with an ADR, an unreadable architecture.md, conventions.md or bullets folder, or a malformed own bullet file, yields an empty docUpdates list that reads as 'no documentation updates' with nothing disclosed. Contradicts self-review #5 (fail closed).",
+          "suggestion": "Carry a docUpdatesIncomplete flag (or count) in the detail and add an 'updates may be incomplete' clause to the summary in the ADR branch too; render it in DocUpdates; add a doc-updates test for ADR + unreadable doc.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "performance",
+          "file": "server/src/core/event-log-assemble.ts",
+          "line": 1655,
+          "finding": "lazyLegacyStatus captures the whole legacy text (up to 64 MB) in a closure. The row is stored in findWorkCompleted's EventIndexEntry.files (cache cap 32) and in the merged-events ref cache, so the caches now keep full legacy logs in memory where they used to keep only the run index. Once drops exist, every events/runs response serialises `files`, which runs the getters and parses the legacy log a second time.",
+          "suggestion": "Evaluate the legacy row eagerly when hasExtraFiles is true, or store only {status, records, fragments} in caches and drop the text reference (e.g. compute once on first access and null out `text`); absenceBlockers never needs the legacy row, so caches can hold only the extra-file rows.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/mission-context/artifacts-decisions.ts",
+          "line": 2488,
+          "finding": "docUpdatesOnly adds docs.malformed (broken bullet files) into malformedCount, which the client renders as 'N further decision records could not be read'; the no-ADR unavailable note likewise blames 'decision records' when the cause is an unreadable architecture.md/conventions.md.",
+          "suggestion": "Keep a separate docUpdateMalformed count and word it as documentation updates in the client.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/artifacts-decisions.ts",
+          "line": 53,
+          "finding": "A run with no ADR, docs.entries empty and docs.conflicts > 0 falls through to the hidden not_applicable branch, and the client's early return ('This run recorded no decisions.') also hides the conflict note. Only reachable when a bullet without a run anchor collides with another run's folded entry.",
+          "suggestion": "Treat conflicts > 0 like entries > 0 for the docUpdatesOnly branch, and test the client early return on conflicts too.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/event-log-files.ts",
+          "line": 2118,
+          "finding": "readEventLog / readRunData / readCampaignEvents previously read the legacy log with no size limit; the shared loader now applies MAX_EVENT_FILE_BYTES (64 MB), so a legacy file over 64 MB turns every view empty — a change for repos without drop folders (contract 7).",
+          "suggestion": "Either disclose the cap as a deliberate divergence in the plan, or keep the cap only for the Mission index (where it always was) and leave the event routes uncapped.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/event-log-assemble.ts",
+          "line": 1637,
+          "finding": "The overlay prefilter `raw.includes(id)` misses a legacy target whose id contains non-ASCII characters, because Python json.dumps (ensure_ascii=True) writes them as \\uXXXX; the cost is O(lines x targets) per rebuild.",
+          "suggestion": "Prefilter on a JSON-escaped form of the id as well (or parse only lines containing '\"id\"'), and check membership through the Map rather than a linear `some` over targets.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "server/src/core/mission-context/slice2-sources.ts",
+          "line": 3325,
+          "finding": "slice2RevPaths calls runBulletFiles, which reads the content of every bullet file only to compute a cache key, and readRunDocUpdates reads them all again; together with three event-folder listings per poll this is more work than the 'stat-only' disclosure (#9) states.",
+          "suggestion": "Derive the run's bullet file names from a readdir (name match on `--<key>--`) without reading contents for the rev paths.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/shipslog-docs-reader.ts",
+          "line": 3506,
+          "finding": "The Ship's-Log docs payload always gains pendingDocUpdates/skippedDocUpdates/pendingDocUpdatesUnreadable even without a bullets folder; AC9 states 'payload has no new field without folders'.",
+          "suggestion": "Either make the fields optional and omit them when the folder is absent, or narrow AC9's wording to the event-log payloads.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/doc-bullets.ts",
+          "line": 1155,
+          "finding": "iterEntries splits only on \\r\\n|\\n|\\r while Python iter_entries uses str.splitlines() (VT, FF, NEL, U+2028 too), and entryAnchor slices 60 UTF-16 code units vs Python's 60 code points — anchor and section boundaries can differ on unusual documents or emoji in an anchor-less bullet.",
+          "suggestion": "Reuse PY_LINE_BREAK in iterEntries and slice by code points ([...s].slice(0, 60).join('')).",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-07T12:38:50.749407+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "concurrency",
+          "file": "server/src/core/event-log-files.ts (listEventFiles / readAssembledEventLog)",
+          "line": null,
+          "finding": "Claim under doubt: (1) a fold racing a read never loses an event and never makes a run read 'absent' — The guarantee depends on the writer adding the archive BEFORE deleting the drops. That is true for events_fold.apply_fold, but not for the most common way a fold reaches the main tree the WebUI watches: `git pull` / `merge` / `checkout` of the release-fold commit. git's unpack_trees/check_updates unlinks removed entries first, then writes new ones, and writes files in place (not tmp+rename). Window A: drops already unlinked, archive not yet written. The listing finds no D and no A, nothing vanished between listing and reading, so there is no retry and no `lost` row. The run has no events and no blocker, so findWorkCompleted returns `absent`, and the events, runs and campaigns routes drop the run (campaign steps flip to pending) for that poll. Window B: archive half-written. The torn tail makes it `corrupt`, the records after the tear are gone, and archive rows never block absence (see D2), so `absent` again. Mission partly hides this for finished runs (an absent result goes to the origin/main fallback, which has the fold), but not for the other three routes or for `isWorktree` runs. event-log-files.race.test.ts only models the fold's own order (renameSync drop -> archive), so this path is untested. Python has the same gap; that is parity, not safety.",
+          "suggestion": "Either (a) treat the tree as mid-update while the gitdir's `index.lock` exists (resolve via `.git` file -> gitdir for worktrees): return null/unavailable, or retry once after a short delay; or (b) compare against the previous cached listing: a drop that disappeared while the archive set did not grow by a file containing it means unavailable/retry, never absent. Or rebut in writing: name the window as accepted and transient (self-heals next poll, fails toward 'absent' only for one poll, Mission covered by the ref fallback) and narrow claim 1 in the spec to 'a fold run by events_fold in this tree'.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary-contract",
+          "file": "server/src/core/event-log-assemble.ts (absenceBlockers); server/src/core/event-log-files.ts (failedDirs archive row)",
+          "line": null,
+          "finding": "Claim under doubt: (3) a damaged/unreadable own file never reads as 'no record' — After a fold, a run's ONLY record lives in an archive file. absenceBlockers filters `kind === 'drop'`. So an archive file that is corrupt (torn by a git checkout, see D1, or a botched merge of overlapping folds, which events_fold.py itself says git may call a rename conflict), unreadable, or over the 64 MB MAX_EVENT_FILE_BYTES cap makes every run folded into it read `absent`, not `unavailable`. The fail-closed divergence for an unlistable folder (External Code Review #2) is applied asymmetrically: failedDirs pushes the archive folder as kind 'archive', which never blocks. An unlistable `shipwright_events.archive/` therefore makes every archived run `absent`, which is exactly the case the fix was meant to close for drops. For drop files this is Python parity; for the unlistable folder the WebUI already chose to diverge, so leaving the archive out is inconsistent rather than by decision.",
+          "suggestion": "Let a non-ok archive row (file or unlistable folder) block every absence verdict, like a key-null drop, and add one test each. Or rebut: state in Divergences that archive damage reads as absent by Python parity, and explain why the unlistable-folder divergence stops at drops.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency",
+          "file": "server/src/core/mission-context/resolver-iterate.ts",
+          "line": null,
+          "finding": "Claim under doubt: (5) caches invalidate on every add/append/delete — resolver-iterate reads `events` (resolveWorkCompleted, line ~70) BEFORE computeSourceRev stats the paths (line ~91). The path list (eventLogRevPaths) was built even earlier, in resolver.ts. If a drop is created or appended between the read and the stat, the new dir/file mtime goes into `rev` while the cached context holds the pre-change lookup. For a live (`isWorktree`) run whose absent result is cacheable, the stale answer is pinned until some unrelated event file changes. This race class existed before for the legacy file; the diff keeps it rather than introducing it. The fingerprint cache inside findWorkCompleted is correctly ordered; the Mission context cache is not.",
+          "suggestion": "Compute the event-log part of the rev before the read (or recompute it after and refuse to cache on mismatch). Or note it as a pre-existing, unchanged race.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary-contract",
+          "file": "server/src/core/mission-context/ref-event-log.ts",
+          "line": null,
+          "finding": "Claim under doubt: (2)/(4) the origin/main read behaves as before for a legacy-only repo — `git show <ref>:shipwright_events.jsonl` resolves the path from the repo ROOT. `git ls-tree -r -z <ref> -- <paths>` resolves pathspecs and prints names relative to the CWD (projectRoot). For a project registered at a subdirectory of its git repo, the fallback used to read the root-level log and now reads `<subdir>/shipwright_events.jsonl` (or finds nothing, giving unavailable). The new behaviour is arguably more correct (it matches the working-tree reader), but it is a behaviour change the 'no change' claim does not mention.",
+          "suggestion": "One sentence in the spec saying nested project roots now read their own subdirectory's log on the ref, or confirm projectRoot is always the repo top level.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary-contract",
+          "file": "server/src/core/event-log-assemble.ts (canonical / dedupExtra)",
+          "line": null,
+          "finding": "Claim under doubt: the duplicate-id rule matches Python — canonical() compares JSON.stringify of JS-parsed records; Python compares json.dumps of Python-parsed ones. `1.0` vs `1`, and integers beyond 2^53, are DIFFERENT content in Python (flagged, both kept) but collapse to one record in TS (not flagged). duplicateIds and the kept-record count then differ from the plugin for such ids.",
+          "suggestion": "Accept and disclose (events carry no floats/bigints in id-colliding records), or compare raw line text when available.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-07T12:45:27.794003+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/core/event-log-assemble.ts",
+          "line": 197,
+          "finding": "Each amendment replaces the target’s entire accumulated overlay. If one amendment sets `{commit: \"abc\"}` and a later amendment sets `{summary: \"updated\"}`, the effective event loses the attached commit. Shallow overlays should retain earlier fields unless a later amendment overwrites those same fields. An invalid `fields` value also clears previous amendments.",
+          "suggestion": "Merge valid fields into the target’s existing overlay and ignore invalid fields. Add a test with successive amendments changing different fields.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/core/event-log-files.ts",
+          "line": 54,
+          "finding": "All folder-listing failures become an empty file list. If `shipwright_events.d/` exists but cannot be listed because of permissions or an I/O error, its files disappear from the fingerprint and `findWorkCompleted` returns `absent` for missing runs. This presents unavailable event data as “no record,” defeating the fail-closed behavior.",
+          "suggestion": "Distinguish an absent folder from a failed listing, propagate listing failures as unavailable, and prevent an absence verdict while the drops folder cannot be inspected. Test an injected `EACCES` listing failure.  The shared assembler approach fits the specification, but these correctness gaps need specific fixes before shipping. Overall assessment: ship-with-fixes.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-07T12:32:35.251255+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] <no review returned: openai package not installed>\n\n[openai] - Category: bug\n- Severity: medium\n- File: server/src/core/event-log-assemble.ts:197\n- Finding: Each amendment replaces the target’s entire accumulated overlay. If one amendment sets `{commit: \"abc\"}` and a later amendment sets `{summary: \"updated\"}`, the effective event loses the attached commit. Shallow overlays should retain earlier fields unless a later amendment overwrites those same fields. An invalid `fields` value also clears previous amendments.\n- Suggestion: Merge valid fields into the target’s existing overlay and ignore invalid fields. Add a test with successive amendments changing different fields.\n\n- Category: bug\n- Severity: medium\n- File: server/src/core/event-log-files.ts:54\n- Finding: All folder-listing failures become an empty file list. If `shipwright_events.d/` exists but cannot be listed because of permissions or an I/O error, its files disappear from the fingerprint and `findWorkCompleted` returns `absent` for missing runs. This presents unavailable event data as “no record,” defeating the fail-closed behavior.\n- Suggestion: Distinguish an absent folder from a failed listing, propagate listing failures as unavailable, and prevent an absence verdict while the drops folder cannot be inspected. Test an injected `EACCES` listing failure.\n\nThe shared assembler approach fits the specification, but these correctness gaps need specific fixes before shipping. Overall assessment: ship-with-fixes.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "unavailable",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-07T12:32:56.087629+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "The Documents panel does not meet the design's bullet rule. Design 4.3 says the WebUI docs reader reads folded + pending, and BRIEF S5/S5b KC7 asks for a render that is identical pending vs folded. The plan (spec 9, mini-plan step 5) adds a separate 'Pending doc updates' group instead. shipslog-docs-reader.ts only lists rows; clicking 'Architecture' or 'Conventions' opens the raw file. So a bullet shows in the side group before the fold and inside the document after it. The two renders differ, and the design requirement is replaced without saying so. S5b is a precondition for the flip (S9a), so this gap counts.",
+          "suggestion": "Pick one and write it into the spec. (a) Port doc_bullets.effective_text / insert_bullets (anchor dedup, CRLF kept, section created if missing) and serve Architecture/Conventions with pending bullets folded in, keeping the side group only as an index. (b) Record an explicit operator decision that KC7's 'render identical' clause covers the Python checks only and the WebUI satisfies 4.3 through the separate group, and note this in the S5b minimum-version record.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "The plan reads a run's pending bullets from the wrong root. slice2-sources reads everything from projectRoot (the main tree); that works for ADR decision-drops because F3 writes them straight into the main tree. Bullet files are different: write_doc_bullet runs with --project-root in the iterate worktree and the files are committed in the PR. The plan wires readRunDocUpdates(root, runId) through slice2-sources with no root named. If it uses projectRoot, a live run's doc updates never show. A merged-but-not-pulled run's bullets don't show either: the merged-ref fallback covers events only.",
+          "suggestion": "Say which root the doc-updates reader uses: chosen.root (the worktree while the run is live), falling back to projectRoot. List that root's bullets dir and files in the rev paths. Add an AC for 'live run in a worktree shows its pending bullet'. If merged-not-pulled matters, name it as a known gap or read bullets/architecture.md from the ref through the new cat-file path.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": null,
+          "line": null,
+          "finding": "Learnings bullets break the 'folded + pending' symmetry in the Decisions artifact. Pending bullets are picked by file key = sanitized run id, which includes target=learnings (write_doc_bullet does not require learnings to lead with **run_id**; they look like '- (YYYY-MM-DD) ...'). Folded entries are picked from '## Architecture Updates' / '## Convention Updates' by leading anchor = run id, and '## Learnings' is not scanned. So a run's learning shows while pending and vanishes after the release fold, the same flip-flop the design says renders must avoid.",
+          "suggestion": "Leave target=learnings out of the per-run Decisions doc updates (it cannot be attributed to a run once folded). Or show it only in the Documents panel group. Add a test: a learnings bullet for run X is not listed in X's Decisions doc updates, before or after the fold.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "Adding doc updates to buildDecisionsArtifact does not respect the existing three-way state (available / unavailable / hidden). Today, no entries plus a clean read gives not_applicable / not_yet_created (hidden), and a failed read gives unavailable. The plan makes the artifact 'available when only doc updates exist', but it defines no failure state for an unreadable architecture.md/conventions.md, an unreadable bullets dir, or a bullet over the size cap. With no ADR, those cases would fall through to 'hidden', reading as 'this run documented nothing', which is the bug this file exists to prevent. The summary/receipt code also assumes record.entries is non-empty (titles[0], plural(entries.length)), so a doc-updates-only run needs its own wording.",
+          "suggestion": "Have readRunDocUpdates return {folded, pending, conflicts, sawUnreadable}. Fold sawUnreadable into the hidden/unavailable decision the same way record.sawUnreadable is used. Write a summary and receipt for the zero-ADR case (e.g. '2 documentation updates, 1 not yet published in a release'). Add tests: unreadable architecture.md with no ADR gives unavailable, not hidden; a doc-updates-only run renders a non-empty summary.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": null,
+          "line": null,
+          "finding": "In the drops layout, campaign status will lose its commit. In drops mode attach_commit becomes an event_amended {commit} written to a new drop (events_write.amend_commit). F5b work_completed is written with commit=='' (campaign-events.ts says so). Campaign status applies no amendments (spec 4, for parity with Python campaign_status, which reads raw event_lines_at). After the flip, both Python and the WebUI will show campaign steps without a commit. KC1 cannot catch this because the content-only splitter keeps commits inline.",
+          "suggestion": "Keeping parity in the WebUI is fine for this run. Record it as a known drops-layout gap and open a monorepo follow-up (campaign_status should apply drop amendments, or the finalizer should write commit inline). When that lands, switch readCampaignEvents to effectiveLines. Add a WebUI test that pins today's behaviour (amendment from a drop does not set step.commit) so the later change is deliberate.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "The spec never states that a missing legacy file plus present drop folders must be read. Every reader before this change returned empty or absent as soon as shipwright_events.jsonl was missing (existsSync early return in readEventLog, readRunData, readCampaignEvents, findWorkCompleted). The KC1 split fixture (_events_split.py) writes ONLY shipwright_events.d/, so this case is exactly what KC1 tests, and repos created after S9c may never have a legacy file. The in-progress loader handles it (absent = legacy===null && extra.length===0), but no AC protects it, and readCampaignEvents is not migrated yet.",
+          "suggestion": "Add an AC for 'no legacy file, drops only': each fs reader (events, runs, campaigns, findWorkCompleted, run-id recovery) finds the run. Make sure campaign-events no longer has its existsSync(legacy) early return.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "AC4 ('run projection and run-data bundle identical' unsplit vs split) depends on ordering, and the new optional fields break it. phaseTransitions is projected in FILE order, while the split log is in (instant, id) order. The equal-ts tie-break by idx differs whenever the legacy file is not sorted by instant. The S0 fixture happens to be sorted; a hand-written 'campaign-rich fixture' may not be. The split projection also carries the new files/duplicateIds fields and the unsplit one does not, so the payloads cannot be byte-identical as written. A TS port of the splitter can also drift: Python uses str.isalnum(), which accepts Unicode letters, and json.loads, which raises on corrupt lines.",
+          "suggestion": "State that AC4 compares the payload minus files/duplicateIds. Require the campaign-rich fixture to be sorted by instant, or make it include equal-ts work_completed rows on purpose and check Python campaign_status gives the same answer on both halves. Prefer committing a split produced by the Python splitter (or cross-checking the TS port against it) over trusting the port alone.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": null,
+          "line": null,
+          "finding": "The legacy file now gets parsed more times. assembleEventLog runs parseText on the legacy text to compute its status, even when there are no drop folders and the status is never shown. Once any drop amendment exists (after the flip, nearly always, since every run's attach-commit becomes one), overlaid() runs splitRecords on every legacy line again. Then projectEventLog parses everything, and run-data-join's projectGradeTrend parses it again. The events and runs routes have no cache, so each request pays 3-4 full parses of a file up to 64 MB, where today it pays 1-2.",
+          "suggestion": "Compute the legacy status lazily, or only when hasExtraFiles. In overlaid(), only re-parse legacy lines that contain an amended id as a substring (raw.includes(id)); copy every other line through unchanged. Optionally memoize the assembled log per root by eventLogFingerprint so the events, runs and campaigns routes share one assembly per change.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": null,
+          "line": null,
+          "finding": "Every Mission poll (1/s per tab) lists the folders and stats every file at least twice: eventLogFingerprint in findWorkCompleted, then eventLogRevPaths plus the stats in computeSourceRev. At the design's 300-file bound that is about 600 stats and 4 readdirs per poll per tab, slower on Windows with Defender running. Separately, the events route adds a files[] row for every file read (300+ rows) whenever an archive or drop exists.",
+          "suggestion": "Share one listing per resolve (pass it to both the fingerprint and the rev paths), or build the rev from the fingerprint string. In API payloads, send counts by status plus only the non-ok rows instead of every file.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": null,
+          "line": null,
+          "finding": "There are a few small differences from the Python reader. (1) Python's event_files uses pathlib glob('*.jsonl'), which also matches dot-files, so Python reads '.x.jsonl' and the WebUI skips it; the writer's temp file ends in '.tmp', so this only shows up with hand-made files. (2) Python sorts Path objects case-insensitively on Windows; JS .sort() compares UTF-16 code units, which only changes tie order and which duplicate copy is kept. (3) instantKey uses Date.UTC, which maps years 0-99 to 1900+ and rolls invalid values over (month 13, hour 25), where Python's fromisoformat rejects them and sorts them first (datetime.min). (4) A drop lost in a fold race is recorded with key:null, which blocks absence for every run, not just its own (Python keeps the real key). It is transient, because the fingerprint moves on the next poll.",
+          "suggestion": "Record (1) and (2) as accepted differences in the module header, or match Python. Range-check the instantKey fields, and build dates with setUTCFullYear so 2-digit years are not shifted to 19xx. For lost files, set key: dropKey(basename(rel)) and use startsWith(`${DROPS_DIR}/`), not startsWith(DROPS_DIR).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "readBoundedFile's contract says the path must already have passed pathGuard + realPathGuard. The event-file loader applies only the lexical pathGuard plus a Dirent.isFile()/folder lstat check at listing time, and openSync follows symlinks, so a file swapped for a symlink between readdir and open is followed. The bullets reader in the plan has no stated read rules. Python reads bullets as strict UTF-8 (invalid bytes mean skipped) and uses splitlines(), which also breaks on \\u2028, \\x85 and similar; readFileSync('utf-8') substitutes U+FFFD and split('\\n') would accept bullets Python rejects. Bullet text comes from any merged branch, so it must render as plain text.",
+          "suggestion": "Apply realPathGuard (or re-check lstat on the fd target) for drop, archive and bullet files, or record the local-trust assumption. For bullets: bounded read (a few KB; ENTRY_MAX_CHARS is the real limit), TextDecoder('utf-8', {fatal:true}), Python-compatible line splitting, skip symlinks and non-files and count them, never report .gitkeep. Render bullet text through the same escaping or markdown sanitizer as the other agent docs, never as raw HTML.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": null,
+          "line": null,
+          "finding": "A live drop being appended can briefly read as corrupt. Appends to an open untracked drop are plain appends. A Mission poll that reads mid-append sees a torn last line, marks the run's own drop 'corrupt', and findWorkCompleted answers 'unavailable' for one poll instead of the normal mid-run 'absent'. The UI renders these two very differently, so it can flicker. (It mostly hits runs whose drops sit in the tree being read, e.g. main-tree writers.)",
+          "suggestion": "When a drop's only fragment is an unterminated last line, re-read that file once before marking it corrupt. Or accept the flicker and document it. Add a test for a torn tail.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": null,
+          "line": null,
+          "finding": "resolveWorkCompleted consults origin/main only when the local lookup is exactly 'absent'. With the new rule (spec 5), a damaged local drop for the run now gives 'unavailable', so the merged-ref fallback is skipped even though origin/main may hold an intact copy. That is safe (it fails closed) but is a new route to an empty rail.",
+          "suggestion": "Optionally let a local 'unavailable' that comes from absence blockers fall through to the ref, return the ref's 'found' when it has one, and otherwise keep 'unavailable'. Either way, add a test for the decision.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-07T12:29:28.471795+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "necessity",
+          "file": null,
+          "line": null,
+          "finding": "This needs to be built. The plugin's switch to the new file layout (S9a) cannot happen until a WebUI release reads both layouts. Nothing that exists today covers the new folders: event-log-reader.ts, campaign-events.ts, iterate-record.ts and merged-events.ts each hard-code EVENT_FILE / EVENTS_FILE = 'shipwright_events.jsonl'. Option D (do nothing) only works if the plugin change is dropped, and that decision belongs to the monorepo, not this repo.",
+          "suggestion": "Reject D unless the monorepo cancels the flip.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "smallest-option",
+          "file": null,
+          "line": null,
+          "finding": "Option C is not survivable. Once the first release fold moves drop files into shipwright_events.archive/, runs that were visible would disappear, so C only delays the bug by one release. Without per-file status it also breaks kill criterion 8 (a damaged file must never read as 'the run has no record'). Option B copies the order, dedup and amendment rules into about six projections, each of which could drift from Python on its own. That is more permanent upkeep than A, not less. Option A (one assembler that emits lines, with the projections unchanged on top) is the smallest change that is correct. It also keeps the existing tests valid as the regression check for 'no folders = no change'.",
+          "suggestion": "Take A. Hold it to one rule: every event reader, including campaign-events.ts, run-data-join.ts, run-id-recovery and merged-events.ts, goes through the shared assembler. No module keeps its own direct read of shipwright_events.jsonl.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "complexity-cost",
+          "file": null,
+          "line": null,
+          "finding": "Contract item 4 makes a run's amendments depend on where they live: an event_amended record in a drop or archive file is overlaid, one in the legacy file is not. This keeps old repos rendering exactly as today. But it means a repo that has drop folders and older legacy-file amendments will show a mix. If Python's read_events_assembled overlays amendments from all sources, this rule silently breaks the parity the S9a precondition depends on. The parity test only catches this if the fixture includes a legacy-file amendment.",
+          "suggestion": "Before build, check the asymmetry against events_read.py. Add a legacy-file event_amended record to the split fixture so the parity test (AC4) exercises this case and does not pass trivially.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "The git variant (ls-tree plus one cat-file --batch) does not fit the current runner. GitRunner in merged-events.ts is (args, cwd) => utf-8 stdout: it cannot feed stdin, and it decodes everything as text. cat-file --batch output gives a size in BYTES for each object. Splitting a decoded utf-8 string by those sizes goes wrong on the first multibyte character in an event. The existing 64 MB maxBuffer and 8 s timeout would also now cover every blob combined, not just one file.",
+          "suggestion": "Add a runner that takes stdin and returns a Buffer. Feed the object ids from ls-tree -z, not paths, so a filename with a newline cannot break the batch protocol. Split by byte size on the Buffer and decode each blob separately. Put one multibyte (non-ASCII) record in the real-git test (AC6).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "Contract item 5 answers 'unavailable' when any drop file whose name does not follow the writer's shape is not ok. One stray damaged file with an odd name would then make every absent-run lookup in the project 'unavailable'. merged-events.ts deliberately never caches 'unavailable', so every poll in every tab would re-read the whole layout until a person deletes the file.",
+          "suggestion": "Decide this on purpose. Either accept it and surface the offending file name in the per-file status so the user can fix it, or cache the 'unavailable' result against the folder's change marker (listing plus mtimes) so it is not re-read on every poll. Write down which one in the spec.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "AC5 requires caches and the Mission sourceRev to change when a drop file is added or appended. Today the index is keyed on one file's mtime. A folder's mtime changes when a file is added or renamed, but not when an existing file is appended to. The brief does not name the new cache key.",
+          "suggestion": "Key the caches on the listing plus each file's (name, size, mtime), not on folder mtimes. Name the key in the build notes.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "smallest-option",
+          "file": null,
+          "line": null,
+          "finding": "The bullet work (S5b) is bundled with the events reader (S1). The Documents panel group is small. The Mission Decisions doc-updates logic is a second, separate copy of Python fold behaviour that also needs a parity check: matching folded entries by run id, the folded-wins rule, and conflict counting in date/key/name order. Unlike the event files, a WebUI that misses pending bullets shows stale docs; it does not wrongly show runs as missing.",
+          "suggestion": "If the S9a precondition does not require Decisions doc updates in this release, ship the bullet grammar and the Documents panel group now, and move the Decisions folded+pending merge to a follow-up. If it does require them, include a bullet fixture in the parity test as well.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "Bullet files are text from the repo that the browser renders. Contract item 8 limits each file to one '- ' line and excludes symlinks and hidden names, which is the right shape. It does not say whether the line is rendered as Markdown or as plain text. The ref and paths in the git variant are constants, so command injection is not a concern if the argument-array discipline in merged-events.ts is kept.",
+          "suggestion": "Render bullet text through the same escaping path the Documents panel already uses for agent docs. Never use raw HTML.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "I found no injected instructions in the brief or the spec. Both read as content.",
+          "suggestion": "None.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-07T12:29:28.610326+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

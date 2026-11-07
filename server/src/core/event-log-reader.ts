@@ -28,23 +28,22 @@
  *     (a phase can have multiple ends) and now carries a top-level split id
  *     (monorepo #369) — every transition line is projected in file order,
  *     never deduped or assumed one-end-per-phase. A02 dedups by (phase, split).
- *   - Amendments (`event_amended`) are NOT overlaid here — that is A02's join
- *     semantics. Base events are projected as-written; this is documented so
- *     the endpoint never claims an amendment-merged view it does not compute.
+ *   - Amendments (`event_amended`) are NOT overlaid by `projectEventLog`.
+ *     `readEventLog` feeds it the assembled log's `effectiveLines`, which carry
+ *     ONLY the amendments that live in archive/drop files (the drops-layout
+ *     form of attach-commit, `event-log-assemble.ts`); a legacy-file amendment
+ *     is still not overlaid, so a legacy-only log projects exactly as before.
  */
 
-import { existsSync, readFileSync } from "node:fs";
-
+import { readAssembledEventLog } from "./event-log-files.js";
 import { recordsFromLines } from "./jsonl-records.js";
-import { pathGuard } from "./path-guard.js";
-import {
-  EVENT_FILE,
-  type EventLogProjection,
-  type PhaseTransition,
-  type PhaseTransitionType,
-  type ProjectEventLogOptions,
-  type RunProjection,
-  type RunTests,
+import type {
+  EventLogProjection,
+  PhaseTransition,
+  PhaseTransitionType,
+  ProjectEventLogOptions,
+  RunProjection,
+  RunTests,
 } from "./event-log-types.js";
 
 export {
@@ -223,24 +222,20 @@ function emptyProjection(): EventLogProjection {
 }
 
 /**
- * File-loading wrapper: read `<projectRoot>/shipwright_events.jsonl` and
- * project it. The event filename is a constant (no user-supplied path
- * segment); `pathGuard` is applied defensively so a crafted `projectRoot`
- * can never resolve the read outside itself. A missing / unreadable /
- * guarded-out log yields an empty projection — never an error.
+ * File-loading wrapper: the tree's ASSEMBLED event log (legacy file, then archive
+ * + drop files — `event-log-files.ts`) projected with drop-layout amendments
+ * applied. Paths are constants guarded by `pathGuard`. A missing / unreadable /
+ * guarded-out log yields an empty projection — never an error. Per-file status
+ * rides along only when an archive or drop file was read.
  */
 export function readEventLog(
   projectRoot: string,
   opts: ProjectEventLogOptions = {},
 ): EventLogProjection {
-  const guard = pathGuard(projectRoot, EVENT_FILE);
-  if (!guard.ok) return emptyProjection();
-  if (!existsSync(guard.absolute)) return emptyProjection();
-  let text: string;
-  try {
-    text = readFileSync(guard.absolute, "utf-8");
-  } catch {
-    return emptyProjection();
-  }
-  return projectEventLog(text.split("\n"), opts);
+  const log = readAssembledEventLog(projectRoot);
+  if (!log || log.absent) return emptyProjection();
+  const projection = projectEventLog(log.effectiveLines, opts);
+  return log.hasExtraFiles
+    ? { ...projection, files: log.files, duplicateIds: log.duplicateIds }
+    : projection;
 }

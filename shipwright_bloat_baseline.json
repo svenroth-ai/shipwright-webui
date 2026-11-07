@@ -737,10 +737,10 @@
     {
       "path": "client/src/components/external/mission/MissionSlice2Details.tsx",
       "limit": 300,
-      "current": 313,
+      "current": 256,
       "state": "grandfathered",
       "adr": null,
-      "note": "iterate-2026-09-09-mission-ac-coverage-view: +3 lines -- the new per-AC coverage sub-panel (MissionTestsAcCoverage.tsx, its own file to avoid growing this one further) needs one import line and one call site inside TestsFileTable. +4 lines (same run, follow-up commit) -- Tier-3 review asked the call site to pass hasRows explicitly so the sub-panel is correct read standalone, not only via this file's existing early-return."
+      "note": "iterate-2026-11-07-events-drop-files-reader: 313 -> 256, DecisionsDetail split out into MissionDecisionsDetail.tsx. iterate-2026-09-09-mission-ac-coverage-view: +3 lines -- the new per-AC coverage sub-panel (MissionTestsAcCoverage.tsx, its own file to avoid growing this one further) needs one import line and one call site inside TestsFileTable. +4 lines (same run, follow-up commit) -- Tier-3 review asked the call site to pass hasRows explicitly so the sub-panel is correct read standalone, not only via this file's existing early-return."
     },
     {
       "path": "client/src/lib/missionContextApi.ts",

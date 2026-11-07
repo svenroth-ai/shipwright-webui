@@ -26,6 +26,9 @@ const OK: ShipsLogDocsResponse = {
   iterateSpecs: [],
   agentDocs: [{ path: ".shipwright/agent_docs/architecture.md", label: "Architecture", when: "2026-08-29T00:00:00.000Z" }],
   compliance: [{ path: ".shipwright/compliance/dashboard.md", label: "Dashboard", when: "2026-08-27T00:00:00.000Z" }],
+  pendingDocUpdates: [],
+  skippedDocUpdates: 0,
+  pendingDocUpdatesUnreadable: false,
 };
 
 beforeEach(() => docsMock.mockReset());
@@ -61,5 +64,36 @@ describe("ShipsLogDocumentsPanel", () => {
     expect(screen.getByTestId("mock-smart-viewer-modal").textContent).toBe(
       "p1:.shipwright/agent_docs/architecture.md",
     );
+  });
+
+  // @covers FR-01.59
+  it("hides the pending doc updates group when there are none (legacy layout unchanged)", () => {
+    docsMock.mockReturnValue({ data: OK, isLoading: false, isError: false });
+    render(<ShipsLogDocumentsPanel projectId="p1" />);
+    expect(screen.queryByRole("heading", { level: 3, name: "Pending doc updates" })).toBeNull();
+  });
+
+  // @covers FR-01.59
+  it("lists pending doc updates, opens one, and counts invalid files", () => {
+    const bullet = ".shipwright/agent_docs/decision-drops/bullets/architecture--iterate-x--0a1b2c3d--11111111.md";
+    docsMock.mockReturnValue({
+      data: { ...OK, pendingDocUpdates: [{ path: bullet, label: "Architecture · a line", when: null }], skippedDocUpdates: 2 },
+      isLoading: false,
+      isError: false,
+    });
+    render(<ShipsLogDocumentsPanel projectId="p1" />);
+    expect(screen.getByRole("heading", { level: 3, name: "Pending doc updates" })).toBeTruthy();
+    expect(screen.getByTestId("shipslog-pending-doc-note").textContent).toContain("next release");
+    expect(screen.getByTestId("shipslog-pending-doc-skipped").textContent).toContain("2 further files");
+    fireEvent.click(screen.getByTestId(`shipslog-doc-${bullet}`));
+    expect(screen.getByTestId("mock-smart-viewer-modal").textContent).toBe(`p1:${bullet}`);
+  });
+
+  // @covers FR-01.59
+  it("says so when the pending updates could not be read, never as none", () => {
+    docsMock.mockReturnValue({ data: { ...OK, pendingDocUpdatesUnreadable: true }, isLoading: false, isError: false });
+    render(<ShipsLogDocumentsPanel projectId="p1" />);
+    expect(screen.getByTestId("shipslog-pending-doc-note").textContent).toContain("could not be read");
+    expect(screen.queryByText("No pending doc updates.")).toBeNull(); // never "unreadable" AND "none"
   });
 });

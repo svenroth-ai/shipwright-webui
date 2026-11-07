@@ -34,8 +34,10 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import { readBoundedFile, readBoundedFileIfChanged } from "./fs-read.js";
+import { readBoundedFile } from "./fs-read.js";
 
+import { absenceBlockers, type EventFileStatus } from "../event-log-assemble.js";
+import { eventLogFingerprint, readAssembledEventLog } from "../event-log-files.js";
 import { projectEventLog, type RunProjection } from "../event-log-reader.js";
 import { pathGuard } from "../path-guard.js";
 import { isSafeRunId } from "./pointer.js";
@@ -44,7 +46,6 @@ export const EVENTS_FILE = "shipwright_events.jsonl";
 
 /** Caps that bound a corrupt/huge source (CONTRACT §11 "bounded, not OOM"). */
 const MAX_RECORD_BYTES = 1024 * 1024;
-const MAX_EVENT_LOG_BYTES = 64 * 1024 * 1024;
 
 /** Facts from `iterates/<run_id>.json`. Every field is optional in the wild. */
 export interface IterateDoc {
@@ -106,10 +107,13 @@ export type EventLookup =
   | { status: "unavailable" };
 
 interface EventIndexEntry {
+  /** `eventLogFingerprint`: every event file's (path, mtime, size). */
+  fingerprint: string;
+  /** Newest mtime among the files (the `mtimeMs` the lookup reports). */
   mtimeMs: number;
-  sizeBytes: number;
   /** run_id → its winning `work_completed` projection. Built once per change. */
   index: Map<string, RunProjection>;
+  files: EventFileStatus[];
 }
 
 /** Per-log run_id index, keyed by the log's absolute path. */
@@ -124,55 +128,51 @@ const EVENT_INDEX_CAP = 32;
  * mid-run state). The UI renders those two very differently and conflating them
  * would turn an I/O fault into a confident "nothing exists".
  *
- * INDEXED (CONTRACT §5.2). The Mission tab polls once a second, and the log went
- * quiescent the moment the run finalized — so re-reading and re-projecting all
- * of `shipwright_events.jsonl` every poll was pure waste. Instead the full
- * run_id → projection index is cached and rebuilt ONLY when the log's
- * `(mtime, size)` fingerprint moves; an unchanged log costs one fstat and an
- * O(1) `Map` lookup.
+ * INDEXED (CONTRACT §5.2). The Mission tab polls once a second, so the full
+ * run_id → projection index is cached and rebuilt ONLY when the event files'
+ * fingerprint moves — every listed file's (path, mtime, size), because a drop
+ * folder's own mtime does not move on an APPEND (events-drop-files, issue 978).
+ * The log read is the ASSEMBLED one (legacy + archive + drops, drop-layout
+ * amendments applied). A damaged drop file that may hold this run's events
+ * turns `absent` into `unavailable` (kill criterion 8): a broken file must not
+ * read as "this run has no record".
  */
 export function findWorkCompleted(projectRoot: string, runId: string): EventLookup {
-  const guard = pathGuard(projectRoot, EVENTS_FILE);
-  if (!guard.ok) return { status: "unavailable" };
-  if (!existsSync(guard.absolute)) return { status: "absent", mtimeMs: 0 };
+  if (!pathGuard(projectRoot, EVENTS_FILE).ok) return { status: "unavailable" };
+  const fingerprint = eventLogFingerprint(projectRoot);
+  if (fingerprint === "") return { status: "absent", mtimeMs: 0 };
 
-  // Read the bytes ONLY when the fingerprint changed. Still one atomic
-  // descriptor (open→fstat→maybe-read), so the mtime that keys the index
-  // describes exactly the bytes it was built from (CodeQL js/file-system-race).
-  const cached = eventIndexCache.get(guard.absolute) ?? null;
-  const read = readBoundedFileIfChanged(
-    guard.absolute,
-    MAX_EVENT_LOG_BYTES,
-    cached ? { mtimeMs: cached.mtimeMs, sizeBytes: cached.sizeBytes } : null,
-  );
-  if (!read) return { status: "unavailable" };
-
-  let entry: EventIndexEntry;
-  if (read.changed) {
-    // (Re)build the FULL run_id index in ONE scan. `projectEventLog` already
-    // keeps only the winning `work_completed` per adr_id, so indexing its `runs`
-    // yields exactly what the old per-call `{ runId }` filter returned — for
-    // every run at once, so any later poll for the same log is a map lookup.
+  const cacheKey = path.resolve(projectRoot);
+  let entry = eventIndexCache.get(cacheKey) ?? null;
+  if (!entry || entry.fingerprint !== fingerprint) {
+    const log = readAssembledEventLog(projectRoot);
+    if (!log) return { status: "unavailable" };
+    // ONE scan builds the FULL run_id index; `projectEventLog` already keeps
+    // only the winning `work_completed` per adr_id.
     const index = new Map<string, RunProjection>();
-    for (const r of projectEventLog(read.text.split(/\r?\n/)).runs) {
-      index.set(r.runId, r);
-    }
-    entry = { mtimeMs: read.mtimeMs, sizeBytes: read.sizeBytes, index };
+    for (const r of projectEventLog(log.effectiveLines).runs) index.set(r.runId, r);
+    // Only drop/archive rows can block absence; the legacy row (which may hold the
+    // whole legacy text lazily) is never cached.
+    entry = { fingerprint, mtimeMs: newestMtime(fingerprint), index, files: log.files.filter((f) => f.kind !== "legacy") };
     if (eventIndexCache.size >= EVENT_INDEX_CAP) eventIndexCache.clear();
-    eventIndexCache.set(guard.absolute, entry);
-  } else if (cached) {
-    entry = cached; // fingerprint unchanged — serve the cached index verbatim
-  } else {
-    // Unreachable: `changed: false` is only returned when a prior fingerprint
-    // was supplied, which happens only when `cached` exists. Kept total and
-    // fail-safe rather than assert.
-    return { status: "unavailable" };
+    eventIndexCache.set(cacheKey, entry);
   }
 
   const run = entry.index.get(runId) ?? null;
-  return run
-    ? { status: "found", run, mtimeMs: entry.mtimeMs }
-    : { status: "absent", mtimeMs: entry.mtimeMs };
+  if (run) return { status: "found", run, mtimeMs: entry.mtimeMs };
+  if (absenceBlockers(entry.files, runId).length > 0) return { status: "unavailable" };
+  return { status: "absent", mtimeMs: entry.mtimeMs };
+}
+
+/** The newest mtime in an `eventLogFingerprint` string (`path:mtime:size|…`). */
+function newestMtime(fingerprint: string): number {
+  let newest = 0;
+  for (const part of fingerprint.split("|")) {
+    const fields = part.split(":");
+    const mtime = Number(fields[fields.length - 2]);
+    if (Number.isFinite(mtime) && mtime > newest) newest = mtime;
+  }
+  return newest;
 }
 
 /** Test-only: drop the module-level event-log index cache between cases. */

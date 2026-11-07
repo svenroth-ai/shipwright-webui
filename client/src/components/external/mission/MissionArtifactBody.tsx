@@ -19,7 +19,8 @@ import type { ArtifactDescriptor } from "../../../lib/missionContextApi";
 import { frRowLabel } from "../../../lib/missionArtifacts";
 import { useArtifactDocument } from "../../../hooks/useMissionContext";
 import { DocumentMarkdown } from "../SmartViewer/DocumentMarkdown";
-import { DecisionsDetail, ReviewDetail, TestsDetail } from "./MissionSlice2Details";
+import { DecisionsDetail } from "./MissionDecisionsDetail";
+import { ReviewDetail, TestsDetail } from "./MissionSlice2Details";
 import {
   CampaignProgressDetail,
   PhaseDetail,

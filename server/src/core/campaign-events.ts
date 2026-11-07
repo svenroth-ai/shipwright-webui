@@ -24,14 +24,10 @@
  * Read-only: webui never writes events.jsonl (Architecture rule 1).
  */
 
+import { readAssembledEventLog } from "./event-log-files.js";
 import { recordsFromLines } from "./jsonl-records.js";
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
 
 import type { Campaign, CampaignStep } from "./campaign-store.js";
-
-/** Per-tree, version-controlled event log (parity with events_log.EVENT_FILE). */
-const EVENT_FILE = "shipwright_events.jsonl";
 
 export interface SubEventProjection {
   /** Commit sha from the latest matching `work_completed` event, or null when
@@ -109,21 +105,17 @@ export function projectCampaignEvents(
 }
 
 /**
- * File-loading wrapper: read `<projectRoot>/shipwright_events.jsonl` (the
- * canonical per-tree log, `events_log.resolve_events_path`) and project it.
- * Missing / unreadable log → empty projection (the board falls back to the
- * dir-sourced campaigns, or shows nothing — never an error).
+ * File-loading wrapper: the tree's ASSEMBLED event log (legacy file, then
+ * archive + drop records — `event-log-files.ts`, parity with Python
+ * `events_read.event_lines_at`) projected RAW: campaign status applies no
+ * `event_amended` overlay, exactly like `campaign_status.py`. Missing /
+ * unreadable log → empty projection (the board falls back to the dir-sourced
+ * campaigns, or shows nothing — never an error).
  */
 export function readCampaignEvents(projectRoot: string): CampaignEventsProjection {
-  const p = path.join(projectRoot, EVENT_FILE);
-  if (!existsSync(p)) return new Map();
-  let text: string;
-  try {
-    text = readFileSync(p, "utf-8");
-  } catch {
-    return new Map();
-  }
-  return projectCampaignEvents(text.split("\n"));
+  const log = readAssembledEventLog(projectRoot);
+  if (!log || log.absent) return new Map();
+  return projectCampaignEvents(log.lines);
 }
 
 function recomputeProgress(c: Campaign): void {

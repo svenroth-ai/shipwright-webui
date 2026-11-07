@@ -22,7 +22,7 @@ vi.mock("../SmartViewer/DocumentMarkdown", () => ({
   DocumentMarkdown: ({ text }: { text: string }) => <div data-testid="doc-markdown">{text}</div>,
 }));
 
-import { DecisionsDetail } from "./MissionSlice2Details";
+import { DecisionsDetail } from "./MissionDecisionsDetail";
 
 // @covers FR-01.66
 describe("DecisionsDetail", () => {
@@ -36,6 +36,8 @@ describe("DecisionsDetail", () => {
       type: "decisions",
       truncated: false,
       malformedCount: 0,
+      docUpdates: [],
+      docUpdateConflicts: 0,
       entries: [
         {
           adrId: "ADR-300",
@@ -142,5 +144,37 @@ describe("DecisionsDetail", () => {
   it("stays silent about malformed records when there are none", () => {
     render(<DecisionsDetail artifact={artifact} />);
     expect(screen.queryByTestId("artifact-decisions-malformed")).not.toBeInTheDocument();
+  });
+
+  const folded = { target: "architecture" as const, doc: "architecture.md", text: "- **iterate-2026-11-07-x** a folded line", state: "folded" as const };
+  const pending = { target: "conventions" as const, doc: "conventions.md", text: "- **iterate-2026-11-07-x** a pending line", state: "pending" as const };
+
+  it("shows a run whose only record is documentation updates, folded and pending, never as an ADR", () => {
+    render(
+      <DecisionsDetail
+        artifact={{ ...artifact, detail: { ...artifact.detail!, entries: [], docUpdates: [folded, pending] } }}
+      />,
+    );
+    expect(screen.queryByText("This run recorded no decisions.")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("artifact-decision-entry")).not.toBeInTheDocument();
+    const rows = screen.getAllByTestId("artifact-doc-update");
+    expect(rows.map((r) => r.getAttribute("data-state"))).toEqual(["folded", "pending"]);
+    expect(rows[0]).toHaveTextContent("In Architecture (architecture.md).");
+    expect(rows[1]).toHaveTextContent("added to conventions.md at the next release.");
+    expect(screen.getAllByTestId("doc-markdown").map((d) => d.textContent)).toEqual([folded.text, pending.text]);
+  });
+
+  it("lists documentation updates after the ADRs and discloses conflicts", () => {
+    render(
+      <DecisionsDetail artifact={{ ...artifact, detail: { ...artifact.detail!, docUpdates: [pending], docUpdateConflicts: 1 } }} />,
+    );
+    expect(screen.getAllByTestId("artifact-decision-entry")).toHaveLength(1);
+    expect(screen.getAllByTestId("artifact-doc-update")).toHaveLength(1);
+    expect(screen.getByTestId("artifact-doc-update-conflicts")).toHaveTextContent("One further update");
+  });
+
+  it("renders no documentation-updates section when there are none", () => {
+    render(<DecisionsDetail artifact={artifact} />);
+    expect(screen.queryByTestId("artifact-doc-updates")).not.toBeInTheDocument();
   });
 });

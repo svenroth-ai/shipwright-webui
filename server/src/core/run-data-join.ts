@@ -17,13 +17,10 @@
  *     here — that stays with `compliance-reader.ts`; this file adds the trend.
  */
 
-import { existsSync, readFileSync } from "node:fs";
-
+import { readAssembledEventLog } from "./event-log-files.js";
 import { recordsFromLines } from "./jsonl-records.js";
-import { pathGuard } from "./path-guard.js";
 import { deriveTestsGate } from "./tests-gate.js";
 import {
-  EVENT_FILE,
   projectEventLog,
   type PhaseTransition,
   type RunProjection,
@@ -261,24 +258,17 @@ function emptyBundle(): RunDataBundle {
 }
 
 /**
- * File-loading wrapper: read `<projectRoot>/shipwright_events.jsonl` ONCE and
- * project the full bundle. `pathGuard` defends the constant filename; a
- * missing/unreadable/guarded-out log yields the empty bundle (spec AC1).
+ * File-loading wrapper: the ASSEMBLED event log (legacy + archive + drops,
+ * drop-layout amendments applied — `event-log-files.ts`) read ONCE and
+ * projected; a missing/unreadable/guarded-out log yields the empty bundle (AC1).
  */
 export function readRunData(
   projectRoot: string,
   opts: ReadRunDataOptions = {},
 ): RunDataBundle {
-  const guard = pathGuard(projectRoot, EVENT_FILE);
-  if (!guard.ok) return emptyBundle();
-  if (!existsSync(guard.absolute)) return emptyBundle();
-  let text: string;
-  try {
-    text = readFileSync(guard.absolute, "utf-8");
-  } catch {
-    return emptyBundle();
-  }
-  return projectRunData(text.split("\n"), opts);
+  const log = readAssembledEventLog(projectRoot);
+  if (!log || log.absent) return emptyBundle();
+  return projectRunData(log.effectiveLines, opts);
 }
 
 /**

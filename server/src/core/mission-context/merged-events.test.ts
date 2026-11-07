@@ -22,6 +22,7 @@ import {
   resolveWorkCompleted,
 } from "./merged-events.js";
 import { _clearEventIndexCache } from "./iterate-record.js";
+import type { BlobReader } from "./ref-event-log.js";
 import type { GitRunner } from "./worktree-roots.js";
 
 const RUN = "iterate-2026-07-23-first-contact-hero";
@@ -38,14 +39,22 @@ function workRow(runId: string, extra: Record<string, unknown> = {}): string {
   });
 }
 
-/** A git runner that answers `git show <ref>:<file>` with a fixed blob. */
-function gitShowing(blob: string, calls?: { n: number }): GitRunner {
-  return (args) => {
-    if (args[0] === "show") {
-      if (calls) calls.n++;
-      return blob;
-    }
-    throw new Error(`unexpected git ${args.join(" ")}`);
+/**
+ * A ref double holding `blob` as the legacy log: `git ls-tree` lists it, the
+ * blob reader (`cat-file --batch`) returns its bytes. `calls.n` counts reads of
+ * the ref (one `ls-tree` per load).
+ */
+function refShowing(blob: string, calls?: { n: number }): { git: GitRunner; readBlobs: BlobReader } {
+  const oid = "a".repeat(40);
+  return {
+    git: (args) => {
+      if (args[0] === "ls-tree") {
+        if (calls) calls.n++;
+        return `100644 blob ${oid}	shipwright_events.jsonl\0`;
+      }
+      throw new Error(`unexpected git ${args.join(" ")}`);
+    },
+    readBlobs: async () => new Map([[oid, Buffer.from(blob, "utf-8")]]),
   };
 }
 
@@ -58,7 +67,7 @@ afterEach(() => {
 describe("findWorkCompletedFromMergedRef", () => {
   it("FINDS the row on the ref and projects its counts (commit:'' and all)", async () => {
     const r = await findWorkCompletedFromMergedRef("/p", RUN, {
-      git: gitShowing(`${workRow("iterate-other")}\n${workRow(RUN)}`),
+      ...refShowing(`${workRow("iterate-other")}\n${workRow(RUN)}`),
     });
     expect(r.status).toBe("found");
     if (r.status !== "found") throw new Error("unreachable");
@@ -69,7 +78,7 @@ describe("findWorkCompletedFromMergedRef", () => {
 
   it("is ABSENT (not unavailable) when the ref reads fine but lacks this run", async () => {
     const r = await findWorkCompletedFromMergedRef("/p", RUN, {
-      git: gitShowing(workRow("iterate-someone-else")),
+      ...refShowing(workRow("iterate-someone-else")),
     });
     expect(r.status).toBe("absent");
   });
@@ -82,11 +91,11 @@ describe("findWorkCompletedFromMergedRef", () => {
     expect(r.status).toBe("unavailable");
   });
 
-  it("TTL-caches the ref blob so N polls share ONE git show, then re-reads", async () => {
+  it("TTL-caches the ref blob so N polls share ONE ref read, then re-reads", async () => {
     const calls = { n: 0 };
-    const git = gitShowing(workRow(RUN), calls);
+    const ref = refShowing(workRow(RUN), calls);
     let clock = 0;
-    const deps = { git, now: () => clock, ttlMs: 1000 };
+    const deps = { ...ref, now: () => clock, ttlMs: 1000 };
 
     await findWorkCompletedFromMergedRef("/p", RUN, deps); // load
     clock = 500;
@@ -117,7 +126,7 @@ describe("resolveWorkCompleted (working tree first, ref for finished runs)", () 
   it("consults the ref for a FINISHED run and substitutes the merged row", async () => {
     root = mkdtempSync(join(tmpdir(), "mev-done-"));
     const { events, mergedRefMiss } = await resolveWorkCompleted(root, RUN, false, {
-      git: gitShowing(workRow(RUN)),
+      ...refShowing(workRow(RUN)),
     });
     expect(events.status).toBe("found");
     expect(mergedRefMiss).toBe(false);
@@ -126,7 +135,7 @@ describe("resolveWorkCompleted (working tree first, ref for finished runs)", () 
   it("reports a miss (uncacheable) when a finished run is not on the ref yet", async () => {
     root = mkdtempSync(join(tmpdir(), "mev-miss-"));
     const { events, mergedRefMiss } = await resolveWorkCompleted(root, RUN, false, {
-      git: gitShowing(workRow("iterate-unrelated")),
+      ...refShowing(workRow("iterate-unrelated")),
     });
     expect(events.status).toBe("absent");
     expect(mergedRefMiss).toBe(true);

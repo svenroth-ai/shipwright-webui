@@ -19,10 +19,8 @@
 
 import { EXTERNAL_API, httpJson } from "./externalApi";
 import type {
-  CampaignProgressArtifact,
-  CampaignRunbookArtifact,
-  PhaseArtifact,
-  SubIterateArtifact,
+  CampaignProgressArtifact, CampaignRunbookArtifact, DocUpdateView,
+  PhaseArtifact, SubIterateArtifact,
 } from "./missionSlice3Types";
 
 export type * from "./missionSlice3Types";
@@ -243,6 +241,8 @@ export interface DecisionsArtifact extends ArtifactBase {
     truncated: boolean;
     /** Drop files that matched this run but could not be read. */
     malformedCount: number;
+    docUpdates: DocUpdateView[]; // S5b — folded + pending (mirror note in missionSlice3Types.ts)
+    docUpdateConflicts: number;
   } | null;
 }
 

@@ -77,7 +77,7 @@ const SHARED_INTERFACES = [
   "TestsArtifact",
   "ReviewFinding",
   "ReviewRow",
-  "ReviewArtifact",
+  "ReviewArtifact", "DocUpdateView",
   "DecisionEntryView",
   "DecisionsArtifact",
   "PhaseDetail",

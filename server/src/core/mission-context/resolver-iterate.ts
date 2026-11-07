@@ -92,7 +92,7 @@ export async function resolveIterateContext(
     [
       ...baseRevPaths,
       iterateDocPath(projectRoot, runId),
-      ...slice2RevPaths(projectRoot, runId),
+      ...slice2RevPaths(projectRoot, runId, chosen.root),
       ...(doc.ok ? [doc.absolute] : []),
     ],
     [runId, chosen.root, req.taskId],
@@ -174,6 +174,7 @@ export async function resolveIterateContext(
     events,
     commit: run?.commit?.trim() || null,
     git: deps.git,
+    docsRoot: chosen.root,
   });
   // `runLive` retains its visual worktree meaning. Requirement planning has a
   // separate authority: the server-owned task state, which can mark a run
