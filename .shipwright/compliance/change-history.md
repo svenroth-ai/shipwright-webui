@@ -1,17 +1,17 @@
 # Commit Change Log
 
-Generated: 2026-11-05T08:17:45.132052+00:00
-Source-State: run=iterate-2026-11-05-task-slug-placeholders base=6bb0cf3889a8 release=v0.30.0
-Consistency-audit: last run 2026-09-29 (37 days earlier) — PASS
-Total commits: 999
+Generated: 2026-11-07T12:49:55.622643+00:00
+Source-State: run=iterate-2026-11-07-events-drop-files-reader base=2db6980308de release=v0.31.0
+Consistency-audit: last run 2026-09-29 (39 days earlier) — PASS
+Total commits: 1001
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 395
-    "feat" : 262
-    "chore" : 166
+    "feat" : 263
+    "chore" : 167
     "docs" : 79
     "refactor" : 37
     "test" : 34
@@ -423,10 +423,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 262 commits
+### Features (feat) — 263 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-07 | events | read the plugin's drop-files layout and bullet drops (events-drop-files S1 + S5b) (#581) | 2db6980308de |
 | 2026-11-05 | actions | add {task.slug} and {task.short_id} command-template placeholders (#578) | 32ba62825a8f |
 | 2026-11-04 | standalone | plain Claude only without an actions.json (#575) | 5b875a16eec2 |
 | 2026-11-04 | standalone | hide Intent Wizard, Grade it and Stack Profiles; New task opens its dialog (#574) | c83fa6e67994 |
@@ -690,10 +691,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 166 commits
+### Chores (chore) — 167 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-05 | release | v0.30.0 (#580) | 498a67484cfe |
 | 2026-11-05 | deps | sync lockfile versions to 0.29.1 (#577) | d9879c05e53c |
 | 2026-11-04 | release | v0.29.1 (#576) | eb3212116adc |
 | 2026-11-04 | compliance | reconcile B7, G2, H1 and I5 audit findings (#570) | 7f30c2a1d01d |
@@ -1076,7 +1078,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 999 |
+| Total commits | 1001 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 999 |
+| Human-authored commits | 1001 |
 

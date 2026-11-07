@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-11-07
+
+### Added
+
+- Reads the plugin's new event-log layout: each run's own event file under shipwright_events.d/ and the files a release folds into shipwright_events.archive/, together with the old shipwright_events.jsonl. Runs, campaign progress and the Mission view show the same result for both layouts, and a damaged run file shows as 'could not be read', never as 'no record'.
+- Reads the plugin's new documentation-update files (.shipwright/agent_docs/decision-drops/bullets/): the Mission Decisions view shows a run's Architecture and Conventions updates, both those already in the document and those waiting for the next release, and the Documents column gains a 'Pending doc updates' group. Such a file is never shown as an ADR.
+
+### Changed
+
+- Compatibility: WebUI v0.31.0 is the MINIMUM version required before the Shipwright plugin's drop-files release (per-run event files and bullet files) reaches users. This release reads the plugin's new per-run event files and documentation-update (bullet) files; WebUI v0.30.0 and older do not see runs or documentation updates written in the new layout.
+
 ## [0.30.0] - 2026-11-05
 
 ### Added
