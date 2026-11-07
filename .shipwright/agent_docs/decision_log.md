@@ -5946,3 +5946,17 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Unquoted like task.uuid keeps templates simple; strict sanitising by construction avoids shell injection via the title.
 - **Consequences:** Unquoted substitution makes the slugifier a security boundary: every char outside [a-z0-9] becomes '-', guarded by tests incl. shell metachars and exotic code points.
 - **Rejected:** Quoting the slug via q() (would change worktree-name shape per shell); stripping diacritics beyond de umlauts (spec says everything else -> '-').
+
+---
+
+### ADR-418: One assembled event-log reader for both plugin layouts
+- **Date:** 2026-11-07
+- **Section:** Iterate — feature: event log drop files and bullet drops in the WebUI readers
+- **Run-ID:** iterate-2026-11-07-events-drop-files-reader
+- **Context:** The plugin moves from one shared shipwright_events.jsonl to one file per run (shipwright_events.d/, folded into shipwright_events.archive/) and moves doc bullets into decision-drops/bullets/. A WebUI reading only the old file would show finished runs as missing; the plugin flip waits for a WebUI that reads both.
+- **Decision:** Every event-log reader goes through one pure assembler (TS twin of events_read.py) fed by a working-tree or an origin/main loader; bullet drops are read by doc-bullets.ts for the Decisions artifact and a Documents-panel group. No .md file is ever an ADR.
+- **Commit:** (assigned post-merge)
+- **Rationale:** One assembler is the smallest correct option: one place to keep in step with Python, and the existing reader tests stay the no-folder regression check.
+- **Consequences:** Both layouts render; a project without the folders renders exactly as before. A damaged own drop reads as could-not-be-read, never as no record. Campaign status ignores drop amendments (Python parity, monorepo follow-up).
+- **Rejected:** Per-projection layout logic (six drifting copies); drops-only reading without archive or per-file status (breaks at the first fold); doing nothing (blocks the flip).
+- **Details:** [iterate-2026-11-07-events-drop-files-reader-assembled-event-log.md](../planning/adr/iterate-2026-11-07-events-drop-files-reader-assembled-event-log.md)

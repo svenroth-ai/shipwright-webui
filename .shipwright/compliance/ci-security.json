@@ -2,7 +2,7 @@
   "by_severity": {
     "critical": 0,
     "high": 0,
-    "low": 2,
+    "low": 36,
     "medium": 2
   },
   "critical_gate": "pass",
@@ -12,5 +12,5 @@
   "scan_date": "2026-11-02T14:43:57Z",
   "schema": 1,
   "source": "security.yml#41464728218",
-  "total": 4
+  "total": 38
 }

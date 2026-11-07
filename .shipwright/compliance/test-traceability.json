@@ -1,9 +1,9 @@
 {
   "schema_version": 4,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-11-05T08:17:45.132052+00:00",
-  "source_commit": "6bb0cf3889a82a4448acc0bdebe8517c8a315b70",
-  "spec_hash": "sha256:a4dde1e822c0048f1160f6a61d7c626435c98da57b3f138cac21889c32abad23",
+  "generated_at": "2026-11-07T12:49:55.622643+00:00",
+  "source_commit": "2db6980308dec9a667099f28b6598c36d17cc64b",
+  "spec_hash": "sha256:262f65a1781edbe0c810bf1901cccd84241bc78917b026218f265e9d8d3c7c87",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
@@ -3540,7 +3540,7 @@
     "01::FR-01.66": {
       "id": "FR-01.66",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. On small screens those same panels become three equal one-at-a-time destinations, and selecting an artifact opens its detail automatically. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. The middle card then stopped being a rolling six-line tool log and became a told story: sentences that carry OUTCOMES (\"the tests were run, and six of them failed - work continued until the whole suite came back green\") with artifact links inside the prose, no elapsed times, and nothing claimed beyond what the transcript evidences. The review list then stopped being a closed set of five: a pass the Command Center does not recognise, or a record written to a newer version of the format, is read and shown rather than reported as damage. Mobile Mission then gained direct Overview / Activity / Detail navigation. A single-turn card then gained `explanation`, a bounded excerpt of that turn's own prose beyond its headline, restoring content the feed had been silently discarding — though in real sessions the discarding was only partly fixed: a card's headline AND `explanation` then gained the ability to source from the immediately PRECEDING pure-narration turn, since real autonomous sessions almost never combine narration and a tool call in one JSONL event. The activity feed then dropped its redundant completed-run header, collapsed tool-call commands behind an \"N commands\" toggle by default, routed card text/explanation through the safe markdown renderer instead of raw source, gave a blocker card a plain-language headline with raw output behind a collapsed detail disclosure, and stopped stamping a freshly-written test's own first (TDD authoring) run with the run-wide Passing/Failing gate. A delegated subagent (`Agent`/`Task` dispatch) now gets its own subrunner card with a running/done/failed status and a right-side report panel; delivered-card dedup is now sentence-level instead of whole-text; the \"Needs attention\" pill, kind-name labels, and per-card timestamps are removed, replaced by a one-time session-start divider; the \"You\" card and the commands-expand toggle each gained a distinct, muted color treatment. The session-start divider then anchored to the transcript's true first parseable event instead of depending on which cards happened to survive; a session whose Run-ID footer landed outside the old 1&nbsp;MB recovery window (including one where the read itself began mid-file) now still resolves and shows its artifacts; the harness's own transient \"auto mode classifier gave no verdict\" rejection stopped rendering as a permanent failed/blocker card, including for a delegated subrunner dispatch, which now resolves instead of sticking on Running; and an ordinary closing message stopped being mis-styled with the dashed border reserved for a real compaction event. The feed then stopped showing error messages altogether: a failed command no longer produces a blocker card (headline, raw output, or an ended-before-resolved explanation), because errors are handled in the terminal; interactive questions, Failing test cards, failed subrunner cards and delivery/PR cards are unchanged, and the subrunner report link now carries a line-size status glyph. A right-hand info sidebar then joined the Mission tab, with Info (where the session runs, tokens used and model, files written), Folders and Viewer sections that remember their width; it refreshes on entry, window focus, task-state change or a Refresh button, never on a timer. A bottom bar then appeared when agents are running (\"3 agents running\"), opening an Agents window: active and finished agents as a who-started-whom tree, each with the prompt it was given, the answer it returned and a read-only transcript; a subrunner card in the chat opens the same detail, and killed or stopped agents are shown as such. The chat then took the Claude desktop-app look: assistant text on the left without a bubble, the person's own messages on the right in a bubble, no avatar icons, and tool calls as small grey lines; an answered question shows one card per question with its options and the chosen answer highlighted (a typed-in \"Other\" answer is shown as the selected answer), while a rejected question is not shown and a still-open question keeps its answer-in-terminal button. Chat messages then showed in full (Show more remains only on raw tool output), with a larger type scale, wider spacing between turns and at speaker changes, framed tables readable on dark, and light-teal underlined links. The Folders file tree then became flat (no card inside the sidebar card) and slightly larger, and gained a row menu - right-click, or a \"...\" button or long press on touch - to open an entry in the Viewer or copy its full or project-relative path, with a short \"Path copied\" confirmation. A new read-only file route then lets the Viewer open a file for one session: any file inside the project folder, or a file outside it only when that same session wrote or named it (never credential locations such as .ssh or .env, never a folder listing, never a link that leads out of the project). The info sidebar then became three clearly separated cards (Environment, Context, Outputs) with the same tab look as the Mission / Files & Terminal switch; every Output row opens in the Viewer - files outside the project folder too, marked \"outside project\" - and file paths in the chat (in backticks or as links, absolute or relative) became clickable file chips that open the same Viewer, which names a file outside the project with an \"Outside project\" label, its full path and a Copy path button. A subagent's report that the CLI hands back as a message then shows as its own card (tagged Subagent report or Other session, with the agent's short id and the note that it is not your message) instead of as the person's own bubble; the separate Open tests / requirement / decisions / review / commit lines became one Run result card with a status pill and one button per target; and a delegated subagent became its own row showing its type, state and how long it took, with a Report or View button. The Files & Terminal tab then reused the same pieces: its left card is the same flat file tree with the same right-click / long-press menu, its right card is the same info sidebar with only the Info and Viewer tabs, placed in the shared header band where \"Preview\" used to stand (files you open stay as tabs above the viewer, and picking a file switches to the Viewer), and on a phone ONE bar offers Files, Terminal, Info and Viewer plus an Expand button instead of a second row of tabs. The subrunner panel never shows the CLI's \"delivered to you as a message\" pointer: it shows the agent's own last answer, and agent hashes in answers and prompts are chips that open that agent in the Agents window (with Open in Agents window and Jump to message in chat actions). The Agents window marks only running agents with a dot, has a grey list column with a clear divider and larger rows and text, and its Transcript tab now uses the Mission chat's own look on a light ground - the session's prompt is a labelled card rather than your bubble, and a message the coordinator sent into a running agent shows as a Coordinator message card. On a phone the Agents window is a full-screen sheet - the list first, then the tapped agent with a Back button, rows 56px - every Mission control is at least 44px on touch, the keyboard focus ring is a visible 3px teal ring, nothing is smaller than 12px, only the running dot moves (and it stands still under reduced motion), and status is always written out as a word; automated checks now guard the Mission colours' contrast, text size, motion, focus ring and tap targets. A visual polish then gave the tree, Environment and Outputs rows one shared row size (tighter rows, 44px only on touch), lifted the three info cards off the glass with a soft shadow, set the chat one to two type steps smaller, made the Info tabs and the column gaps and start positions identical in the Mission and Files & Terminal tabs, and moved the \"N agents running\" pill from the chat footer into an Agents row under Remote Control in the Environment card, so the Agents window opens from both tabs. A follow-up then gave the Info sidebar in the Mission tab the same open-file tabs as Files & Terminal (every way of opening a file there - a chat file chip, an Output row, the Folders tree - lands in the sidebar's own Viewer, never a second pane), capped a viewer tab at a fixed maximum width with an ellipsis and the full path in its tooltip, stopped a finished subagent that wrote once after its completion notice from showing as running forever (a quiet resumed agent now ends as finished), showed a context compaction as one quiet \"Context compacted\" row whose summary stays collapsed behind Show summary / Hide summary instead of a giant message bubble, and capped a long subagent report in the chat at about 12 lines with a fade and a Show more / Show less button. A further follow-up made every Mission document link - the left-hand Analysis, Spec, Tests and Review links, the buttons on a Run-result card and the links inside the narrative - open as a tab of the Info sidebar's own Viewer, so there is exactly one viewer (no second panel in the middle; on a phone the Overview / Activity / Info tabs replace the old Detail tab). A path in the chat is clickable only when the file can really be opened (otherwise it is plain text, and terminal file links that cannot be opened are not offered either), and an Outputs row for a file that no longer exists shows a quiet \"missing\" tag instead of a dead click.",
+      "title": "The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. On small screens those same panels become three equal one-at-a-time destinations, and selecting an artifact opens its detail automatically. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. The middle card then stopped being a rolling six-line tool log and became a told story: sentences that carry OUTCOMES (\"the tests were run, and six of them failed - work continued until the whole suite came back green\") with artifact links inside the prose, no elapsed times, and nothing claimed beyond what the transcript evidences. The review list then stopped being a closed set of five: a pass the Command Center does not recognise, or a record written to a newer version of the format, is read and shown rather than reported as damage. Mobile Mission then gained direct Overview / Activity / Detail navigation. A single-turn card then gained `explanation`, a bounded excerpt of that turn's own prose beyond its headline, restoring content the feed had been silently discarding — though in real sessions the discarding was only partly fixed: a card's headline AND `explanation` then gained the ability to source from the immediately PRECEDING pure-narration turn, since real autonomous sessions almost never combine narration and a tool call in one JSONL event. The activity feed then dropped its redundant completed-run header, collapsed tool-call commands behind an \"N commands\" toggle by default, routed card text/explanation through the safe markdown renderer instead of raw source, gave a blocker card a plain-language headline with raw output behind a collapsed detail disclosure, and stopped stamping a freshly-written test's own first (TDD authoring) run with the run-wide Passing/Failing gate. A delegated subagent (`Agent`/`Task` dispatch) now gets its own subrunner card with a running/done/failed status and a right-side report panel; delivered-card dedup is now sentence-level instead of whole-text; the \"Needs attention\" pill, kind-name labels, and per-card timestamps are removed, replaced by a one-time session-start divider; the \"You\" card and the commands-expand toggle each gained a distinct, muted color treatment. The session-start divider then anchored to the transcript's true first parseable event instead of depending on which cards happened to survive; a session whose Run-ID footer landed outside the old 1&nbsp;MB recovery window (including one where the read itself began mid-file) now still resolves and shows its artifacts; the harness's own transient \"auto mode classifier gave no verdict\" rejection stopped rendering as a permanent failed/blocker card, including for a delegated subrunner dispatch, which now resolves instead of sticking on Running; and an ordinary closing message stopped being mis-styled with the dashed border reserved for a real compaction event. The feed then stopped showing error messages altogether: a failed command no longer produces a blocker card (headline, raw output, or an ended-before-resolved explanation), because errors are handled in the terminal; interactive questions, Failing test cards, failed subrunner cards and delivery/PR cards are unchanged, and the subrunner report link now carries a line-size status glyph. A right-hand info sidebar then joined the Mission tab, with Info (where the session runs, tokens used and model, files written), Folders and Viewer sections that remember their width; it refreshes on entry, window focus, task-state change or a Refresh button, never on a timer. A bottom bar then appeared when agents are running (\"3 agents running\"), opening an Agents window: active and finished agents as a who-started-whom tree, each with the prompt it was given, the answer it returned and a read-only transcript; a subrunner card in the chat opens the same detail, and killed or stopped agents are shown as such. The chat then took the Claude desktop-app look: assistant text on the left without a bubble, the person's own messages on the right in a bubble, no avatar icons, and tool calls as small grey lines; an answered question shows one card per question with its options and the chosen answer highlighted (a typed-in \"Other\" answer is shown as the selected answer), while a rejected question is not shown and a still-open question keeps its answer-in-terminal button. Chat messages then showed in full (Show more remains only on raw tool output), with a larger type scale, wider spacing between turns and at speaker changes, framed tables readable on dark, and light-teal underlined links. The Folders file tree then became flat (no card inside the sidebar card) and slightly larger, and gained a row menu - right-click, or a \"...\" button or long press on touch - to open an entry in the Viewer or copy its full or project-relative path, with a short \"Path copied\" confirmation. A new read-only file route then lets the Viewer open a file for one session: any file inside the project folder, or a file outside it only when that same session wrote or named it (never credential locations such as .ssh or .env, never a folder listing, never a link that leads out of the project). The info sidebar then became three clearly separated cards (Environment, Context, Outputs) with the same tab look as the Mission / Files & Terminal switch; every Output row opens in the Viewer - files outside the project folder too, marked \"outside project\" - and file paths in the chat (in backticks or as links, absolute or relative) became clickable file chips that open the same Viewer, which names a file outside the project with an \"Outside project\" label, its full path and a Copy path button. A subagent's report that the CLI hands back as a message then shows as its own card (tagged Subagent report or Other session, with the agent's short id and the note that it is not your message) instead of as the person's own bubble; the separate Open tests / requirement / decisions / review / commit lines became one Run result card with a status pill and one button per target; and a delegated subagent became its own row showing its type, state and how long it took, with a Report or View button. The Files & Terminal tab then reused the same pieces: its left card is the same flat file tree with the same right-click / long-press menu, its right card is the same info sidebar with only the Info and Viewer tabs, placed in the shared header band where \"Preview\" used to stand (files you open stay as tabs above the viewer, and picking a file switches to the Viewer), and on a phone ONE bar offers Files, Terminal, Info and Viewer plus an Expand button instead of a second row of tabs. The subrunner panel never shows the CLI's \"delivered to you as a message\" pointer: it shows the agent's own last answer, and agent hashes in answers and prompts are chips that open that agent in the Agents window (with Open in Agents window and Jump to message in chat actions). The Agents window marks only running agents with a dot, has a grey list column with a clear divider and larger rows and text, and its Transcript tab now uses the Mission chat's own look on a light ground - the session's prompt is a labelled card rather than your bubble, and a message the coordinator sent into a running agent shows as a Coordinator message card. On a phone the Agents window is a full-screen sheet - the list first, then the tapped agent with a Back button, rows 56px - every Mission control is at least 44px on touch, the keyboard focus ring is a visible 3px teal ring, nothing is smaller than 12px, only the running dot moves (and it stands still under reduced motion), and status is always written out as a word; automated checks now guard the Mission colours' contrast, text size, motion, focus ring and tap targets. A visual polish then gave the tree, Environment and Outputs rows one shared row size (tighter rows, 44px only on touch), lifted the three info cards off the glass with a soft shadow, set the chat one to two type steps smaller, made the Info tabs and the column gaps and start positions identical in the Mission and Files & Terminal tabs, and moved the \"N agents running\" pill from the chat footer into an Agents row under Remote Control in the Environment card, so the Agents window opens from both tabs. A follow-up then gave the Info sidebar in the Mission tab the same open-file tabs as Files & Terminal (every way of opening a file there - a chat file chip, an Output row, the Folders tree - lands in the sidebar's own Viewer, never a second pane), capped a viewer tab at a fixed maximum width with an ellipsis and the full path in its tooltip, stopped a finished subagent that wrote once after its completion notice from showing as running forever (a quiet resumed agent now ends as finished), showed a context compaction as one quiet \"Context compacted\" row whose summary stays collapsed behind Show summary / Hide summary instead of a giant message bubble, and capped a long subagent report in the chat at about 12 lines with a fade and a Show more / Show less button. A further follow-up made every Mission document link - the left-hand Analysis, Spec, Tests and Review links, the buttons on a Run-result card and the links inside the narrative - open as a tab of the Info sidebar's own Viewer, so there is exactly one viewer (no second panel in the middle; on a phone the Overview / Activity / Info tabs replace the old Detail tab). A path in the chat is clickable only when the file can really be opened (otherwise it is plain text, and terminal file links that cannot be opened are not offered either), and an Outputs row for a file that no longer exists shows a quiet \"missing\" tag instead of a dead click. The Decisions artifact then also shows the run's documentation updates - its lines in Architecture / Conventions, whether already in the document or still waiting as their own small file for the next release - and never shows such a line, or any other Markdown file, as an ADR.",
       "priority": "Should",
       "status": "active",
       "required_layers": [
@@ -3681,6 +3681,46 @@
           {
             "id": "server/src/core/campaign-provenance.test.ts::an events-reconstructed campaign says its records are not in this copy",
             "path": "server/src/core/campaign-provenance.test.ts::an events-reconstructed campaign says its records are not in this copy",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::a damaged drop of the RUN's key → unavailable; another run's → absent",
+            "path": "server/src/core/event-log-files.test.ts::a damaged drop of the RUN's key → unavailable; another run's → absent",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::a damaged ARCHIVE file blocks every run's absence (a folded run lives only there)",
+            "path": "server/src/core/event-log-files.test.ts::a damaged ARCHIVE file blocks every run's absence (a folded run lives only there)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::an EMPTY own drop blocks absence too (kill criterion 8)",
+            "path": "server/src/core/event-log-files.test.ts::an EMPTY own drop blocks absence too (kill criterion 8)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::the cached index, fingerprint and sourceRev paths move when a drop is ADDED or APPENDED",
+            "path": "server/src/core/event-log-files.test.ts::the cached index, fingerprint and sourceRev paths move when a drop is ADDED or APPENDED",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::no event file at all → absent with mtime 0 (unchanged)",
+            "path": "server/src/core/event-log-files.test.ts::no event file at all → absent with mtime 0 (unchanged)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -4615,6 +4655,86 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "server/src/core/mission-context/doc-updates.test.ts::reads folded entries and pending bullets of this run only",
+            "path": "server/src/core/mission-context/doc-updates.test.ts::reads folded entries and pending bullets of this run only",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/doc-updates.test.ts::folded wins over a pending bullet with the same anchor; a differing text is a conflict",
+            "path": "server/src/core/mission-context/doc-updates.test.ts::folded wins over a pending bullet with the same anchor; a differing text is a conflict",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/doc-updates.test.ts::leaves learnings out and counts this run's malformed bullet files",
+            "path": "server/src/core/mission-context/doc-updates.test.ts::leaves learnings out and counts this run's malformed bullet files",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/doc-updates.test.ts::a doc that exists but cannot be read is unreadable, not empty",
+            "path": "server/src/core/mission-context/doc-updates.test.ts::a doc that exists but cannot be read is unreadable, not empty",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/doc-updates.test.ts::the legacy layout (no bullets folder, no docs) reads as none, cleanly",
+            "path": "server/src/core/mission-context/doc-updates.test.ts::the legacy layout (no bullets folder, no docs) reads as none, cleanly",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/doc-updates.test.ts::a run whose only record is a pending doc update is available, with a plain summary",
+            "path": "server/src/core/mission-context/doc-updates.test.ts::a run whose only record is a pending doc update is available, with a plain summary",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/doc-updates.test.ts::an unreadable doc with no ADR is unavailable, never 'no decisions'",
+            "path": "server/src/core/mission-context/doc-updates.test.ts::an unreadable doc with no ADR is unavailable, never 'no decisions'",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/doc-updates.test.ts::no .md file — a root-level one or a bullet — is ever shown as an ADR",
+            "path": "server/src/core/mission-context/doc-updates.test.ts::no .md file — a root-level one or a bullet — is ever shown as an ADR",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/doc-updates.test.ts::a run WITH an ADR still discloses doc updates it could not read",
+            "path": "server/src/core/mission-context/doc-updates.test.ts::a run WITH an ADR still discloses doc updates it could not read",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/doc-updates.test.ts::conflicts alone still surface (never hidden as no decisions)",
+            "path": "server/src/core/mission-context/doc-updates.test.ts::conflicts alone still surface (never hidden as no decisions)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "server/src/core/mission-context/iterate-record.test.ts::serves the run from the cached index and does NOT re-scan an unchanged log",
             "path": "server/src/core/mission-context/iterate-record.test.ts::serves the run from the cached index and does NOT re-scan an unchanged log",
             "layer": "unit",
@@ -4831,8 +4951,8 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "server/src/core/mission-context/merged-events.test.ts::TTL-caches the ref blob so N polls share ONE git show, then re-reads",
-            "path": "server/src/core/mission-context/merged-events.test.ts::TTL-caches the ref blob so N polls share ONE git show, then re-reads",
+            "id": "server/src/core/mission-context/merged-events.test.ts::TTL-caches the ref blob so N polls share ONE ref read, then re-reads",
+            "path": "server/src/core/mission-context/merged-events.test.ts::TTL-caches the ref blob so N polls share ONE ref read, then re-reads",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -5217,6 +5337,38 @@
           {
             "id": "server/src/core/mission-context/recovery-schedule.test.ts::reports WHICH source identified the run, per ordered rule",
             "path": "server/src/core/mission-context/recovery-schedule.test.ts::reports WHICH source identified the run, per ordered rule",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/ref-event-log.test.ts::frames blobs by BYTE size (multi-byte content is not torn)",
+            "path": "server/src/core/mission-context/ref-event-log.test.ts::frames blobs by BYTE size (multi-byte content is not torn)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/ref-event-log.test.ts::rejects a missing object and a truncated stream",
+            "path": "server/src/core/mission-context/ref-event-log.test.ts::rejects a missing object and a truncated stream",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/ref-event-log.test.ts::reads only the eligible blobs, in the assembler's order, with one batch call",
+            "path": "server/src/core/mission-context/ref-event-log.test.ts::reads only the eligible blobs, in the assembler's order, with one batch call",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/ref-event-log.test.ts::is null (unavailable) when the ref is unreadable or holds no event file",
+            "path": "server/src/core/mission-context/ref-event-log.test.ts::is null (unavailable) when the ref is unreadable or holds no event file",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -9401,6 +9553,30 @@
           {
             "id": "client/src/components/external/mission/MissionDecisionsDetail.test.tsx::stays silent about malformed records when there are none",
             "path": "client/src/components/external/mission/MissionDecisionsDetail.test.tsx::stays silent about malformed records when there are none",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/mission/MissionDecisionsDetail.test.tsx::shows a run whose only record is documentation updates, folded and pending, never as an ADR",
+            "path": "client/src/components/external/mission/MissionDecisionsDetail.test.tsx::shows a run whose only record is documentation updates, folded and pending, never as an ADR",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/mission/MissionDecisionsDetail.test.tsx::lists documentation updates after the ADRs and discloses conflicts",
+            "path": "client/src/components/external/mission/MissionDecisionsDetail.test.tsx::lists documentation updates after the ADRs and discloses conflicts",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/mission/MissionDecisionsDetail.test.tsx::renders no documentation-updates section when there are none",
+            "path": "client/src/components/external/mission/MissionDecisionsDetail.test.tsx::renders no documentation-updates section when there are none",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -13779,6 +13955,14 @@
           {
             "id": "client/e2e/flows/A13-mission-shell.spec.ts::the top row is complete: both crumb segments + the glass Ship's Log button route real",
             "path": "client/e2e/flows/A13-mission-shell.spec.ts::the top row is complete: both crumb segments + the glass Ship's Log button route real",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/E1-events-drop-files.spec.ts::a run that exists only as a drop file is finalized in Mission, and its pending doc update shows under Decisions",
+            "path": "client/e2e/flows/E1-events-drop-files.spec.ts::a run that exists only as a drop file is finalized in Mission, and its pending doc update shows under Decisions",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -18212,7 +18396,7 @@
     "01::FR-01.59": {
       "id": "FR-01.59",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "The Projects page rebuilt from a plain table into a gallery of project cards - colour dot, name, grade pill, path, summary body, and a footer (settings, delete, task count, Open board). The body is always honest: a graded project shows a runs sparkline with run/requirement/score counts and a quote from its latest run; an ungraded one says 'no runs yet - grade or adopt it'; a non-Shipwright project shows its session count. Graded projects sort first, and every link goes to a page that exists.<br>**Updates:** Gained an honest 'N sessions' state for non-Shipwright projects; the richer project-home concept (drawer, logbook entries, scoped prompt box) was folded in.",
+      "title": "The Projects page rebuilt from a plain table into a gallery of project cards - colour dot, name, grade pill, path, summary body, and a footer (settings, delete, task count, Open board). The body is always honest: a graded project shows a runs sparkline with run/requirement/score counts and a quote from its latest run; an ungraded one says 'no runs yet - grade or adopt it'; a non-Shipwright project shows its session count. Graded projects sort first, and every link goes to a page that exists.<br>**Updates:** Gained an honest 'N sessions' state for non-Shipwright projects; the richer project-home concept (drawer, logbook entries, scoped prompt box) was folded in. The project's Documents column then gained a \"Pending doc updates\" group: the one-line Architecture / Conventions updates that merged runs wrote as their own files, waiting for the next release; it appears only when there are some, and says so when they cannot be read.",
       "priority": "Should",
       "status": "active",
       "required_layers": [],
@@ -18316,6 +18500,30 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "server/src/core/shipslog-docs-reader.test.ts::absent project entirely → all four groups empty, no throw",
+            "path": "server/src/core/shipslog-docs-reader.test.ts::absent project entirely → all four groups empty, no throw",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/shipslog-docs-reader.test.ts::unreadable project root → empty bundle, never throws",
+            "path": "server/src/core/shipslog-docs-reader.test.ts::unreadable project root → empty bundle, never throws",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/shipslog-docs-reader.test.ts::pending doc updates: valid bullet files listed in fold order, others counted (S5b)",
+            "path": "server/src/core/shipslog-docs-reader.test.ts::pending doc updates: valid bullet files listed in fold order, others counted (S5b)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/components/shipslog/CaptainsDrawer.test.tsx::renders sub-scores WHEN the reader parsed the dimension table",
             "path": "client/src/components/shipslog/CaptainsDrawer.test.tsx::renders sub-scores WHEN the reader parsed the dimension table",
             "layer": "unit",
@@ -18382,6 +18590,30 @@
           {
             "id": "client/src/components/shipslog/ScopedIteratePromptbox.test.tsx::disables Go when the project has no iterate action (never hardcodes one)",
             "path": "client/src/components/shipslog/ScopedIteratePromptbox.test.tsx::disables Go when the project has no iterate action (never hardcodes one)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/shipslog/ShipsLogDocumentsPanel.test.tsx::hides the pending doc updates group when there are none (legacy layout unchanged)",
+            "path": "client/src/components/shipslog/ShipsLogDocumentsPanel.test.tsx::hides the pending doc updates group when there are none (legacy layout unchanged)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/shipslog/ShipsLogDocumentsPanel.test.tsx::lists pending doc updates, opens one, and counts invalid files",
+            "path": "client/src/components/shipslog/ShipsLogDocumentsPanel.test.tsx::lists pending doc updates, opens one, and counts invalid files",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/shipslog/ShipsLogDocumentsPanel.test.tsx::says so when the pending updates could not be read, never as none",
+            "path": "client/src/components/shipslog/ShipsLogDocumentsPanel.test.tsx::says so when the pending updates could not be read, never as none",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -18512,6 +18744,14 @@
           {
             "id": "client/e2e/flows/A16-ships-log.spec.ts::tablet (≤900px, stacked grid rows): scrolling one region never moves the other",
             "path": "client/e2e/flows/A16-ships-log.spec.ts::tablet (≤900px, stacked grid rows): scrolling one region never moves the other",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/E1-events-drop-files.spec.ts::the Documents column lists the pending doc update and opens the bullet file",
+            "path": "client/e2e/flows/E1-events-drop-files.spec.ts::the Documents column lists the pending doc update and opens the bullet file",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -22273,7 +22513,7 @@
     "01::FR-01.47": {
       "id": "FR-01.47",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "Turns the recorded project event log into a per-run summary (used by Mission Control, the Ship's-Log gallery, and the board) plus a grade-over-time trend. It is strictly honest: a run with no matching completion record shows nothing rather than guessing, durations are never estimated (they show 'n/a' when unknown), and derived pass/fail lamps are never presented as an authoritative verdict.",
+      "title": "Turns the recorded project event log into a per-run summary (used by Mission Control, the Ship's-Log gallery, and the board) plus a grade-over-time trend. It is strictly honest: a run with no matching completion record shows nothing rather than guessing, durations are never estimated (they show 'n/a' when unknown), and derived pass/fail lamps are never presented as an authoritative verdict.<br>**Updates:** The event log is now read in both layouts the plugin writes: the old single file plus the plugin's per-run event files and the files a release folds them into (never the set-aside damaged files), in one assembled order, with a status per file, the duplicate-id rule and commit amendments from those files; a run whose own file is damaged reads as \"could not be read\", never as \"no record\", and a project without the new folders reads exactly as before.",
       "priority": "Should",
       "status": "active",
       "required_layers": [
@@ -22282,6 +22522,310 @@
       "required_layers_source": "explicit",
       "tests": {
         "unit": [
+          {
+            "id": "server/src/core/doc-bullets.test.ts::accepts exactly one `- ` line, tolerating CRLF and surrounding newlines",
+            "path": "server/src/core/doc-bullets.test.ts::accepts exactly one `- ` line, tolerating CRLF and surrounding newlines",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/doc-bullets.test.ts::rejects a bad name, a non-bullet, an empty file and more than one line",
+            "path": "server/src/core/doc-bullets.test.ts::rejects a bad name, a non-bullet, an empty file and more than one line",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/doc-bullets.test.ts::counts lines like Python splitlines (U+2028, form feed and lone CR break a line)",
+            "path": "server/src/core/doc-bullets.test.ts::counts lines like Python splitlines (U+2028, form feed and lone CR break a line)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/doc-bullets.test.ts::entryDate takes the first VALID paren date",
+            "path": "server/src/core/doc-bullets.test.ts::entryDate takes the first VALID paren date",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/doc-bullets.test.ts::entryAnchor: the leading run/ADR anchor, else the first 60 body characters",
+            "path": "server/src/core/doc-bullets.test.ts::entryAnchor: the leading run/ADR anchor, else the first 60 body characters",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/doc-bullets.test.ts::iterEntries reads top-level blocks of one section only",
+            "path": "server/src/core/doc-bullets.test.ts::iterEntries reads top-level blocks of one section only",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/doc-bullets.test.ts::fold order is (date or earliest, key, file name)",
+            "path": "server/src/core/doc-bullets.test.ts::fold order is (date or earliest, key, file name)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/doc-bullets.test.ts::an absent folder is ok and empty (the legacy layout)",
+            "path": "server/src/core/doc-bullets.test.ts::an absent folder is ok and empty (the legacy layout)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/doc-bullets.test.ts::returns valid bullets in fold order and names every skipped file except .gitkeep",
+            "path": "server/src/core/doc-bullets.test.ts::returns valid bullets in fold order and names every skipped file except .gitkeep",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/doc-bullets.test.ts::a bullets path that is a file, not a folder, is unavailable (never 'none')",
+            "path": "server/src/core/doc-bullets.test.ts::a bullets path that is a file, not a folder, is unavailable (never 'none')",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::keeps legacy lines verbatim in FILE order, then extras by (instant, id)",
+            "path": "server/src/core/event-log-assemble.test.ts::keeps legacy lines verbatim in FILE order, then extras by (instant, id)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::orders by parsed INSTANT across offsets and keeps microseconds (no false ties)",
+            "path": "server/src/core/event-log-assemble.test.ts::orders by parsed INSTANT across offsets and keeps microseconds (no false ties)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::treats a NAIVE timestamp as UTC (not local time)",
+            "path": "server/src/core/event-log-assemble.test.ts::treats a NAIVE timestamp as UTC (not local time)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::keeps the caller's file order on a full tie (archive before drops, then name)",
+            "path": "server/src/core/event-log-assemble.test.ts::keeps the caller's file order on a full tie (archive before drops, then name)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::is the identity on a legacy-only log (no extra files)",
+            "path": "server/src/core/event-log-assemble.test.ts::is the identity on a legacy-only log (no extra files)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::reports ok / corrupt / empty / unreadable, and still returns records around a bad span",
+            "path": "server/src/core/event-log-assemble.test.ts::reports ok / corrupt / empty / unreadable, and still returns records around a bad span",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::absence blockers: a non-ok drop of the run's key or an odd name, or any non-ok archive file",
+            "path": "server/src/core/event-log-assemble.test.ts::absence blockers: a non-ok drop of the run's key or an odd name, or any non-ok archive file",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::keys: drop name grammar and the writer's sanitizer",
+            "path": "server/src/core/event-log-assemble.test.ts::keys: drop name grammar and the writer's sanitizer",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::collapses same id + same content (a differing `run` stamp is not content)",
+            "path": "server/src/core/event-log-assemble.test.ts::collapses same id + same content (a differing `run` stamp is not content)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::keeps BOTH on same id + different content and flags the id once",
+            "path": "server/src/core/event-log-assemble.test.ts::keeps BOTH on same id + different content and flags the id once",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::never deduplicates the legacy file",
+            "path": "server/src/core/event-log-assemble.test.ts::never deduplicates the legacy file",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::overlays a DROP amendment onto its target (legacy or drop), last in order wins",
+            "path": "server/src/core/event-log-assemble.test.ts::overlays a DROP amendment onto its target (legacy or drop), last in order wins",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::does NOT overlay an amendment that lives in the legacy file (unchanged behaviour)",
+            "path": "server/src/core/event-log-assemble.test.ts::does NOT overlay an amendment that lives in the legacy file (unchanged behaviour)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-assemble.test.ts::ignores a non-object `fields` and an amendment without a string target",
+            "path": "server/src/core/event-log-assemble.test.ts::ignores a non-object `fields` and an amendment without a string target",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.race.test.ts::re-lists after a drop vanished and finds its event in the new archive file",
+            "path": "server/src/core/event-log-files.race.test.ts::re-lists after a drop vanished and finds its event in the new archive file",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.race.test.ts::is an unreadable row, never 'no files' — every run's absence verdict is blocked",
+            "path": "server/src/core/event-log-files.race.test.ts::is an unreadable row, never 'no files' — every run's absence verdict is blocked",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::events route, runs route, campaigns, Mission lookup",
+            "path": "server/src/core/event-log-files.test.ts::events route, runs route, campaigns, Mission lookup",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::works with NO legacy file at all (drops only)",
+            "path": "server/src/core/event-log-files.test.ts::works with NO legacy file at all (drops only)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::never reads quarantine, the writer's .tmp files, non-jsonl names or sub-folders",
+            "path": "server/src/core/event-log-files.test.ts::never reads quarantine, the writer's .tmp files, non-jsonl names or sub-folders",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::reads a dot-named *.jsonl drop, as Python's glob does",
+            "path": "server/src/core/event-log-files.test.ts::reads a dot-named *.jsonl drop, as Python's glob does",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::campaign status ignores a drop-file amendment (campaign_status.py reads the raw log)",
+            "path": "server/src/core/event-log-files.test.ts::campaign status ignores a drop-file amendment (campaign_status.py reads the raw log)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::exposes per-file status ONLY when an archive/drop file was read",
+            "path": "server/src/core/event-log-files.test.ts::exposes per-file status ONLY when an archive/drop file was read",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::a drop amendment fills the run's commit; a legacy amendment still does not",
+            "path": "server/src/core/event-log-files.test.ts::a drop amendment fills the run's commit; a legacy amendment still does not",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::a damaged drop of the RUN's key → unavailable; another run's → absent",
+            "path": "server/src/core/event-log-files.test.ts::a damaged drop of the RUN's key → unavailable; another run's → absent",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::a damaged ARCHIVE file blocks every run's absence (a folded run lives only there)",
+            "path": "server/src/core/event-log-files.test.ts::a damaged ARCHIVE file blocks every run's absence (a folded run lives only there)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::an EMPTY own drop blocks absence too (kill criterion 8)",
+            "path": "server/src/core/event-log-files.test.ts::an EMPTY own drop blocks absence too (kill criterion 8)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::the cached index, fingerprint and sourceRev paths move when a drop is ADDED or APPENDED",
+            "path": "server/src/core/event-log-files.test.ts::the cached index, fingerprint and sourceRev paths move when a drop is ADDED or APPENDED",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::no event file at all → absent with mtime 0 (unchanged)",
+            "path": "server/src/core/event-log-files.test.ts::no event file at all → absent with mtime 0 (unchanged)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
           {
             "id": "server/src/core/event-log-reader.test.ts::projects the full work_completed record",
             "path": "server/src/core/event-log-reader.test.ts::projects the full work_completed record",
@@ -22453,6 +22997,46 @@
           {
             "id": "server/src/core/event-log-reader.test.ts::threads the runId filter through the file wrapper",
             "path": "server/src/core/event-log-reader.test.ts::threads the runId filter through the file wrapper",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-replay.test.ts::the TS splitter reproduces the committed (Python-made) S0 split tree",
+            "path": "server/src/core/event-log-replay.test.ts::the TS splitter reproduces the committed (Python-made) S0 split tree",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-replay.test.ts::S0 fixture pair: events, run data and campaign status are identical",
+            "path": "server/src/core/event-log-replay.test.ts::S0 fixture pair: events, run data and campaign status are identical",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-replay.test.ts::campaign-rich log: campaign status (synthesized AND overlaid) is identical",
+            "path": "server/src/core/event-log-replay.test.ts::campaign-rich log: campaign status (synthesized AND overlaid) is identical",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-replay.test.ts::Mission lookup answers the same on both trees",
+            "path": "server/src/core/event-log-replay.test.ts::Mission lookup answers the same on both trees",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/ref-event-log.test.ts::finds a run that exists only as a drop (and an archived one) on the ref",
+            "path": "server/src/core/mission-context/ref-event-log.test.ts::finds a run that exists only as a drop (and an archived one) on the ref",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -32134,11 +32718,9 @@
     "server/src/core/shell-quote.test.ts::no newline in the input → behaves exactly like qPs (plain literal, human-readable)",
     "server/src/core/shell-quote.test.ts::preserves an interior backslash run (path) WITHOUT doubling it",
     "server/src/core/shell-quote.test.ts::wraps a plain value in double quotes",
-    "server/src/core/shipslog-docs-reader.test.ts::absent project entirely → all four groups empty, no throw",
     "server/src/core/shipslog-docs-reader.test.ts::agentDocs / compliance: only existing curated files appear, others skipped silently",
     "server/src/core/shipslog-docs-reader.test.ts::iterateSpecs: only flat *.md files, no subdirectories, newest mtime first",
     "server/src/core/shipslog-docs-reader.test.ts::requirements: discovers a section's spec.md, excludes iterate/adr/campaigns, labels 'NN — Title Case'",
-    "server/src/core/shipslog-docs-reader.test.ts::unreadable project root → empty bundle, never throws",
     "server/src/core/shipwright-plugin-version-reader.test.ts::builds the path under the injected home dir, through .claude/plugins/marketplaces/shipwright",
     "server/src/core/shipwright-plugin-version-reader.test.ts::returns null for an empty version string",
     "server/src/core/shipwright-plugin-version-reader.test.ts::returns null on malformed JSON (never throws)",

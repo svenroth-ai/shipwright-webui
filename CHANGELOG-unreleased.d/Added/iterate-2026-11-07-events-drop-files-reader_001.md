@@ -1,1 +1,0 @@
-Reads the plugin's new event-log layout: each run's own event file under shipwright_events.d/ and the files a release folds into shipwright_events.archive/, together with the old shipwright_events.jsonl. Runs, campaign progress and the Mission view show the same result for both layouts, and a damaged run file shows as 'could not be read', never as 'no record'.

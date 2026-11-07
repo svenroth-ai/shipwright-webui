@@ -425,3 +425,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_decision_log_index.py 
 - [ADR-415 — Standalone view: no actions.json means plain Claude only](decision_log.md#adr-415-standalone-view-no-actionsjson-means-plain-claude-only)
 - [ADR-416 — Standalone view drops the Intent Wizard; New task opens its dialog](decision_log.md#adr-416-standalone-view-drops-the-intent-wizard-new-task-opens-its-dialog)
 - [ADR-417 — Readable worktree names via {task.slug} and {task.short_id}](decision_log.md#adr-417-readable-worktree-names-via-taskslug-and-taskshort_id)
+- [ADR-418 — One assembled event-log reader for both plugin layouts](decision_log.md#adr-418-one-assembled-event-log-reader-for-both-plugin-layouts)
