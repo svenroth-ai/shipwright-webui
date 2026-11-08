@@ -31,6 +31,7 @@ import { TriageDetailModal } from "../components/triage/TriageDetailModal";
 import { TriageFilterMenu } from "../components/triage/TriageFilterMenu";
 import { TriageGroupList } from "../components/triage/TriageGroupList";
 import { TriageItemCard } from "../components/triage/TriageItemCard";
+import { TriageListStates } from "../components/triage/TriageListStates";
 import { TriageProjectStatus } from "../components/triage/TriageProjectStatus";
 import { SEARCH_MIN_ITEMS, TriageSearch } from "../components/triage/TriageSearch";
 import { TriageTiles, type TriageTile } from "../components/triage/TriageTiles";
@@ -117,23 +118,6 @@ export default function TriagePage() {
     else setTile(t === "attn" && tile !== "attn" ? "attn" : null);
   };
 
-  const loaded = scopedStatuses.every((s) => !s.isLoading);
-  const anyError = scopedStatuses.some((s) => s.isError);
-  const nothingShown = model.visibleOpen.length === 0 && model.visibleParked.length === 0;
-  // "All clear" only when nothing is open (and no parked card is on screen) and
-  // no project failed to load; "filtered out" only when open items exist but
-  // are all narrowed away — never when only Show-parked-off items remain.
-  // Parked items the attribute filters excluded (not merely the Show-parked switch).
-  const switchHidden = view.filters.showParked
-    ? 0
-    : model.parkedAll.filter((e) => e.item.revisitAt && !e.item.revisitDue).length;
-  const parkedFiltered = Math.max(0, model.hiddenParked - switchHidden);
-  const showEmpty =
-    loaded && !anyError && model.openAll.length === 0 && model.visibleParked.length === 0 && parkedFiltered === 0;
-  const showFilteredOut = loaded && nothingShown && (model.openAll.length > 0 || parkedFiltered > 0);
-  // Parked items hidden only by the Show-parked switch have their own hint.
-  const hiddenTotal =
-    model.openAll.length - model.visibleOpen.length + (view.filters.showParked ? model.hiddenParked : 0);
   const several = scopeId === null && realProjects.length > 1;
   const projectLabel = (id: string) => (several ? nameOf(id) : undefined);
 
@@ -219,29 +203,16 @@ export default function TriagePage() {
                   &ldquo;Show parked&rdquo; in the filter menu to see them.
                 </p>
               )}
-              {showEmpty && (
-                <p className="py-8 text-center text-sm text-[var(--muted)]" data-testid="triage-empty-state">
-                  No triage items pending. ✓
-                </p>
-              )}
-              {showFilteredOut && (
-                <p className="py-8 text-center text-sm text-[var(--muted)]" data-testid="triage-all-filtered-out">
-                  {hiddenTotal > 0 ? `${hiddenTotal} hidden by the current view` : "Nothing matches"} —{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      view.clearFilters();
-                      setTile(null);
-                      setSearch("");
-                    }}
-                    className="underline hover:text-[var(--ink)]"
-                    data-testid="triage-all-filtered-out-clear"
-                  >
-                    clear filters
-                  </button>{" "}
-                  to see them.
-                </p>
-              )}
+              <TriageListStates
+                model={model}
+                statuses={scopedStatuses}
+                showParked={view.filters.showParked}
+                onClear={() => {
+                  view.clearFilters();
+                  setTile(null);
+                  setSearch("");
+                }}
+              />
             </>
           )}
         </div>

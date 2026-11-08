@@ -251,6 +251,7 @@ Dialog) that nests the existing `external/SmartViewer` inside
 | `TriageSnoozeMenu` | `triage/TriageSnoozeMenu.tsx` | 144 | 2 |
 | `TriageQuickEdit` | `triage/TriageQuickEdit.tsx` | 163 | 1 |
 | `TriageGroupList` | `triage/TriageGroupList.tsx` | 90 | 1 |
+| `TriageListStates` | `triage/TriageListStates.tsx` | 62 | 1 |
 | `TriageProjectStatus` | `triage/TriageProjectStatus.tsx` | 65 | 1 |
 | `TriageSearch` | `triage/TriageSearch.tsx` | 30 | 1 |
 
