@@ -87,6 +87,12 @@ describe("buildBoardModel", () => {
     expect(m.visibleOpen.map((e) => e.item.id).sort()).toEqual(["a", "r"]);
   });
 
+  it("a returned park also bypasses a search that does not match it", () => {
+    const r = entry("p1", { id: "r", title: "Quiet", revisitDue: true });
+    const m = buildBoardModel(input({ entries: [r, a, b], search: "disk" }));
+    expect(m.visibleOpen.map((e) => e.item.id).sort()).toEqual(["a", "r"]);
+  });
+
   it("facet counts survive keys that collide with Object.prototype", () => {
     const x = entry("p1", { id: "x", suggestedDomain: "constructor" });
     const m = buildBoardModel(input({ entries: [x] }));

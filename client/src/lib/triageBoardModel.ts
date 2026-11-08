@@ -65,7 +65,7 @@ export function buildBoardModel(input: BoardInput): BoardModel {
   const open = selectVisibleOpenItems(openAll, input.filters);
   const narrowed = open.visible.filter(
     (e) =>
-      matchesSearch(e, q) &&
+      (e.item.revisitDue || matchesSearch(e, q)) &&
       (input.tile !== "attn" ||
         e.item.revisitDue ||
         e.item.severity === "critical" ||

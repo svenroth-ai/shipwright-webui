@@ -18,7 +18,7 @@ The Triage page rendered one section per project, filtered by an exclude-set (ch
 
 ## Consequences
 
-- Removed: `PerProjectTriageSection`, `DeferredTriageSection`, `TriageFilterSortBar`, `TriageFilterGroup`, `TriageSortLevel`, `SnoozeRevisitField` and two obsolete Playwright specs. `TriageDetailModal.tsx` (281) and `TriagePage.tsx` (261) are back under the 300-line cap; two bloat-baseline entries retired.
+- Removed: `PerProjectTriageSection`, `DeferredTriageSection`, `TriageFilterSortBar`, `TriageFilterGroup`, `TriageSortLevel`, `SnoozeRevisitField` and two obsolete Playwright specs. `TriageDetailModal.tsx` (281) and `TriagePage.tsx` (261) are back under the 300-line cap; both are now below the cap, but their grandfathered bloat-baseline entries are left in place (editing that file is a sensitive path; retiring them is a separate follow-up).
 - Parked cards are **read-only**: the mockup's "Return now" was not built because the server has no un-snooze endpoint. Adding one is a server change and a follow-up.
 - Stale ticked filter values (no longer present in the data) are shown as removable chips instead of being silently pruned, so an invisible filter can never explain an empty list.
 - Follow-up (PR 2, not in this run): Fix-now remembers its task and the card/tile show "In progress" (additive server field).
