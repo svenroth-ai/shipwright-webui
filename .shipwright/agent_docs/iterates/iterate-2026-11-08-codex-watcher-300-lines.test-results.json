@@ -1,0 +1,48 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-08-codex-watcher-300-lines",
+    "date": "2026-11-08",
+    "unit": {
+      "status": "passed",
+      "passed": 35,
+      "skipped": 0,
+      "total": 35
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "n/a",
+      "reason_code": "trivial-auto"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-08-codex-watcher-300-lines",
+    "commit": "2f8401df63d7bfa89e03b9b613928db4cc86d918",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
