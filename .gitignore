@@ -112,6 +112,7 @@ client/e2e/.poc-screenshots/
 /.shipwright/agent_docs/*.log.lock
 !/.shipwright/profiles/
 /.shipwright/profiles/*.tmp
+/.shipwright/planning/iterate/**/ac-claims.json
 # === END Shipwright canonical .shipwright artifact-ignore (managed) ===
 
 # Triage Inbox (shipwright)

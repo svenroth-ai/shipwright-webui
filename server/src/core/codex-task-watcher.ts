@@ -37,9 +37,8 @@
  * here — it runs as an Inbox post-pass (`external/inbox/_codex.ts`'s
  * `appendCodexTerminalSignals`, over `core/codex-terminal-signal-detect.ts`).
  *
- * §5.4's structured self-report (`codex-status-report.ts`) is consulted
- * only in the `no_oracle` branch of `classify()` below — see that branch's
- * own comment for why.
+ * §5.4's self-report (`codex-status-report.ts`) is consulted only in the
+ * `no_oracle` branch of `classify()` — see its comment.
  */
 
 import type { ExternalTask } from "./sdk-sessions-store.js";
@@ -51,6 +50,9 @@ import {
   type CodexWatcherNoticeKind,
   type CodexWatcherNotice,
   type CodexTaskWatcherDeps,
+  WAKER_PROMPT,
+  SELF_CHECK_PROMPT,
+  isNudgeEcho,
   type EpisodeState,
 } from "./codex-task-watcher-types.js";
 
@@ -66,14 +68,6 @@ export {
   type CodexTaskWatcherPtyManager,
   type CodexTaskWatcherDeps,
 } from "./codex-task-watcher-types.js";
-
-const WAKER_PROMPT =
-  "\n[Shipwright] Still there? If you're finished, wrap up and close with your " +
-  "SHIPWRIGHT-STATUS block. If not, please continue.\n";
-const SELF_CHECK_PROMPT =
-  "\n[Shipwright] This phase has no automated completion check — please confirm " +
-  "your status directly: are you done, or still working? Close with your " +
-  "SHIPWRIGHT-STATUS block either way.\n";
 
 export class CodexTaskWatcher {
   private readonly episodes = new Map<string, EpisodeState>();
@@ -199,7 +193,10 @@ export class CodexTaskWatcher {
     }
 
     const prev = this.episodes.get(task.taskId);
-    if (!prev || prev.lastSeenDataAt !== lastDataAt) {
+    if (prev && isNudgeEcho(prev, lastDataAt)) {
+      // #583: our own nudge's echo, not agent progress — don't re-arm.
+      prev.lastSeenDataAt = lastDataAt;
+    } else if (!prev || prev.lastSeenDataAt !== lastDataAt) {
       this.episodes.set(task.taskId, { lastSeenDataAt: lastDataAt, nudged: false });
       // A fresh episode's nudge notice is stale — mirrors the two clears above.
       if (this.notices.get(task.taskId)?.kind === "nudge_sent") {
@@ -254,21 +251,24 @@ export class CodexTaskWatcher {
       // existing tick rather than a second timer for an unspecified value.
       return;
     }
-    if (!episode || episode.nudged) {
-      if (verdict === "no_oracle") {
-        // §5.4 (external-code-review, OpenAI MEDIUM): the self-report's
-        // one behavior-changing use — no_oracle has no other completion
-        // signal, so a well-formed done:true report still on-screen after
-        // the spent nudge counts as real completion. Every OTHER verdict
-        // still defers to the oracle on disagreement, per §5.4.
-        const selfReport = parseShipwrightStatusReport(this.deps.peekTerminalText?.(task.taskId) ?? "");
-        if (selfReport?.done) {
-          await this.markDone(task.taskId);
-          return;
-        }
+    // §5.4: the self-report's one behavior-changing use — no_oracle has no
+    // other completion signal, so a done:true report counts as completion;
+    // other verdicts defer to the oracle. #583: consulted BEFORE the nudge
+    // so an agent that already answered (done:false) is never re-prompted.
+    if (verdict === "no_oracle") {
+      const parsed = parseShipwrightStatusReport(this.deps.peekTerminalText?.(task.taskId) ?? "");
+      // A report for another phase is stale scrollback, not this phase's answer.
+      const selfReport = parsed && (!parsed.phase || !task.phase || parsed.phase === task.phase) ? parsed : null;
+      if (selfReport?.done) {
+        await this.markDone(task.taskId);
+        return;
+      }
+      if (selfReport || !episode || episode.nudged) {
         this.setNotice(task.taskId, "no_oracle_unresolved",
           "This phase has no automated completion check and the self-check nudge didn't resolve it.");
+        return;
       }
+    } else if (!episode || episode.nudged) {
       return;
     }
     // not_done or no_oracle — one nudge per episode. A watched task
@@ -277,6 +277,7 @@ export class CodexTaskWatcher {
     if (this.deps.ptyManager.attachCount(task.taskId) !== 0) return;
     this.deps.ptyManager.write(task.taskId, verdict === "no_oracle" ? SELF_CHECK_PROMPT : WAKER_PROMPT);
     episode.nudged = true;
+    episode.nudgedAt = this.nowFn();
     this.setNotice(task.taskId, "nudge_sent",
       verdict === "no_oracle"
         ? "Sent a self-check nudge — no automated completion check exists for this phase."
