@@ -67,6 +67,7 @@ async function inViewport(page: import("@playwright/test").Page, testId: string)
   expect(box!.y + box!.height).toBeLessThanOrEqual(vp.height + 1);
 }
 
+// @covers FR-01.30
 test.describe("Triage page redesign", () => {
   let project: SeededProject;
 

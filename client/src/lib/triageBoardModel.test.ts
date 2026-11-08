@@ -28,6 +28,7 @@ const parkedDated = entry("p1", { id: "pd", status: "snoozed", revisitAt: "2027-
 const parkedNone = entry("p2", { id: "pn", status: "snoozed", revisitAt: null });
 const all = [a, b, parkedDated, parkedNone];
 
+// @covers FR-01.30
 describe("buildBoardModel", () => {
   it("splits open and parked, sorts most severe first", () => {
     const m = buildBoardModel(input({ entries: all }));

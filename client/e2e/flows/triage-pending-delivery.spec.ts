@@ -41,6 +41,7 @@ function appendLine(id: string, title: string): string {
   });
 }
 
+// @covers FR-01.30
 test.describe("Triage pending-delivery badge", () => {
   let projectDir = "";
   let projectId = "";

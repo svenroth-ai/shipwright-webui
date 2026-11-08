@@ -9,6 +9,7 @@ const projects = [
 ];
 const label = (s: string) => (s === "req3" ? "Campaign" : s);
 
+// @covers FR-01.30
 describe("groupEntries", () => {
   const a = entry("p2", { id: "a", severity: "low", source: "manual", suggestedPriority: "P3" });
   const b = entry("p1", { id: "b", severity: "critical", source: "req3", suggestedPriority: "P0" });

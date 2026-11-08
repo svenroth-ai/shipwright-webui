@@ -111,7 +111,7 @@
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/triage-redesign.spec.ts e2e/flows/triage-amend.spec.ts e2e/flows/triage-card-block-display.spec.ts e2e/flows/triage-deferred-envelope.spec.ts e2e/flows/triage-file-viewer.spec.ts e2e/flows/triage-fix-now-more-options-clip.spec.ts e2e/flows/triage-fix-now.spec.ts e2e/flows/triage-header-restyle.spec.ts e2e/flows/triage-pending-delivery.spec.ts e2e/flows/triage-record-boundary-recovery.spec.ts e2e/flows/triage-restyle.spec.ts e2e/flows/triage-tab.spec.ts e2e/flows/start-campaign-action.spec.ts --reporter=json",
+      "runner": "npx playwright test client/e2e/flows/triage-redesign.spec.ts client/e2e/flows/triage-amend.spec.ts client/e2e/flows/triage-card-block-display.spec.ts client/e2e/flows/triage-deferred-envelope.spec.ts client/e2e/flows/triage-file-viewer.spec.ts client/e2e/flows/triage-fix-now-more-options-clip.spec.ts client/e2e/flows/triage-fix-now.spec.ts client/e2e/flows/triage-header-restyle.spec.ts client/e2e/flows/triage-pending-delivery.spec.ts client/e2e/flows/triage-record-boundary-recovery.spec.ts client/e2e/flows/triage-restyle.spec.ts client/e2e/flows/triage-tab.spec.ts client/e2e/flows/start-campaign-action.spec.ts",
       "exit_code": 0,
       "tests_run": 29,
       "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-page-redesign\\.shipwright\\runs\\iterate-2026-11-08-triage-page-redesign\\surface_verification.log",

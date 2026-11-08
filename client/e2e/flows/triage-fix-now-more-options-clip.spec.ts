@@ -46,6 +46,7 @@ function removeChart() {
   rmSync(LEADS_ROOT, { recursive: true, force: true });
 }
 
+// @covers FR-01.30
 test.describe("New Iterate from triage — More options is not clipped", () => {
   let tmpDir = "";
   let projectId = "";

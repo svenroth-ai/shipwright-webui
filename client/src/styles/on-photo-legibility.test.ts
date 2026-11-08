@@ -48,6 +48,7 @@ const TOUCHED = [
   "components/triage/TriageProjectStatus.tsx",
 ];
 
+// @covers FR-01.30
 describe("on-photo legibility — AC1 flipping-token fence", () => {
   it("board CAMPAIGNS label uses the flipping --muted token, not the legacy alias", () => {
     const src = read("components/external/CampaignsLane.tsx");
@@ -85,6 +86,7 @@ describe("on-photo legibility — AC1 flipping-token fence", () => {
   });
 });
 
+// @covers FR-01.30
 describe("on-photo legibility — grade-result band pill resets to solid-surface tokens (iterate-2026-08-26-grade-pill-contrast)", () => {
   // The GRADE door's head (ring + headline + band pill) rides BARE on the
   // scene photo, like the surfaces above — it is not wrapped in a `.iw-card`.
@@ -113,6 +115,7 @@ describe("on-photo legibility — grade-result band pill resets to solid-surface
   });
 });
 
+// @covers FR-01.30
 describe("on-photo legibility — New-Project plan card phase list resets to solid-surface tokens (iterate-2026-09-19-fix-wizard-plan-card-white-text)", () => {
   // The New-Project wizard's "Here's what I understood." plan card renders a
   // white phase list (Project/Design/Plan/.../Deploy) with a per-phase
@@ -173,6 +176,7 @@ describe("on-photo legibility — New-Project plan card phase list resets to sol
   });
 });
 
+// @covers FR-01.30
 describe("on-photo legibility — AC4 no text-shadow on the touched surfaces", () => {
   for (const rel of TOUCHED) {
     it(`${rel} introduces no text-shadow`, () => {

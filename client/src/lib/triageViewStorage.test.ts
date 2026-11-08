@@ -15,6 +15,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// @covers FR-01.30
 describe("saved Triage view", () => {
   it("round-trips filters, sort, grouping and collapsed groups", () => {
     const view = {

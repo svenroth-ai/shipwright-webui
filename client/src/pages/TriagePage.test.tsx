@@ -122,6 +122,7 @@ const mockItem = (id: string, status = "triage"): TriageItem => ({
   amendedAt: null,
 });
 
+// @covers FR-01.30
 describe("TriagePage", () => {
   beforeEach(() => {
     aggregate = { entries: [], statuses: [] };

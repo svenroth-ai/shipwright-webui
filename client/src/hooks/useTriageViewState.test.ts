@@ -7,6 +7,7 @@ import { TRIAGE_VIEW_STORAGE_KEY } from "../lib/triageViewStorage";
 
 afterEach(() => window.localStorage.clear());
 
+// @covers FR-01.30
 describe("useTriageViewState", () => {
   it("starts from the defaults when nothing is saved", () => {
     const { result } = renderHook(() => useTriageViewState());

@@ -85,6 +85,7 @@ const baseItem: TriageItem = {
   amendedAt: null,
 };
 
+// @covers FR-01.30
 describe("PendingDeliveryBadge", () => {
   it("renders the label and the ships-with-next-iterate explainer tooltip", () => {
     render(<PendingDeliveryBadge />);
@@ -94,6 +95,7 @@ describe("PendingDeliveryBadge", () => {
   });
 });
 
+// @covers FR-01.30
 describe("TriageItemCard pending-delivery (AC3)", () => {
   it("shows the badge for an outbox-only item", () => {
     render(
@@ -115,6 +117,7 @@ describe("TriageItemCard pending-delivery (AC3)", () => {
   });
 });
 
+// @covers FR-01.30
 describe("TriageDetailModal pending-delivery (AC3 + AC4 CTA assurance)", () => {
   function mountModal(item: TriageItem, onFixNow?: (i: FixNowIntent) => void) {
     return render(

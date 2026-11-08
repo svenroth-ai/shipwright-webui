@@ -83,6 +83,7 @@ function renderModal(itemOverrides: Partial<TriageItem> = {}) {
   );
 }
 
+// @covers FR-01.30
 describe("TriageDetailModal — Edit toggle (AC8)", () => {
   beforeEach(() => {
     useProjectActionsSpy.mockReset();

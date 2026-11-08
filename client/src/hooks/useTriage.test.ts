@@ -43,6 +43,7 @@ function mockFetchOnce(items: unknown[]): ReturnType<typeof vi.fn> {
 
 const PROJECT_IDS = ["proj-1"];
 
+// @covers FR-01.30
 describe("useTriageItems / useAllTriageItems — cache parity", () => {
   afterEach(() => {
     vi.restoreAllMocks();

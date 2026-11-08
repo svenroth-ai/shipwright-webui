@@ -92,6 +92,7 @@ async function mockTriage(page: Page) {
   );
 }
 
+// @covers FR-01.30
 test.describe('Triage restyle — white-surface cards + wizard-matched dialogs', () => {
   // @covers FR-01.30
   test('cards render on the white --color-surface with a real shadow', async ({ page }, testInfo) => {

@@ -71,6 +71,7 @@ function writeTriageItems(projectPath: string, items: Record<string, unknown>[])
   );
 }
 
+// @covers FR-01.30
 test.describe("Mobile Triage / detail panel & spacing", () => {
   let project: SeededProject;
 

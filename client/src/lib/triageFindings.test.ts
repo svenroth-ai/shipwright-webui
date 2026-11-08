@@ -8,6 +8,7 @@ const COMPLIANCE = `5 open compliance finding(s): A/A5.0, B/B7, D/D3
 - B/B7: Every commit since release tag has a matching event — 8 commit(s) since v0.17.0 have no matching event: 2a0b142b | hint: /shipwright-iterate --type change "reconcile B7"
 - D/D3: Promised FRs delivered — FRs introduced via new_frs but never reaffirmed — FR-01.33`;
 
+// @covers FR-01.30
 describe("parseFindings", () => {
   it("reads code, title, detail and hint from a real compliance bundle", () => {
     const f = parseFindings(COMPLIANCE);

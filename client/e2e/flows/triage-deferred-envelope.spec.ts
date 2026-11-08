@@ -61,6 +61,7 @@ function statusLine(
   });
 }
 
+// @covers FR-01.30
 test.describe("Triage Deferred section", () => {
   let projectDir = "";
   let projectId = "";

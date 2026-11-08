@@ -61,6 +61,7 @@ async function seedProject(
   return { projectDir, projectId, triagePath };
 }
 
+// @covers FR-01.30
 test.describe("Triage Edit-in-place (amend)", () => {
   let projectDir = "";
   let projectId = "";

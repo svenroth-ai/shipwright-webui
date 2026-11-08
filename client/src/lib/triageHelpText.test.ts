@@ -31,6 +31,7 @@ function realCodes(): Set<string> {
   return codes;
 }
 
+// @covers FR-01.30
 describe("Triage help texts", () => {
   it("every known check code has all three parts of an explanation", () => {
     for (const code of KNOWN_CHECK_CODES) {

@@ -14,6 +14,7 @@ import {
 } from "./triageFilterSort";
 import { entry, filters, item } from "../test/triageFixtures";
 
+// @covers FR-01.30
 describe("getComplexity", () => {
   it("resolves to 'unset' when the item carries no complexity field", () => {
     expect(getComplexity(item({ id: "trg-1" }))).toBe("unset");
@@ -28,6 +29,7 @@ describe("getComplexity", () => {
   });
 });
 
+// @covers FR-01.30
 describe("include-set filters (empty = all, ticked = only those)", () => {
   const hi = item({ id: "a", severity: "high", suggestedPriority: "P1", source: "compliance", suggestedDomain: "Quality" });
   const lo = item({ id: "b", severity: "low", suggestedPriority: "P3", source: "manual", suggestedDomain: "Product" });
@@ -61,6 +63,7 @@ describe("include-set filters (empty = all, ticked = only those)", () => {
   });
 });
 
+// @covers FR-01.30
 describe("selectVisibleOpenItems — returned-park bypass", () => {
   it("keeps a returned park even when no ticked value matches it, and does not count it hidden", () => {
     const returned = entry("p", { id: "r", suggestedPriority: "P3", revisitDue: true });
@@ -71,6 +74,7 @@ describe("selectVisibleOpenItems — returned-park bypass", () => {
   });
 });
 
+// @covers FR-01.30
 describe("selectVisibleDeferredItems — Parked switch and dateless exception", () => {
   const dated = entry("p", { id: "dated", status: "snoozed", revisitAt: "2027-01-01" });
   const dateless = entry("p", { id: "none", status: "snoozed", revisitAt: null });
@@ -98,6 +102,7 @@ describe("selectVisibleDeferredItems — Parked switch and dateless exception", 
   });
 });
 
+// @covers FR-01.30
 describe("formatCount", () => {
   it("prints N when nothing is hidden and 'N of M' otherwise", () => {
     expect(formatCount(3, 3)).toBe("3");
@@ -105,6 +110,7 @@ describe("formatCount", () => {
   });
 });
 
+// @covers FR-01.30
 describe("sortEntries", () => {
   const crit = entry("p", { id: "c", severity: "critical", suggestedPriority: "P0", title: "b", ts: "2026-01-02T00:00:00Z" });
   const low = entry("p", { id: "l", severity: "low", suggestedPriority: "P3", title: "a", ts: "2026-01-03T00:00:00Z" });

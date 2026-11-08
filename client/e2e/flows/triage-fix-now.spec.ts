@@ -57,6 +57,7 @@ function removeChart() {
   rmSync(LEADS_ROOT, { recursive: true, force: true });
 }
 
+// @covers FR-01.30
 test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)", () => {
   let tmpDir = "";
   let projectId = "";

@@ -48,6 +48,7 @@ function mount(over: Partial<TriageItem> = {}) {
   );
 }
 
+// @covers FR-01.30
 describe("TriageDetailMeta (dialog)", () => {
   it("lists each audit check on its own line with a help marker, and keeps the raw detail", () => {
     mount();

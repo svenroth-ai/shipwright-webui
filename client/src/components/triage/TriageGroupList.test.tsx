@@ -28,6 +28,7 @@ function mount(revisitDue: boolean) {
   );
 }
 
+// @covers FR-01.30
 describe("TriageGroupList collapse", () => {
   it("a saved-collapsed group hides its cards", () => {
     mount(false);

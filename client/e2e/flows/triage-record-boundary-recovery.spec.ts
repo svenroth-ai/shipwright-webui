@@ -51,6 +51,7 @@ function appendLine(id: string, title: string): string {
   });
 }
 
+// @covers FR-01.30
 test.describe("Triage record-boundary recovery", () => {
   let projectDir = "";
   let projectId = "";

@@ -7,6 +7,7 @@ function local(y: number, m: number, d: number, h = 12): Date {
   return new Date(y, m - 1, d, h, 0, 0);
 }
 
+// @covers FR-01.30
 describe("snoozePresets", () => {
   it("tomorrow / 1 week / 1 month as calendar dates", () => {
     const p = snoozePresets(local(2026, 11, 8));
