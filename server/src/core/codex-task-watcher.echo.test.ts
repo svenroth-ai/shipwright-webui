@@ -57,6 +57,7 @@ function harness(opts: { echo: boolean; screen?: string; verdict?: "no_oracle" |
 const report = (json: string) => "```SHIPWRIGHT-STATUS\n" + json + "\n```";
 
 describe("CodexTaskWatcher — nudge echo (#583)", () => {
+  // @covers FR-01.74
   it("control: no echo → one self-check, then no_oracle_unresolved", async () => {
     const { w, write, run } = harness({ echo: false });
     await run(4);
@@ -64,6 +65,7 @@ describe("CodexTaskWatcher — nudge echo (#583)", () => {
     expect(w.snapshot().some((n) => n.kind === "no_oracle_unresolved")).toBe(true);
   });
 
+  // @covers FR-01.74
   it("no_oracle: the reminder's own echo does not re-arm — one write, then unresolved", async () => {
     const { w, write, run } = harness({ echo: true });
     await run(4);
@@ -71,12 +73,14 @@ describe("CodexTaskWatcher — nudge echo (#583)", () => {
     expect(w.snapshot().some((n) => n.kind === "no_oracle_unresolved")).toBe(true);
   });
 
+  // @covers FR-01.74
   it("not_done: the waker's own echo does not re-arm either", async () => {
     const { write, run } = harness({ echo: true, verdict: "not_done" });
     await run(4);
     expect(write).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.74
   it("a valid done:false report on screen is never nudged again, even with echo", async () => {
     const { w, write, run } = harness({ echo: true, screen: report('{"phase":"iterate","done":false,"status":"blocked"}') });
     await run(4);
@@ -84,6 +88,7 @@ describe("CodexTaskWatcher — nudge echo (#583)", () => {
     expect(w.snapshot().some((n) => n.kind === "no_oracle_unresolved")).toBe(true);
   });
 
+  // @covers FR-01.74
   it("a valid done:true report is honoured on the FIRST idle check — task done, no nudge", async () => {
     const { write, patch, run } = harness({ echo: true, screen: report('{"phase":"iterate","done":true}') });
     await run(1);
@@ -91,6 +96,7 @@ describe("CodexTaskWatcher — nudge echo (#583)", () => {
     expect(patch).toHaveBeenCalledWith("t1", { state: "done", boardColumn: "done" });
   });
 
+  // @covers FR-01.74
   it("a report for ANOTHER phase (stale scrollback) is ignored — still nudged, never marked done", async () => {
     const { write, patch, run } = harness({ echo: false, screen: report('{"phase":"build","done":true}') });
     await run(1);
@@ -98,6 +104,7 @@ describe("CodexTaskWatcher — nudge echo (#583)", () => {
     expect(write).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.74
   it("echo at the grace edge is absorbed; one tick later it is not", async () => {
     let now = STEP;
     let lastDataAt = 0;
@@ -124,6 +131,7 @@ describe("CodexTaskWatcher — nudge echo (#583)", () => {
     expect(write).toHaveBeenCalledTimes(2);
   });
 
+  // @covers FR-01.74
   it("genuinely new agent output AFTER the grace window still starts a new episode", async () => {
     let now = STEP;
     let lastDataAt = 0;

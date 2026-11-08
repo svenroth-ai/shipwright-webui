@@ -117,6 +117,7 @@ describe("CodexTaskWatcher — classification", () => {
     expect(w.snapshot().some((n) => n.kind === "no_oracle_unresolved")).toBe(true);
   });
 
+  // @covers FR-01.74
   it("§5.4 — no_oracle + a done:true self-report on-screen after the spent nudge marks the task done (external-review finding)", async () => {
     const patch = vi.fn();
     const persist = vi.fn(async () => undefined);
@@ -138,6 +139,7 @@ describe("CodexTaskWatcher — classification", () => {
     expect(persist).toHaveBeenCalled();
   });
 
+  // @covers FR-01.74
   it("§5.4 — no_oracle + a done:false (or absent) self-report still falls back to no_oracle_unresolved", async () => {
     const { deps } = makeDeps({
       oracle: { kind: "ok", result: { verdict: "no_oracle", phase: "adopt", session: "sess-1", evidence: {} } },
