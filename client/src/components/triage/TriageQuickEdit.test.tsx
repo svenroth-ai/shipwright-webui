@@ -121,7 +121,7 @@ describe("TriageSnoozeMenu", () => {
     expect((await screen.findByTestId("triage-snooze-error")).textContent).toBe("Date too soon");
   });
 
-  it("shows a network error when the request throws", async () => {
+  it("snooze shows a network error when the request throws", async () => {
     h.snooze.mockRejectedValue(new Error("down"));
     open();
     fireEvent.click(await screen.findByTestId("triage-snooze-month"));
