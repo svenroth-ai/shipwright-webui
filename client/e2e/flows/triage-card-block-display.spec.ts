@@ -39,22 +39,22 @@ test.afterEach(async ({ request }) => {
 // @covers FR-01.38
 test("triage cards are block-level and stack with only the list gap between them", async ({ page }) => {
   await page.goto("/triage");
-  const cards = page.locator('button[data-testid^="triage-item-trg-blk"]');
+  const cards = page.locator('[data-testid="triage-open-items"] article[data-testid^="triage-item-trg-blk"]');
   await expect(cards).toHaveCount(4, { timeout: 35_000 });
   const rows = await cards.evaluateAll((els) =>
     els.map((e) => ({ display: getComputedStyle(e).display, top: e.getBoundingClientRect().top, h: e.getBoundingClientRect().height })),
   );
-  for (const r of rows) expect(r.display, "card must not sit on a line box").toBe("block");
+  for (const r of rows) expect(["block", "flex"], "card must not sit on a line box").toContain(r.display);
   for (let i = 1; i < rows.length; i++) {
     const gap = rows[i].top - (rows[i - 1].top + rows[i - 1].h);
     expect(gap, `gap before card ${i + 1}`).toBeLessThanOrEqual(12);
   }
-  // Deferred (parked) cards share the same <button> markup.
-  const parked = page.locator('button[data-testid^="triage-deferred-item-trg-blk"]');
+  // Parked cards share the same <article> markup (dateless parks show by default).
+  const parked = page.locator('[data-testid="triage-parked-section"] article[data-testid^="triage-item-trg-blk"]');
   await expect(parked).toHaveCount(2);
   const pr = await parked.evaluateAll((els) =>
     els.map((e) => ({ display: getComputedStyle(e).display, top: e.getBoundingClientRect().top, h: e.getBoundingClientRect().height })),
   );
-  for (const r of pr) expect(r.display).toBe("block");
+  for (const r of pr) expect(["block", "flex"]).toContain(r.display);
   expect(pr[1].top - (pr[0].top + pr[0].h), "gap between parked cards").toBeLessThanOrEqual(12);
 });

@@ -110,7 +110,7 @@ test.describe("Triage record-boundary recovery", () => {
     await expect(page.getByTestId("triage-item-trg-cccc0003")).toBeVisible();
 
     // The recovered items are real, interactive cards — not empty shells.
-    await page.getByTestId("triage-item-trg-bbbb0002").click();
+    await page.getByTestId("triage-item-trg-bbbb0002-title").click();
     const modal = page.getByTestId("triage-detail-modal");
     await expect(modal).toBeVisible();
     await expect(modal).toContainText("Second of a concatenated pair");

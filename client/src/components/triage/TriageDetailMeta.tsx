@@ -1,6 +1,10 @@
 import type { TriageItem } from "../../lib/triageApi";
 import { extractFileMentions } from "../../lib/extractFileMentions";
 import { useFileExistence } from "../../hooks/useFileExistence";
+import { getComplexity } from "../../lib/triageFilterSort";
+import { parseFindings } from "../../lib/triageFindings";
+import { checkHelp } from "../../lib/triageHelpText";
+import { TriageHelp } from "./TriageHelp";
 import { FileLink } from "./FileLink";
 import { FileMentionText } from "./FileMentionText";
 import { TriageAmendForm } from "./TriageAmendForm";
@@ -40,17 +44,23 @@ export function TriageDetailMeta({
     ...extractFileMentions(item.detail).map((m) => m.path),
   ];
   const existingPaths = useFileExistence(projectId, candidatePaths);
+  const findings =
+    item.source === "compliance" || item.source === "phaseQuality" ? parseFindings(item.detail) : [];
 
   return (
     <>
       <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs mb-4">
         <div>
-          <dt className="text-[var(--color-muted)]">Suggested priority</dt>
+          <dt className="text-[var(--color-muted)]">Suggested priority <span className="font-normal">(follows severity)</span></dt>
           <dd className="font-mono">{item.suggestedPriority}</dd>
         </div>
         <div>
           <dt className="text-[var(--color-muted)]">Suggested domain</dt>
           <dd>{item.suggestedDomain}</dd>
+        </div>
+        <div>
+          <dt className="text-[var(--color-muted)]">Complexity</dt>
+          <dd data-testid="triage-detail-complexity">{getComplexity(item)}</dd>
         </div>
         <div>
           <dt className="text-[var(--color-muted)]">Kind</dt>
@@ -97,6 +107,20 @@ export function TriageDetailMeta({
           <h4 className="text-xs font-semibold text-[var(--color-text)] uppercase mb-2">
             Detail
           </h4>
+          {findings.length > 0 && (
+            <ul className="m-0 mb-2 grid list-none gap-1 p-0" data-testid="triage-detail-findings">
+              {findings.map((f, i) => (
+                <li
+                  key={`${f.code}-${i}`}
+                  className="flex items-center gap-2 rounded-md bg-[var(--color-muted-bg)] px-2 py-1 text-[13px] text-[var(--color-text)]"
+                >
+                  <code className="shrink-0 rounded bg-[var(--color-surface)] px-1.5 py-px text-[11px]">{f.code}</code>
+                  <span className="min-w-0 flex-1">{f.title}</span>
+                  <TriageHelp help={checkHelp(f.code, f.title)} subject={`check-${f.code}`} />
+                </li>
+              ))}
+            </ul>
+          )}
           <p
             className="text-sm text-[var(--color-text)] whitespace-pre-wrap"
             data-testid="triage-detail-body"

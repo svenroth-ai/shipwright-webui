@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Review Findings\n\n- **Category: dependency \u2014 Severity: medium**\n  The \"project choice shared with the Board\" mechanism is underspecified. `useProjectFilter` is reused, but if the Board persists its project choice in a Board-scoped localStorage key (or nowhere), the Triage page needs a decision: shared key, or a new shared key both pages read/write. With both pages open, last-write-wins is fine, but the spec should name the key and owner so Triage doesn't accidentally get a private project choice. Confirm `useProjectFilter` actually persists; if it's currently in-memory only, this becomes a small extra change the plan doesn't account for.\n\n- **Category: edge-case \u2014 Severity: medium**\n  `triageFindings.ts` parses the bundle `detail` into per-check lines, but no format contract is stated. Pin the parser tests to a real fixture from an actual API response, and define the fallback for unparseable detail (render raw text, don't drop the card). A regex/greedy parser that silently swallows unknown detail shapes would hide findings from the operator.\n\n- **Category: edge-case \u2014 Severity: medium**\n  Snooze semantics: \"pick a date\" needs validation (past dates, timezone-of-day boundary \u2014 end-of-day vs midnight) and \"no date\" interacts with the kept \"dateless park stays visible\" bypass: a snooze with no date could mean an item that never resurfaces. Clarify what \"no date\" means operationally (immediate re-listing? dateless park?) and test it.\n\n- **Category: risk \u2014 Severity: low**\n  \"Testids kept where they still exist\" \u2014 removed components (`TriageFilterSortBar`, `TriageSortLevel`, etc.) likely carry testids used by other E2E specs or external scripts. Grep the full Playwright suite for selectors before deletion so the ported tests cover every consumer, not just the triage spec.\n\n- **Category: edge-case \u2014 Severity: low**\n  Search is absent from the persisted-view list. AC says filters/sort/grouping/collapsed survive reload; decide explicitly whether search counts (spec implies no \u2014 search is threshold-gated and transient, which is reasonable, but say so to avoid a verifier disagreement). Also confirm the amend hook accepts severity and that priority-follows-severity is reflected in the UI response without a manual refetch.\n\n- **Category: edge-case \u2014 Severity: low**\n  Per-level sort direction persistence: validate direction values per level on load (unknown or missing direction falls back to asc), same as filters \u2014 the storage validator should cover the full shape, not just the top-level keys.\n\nNo security concerns: localStorage is same-origin, validated on read, and the only writes are view preferences. No new dependencies, no needless abstraction \u2014 the component split is driven by the 300-line rule and genuine reuse (snooze menu / quick edit shared between card and modal), which is the right call over the rejected per-project-sections hybrid.\n\n## Overall Assessment\n\nSound, well-scoped plan with the risky parts (filter-semantics flip, persistence validation) explicitly planned and tested. The open items are clarifications \u2014 Board project-choice ownership, detail-format contract, and snooze \"no date\" semantics \u2014 that should be pinned down before step 1 but don't change the approach.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category: risk \u00b7 Severity: high**  \n   **Finding:** Replacing per-project sections with an aggregated list removes the context that previously scoped card actions. The plan does not explicitly preserve each item\u2019s originating project for Fix now, Start campaign, Promote, Snooze, Dismiss and amend. Using the shared project selection would be incorrect when showing multiple projects.  \n   **Suggestion:** Carry project identity through grouping and action handlers. Test actions on items from two projects while the project dropdown shows all projects, including any project-scoped item IDs.\n\n2. **Category: edge-case \u00b7 Severity: medium**  \n   **Finding:** The interaction between include filters, \u201cShow parked,\u201d and the returned/dateless park bypasses is underspecified. A blanket bypass could also ignore the selected project or search, and summary counts could disagree with the visible list.  \n   **Suggestion:** Define the filtering order and exactly which filters each park exception bypasses. Specify what \u201cShowing N of M,\u201d the tiles and the search threshold count, then test these rules together.\n\n3. **Category: dependency \u00b7 Severity: medium**  \n   **Finding:** The findings parser and help-coverage test need an authoritative audit-code catalog and representative bundle payloads. Testing against a manually maintained list in the new help file would not detect newly introduced codes, while an unexpected detail format could silently lose findings.  \n   **Suggestion:** Identify the existing catalog used by the coverage test and add fixtures from both compliance and phase-quality bundles. Preserve unparsed text and provide a readable fallback for unknown codes.\n\n4. **Category: edge-case \u00b7 Severity: medium**  \n   **Finding:** Sharing quick edit between cards and the modal introduces concurrent views of the same mutable item. The plan does not cover failed amendments, duplicate submission or a successful edit leaving severity ordering, grouping, priority or the open modal stale.  \n   **Suggestion:** Reuse the existing mutation and cache-update path, handle pending/error states, and verify that an edit updates both views and recomputes derived placement and priority.\n\nThe approach is sound and appropriately scoped, with useful reuse and no unnecessary dependency. Clarify these behavioral contracts and add targeted regression coverage before implementation proceeds.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-08-triage-page-redesign",
+    "at": "2026-11-08T21:39:18.186515+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

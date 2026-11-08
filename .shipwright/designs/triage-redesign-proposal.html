@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triage Redesign Vorschlag v2</title>
+<style>
+/* v2: Das Mockup nutzt die ECHTEN App-Tokens (client/src/index.css: --page, --card, --ink, --line,
+   --accent #0E7A6B, --err/--warn/--info, radius 8/12, anthrazit Seitenkopf #23262c), damit es zu Board,
+   Inbox und Projects passt. Das UI Kit svenroth.ai liefert nur Haltung und Typografie, es widerspricht der App nicht. */
+:root{
+  --page:#FAFAF9; --card:#FFFFFF; --inset:#F5F5F4; --ink:#1C1917; --body:#44403C; --muted:#79716B; --faint:#A8A29E;
+  --line:#E7E5E4; --line-strong:#D6D3D1; --accent:#0E7A6B; --accent-hover:#0B6355; --accent-tint:#E6F3F0; --accent-line:#9fd3ca;
+  --ok:#067647; --ok-tint:#ECFDF3; --warn:#B54708; --warn-tint:#FFFAEB; --warn-line:#FEDF89; --err:#B42318; --err-tint:#FEF3F2; --err-line:#FECDCA; --info:#175CD3; --info-tint:#EFF8FF;
+  --taupe:#23262c; --radius-button:8px; --radius-card:12px; --sh:0 1px 2px rgba(0,0,0,.05),0 6px 30px rgba(0,0,0,.08);
+  --sans:"Inter Variable",Inter,system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55}
+a{color:var(--accent)}
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px}.wide{max-width:1160px;margin:0 auto;padding:0 24px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(30px,4.5vw,46px);line-height:1.08;letter-spacing:-1.2px;margin:8px 0 14px}
+h2{font-size:clamp(25px,3.2vw,34px);line-height:1.12;letter-spacing:-.8px;margin:6px 0 12px}
+h3{font-size:19px;margin:0 0 6px;letter-spacing:-.2px}
+p{margin:0 0 12px;color:var(--muted)}
+.lead{font-size:18px;color:var(--body);max-width:720px}
+section{padding:64px 0;border-top:1px solid var(--line)}section.alt{background:var(--inset)}
+.topbar{position:sticky;top:0;z-index:40;background:rgba(250,250,249,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar .wide{display:flex;align-items:center;gap:18px;height:50px;overflow-x:auto;white-space:nowrap}
+.topbar a{font-size:14px;font-weight:500;color:var(--body);text-decoration:none}
+.topbar .badge{margin-left:auto;font-family:var(--mono);font-size:11px;letter-spacing:1.4px;text-transform:uppercase;background:var(--inset);border:1px solid var(--line);padding:3px 10px;border-radius:99px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:var(--sh);padding:22px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+table.find{width:100%;border-collapse:collapse;font-size:14.5px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);overflow:hidden}
+table.find th,table.find td{text-align:left;vertical-align:top;padding:11px 13px;border-bottom:1px solid var(--line)}
+table.find th{font-family:var(--mono);font-size:11px;letter-spacing:1.4px;text-transform:uppercase;background:var(--inset);font-weight:500}
+table.find td{color:var(--body)}table.find td:first-child{color:var(--ink);font-weight:600;width:24%}table.find tr:last-child td{border-bottom:0}
+.tablewrap{overflow-x:auto}
+ul.clean,ol.clean{margin:0;padding-left:20px;color:var(--body)}ul.clean li,ol.clean li{margin:4px 0}
+code{font-family:var(--mono);font-size:.87em;background:var(--inset);border:1px solid var(--line);padding:0 5px;border-radius:5px}
+.fb{display:grid;gap:8px;margin-top:20px}
+.fb div{display:grid;grid-template-columns:34px 1fr;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14.5px;color:var(--body)}
+.fb b.n{font-family:var(--mono);color:var(--accent)}.fb em{font-style:normal;color:var(--ink);font-weight:600}
+.dark-block{background:var(--taupe);color:#f2f0ec;border-radius:var(--radius-card);padding:18px 22px;font-family:var(--mono);font-size:13px;line-height:1.6;overflow-x:auto;white-space:pre}
+.note{font-size:13px;color:var(--muted);margin-top:10px}
+.flag{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;background:var(--warn-tint);color:var(--warn);border:1px solid var(--warn-line)}
+
+/* ===== MOCKUP: so sieht die Seite in der App aus ===== */
+.stage{border:1px solid var(--line-strong);border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--sh);background:linear-gradient(160deg,#dfe3e1,#cfd6d4 40%,#c3ccca)}
+.phead{background:var(--taupe);color:#fff;min-height:92px;padding:14px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.phead h4{margin:0;font-size:22px;letter-spacing:-.4px;font-weight:700;margin-right:6px}.phead h4 small{font-weight:400;color:rgba(255,255,255,.7);font-size:15px}
+/* Steuerelemente wie im Board: 32px hoch, 1.5px Rand, auf dunkel hell gedreht (.chrome-dark-controls) */
+.ctl{font:inherit;font-size:13px;font-weight:500;height:32px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border-radius:var(--radius-button);border:1.5px solid rgba(255,255,255,.28);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;position:relative}
+.ctl:hover{border-color:#35B8A4}.ctl.ico{width:32px;padding:0;justify-content:center}
+.ctl[data-active=true]{border-color:#35B8A4;color:#5ed6c1}
+.ctl .dot{position:absolute;right:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#35B8A4}
+.ctl .cnt{font-size:11px;font-weight:400;color:rgba(255,255,255,.7)}
+.vsep{width:1px;height:24px;background:rgba(255,255,255,.2)}
+.menuwrap{position:relative}
+.menu{position:absolute;z-index:50;top:38px;left:0;min-width:250px;max-height:70vh;overflow:auto;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:var(--radius-button);box-shadow:var(--sh);padding:4px;font-size:13px}
+.menu.r{left:auto;right:0}
+.menu .lbl{padding:6px 8px 2px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mi{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font:inherit;border:0;background:none;width:100%;text-align:left;color:var(--ink)}
+.mi:hover{background:var(--inset)}
+.mi .ck{width:16px;color:var(--accent);font-weight:700}.mi .grow{flex:1}.mi .c{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.msep{height:1px;background:var(--line);margin:4px 0}
+.sortrow{display:flex;gap:6px;padding:4px 8px 8px;align-items:center}
+.sortrow select,.fld{font:inherit;font-size:13px;height:32px;border:1.5px solid var(--line-strong);border-radius:var(--radius-button);padding:0 8px;background:#fff;color:var(--ink);flex:1;min-width:0}
+.dirbtn{width:34px;height:32px;border:1.5px solid var(--line-strong);border-radius:var(--radius-button);background:#fff;cursor:pointer;font-size:15px;color:var(--accent);font-weight:700}
+.sbody{padding:18px 24px 28px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}@media(max-width:760px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{all:unset;box-sizing:border-box;cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);padding:10px 14px;display:flex;flex-direction:column;box-shadow:var(--sh)}
+.tile:hover{border-color:var(--accent)}.tile .n{font-size:24px;font-weight:700;letter-spacing:-.6px;line-height:1.15}.tile .l{font-size:12.5px;color:var(--muted)}
+.tile[aria-pressed=true]{border-color:var(--accent);background:var(--accent-tint)}
+.tile:focus-visible,.ctl:focus-visible,.mi:focus-visible,.btn:focus-visible,.help:focus-visible,.card:focus-visible,.ph:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.afl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px;font-size:13px;color:var(--ink)}
+.fchip{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--accent-line);color:var(--accent-hover);border-radius:99px;padding:2px 4px 2px 10px;font-size:12px;font-weight:500}
+.fchip button{all:unset;cursor:pointer;width:18px;height:18px;border-radius:50%;text-align:center;line-height:18px;font-weight:700}.fchip button:hover{background:var(--accent-tint)}
+.lnk{all:unset;cursor:pointer;color:var(--accent);font-size:12px;font-weight:600;text-decoration:underline}
+.proj-head{all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:flex;align-items:center;gap:10px;padding:6px 2px;margin:6px 0 8px;font-size:15px;font-weight:700;color:var(--ink);text-shadow:none}
+.proj-head .sw{width:10px;height:10px;border-radius:50%}.proj-head .ct{font-weight:400;font-size:12.5px;color:var(--body)}
+.proj-head .chev{margin-left:auto;transition:transform .15s}.proj-head[aria-expanded=false] .chev{transform:rotate(-90deg)}
+.gwrap{background:rgba(255,255,255,.55);border-radius:var(--radius-card);padding:2px 12px 12px;margin-bottom:14px;border:1px solid rgba(255,255,255,.7)}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:12px}@media(max-width:560px){.list{grid-template-columns:1fr}}
+.card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);box-shadow:var(--sh);padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px}
+.card.prog{border-left:4px solid var(--accent)}
+.top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.src{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:var(--accent-hover);font-weight:500}
+.help{all:unset;box-sizing:border-box;cursor:pointer;width:17px;height:17px;border-radius:50%;border:1.5px solid var(--line-strong);color:var(--body);font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;background:#fff;font-family:var(--sans);letter-spacing:0;text-transform:none}
+.help:hover,.help[aria-expanded=true]{border-color:var(--accent);background:var(--accent-tint)}
+.sev{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:2px 9px 2px 7px;border-radius:99px;cursor:pointer;border:0;font-family:inherit}
+.bars{display:inline-flex;gap:2px;align-items:flex-end;height:11px}.bars i{width:3px;background:currentColor;border-radius:1px;opacity:.28}
+.bars i:nth-child(1){height:4px}.bars i:nth-child(2){height:6px}.bars i:nth-child(3){height:8px}.bars i:nth-child(4){height:11px}.bars i.on{opacity:1}
+.sev.critical{background:var(--err-tint);color:var(--err);box-shadow:inset 0 0 0 1px var(--err-line)}.sev.high{background:var(--warn-tint);color:var(--warn);box-shadow:inset 0 0 0 1px var(--warn-line)}
+.sev.medium{background:var(--info-tint);color:var(--info)}.sev.low,.sev.info{background:var(--inset);color:var(--body)}
+.age{margin-left:auto;font-size:12px;color:var(--muted)}
+.card h5{margin:0;font-size:15.5px;line-height:1.3;font-weight:600;color:var(--ink)}
+.card p.d{margin:0;font-size:13.5px;line-height:1.5;color:var(--body);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.finds{display:grid;gap:3px;margin:0;padding:0;list-style:none}
+.finds li{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--body);background:var(--inset);border-radius:7px;padding:3px 8px}
+.finds code{background:#fff;color:var(--ink);flex:none}.finds .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.taskbox{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--accent-tint);border:1px solid var(--accent-line);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--ink)}
+.state{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--accent-hover)}.state i{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.35}}@media(prefers-reduced-motion:reduce){.state i{animation:none}*{transition:none!important}}
+.foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;padding-top:8px;border-top:1px solid var(--line)}
+.meta{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ph{all:unset;box-sizing:border-box;cursor:pointer;font-size:12px;color:var(--body);background:var(--inset);border:1px solid var(--line);border-radius:99px;padding:1px 9px}.ph:hover{border-color:var(--accent);color:var(--ink)}.ph b{color:var(--ink);font-weight:600}
+.pill{font-size:11.5px;font-weight:500;background:var(--inset);border:1px solid var(--line);color:var(--body);padding:1px 8px;border-radius:99px}.pill.ret{background:var(--accent-tint);color:var(--accent-hover);border-color:var(--accent-line)}
+.acts{margin-left:auto;display:flex;gap:6px;align-items:center}
+.btn{font:inherit;font-size:12.5px;font-weight:600;height:30px;border-radius:var(--radius-button);border:1.5px solid var(--line-strong);background:#fff;color:var(--ink);padding:0 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--accent)}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.primary:hover{background:var(--accent-hover)}.btn.ghost{border-color:transparent;background:transparent;color:var(--body)}
+.btn.ico{width:30px;padding:0;justify-content:center}
+.pop{position:absolute;z-index:60;width:min(330px,88vw);background:var(--taupe);color:#f2f0ec;border-radius:var(--radius-card);padding:13px 15px;box-shadow:0 24px 50px -20px rgba(0,0,0,.5);font-size:13px;line-height:1.5}
+.pop h6{margin:0 0 4px;font-size:14px;color:#fff}.pop p{color:#d9d6d0;margin:0 0 7px;font-size:13px}.pop .k{font-family:var(--mono);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#5ed6c1;display:block}
+.pop.edit{background:var(--card);color:var(--ink);border:1px solid var(--line);width:min(340px,90vw)}.pop.edit label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:8px 0 3px}
+.pop.edit .fld{width:100%;flex:none}.pop.edit .row{display:flex;gap:6px;margin-top:10px;justify-content:flex-end}
+.empty{text-align:center;padding:36px 16px;color:var(--body);background:rgba(255,255,255,.7);border:1px dashed var(--line-strong);border-radius:var(--radius-card)}
+.phone{width:360px;max-width:100%;border:10px solid var(--taupe);border-radius:34px;background:linear-gradient(160deg,#dfe3e1,#c3ccca);overflow:hidden;margin:0 auto}
+.phone .phead{min-height:64px;padding:10px 14px}.phone .phead h4{font-size:19px}.phone .sbody{padding:10px}
+.gloss{display:grid;grid-template-columns:130px 1fr 1.4fr;font-size:14px;border:1px solid var(--line);border-radius:var(--radius-card);overflow:hidden;background:var(--card)}
+.gloss>div{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--body)}.gloss>div.h{background:var(--inset);font-family:var(--mono);font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:var(--ink)}
+.gloss>div:nth-child(3n+1):not(.h){font-family:var(--mono);color:var(--ink);font-size:13px}
+.gloss .span3{grid-column:1/-1;background:var(--inset);font-weight:600;color:var(--ink)}
+@media(max-width:760px){.gloss{grid-template-columns:1fr}}
+.decide{display:grid;gap:12px}.q{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);padding:16px 20px}.q h3{font-size:17px}
+.reco{display:inline-block;margin-top:2px;font-size:13px;color:var(--accent-hover);font-weight:600}
+.approve{position:sticky;bottom:12px;margin-top:28px;background:var(--taupe);color:#f2f0ec;border-radius:var(--radius-card);padding:16px 22px}.approve p{color:#d9d6d0;margin:0}.approve strong{color:#fff}
+.ovl{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.mdl{width:640px;max-width:100%;max-height:88vh;overflow:auto;padding:22px 24px;gap:12px;background:#fff}
+.mdl h3{margin:0;font-size:19px;line-height:1.3;color:var(--ink)}
+.mdl .close{margin-left:auto}
+.mdl dl{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;margin:0;font-size:13px}.mdl dt{color:var(--muted)}.mdl dd{margin:0;color:var(--ink)}
+.mdl .sect{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}
+.mdl .acts2{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
+.mdl .btn{height:36px}
+.mdl .pop{position:static!important;top:auto!important;left:auto!important;width:auto!important;max-width:none;margin-top:8px;box-shadow:none}
+.mdl label.l{font-size:12px;font-weight:600;color:var(--ink);display:grid;gap:4px}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="wide">
+  <strong>Triage Redesign v2</strong>
+  <a href="#fb">Dein Feedback</a><a href="#review">Review</a><a href="#mockup">Mockup</a><a href="#help">Hilfetexte</a><a href="#persist">Speichern</a><a href="#mobile">Phone</a><a href="#plan">Bauplan</a><a href="#decide">Entscheidungen</a>
+  <span class="badge">Vorschlag, nicht gebaut</span>
+</div></div>
+
+<header style="padding:60px 0 40px"><div class="wrap">
+  <div class="eyebrow">Iterate · triage-page-redesign · Version 2 · 08.11.2026</div>
+  <h1>Triage im Look der App, mit Filtern wie auf dem Board.</h1>
+  <p class="lead">Überarbeitet nach deinem Feedback. Das Mockup nutzt jetzt die echten Farben, Radien und Bedienelemente der WebUI (anthrazit Seitenkopf, Projekt-Dropdown und Filter-Trichter wie auf dem Board) und die <strong>echten Einträge</strong> deiner Triage. Gebaut wird erst nach deiner Freigabe.</p>
+</div></header>
+
+<section id="fb" class="alt"><div class="wrap">
+  <div class="eyebrow">00 · Dein Feedback</div>
+  <h2>Was ich geändert habe</h2>
+  <div class="fb">
+    <div><b class="n">1</b><span><em>Fix now / Start campaign auf der Karte.</em> Jetzt dabei: Primäre Aktion pro Karte (Fix now, bei Campaign-Einträgen Start campaign, danach Go to board). <em>Snooze nur auf der Karte</em> (Menü mit Datum), nicht mehr im Detail-Fenster. Ja, so verstehe ich dich; siehe Entscheidung A.</span></div>
+    <div><b class="n">2</b><span><em>Filter ohne "Wegwählen".</em> Gleiches Muster wie der Status-Filter auf dem Board: Trichter-Menü, nichts angehakt = alles sichtbar, Häkchen = nur diese. Aktive Filter erscheinen als Chips mit ×. Siehe Entscheidung B.</span></div>
+    <div><b class="n">3</b><span><em>Fix now zeigt den Task.</em> Karte bekommt "In progress" mit Task-Titel und Task-Status (live). Neue Kachel "In progress". Braucht eine Verknüpfung Eintrag zu Task (Entscheidung C).</span></div>
+    <div><b class="n">4</b><span><em>Einheitlich mit der WebUI.</em> Das Mockup baut jetzt auf den App-Tokens auf, nicht auf der Standalone-Marke. Kein eigener Stil neben Board, Inbox, Projects.</span></div>
+    <div><b class="n">5</b><span><em>Suche.</em> Du hast 5 offene Einträge. Die Suche erscheint daher erst ab 12 offenen Einträgen (Lupe im Kopf), sonst gar nicht.</span></div>
+    <div><b class="n">6</b><span><em>Keine Filter-Pills auf vier Ebenen.</em> Ersetzt durch ein Trichter-Menü mit Abschnitten (Severity, Source, Priority, Domain, Complexity) plus Chips nur für aktive Filter.</span></div>
+    <div><b class="n">7</b><span><em>Projektfilter wie auf dem Board.</em> Dieselbe Komponente und derselbe gemeinsame Zustand (<code>ProjectFilterDropdown</code>, <code>useProjectFilter</code>): wählst du ein Projekt auf dem Board, gilt es auch hier.</span></div>
+    <div><b class="n">8</b><span><em>Sortierung mit Richtung.</em> Jede Ebene hat Schlüssel plus Pfeil auf/ab. Neue Schlüssel: Severity, Priority.</span></div>
+    <div><b class="n">9</b><span><em>Hilfetexte aus den echten Einträgen.</em> Ich habe deine 749 Zeilen Log gelesen. Compliance-Einträge sind Sammelkarten mit Prüfcodes wie <code>B/B7</code>, <code>H/H1</code>. Die Karte zeigt jeden Code als Zeile mit Klartext und eigener Hilfe (Abschnitt 3).</span></div>
+    <div><b class="n">10</b><span><em>Gruppieren: none / project / severity ...</em> Menü "Group" mit None, Project, Severity, Source, Priority; wird gemerkt.</span></div>
+    <div><b class="n">11</b><span><em>Metadaten schnell ändern.</em> Stift auf der Karte öffnet ein kleines Formular (Titel, Severity, Priority, Domain, Complexity). Was heute schon speicherbar ist und was nicht: Entscheidung D.</span></div>
+    <div><b class="n">12</b><span><em>Complexity in der Filter-Menü-Unterruppe, Kacheln bleiben.</em> "Needs attention" heißt jetzt <strong>Critical + High</strong>, weil es genau das zählt (du hattest richtig geraten).</span></div>
+  </div>
+</div></section>
+
+<section id="review"><div class="wrap">
+  <div class="eyebrow">01 · Review</div>
+  <h2>Befunde (kompakt, aktualisiert)</h2>
+  <p class="lead">Grundlage: Code der Seite, Board-Code, UI Kit, dein Log. Die echte Seite habe ich nicht im Browser gerendert; die optischen Punkte stammen aus Markup und Tokens.</p>
+  <div class="tablewrap"><table class="find">
+    <thead><tr><th>Befund</th><th>Heute</th><th>Vorschlag</th></tr></thead><tbody>
+    <tr><td>Ansicht geht verloren</td><td><code>useTriageViewState</code> nur im Arbeitsspeicher (Code-Kommentar: "no persistence").</td><td>Merken pro Gerät, Reset view. Abschnitt 4.</td></tr>
+    <tr><td>Filter "wegwählen"</td><td>Vier Chipgruppen, Klick = ausblenden, durchgestrichen. Unnatürlich.</td><td>Trichter-Menü wie das Board; Häkchen = zeigen.</td></tr>
+    <tr><td>Anderer Stil als das Board</td><td>Eigene Filterleiste im Body, eigene Chips, kein Projekt-Dropdown, Sort als lose Dropdowns.</td><td>Steuerelemente im Seitenkopf wie auf dem Board, dieselben Komponenten.</td></tr>
+    <tr><td>Karte unübersichtlich</td><td>Bis zu 6 Badges in einer Zeile; <code>high</code> und <code>medium</code> sehen gleich aus; Compliance-Sammeltext als Textblock.</td><td>Hierarchie, Prüfcodes als Zeilen, Severity mit Balken.</td></tr>
+    <tr><td>Keine Erklärung</td><td>"compliance", "H/H1", "→ P1 / Engineering" ohne Hilfe; zwei Badges nur per Hover-Tooltip.</td><td>"?" per Tap, Texte aus echten Einträgen.</td></tr>
+    <tr><td>Zustand "wird gerade bearbeitet" fehlt</td><td>Nach Fix now merkt die Karte nichts; man sieht nicht, wer es macht.</td><td>Verknüpfung zum Task, In-progress-Anzeige.</td></tr>
+    <tr><td>Jede Aktion kostet ein Fenster</td><td>Karte öffnen, dann Aktion.</td><td>Aktionen und Metadaten-Edit auf der Karte.</td></tr>
+    <tr><td>Nur Projektgruppen</td><td>Fest nach Projekt, nicht einklappbar.</td><td>Group by None, Project, Severity, Source, Priority; einklappbar.</td></tr>
+    <tr><td>Complexity-Filter immer sichtbar</td><td>Jeder Eintrag ist "Unset".</td><td>Bleibt, als Abschnitt im Filter-Menü (du hast das bestätigt).</td></tr>
+    </tbody></table></div>
+  <p class="note"><b>Bleibt unverändert:</b> alle Sonderregeln (zurückgekehrte Parks umgehen Filter, datumslose Parks bleiben sichtbar), die reine Sortierlogik mit festem Locale, Fehler- und Stale-Zustände, Detail-Fenster inklusive Fix now.</p>
+</div></section>
+
+<section id="mockup" class="alt"><div class="wide">
+  <div class="eyebrow">02 · Mockup</div>
+  <h2>So sieht die Seite aus. Klick dich durch.</h2>
+  <p class="lead">Echte Einträge aus deinem Log (5 offene) plus drei Beispiele, die mit <span class="flag">Beispiel</span> markiert sind, damit alle Kartenarten zu sehen sind. Probiere: Trichter, Group, Sort mit Pfeil, "?" an Prüfcodes, Stift, Fix now, Snooze. Die Ansicht wird in deinem Browser gespeichert (Reload testen).</p>
+  <div class="stage" id="stage">
+    <div class="phead" id="phead"></div>
+    <div class="sbody">
+      <div class="tiles" id="tiles"></div>
+      <div class="afl" id="afl"></div>
+      <div id="out"></div>
+    </div>
+  </div>
+  <p class="note">Kopfzeile = Board-Muster: Projekt-Dropdown, Trennstrich, Trichter, dann Group und Sort, rechts Dichte. Im Mockup löschen Aktionen Karten nur lokal; "Reset view" im Filter-Menü holt alles zurück.</p>
+</div></section>
+
+<section id="help"><div class="wrap">
+  <div class="eyebrow">03 · Hilfetexte aus den echten Einträgen</div>
+  <h2>Was in deinem Log wirklich steht</h2>
+  <p class="lead">Dein Log hat 282 Einträge: 113 Compliance, 33 GitHub, 29 Manual, dazu Dutzende freie Quellen. Die Compliance-Einträge sind <strong>Sammelkarten</strong>: ein Titel "Compliance: 6 open finding(s)" und darunter Zeilen wie <code>B/B7: ...</code>. Die Buchstaben-Zahl-Codes sind Prüfungen des Compliance-Audits. Das versteht niemand, daher:</p>
+  <ol class="clean" style="margin:12px 0 20px">
+    <li>Die Karte liest die Zeilen aus dem Detailtext und zeigt jede als eigene Zeile: Code, Klartext-Titel, "?".</li>
+    <li>Jede bekannte Prüfung hat eine Erklärung: was ist es, warum liegt es hier, was tue ich damit.</li>
+    <li>Unbekannte Codes zeigen den Originaltitel und eine allgemeine Hilfe, nie einen Fehler.</li>
+  </ol>
+  <div class="gloss">
+    <div class="h">Code</div><div class="h">Original-Titel im Log</div><div class="h">Erklärung (Entwurf)</div>
+    <div class="span3">Compliance-Prüfungen (aus <code>.shipwright/triage.jsonl</code> gelesen)</div>
+    <div>B/B7</div><div>Every commit since release tag has a matching event</div><div>Es gibt Commits seit dem letzten Release, die im Projektprotokoll nicht erfasst sind (meist Änderungen ohne Iterate). Tun: Nachtragen oder als bewusst verwerfen.</div>
+    <div>C/C1</div><div>Spec FR → plan/design coverage</div><div>Eine Anforderung (FR) hat keinen Plan- oder Design-Bezug.</div>
+    <div>D/D-layer</div><div>Active FR missing an executed-passing test at a required layer</div><div>Eine Anforderung hat keinen bestandenen Test auf der nötigen Ebene (z. B. nur Unit-, kein Browser-Test).</div>
+    <div>D/D1</div><div>Spec FR coverage in events</div><div>Anforderungen, zu denen es im Projektprotokoll nie eine Arbeit gab.</div>
+    <div>D/D3</div><div>Promised FRs delivered</div><div>Zugesagte Anforderungen wurden noch nicht ausgeliefert.</div>
+    <div>D/D4</div><div>Latest covering event passed tests</div><div>Die letzte Arbeit zu einer Anforderung hatte rote Tests.</div>
+    <div>D/D5</div><div>Iterate feature/change events link an FR</div><div>Eine Änderung ist keiner Anforderung zugeordnet.</div>
+    <div>E/E1 bis E5</div><div>RTM / Test-evidence / Change-history / SBOM / Dashboard stale</div><div>Ein erzeugter Bericht ist veraltet. Tun: neu erzeugen, kein Handlungsbedarf im Code.</div>
+    <div>F/F5</div><div>Architecture marker vs arch-impact drops</div><div>architecture.md hat keine Markierung, obwohl Architektur-Notizen vorliegen.</div>
+    <div>F/F6</div><div>CLAUDE.md size hygiene</div><div>Die Projektanweisung wird zu lang und sollte gekürzt werden.</div>
+    <div>G/G2</div><div>Conventional-commit scope matches alias-map / split / stoplist</div><div>Ein Commit-Bereich (z. B. "standalone") passt zu keinem bekannten Bereich.</div>
+    <div>H/H1</div><div>Bloat drift (oversize file not in baseline)</div><div>Eine Datei ist zu groß geworden und steht nicht in der erlaubten Liste. Tun: aufteilen.</div>
+    <div>H/H2</div><div>Bloat ratchet-suggestion (baseline current &gt; actual)</div><div>Eine Datei ist kleiner als erlaubt: die Obergrenze kann gesenkt werden.</div>
+    <div class="span3">Phase-Quality (Quelle <code>phaseQuality</code>)</div>
+    <div>C1 / C5 / W3</div><div>record_event phase_completed / CHANGELOG [Unreleased] has Added entry / work_completed event</div><div>Eine abgeschlossene Phase hat einen Pflichteintrag nicht geschrieben (Ereignis oder Changelog).</div>
+    <div class="span3">Quellen (Auswahl der häufigsten im Log)</div>
+    <div>compliance</div><div>113 Einträge</div><div>Sammelkarte des Compliance-Audits, siehe oben. Verschwindet nicht von selbst, bis alle Zeilen erledigt sind.</div>
+    <div>github</div><div>33 Einträge</div><div>Rollup aus Sicherheits-Scannern ("GitHub security: 12 finding(s)") oder ein roter Check an einem PR.</div>
+    <div>manual / operator</div><div>29 / 10</div><div>Von Hand oder aus einer Sitzung angelegt.</div>
+    <div>drift</div><div>"... exists on disk but not listed in Structure"</div><div>Dokumentation und Dateisystem weichen ab.</div>
+    <div>required-checks</div><div>"must-pass check set does not match"</div><div>Ein Check läuft, hält aber keinen Merge auf, weil er nicht als Pflicht eingetragen ist.</div>
+    <div>req3-campaign u. a.</div><div>freie Quellen</div><div>Von einer Kampagne oder Sitzung angelegt. Allgemeine Hilfe: "Created by a tool or session. Open the item for details."</div>
+  </div>
+  <p class="note"><b>Ehrlich dazu:</b> Titel und Codes sind aus deinem Log kopiert. Die Erklärungen rechts sind mein <span class="flag">Entwurf</span> aus diesen Titeln. Vor dem Bau gleiche ich jede mit dem Code des Compliance-Audits ab (<code>group_*.py</code> im Plugin-Repo) und korrigiere, was nicht stimmt. Severity-Hilfe und "Priority folgt der Severity" stehen im Mockup in der Karte.</p>
+</div></section>
+
+<section id="persist" class="alt"><div class="wrap">
+  <div class="eyebrow">04 · Speichern</div>
+  <h2>Filter, Sortierung, Gruppierung bleiben</h2>
+  <p class="lead">Ursache: <code>useState</code> ohne Speicher. Lösung wie bei Projektfilter und Board: ein <code>localStorage</code>-Eintrag pro Gerät, versioniert und beim Lesen geprüft, Fehler fallen auf den Standard zurück.</p>
+  <div class="grid2">
+    <div class="panel"><h3>Gespeichert</h3><ul class="clean"><li>Filter (Severity, Source, Priority, Domain, Complexity, Parked)</li><li>Sortierung beider Ebenen inklusive Richtung</li><li>Group by, eingeklappte Gruppen</li></ul><p style="margin-top:8px">Der Projektfilter kommt aus dem gemeinsamen Board-Zustand (<code>useProjectFilter</code>) und bleibt dort gespeichert. Nicht gespeichert: Suche, offene Karte, Menüs.</p></div>
+    <div class="panel"><h3>Absicherung</h3><ul class="clean"><li>Mengen als Listen speichern, beim Laden prüfen</li><li>Unbekannte Werte werden ignoriert, falsche Version = Standard</li><li>Zugriff in try/catch (Privatmodus)</li><li>"Reset view" im Filter-Menü</li></ul></div>
+  </div>
+  <div class="dark-block" style="margin-top:14px">{ "v": 1,
+  "filters": { "severities": ["high","critical"], "sources": [], "priorities": [], "domains": [], "complexities": [], "showParked": false },
+  "sort":    { "primary": {"key":"severity","direction":"desc"}, "secondary": {"key":"modified","direction":"desc"} },
+  "groupBy": "project", "collapsed": ["project:abc123"] }       // Schlüssel: shipwright:triage-view:v1</div>
+</div></section>
+
+<section id="mobile"><div class="wrap">
+  <div class="eyebrow">05 · Phone</div>
+  <h2>Auf dem Handy</h2>
+  <p class="lead">Wie das Board auf dem Handy: Projekt-Dropdown wandert in die globale Top-Bar, im Kopf bleiben Trichter, Group, Sort als Icons. Eine Spalte, zwei Kacheln, Aktionen dauerhaft sichtbar, 44px Touch-Ziele.</p>
+  <div class="phone"><div class="phead"><h4>Triage <small>(5)</small></h4><span class="ctl ico" style="margin-left:auto">⏷</span><span class="ctl ico">⇅</span></div>
+  <div class="sbody"><div class="tiles" style="grid-template-columns:repeat(2,1fr);gap:8px"><div class="tile"><span class="n">5</span><span class="l">Open</span></div><div class="tile"><span class="n">1</span><span class="l">Critical + High</span></div></div>
+  <div class="card"><div class="top"><span class="src">Tooling</span><span class="sev medium"><span class="bars"><i class="on"></i><i class="on"></i><i></i><i></i></span>Medium</span></div><h5>F11 leak-guard BLOCKs on the F3 decision-drop write</h5><div class="foot"><span class="acts" style="margin-left:0"><button class="btn primary" style="min-height:44px">Fix now</button><button class="btn" style="min-height:44px">Snooze</button></span></div></div></div></div>
+</div></section>
+
+<section id="plan" class="alt"><div class="wrap">
+  <div class="eyebrow">06 · Bauplan</div>
+  <h2>Was gebaut wird</h2>
+  <p class="lead">Einschätzung jetzt <strong>medium bis large</strong>, weil Server und geteilte Werkzeuge berührt werden (Fix-now-Verknüpfung, Metadaten-Edit). Normaler Iterate mit Spec, Tests, E2E im echten Browser, Review-Kaskade. Bei "large" würde ich es in 2 bis 3 PRs schneiden.</p>
+  <div class="grid2">
+    <div class="panel"><h3>Phasen</h3><ol class="clean">
+      <li><b>Zustand + Filtermodell.</b> Speichern, Include-Semantik (Entscheidung B), Richtung je Sortier-Ebene, neue Schlüssel; reine Funktionen mit Tests.</li>
+      <li><b>Seitenkopf-Toolbar.</b> <code>ProjectFilterDropdown</code>, Filter-Trichter, Group- und Sort-Menü im Board-Stil; Chips für aktive Filter.</li>
+      <li><b>Neue Karte.</b> Prüfcode-Zeilen, Severity, Aktionen, Parked im gleichen Stil, einklappbare Gruppen, Kacheln.</li>
+      <li><b>Hilfen.</b> Hilfe-Komponente (Tap, Tastatur) und Textdatei mit Test "jeder bekannte Code hat einen Text".</li>
+      <li><b>Fix-now-Verknüpfung.</b> Task bekommt additives Feld, Karte zeigt Task und Status.</li>
+      <li><b>Metadaten-Edit.</b> Stufenweise nach Entscheidung D.</li>
+      <li>E2E im echten Browser: Reload-Speichern, Phone-Breite, Tastatur, Fix now bis In progress.</li></ol></div>
+    <div class="panel"><h3>Leitplanken</h3><ul class="clean">
+      <li>Nur App-Tokens, kein Hex im Code (<code>no-hardcoded-colors</code>); solide Karten wegen der <code>.on-photo</code>-Falle.</li>
+      <li>Scroll gehört der Route (Regel 27); Seitenkopf bleibt <code>PageHead</code>.</li>
+      <li>Standard-Buttons (Regel 26) für die Aktionen, Motion nur über Tokens.</li>
+      <li>Dateien unter 300 Zeilen: Seite und Filterleiste werden aufgeteilt, nicht angebaut.</li>
+      <li>Server-Änderungen nur additiv (Feld am Task), Schema-Sync-Test bleibt grün.</li></ul></div>
+  </div>
+</div></section>
+
+<section id="decide"><div class="wrap">
+  <div class="eyebrow">07 · Entscheidungen</div>
+  <h2>Vier Fragen an dich</h2>
+  <div class="decide">
+    <div class="q"><h3>A · Snooze nur auf der Karte?</h3><p>Du schlägst vor, Snooze nur auf der Karte zu zeigen. Dann fliegt es aus dem Detail-Fenster, dort bleiben Promote, Dismiss und Fix now. Snooze auf der Karte bietet fertige Zeiten (morgen, 1 Woche, 1 Monat), ein Datum oder "ohne Datum".</p><span class="reco">Empfehlung: Ja, so.</span></div>
+    <div class="q"><h3>B · Filter-Logik umdrehen, wie auf dem Board</h3><p>Heute: alles ist angehakt, du wählst ab. Neu: nichts angehakt heißt "alles", ein Häkchen heißt "nur das". Das ist intuitiver, ändert aber die Logik, die wir am 08.08. bewusst anders gebaut haben. Die Sonderregeln (Rückkehrer, datumslose Parks) bleiben. Die bisherige Filterlogik und ihre Tests werden umgestellt.</p><span class="reco">Empfehlung: Ja, das war dein Wunsch und löst das Verständnisproblem.</span></div>
+    <div class="q"><h3>C · Fix now merkt sich den Task</h3><p>Damit die Karte "wird bearbeitet von Task X, Status aktiv" zeigen kann, muss der neue Task den Eintrag kennen (heute passiert das nur bei Promote). Das ist ein kleines zusätzliches Feld am Task. Wenn der Task fertig ist, bietet die Karte "Resolve" an (verwirft den Eintrag mit Grund "fixed by task ...").</p><span class="reco">Empfehlung: Ja.</span></div>
+    <div class="q"><h3>D · Wie weit soll das schnelle Ändern gehen?</h3><p>Technisch möglich sind heute <b>Titel, Detail und Severity</b> (der Server rechnet die Priority daraus). <b>Domain, Priority und Complexity</b> lassen sich heute nicht nachträglich ändern; das ginge nur beim Promote. Sie änderbar zu machen heißt, das Änderungs-Ereignis im geteilten Triage-Werkzeug (anderes Repo, eigener PR vorher) zu erweitern.</p>
+      <span class="reco">Empfehlung: Jetzt Titel und Severity direkt auf der Karte. Domain/Priority/Complexity als Folgeschritt nach Erweiterung des Werkzeugs; bis dahin zeigt das Formular sie schreibgeschützt.</span></div>
+  </div>
+  <div class="approve"><p><strong>Freigabe:</strong> Antworte mit "Freigabe" oder mit deinen Änderungen zu A bis D. Erst danach lege ich die Iterate-Spec an und baue.</p></div>
+</div></section>
+
+<div id="mdlroot"></div>
+<script>
+(function(){
+  var KEY="shipwright:triage-proposal-demo:v2";
+  var SRC={compliance:"Compliance",req3:"Campaign",tooling:"Tooling",manual:"Manual",github:"GitHub",phaseQuality:"Phase quality"};
+  var SRCHELP={compliance:["A recurring audit found gaps between requirements, code, tests and docs.","One card bundles all open findings of one audit run. It does not go away on its own.","Open the lines below. Promote the real gaps, dismiss the ones that are intended."],
+    req3:["Created by a campaign: a planned work package.","The campaign wants a decision here before it continues.","Start the campaign, or park it until you are ready."],
+    tooling:["A problem noticed in the Shipwright tooling itself.","Found while working on something else and kept so it is not lost.","Fix it now if it blocks you, otherwise park it."],
+    manual:["Added by hand, from you or from a session.","Nothing detected it; a person decided to keep it.","Promote it when you are ready to work on it."],
+    github:["A finding from GitHub: a security scan roll-up or a failing check on a pull request.","It happened outside this app and is kept here so it is not lost.","Check high severities first. Fix now starts a security task."],
+    phaseQuality:["A finished phase skipped a mandatory record (event or changelog entry).","The phase is marked done, but a quality check disagrees.","Fix now repairs the record."]};
+  var CODE={"B/B7":["Commits not in the project log","Some commits since the last release have no matching entry in the project log, usually changes made outside an iterate.","Add the missing entries, or dismiss if the commits are intentional."],
+    "D/D3":["Promised requirements not delivered","Requirements marked as promised are not delivered yet.","Check the list, deliver or re-plan."],
+    "F/F5":["Architecture note marker missing","architecture.md has no marker although architecture notes exist.","Run the first architecture sync to set a baseline."],
+    "G/G2":["Unknown commit scope","A commit uses a scope (for example 'standalone') that matches no known area.","Rename the scope or add it to the alias map."],
+    "H/H1":["File too large, not in baseline","A source file grew past the size limit and is not on the allowed list.","Split the file."],
+    "H/H2":["Baseline can be lowered","A file is now smaller than its allowed limit, so the limit can be tightened.","Lower the baseline entry."],
+    "C1":["Phase-completed event missing","The phase finished without writing its completion event.","Run the record_event command named in the hint."],
+    "C5":["Changelog entry missing","CHANGELOG [Unreleased] has no 'Added' entry for this phase.","Prepend an entry."]};
+  var SEVH={critical:"Act now. Can endanger data, security or delivery.",high:"Fix soon. Noticeable damage or risk.",medium:"Plan it. No acute damage.",low:"A small improvement.",info:"For your information only."};
+  var BARS={critical:4,high:3,medium:2,low:1,info:0},RANK={critical:0,high:1,medium:2,low:3,info:4};
+  var PRI={critical:"P0",high:"P1",medium:"P2",low:"P3",info:"P3"}; /* Priority folgt der Severity (wie im Server) */
+  var PROJ={a:{n:"shipwright-webui",c:"#0E7A6B"},b:{n:"customer-portal",c:"#B54708"}};
+  var ITEMS=[
+   {id:"trg-75c0be08",p:"a",src:"compliance",sev:"high",dom:"Engineering",age:4,title:"Compliance: 6 open finding(s)",
+    d:"6 open compliance finding(s): B/B7, D/D3, F/F5, G/G2, H/H1, H/H2",
+    finds:[["B/B7","Every commit since release tag has a matching event"],["D/D3","Promised FRs delivered"],["F/F5","Architecture marker vs arch-impact drops"],["G/G2","Conventional-commit scope matches alias-map / split / stoplist"],["H/H1","Bloat drift (oversize file not in baseline)"],["H/H2","Bloat ratchet-suggestion (baseline current > actual)"]],real:1},
+   {id:"trg-r3030001",p:"a",src:"req3",sev:"medium",dom:"Product",age:20,title:"REQ3.03 [ITERATE] Requirements + AC schreiben - WebUI",d:"Phase 2 fuer die WebUI, interaktiv. grill-Runde: Code-Scan auf Vollstaendigkeit, pro Requirement Formulierung + fehlende Akzeptanzkriterien in Geschaeftssprache.",campaign:true,real:1},
+   {id:"trg-r3070001",p:"a",src:"req3",sev:"medium",dom:"Quality",age:20,title:"REQ3.07 [CAMPAIGN AUTONOM] Test-Backfill: fehlende AC-Tests - WebUI",d:"Der Coverage-Motor fuer die WebUI, eigener Anker. Schreibt Tests fuer ACs ohne beweisenden Test. AUTONOM, bounded.",campaign:true,real:1},
+   {id:"trg-t11leak01",p:"a",src:"tooling",sev:"medium",dom:"Engineering",age:30,title:"F11 leak-guard BLOCKs on the F3 decision-drop write to the main tree",d:"check_iterate_isolation.py --stage f11 hard-BLOCKs (main_tree_leak) on the decision-drop file that write_decision_drop.py (F3) is designed to make.",real:1},
+   {id:"trg-m0ac0001",p:"a",src:"manual",sev:"medium",dom:"Quality",age:50,title:"AC-level enumeration + minting + test re-tagging for webui is unstarted, needs its own campaign unit",d:"Follow-up to w5 (bind-and-promote): both external plan reviewers flagged w5 as FR-level only, not AC-level as its title implied.",real:1},
+   {id:"trg-ex-gh01",p:"b",src:"github",sev:"high",dom:"Security",age:2,title:"GitHub security: 3 shipwright-security finding(s) (high)",d:"Repo customer-portal | code-scanning: (unavailable) | shipwright-security: 3 high",ex:1},
+   {id:"trg-ex-pq01",p:"b",src:"phaseQuality",sev:"high",dom:"Quality",age:1,title:"Phase-quality: 2 open Tier-1 FAIL(s) across 1 phase(s)",d:"2 open phase-quality Tier-1 FAIL(s): iterate.",finds:[["C1","record_event phase_completed[iterate]"],["C5","CHANGELOG [Unreleased] has Added entry"]],ex:1},
+   {id:"trg-ex-pk01",p:"b",src:"manual",sev:"low",dom:"Product",age:40,title:"Idea: show last login on the account page",d:"Noted during a call. Park until there is a second request.",status:"parked",ret:"21.11.2026",ex:1}
+  ];
+  var D={sev:[],src:[],pri:[],dom:[],cx:[],parked:false,project:null,group:"project",p:{k:"severity",d:"desc"},s:{k:"modified",d:"desc"},collapsed:[],tile:null};
+  var S=load(),gone=[],menu=null,tasks={},ov={};
+  function cl(x){return JSON.parse(JSON.stringify(x))}
+  function load(){try{var r=JSON.parse(localStorage.getItem(KEY));if(!r||r.v!==2)return cl(D);var o=cl(D);for(var k in o){if(k in r.s&&typeof r.s[k]===typeof o[k])o[k]=r.s[k]}return o}catch(e){return cl(D)}}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify({v:2,s:S}))}catch(e){}}
+  function $(i){return document.getElementById(i)}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+  function has(a,v){return a.indexOf(v)>-1}function tg(a,v){var i=a.indexOf(v);if(i>-1)a.splice(i,1);else a.push(v)}
+  function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+  function g(it,f){return ov[it.id]&&ov[it.id][f]||it[f]}
+  function pri(it){return PRI[g(it,"sev")]}
+  function inc(sel,v){return !sel.length||has(sel,v)}
+  function pass(it){
+    if(S.project&&it.p!==S.project)return false;
+    if(S.tile==="attn"&&!(g(it,"sev")==="critical"||g(it,"sev")==="high"))return false;
+    if(S.tile==="prog"&&!tasks[it.id])return false;
+    return inc(S.sev,g(it,"sev"))&&inc(S.src,it.src)&&inc(S.pri,pri(it))&&inc(S.dom,it.dom)&&inc(S.cx,"unset");
+  }
+  function val(it,k){return k==="severity"?4-RANK[g(it,"sev")]:k==="priority"?3-Number(pri(it).slice(1)):k==="name"?g(it,"title").toLowerCase():-it.age}
+  function cmp(a,b,l){var x=val(a,l.k),y=val(b,l.k),r=x<y?-1:x>y?1:0;return l.d==="desc"?-r:r}
+  function sorted(l){return l.slice().sort(function(a,b){return cmp(a,b,S.p)||cmp(a,b,S.s)||(a.id<b.id?-1:1)})}
+  function sev(it){var s=g(it,"sev"),b="";for(var i=0;i<4;i++)b+='<i'+(i<BARS[s]?' class="on"':'')+'></i>';return '<span class="sev '+s+'" title="'+esc(SEVH[s])+'"><span class="bars" aria-hidden="true">'+b+'</span>'+cap(s)+'</span>'}
+  function helpBtn(k,l){return '<button class="help" type="button" data-help="'+esc(k)+'" aria-expanded="false" aria-label="What is '+esc(l)+'?">?</button>'}
+  function card(it){
+    var t=tasks[it.id],parked=it.status==="parked",fi="";
+    if(it.finds)fi='<ul class="finds">'+it.finds.map(function(f){return '<li><code>'+esc(f[0])+'</code><span class="t" title="'+esc(f[1])+'">'+esc(f[1])+'</span>'+(CODE[f[0]]?helpBtn("code:"+f[0],f[0]):'')+'</li>'}).join("")+'</ul>';
+    var tb=t?'<div class="taskbox"><span class="state"><i></i>In progress</span><span>Task <b>'+esc(t.title)+'</b></span><span class="pill">'+t.state+'</span><a href="#mockup" style="margin-left:auto;font-weight:600;font-size:12.5px">Open task</a></div>':'';
+    var cta=t?'<button class="btn" data-act="resolve" data-id="'+it.id+'" type="button">Resolve</button>':parked?'<button class="btn" data-act="unpark" data-id="'+it.id+'" type="button">Return now</button>':(it.campaign?'<button class="btn primary" data-act="campaign" data-id="'+it.id+'" type="button">Start campaign</button>':'<button class="btn primary" data-act="fix" data-id="'+it.id+'" type="button">Fix now</button>');
+    var sn=(t||parked)?'':'<button class="btn" data-snz="'+it.id+'" type="button" aria-haspopup="menu">Snooze ▾</button>';
+    var pr=t||parked?'':'<button class="btn" data-act="promote" data-id="'+it.id+'" type="button">Promote</button>';
+    var ex=it.ex?' <span class="flag">Beispiel</span>':'';
+    return '<article class="card'+(t?' prog':'')+'" data-card="'+it.id+'" aria-label="'+esc(g(it,"title"))+'"><div class="top"><span class="src">'+esc(SRC[it.src]||it.src)+helpBtn("src:"+it.src,SRC[it.src]||it.src)+'</span>'+sev(it)+ex+(parked?'<span class="pill ret">Returns '+it.ret+'</span>':'')+'<span class="age">'+it.age+'d ago</span></div>'+
+     '<h5 style="cursor:pointer" data-open="'+it.id+'" title="Open details">'+esc(g(it,"title"))+'</h5>'+(it.finds?'':'<p class="d">'+esc(it.d)+'</p>')+fi+tb+
+     '<div class="foot"><span class="meta"><button class="ph" data-edit="'+it.id+'" type="button" title="Edit metadata" aria-label="Edit metadata">✎ Suggested <b>'+pri(it)+'</b> · '+esc(it.dom)+'</button></span><span class="acts">'+cta+pr+sn+'<button class="btn ico ghost" data-act="dismiss" data-id="'+it.id+'" type="button" aria-label="Dismiss" title="Dismiss">✕</button></span></div></article>'}
+  function cnt(f){var c={};ITEMS.forEach(function(i){if(!has(gone,i.id)&&i.status!=="parked"&&(!S.project||i.p===S.project)){var v=f(i);c[v]=(c[v]||0)+1}});return c}
+  function sec(label,key,vals,counts,fmt){return '<div class="lbl">'+label+'</div>'+vals.map(function(v){return '<button class="mi" type="button" data-f="'+key+'" data-v="'+esc(v)+'" role="menuitemcheckbox" aria-checked="'+has(S[key],v)+'"><span class="ck">'+(has(S[key],v)?'✓':'')+'</span><span class="grow">'+esc(fmt?fmt(v):v)+'</span><span class="c">'+(counts[v]||0)+'</span></button>'}).join("")}
+  function head(open,parked){
+    var nA=S.sev.length+S.src.length+S.pri.length+S.dom.length+S.cx.length+(S.parked?1:0);
+    var prj=S.project?PROJ[S.project].n:"All projects";
+    var pm='<button class="mi" data-proj="" type="button"><span class="ck">'+(S.project?'':'✓')+'</span><span class="grow">All projects</span><span class="c">'+ITEMS.length+'</span></button><div class="msep"></div>'+Object.keys(PROJ).map(function(k){return '<button class="mi" data-proj="'+k+'" type="button"><span class="ck">'+(S.project===k?'✓':'')+'</span><span style="width:10px;height:10px;border-radius:50%;background:'+PROJ[k].c+'"></span><span class="grow">'+PROJ[k].n+'</span><span class="c">'+ITEMS.filter(function(i){return i.p===k}).length+'</span></button>'}).join("");
+    var cs=cnt(function(i){return g(i,"sev")}),cr=cnt(function(i){return i.src}),cp=cnt(pri),cd=cnt(function(i){return i.dom});
+    var fm=sec("Severity","sev",["critical","high","medium","low","info"],cs,cap)+'<div class="msep"></div>'+sec("Source","src",Object.keys(cr).sort(),cr,function(v){return SRC[v]||v})+'<div class="msep"></div>'+sec("Priority","pri",["P0","P1","P2","P3"],cp)+'<div class="msep"></div>'+sec("Domain","dom",Object.keys(cd).sort(),cd)+'<div class="msep"></div>'+sec("Complexity","cx",["unset"],{unset:open},cap)+'<div class="msep"></div><button class="mi" type="button" data-parkedtgl="1" role="menuitemcheckbox" aria-checked="'+S.parked+'"><span class="ck">'+(S.parked?'✓':'')+'</span><span class="grow">Show parked</span><span class="c">'+parked+'</span></button><div class="msep"></div><button class="mi" type="button" data-reset="1"><span class="grow">Reset view</span></button>';
+    function opt(a,v,l){return '<option value="'+v+'"'+(a===v?' selected':'')+'>'+l+'</option>'}
+    var keys=function(a){return opt(a,"severity","Severity")+opt(a,"priority","Priority")+opt(a,"modified","Modified")+opt(a,"name","Name")};
+    function row(lbl,id,lv){return '<div class="lbl">'+lbl+'</div><div class="sortrow"><select id="'+id+'k" aria-label="'+lbl+'">'+keys(lv.k)+'</select><button class="dirbtn" type="button" id="'+id+'d" aria-label="Direction: '+(lv.d==="desc"?"descending":"ascending")+'" title="'+(lv.d==="desc"?"Descending":"Ascending")+'">'+(lv.d==="desc"?"↓":"↑")+'</button></div>'}
+    var sm=row("Sort by","sp",S.p)+row("Then by","ss",S.s);
+    var gm=["none","project","severity","source","priority"].map(function(v){return '<button class="mi" type="button" data-grp="'+v+'"><span class="ck">'+(S.group===v?'✓':'')+'</span><span class="grow">'+(v==="none"?"None":cap(v))+'</span></button>'}).join("");
+    function wrap(id,btn,body,r){return '<div class="menuwrap">'+btn+(menu===id?'<div class="menu'+(r?' r':'')+'" role="menu">'+body+'</div>':'')+'</div>'}
+    $("phead").innerHTML='<h4>Triage <small>('+open+')</small></h4>'+
+      wrap("proj",'<button class="ctl" type="button" data-menu="proj" style="min-width:200px;justify-content:space-between"><span style="width:10px;height:10px;border-radius:50%;background:'+(S.project?PROJ[S.project].c:'rgba(255,255,255,.7)')+'"></span><span style="flex:1;text-align:left">'+prj+'</span><span class="cnt">▾</span></button>',pm)+
+      '<span class="vsep"></span>'+
+      wrap("filter",'<button class="ctl ico" type="button" data-menu="filter" aria-label="Filter" data-active="'+(nA>0)+'">⛛'+(nA?'<span class="dot"></span>':'')+'</button>',fm)+
+      wrap("group",'<button class="ctl" type="button" data-menu="group" data-active="'+(S.group!=="project")+'">Group: '+cap(S.group)+'</button>',gm)+
+      wrap("sort",'<button class="ctl" type="button" data-menu="sort">Sort: '+cap(S.p.k)+' '+(S.p.d==="desc"?"↓":"↑")+'</button>',sm)+
+      (open>12?'<button class="ctl ico" type="button" aria-label="Search">⌕</button>':'')+
+      '<span style="margin-left:auto" class="ctl" aria-hidden="true">Density</span>';
+  }
+  var mid=null;
+  function modal(){
+    var root=$("mdlroot");var it=ITEMS.filter(function(i){return i.id===mid&&!has(gone,i.id)})[0];
+    if(!it){root.innerHTML="";return}
+    var t=tasks[it.id],parked=it.status==="parked";
+    var fi=it.finds?'<ul class="finds">'+it.finds.map(function(f){return '<li><code>'+esc(f[0])+'</code><span class="t">'+esc(f[1])+'</span>'+(CODE[f[0]]?helpBtn("code:"+f[0],f[0]):'')+'</li>'}).join("")+'</ul>':'';
+    var tb=t?'<div class="taskbox"><span class="state"><i></i>In progress</span><span>Task <b>'+esc(t.title)+'</b></span><span class="pill">'+t.state+'</span><a href="#mockup" style="margin-left:auto;font-weight:600;font-size:12.5px">Open task</a></div>':'';
+    var cta=t?'<button class="btn" data-act="resolve" data-id="'+it.id+'" type="button">Resolve</button>':(it.campaign?'<button class="btn primary" data-act="campaign" data-id="'+it.id+'" type="button">Start campaign</button>':'<button class="btn primary" data-act="fix" data-id="'+it.id+'" type="button">Fix now</button>');
+    var act=parked?'<button class="btn" data-act="unpark" data-id="'+it.id+'" type="button">Return now</button>':
+      '<button class="btn ghost" data-act="dismiss" data-id="'+it.id+'" type="button">Dismiss</button>'+(t?'':'<button class="btn" data-snz="'+it.id+'" type="button">Snooze ▾</button><button class="btn" data-act="promote" data-id="'+it.id+'" type="button">Promote</button>')+cta;
+    root.innerHTML='<div class="ovl" data-mclose="1"><div class="card mdl" role="dialog" aria-modal="true" aria-label="'+esc(g(it,"title"))+'">'+
+     '<div class="top"><span class="src">'+esc(SRC[it.src]||it.src)+helpBtn("src:"+it.src,SRC[it.src]||it.src)+'</span>'+sev(it)+(it.ex?' <span class="flag">Beispiel</span>':'')+(parked?'<span class="pill ret">Returns '+it.ret+'</span>':'')+'<button class="btn ico ghost close" data-mclose="1" type="button" aria-label="Close">✕</button></div>'+
+     '<h3>'+esc(g(it,"title"))+'</h3>'+(it.finds?'':'<p class="d" style="margin:0;font-size:14px">'+esc(it.d)+'</p>')+fi+tb+
+     '<div class="sect"><dl><dt>Project</dt><dd>'+esc(PROJ[it.p].n)+'</dd><dt>Priority</dt><dd>'+pri(it)+' <span class="flag">follows severity</span></dd><dt>Domain</dt><dd>'+esc(it.dom)+'</dd><dt>Complexity</dt><dd>Unset</dd><dt>Age</dt><dd>'+it.age+' days · '+it.id+'</dd></dl>'+
+     '<div><button class="ph btn" data-edit="'+it.id+'" type="button">✎ Edit title and severity</button></div></div>'+
+     (parked?'':'<div class="sect"><label class="l">Reason (optional, applies to Dismiss and Snooze)<input class="fld" placeholder="out of scope this sprint"></label></div>')+
+     '<div class="sect"><div class="acts2">'+act+'</div></div></div></div>';
+  }
+  function render(){
+    modal();
+    var all=ITEMS.filter(function(i){return !has(gone,i.id)&&(!S.project||i.p===S.project)});
+    var open=all.filter(function(i){return i.status!=="parked"}),parked=all.filter(function(i){return i.status==="parked"});
+    head(open.length,parked.length);
+    var attn=open.filter(function(i){return g(i,"sev")==="critical"||g(i,"sev")==="high"}).length,prog=open.filter(function(i){return tasks[i.id]}).length;
+    $("tiles").innerHTML=[["open","Open",open.length],["attn","Critical + High",attn],["prog","In progress",prog],["parked","Parked",parked.length]].map(function(t){return '<button class="tile" type="button" data-tile="'+t[0]+'" aria-pressed="'+(S.tile===t[0]||(t[0]==="parked"&&S.parked))+'"><span class="n">'+t[2]+'</span><span class="l">'+t[1]+'</span></button>'}).join("");
+    var ch=[];[["sev","Severity",cap],["src","Source",function(v){return SRC[v]||v}],["pri","Priority"],["dom","Domain"],["cx","Complexity",cap]].forEach(function(d){S[d[0]].forEach(function(v){ch.push('<span class="fchip">'+d[1]+': '+esc(d[2]?d[2](v):v)+'<button type="button" data-f="'+d[0]+'" data-v="'+esc(v)+'" aria-label="Remove filter">×</button></span>')})});
+    if(S.tile&&S.tile!=="open"&&S.tile!=="parked")ch.push('<span class="fchip">'+(S.tile==="attn"?"Critical + High":"In progress")+'<button type="button" data-tile="'+S.tile+'" aria-label="Remove">×</button></span>');
+    var vis=sorted(open.filter(pass)),hidden=open.length-vis.length;
+    $("afl").innerHTML=(ch.length?'Showing <b>'+vis.length+'</b> of '+open.length+' · '+ch.join("")+' <button class="lnk" type="button" data-clear="1">Clear filters</button>':'');
+    var out="";
+    if(!open.length&&!parked.length)out='<div class="empty"><b>No triage items pending.</b> ✓</div>';
+    else if(!vis.length)out='<div class="empty"><b>Nothing matches these filters.</b><br>'+hidden+' hidden. <button class="lnk" type="button" data-clear="1">Clear filters</button></div>';
+    else{var G=[];
+      if(S.group==="none")G=[{k:"all",n:"",items:vis}];
+      else if(S.group==="project"&&!S.project){Object.keys(PROJ).forEach(function(p){var l=vis.filter(function(i){return i.p===p});if(l.length)G.push({k:"project:"+p,n:PROJ[p].n,c:PROJ[p].c,items:l,tot:open.filter(function(i){return i.p===p}).length})})}
+      else if(S.group==="project"){G=[{k:"all",n:"",items:vis}]}
+      else{var f=S.group==="source"?function(i){return i.src}:S.group==="priority"?pri:function(i){return g(i,"sev")};var keys=[];vis.forEach(function(i){if(!has(keys,f(i)))keys.push(f(i))});keys.forEach(function(k){G.push({k:S.group+":"+k,n:S.group==="source"?(SRC[k]||k):cap(k),items:vis.filter(function(i){return f(i)===k})})})}
+      G.forEach(function(gr){var col=has(S.collapsed,gr.k);
+        out+=(gr.n?'<div class="gwrap"><button class="proj-head" type="button" data-coll="'+gr.k+'" aria-expanded="'+(!col)+'">'+(gr.c?'<span class="sw" style="background:'+gr.c+'"></span>':'')+esc(gr.n)+'<span class="ct">'+(gr.tot&&gr.tot!==gr.items.length?gr.items.length+' of '+gr.tot:gr.items.length)+'</span><span class="chev">⌄</span></button>':'<div>')+(col?'':'<div class="list">'+gr.items.map(card).join("")+'</div>')+'</div>'});
+    }
+    if(parked.length&&(S.parked||S.tile==="parked")){var pk=sorted(parked);out+='<div class="gwrap" style="margin-top:6px"><div class="proj-head" style="cursor:default">Parked<span class="ct">'+pk.length+' · they return on their date</span></div><div class="list">'+pk.map(card).join("")+'</div></div>'}
+    else if(parked.length)out+='<p class="note" style="color:var(--ink)">'+parked.length+' parked item hidden. Turn on "Show parked" in the filter menu.</p>';
+    $("out").innerHTML=out;
+  }
+  function closePop(){document.querySelectorAll(".pop").forEach(function(p){p.remove()});document.querySelectorAll(".help[aria-expanded=true]").forEach(function(b){b.setAttribute("aria-expanded","false")})}
+  function pop(btn,html,cls){var c=btn.closest(".card");var p=document.createElement("div");p.className="pop "+(cls||"");p.setAttribute("role","dialog");p.innerHTML=html;c.appendChild(p);var r=btn.getBoundingClientRect(),cr=c.getBoundingClientRect();p.style.top=(r.bottom-cr.top+8)+"px";p.style.left=Math.max(8,Math.min(r.left-cr.left-8,cr.width-p.offsetWidth-8))+"px";return p}
+  function k3(n,a,b,c){return '<h6>'+esc(n)+'</h6><p><span class="k">What is it</span>'+esc(a)+'</p><p><span class="k">Why is it here</span>'+esc(b)+'</p><p style="margin:0"><span class="k">What to do</span>'+esc(c)+'</p>'}
+  document.addEventListener("click",function(e){
+    var t=e.target,b;
+    if((b=t.closest(".help"))){e.stopPropagation();var was=b.getAttribute("aria-expanded")==="true";closePop();if(was)return;var k=b.getAttribute("data-help"),h;
+      if(k.indexOf("code:")===0){var c=CODE[k.slice(5)];h=k3(k.slice(5)+" · "+c[0],c[1],"It is one line of an audit that found it.",c[2])}
+      else{var s=SRCHELP[k.slice(4)]||["Created by a tool or session.","Kept here so it is not lost.","Open the item for details."];h=k3(SRC[k.slice(4)]||k.slice(4),s[0],s[1],s[2])}
+      pop(b,h);b.setAttribute("aria-expanded","true");return}
+    if(t.closest(".pop"))return;
+    if((b=t.closest("[data-mclose]"))&&(t===b||b.classList.contains("close"))){mid=null;render();return}
+    if((b=t.closest("[data-open]"))){mid=b.getAttribute("data-open");closePop();render();return}
+    var inMenu=t.closest(".menu");
+    if((b=t.closest("[data-menu]"))){var id=b.getAttribute("data-menu");menu=menu===id?null:id;closePop();render();return}
+    if(!inMenu&&menu){menu=null}
+    closePop();
+    if((b=t.closest("[data-f]"))){tg(S[b.getAttribute("data-f")],b.getAttribute("data-v"));save();render();return}
+    if((b=t.closest("[data-proj]"))){S.project=b.getAttribute("data-proj")||null;menu=null;save();render();return}
+    if((b=t.closest("[data-grp]"))){S.group=b.getAttribute("data-grp");menu=null;save();render();return}
+    if(t.closest("#spd")){S.p.d=S.p.d==="desc"?"asc":"desc";save();render();return}
+    if(t.closest("#ssd")){S.s.d=S.s.d==="desc"?"asc":"desc";save();render();return}
+    if(t.closest("[data-parkedtgl]")){S.parked=!S.parked;save();render();return}
+    if(t.closest("[data-reset]")){S=cl(D);gone=[];tasks={};ov={};menu=null;save();render();return}
+    if(t.closest("[data-clear]")){S.sev=[];S.src=[];S.pri=[];S.dom=[];S.cx=[];S.tile=null;save();render();return}
+    if((b=t.closest("[data-tile]"))){var k=b.getAttribute("data-tile");if(k==="parked")S.parked=!S.parked;else S.tile=(k==="open"||S.tile===k)?null:k;save();render();return}
+    if((b=t.closest("[data-coll]"))){tg(S.collapsed,b.getAttribute("data-coll"));save();render();return}
+    if((b=t.closest("[data-snz]"))){var it=b.getAttribute("data-snz");var p=pop(b,'<div class="lbl" style="color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px">Snooze until</div>'+["Tomorrow","In 1 week","In 1 month","Pick a date…","No date"].map(function(x){return '<button class="mi" data-snzdo="'+it+'" type="button">'+x+'</button>'}).join(""),"edit");p.style.width="190px";p.style.padding="6px";return}
+    if((b=t.closest("[data-snzdo]"))){var id2=b.getAttribute("data-snzdo");ITEMS.forEach(function(i){if(i.id===id2){i.status="parked";i.ret="21.11.2026"}});S.parked=true;save();render();return}
+    if((b=t.closest("[data-edit]"))){var id3=b.getAttribute("data-edit"),it3=ITEMS.filter(function(i){return i.id===id3})[0];
+      var p3=pop(b,'<label>Title</label><input class="fld" id="e_t" value="'+esc(g(it3,"title"))+'"><label>Severity</label><select class="fld" id="e_s">'+["critical","high","medium","low","info"].map(function(s){return '<option'+(g(it3,"sev")===s?' selected':'')+'>'+s+'</option>'}).join("")+'</select><label>Priority <span class="flag">follows severity</span></label><input class="fld" disabled value="'+pri(it3)+'"><label>Domain <span class="flag">Entscheidung D</span></label><input class="fld" disabled value="'+esc(it3.dom)+'"><div class="row"><button class="btn ghost" type="button" data-ecancel="1">Cancel</button><button class="btn primary" type="button" data-esave="'+id3+'">Save</button></div>',"edit");return}
+    if(t.closest("[data-ecancel]")){return}
+    if((b=t.closest("[data-esave]"))){var id4=b.getAttribute("data-esave");ov[id4]={sev:$("e_s").value,title:$("e_t").value};render();return}
+    if((b=t.closest("[data-act]"))){var id5=b.getAttribute("data-id"),a=b.getAttribute("data-act");
+      if(a==="fix"){tasks[id5]={title:"Fix: "+g(ITEMS.filter(function(i){return i.id===id5})[0],"title").slice(0,34)+"…",state:"active"}}
+      else if(a==="campaign"){tasks[id5]={title:"Campaign started",state:"active"}}
+      else if(a==="unpark"){ITEMS.forEach(function(i){if(i.id===id5){i.status=null;i.ret=null}})}
+      else{gone.push(id5)}
+      if(a!=="resolve")mid=null;
+      render();return}
+  });
+  document.addEventListener("change",function(e){var t=e.target;
+    if(t.id==="spk"){S.p.k=t.value}else if(t.id==="ssk"){S.s.k=t.value}else return;save();render()});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"){closePop();if(menu){menu=null;render()}}});
+  render();
+})();
+</script>
+</body>
+</html>

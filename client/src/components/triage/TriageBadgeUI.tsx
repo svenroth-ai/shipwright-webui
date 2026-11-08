@@ -87,7 +87,7 @@ export function PendingDeliveryBadge() {
  * every active filter — this badge is what keeps it from blending into
  * the flat list, so the operator can tell it returned from a park
  * rather than assume it always matched. Same info-tint trio
- * `DeferredTriageSection.tsx` uses for its "Parked" state chip, so a
+ * the Parked card state line uses for its "Parked" state chip, so a
  * returned item reads as visually related to parking, not a new color.
  * Stays shown for as long as the bypass is active (AC8 — no expiry).
  */

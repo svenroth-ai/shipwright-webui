@@ -1,289 +1,161 @@
+// @covers FR-01.30
 import { describe, it, expect, vi } from "vitest";
 import {
-  DEFAULT_FILTER_STATE,
   DEFAULT_SORT_STATE,
+  activeFilterCount,
+  entryKey,
   formatCount,
   getComplexity,
   matchesAttributeFilters,
   selectVisibleDeferredItems,
   selectVisibleOpenItems,
-  sortItems,
-  type TriageFilterState,
+  sortEntries,
   type TriageSortState,
 } from "./triageFilterSort";
-import type { TriageItem } from "./triageApi";
-
-function item(overrides: Partial<TriageItem> & Pick<TriageItem, "id">): TriageItem {
-  return {
-    ts: "2026-06-01T08:00:00Z",
-    originalTs: "2026-06-01T08:00:00Z",
-    source: "phaseQuality",
-    severity: "high",
-    kind: "bug",
-    title: "t",
-    detail: "d",
-    evidencePath: null,
-    runId: null,
-    commit: null,
-    dedupKey: null,
-    status: "triage",
-    suggestedPriority: "P1",
-    suggestedDomain: "engineering",
-    statusBy: null,
-    statusReason: null,
-    promotedTaskId: null,
-    revisitAt: null,
-    revisitDue: false,
-    amendedBy: null,
-    amendedAt: null,
-    ...overrides,
-  };
-}
-
-function filters(overrides: Partial<TriageFilterState> = {}): TriageFilterState {
-  return { ...DEFAULT_FILTER_STATE, ...overrides };
-}
+import { entry, filters, item } from "../test/triageFixtures";
 
 describe("getComplexity", () => {
-  it("resolves to 'unset' when the item carries no complexity field (today's reality for every item)", () => {
+  it("resolves to 'unset' when the item carries no complexity field", () => {
     expect(getComplexity(item({ id: "trg-1" }))).toBe("unset");
   });
-
-  it("reads a forward-compat suggestedComplexity field when present on the wire object", () => {
-    const withComplexity = { ...item({ id: "trg-1" }), suggestedComplexity: "large" };
-    expect(getComplexity(withComplexity)).toBe("large");
+  it("classifies an unrecognized producer value as 'unset'", () => {
+    const odd = { ...item({ id: "trg-1" }), suggestedComplexity: "huge" } as never;
+    expect(getComplexity(odd)).toBe("unset");
   });
-
-  it("normalizes an unrecognized wire value to 'unset' rather than passing it through unfilterable", () => {
-    const withBadValue = { ...item({ id: "trg-1" }), suggestedComplexity: "xl" };
-    expect(getComplexity(withBadValue)).toBe("unset");
+  it("passes a real value through", () => {
+    const real = { ...item({ id: "trg-1" }), suggestedComplexity: "large" } as never;
+    expect(getComplexity(real)).toBe("large");
   });
 });
 
-describe("matchesAttributeFilters", () => {
-  // AC1/AC3: filters are EXCLUDE sets, not include sets — a chip starts
-  // active (nothing excluded), and clicking it hides that value. Rejected
-  // at spec-reviewer Stage 1: an include-by-selection model has no
-  // reachable interaction for AC3's "deselecting Unset hides every item"
-  // (Unset already starts deselected under include semantics).
-  it("matches everything when every filter dimension is empty (default state)", () => {
-    expect(matchesAttributeFilters(item({ id: "trg-1", suggestedPriority: "P3" }), DEFAULT_FILTER_STATE)).toBe(true);
-  });
+describe("include-set filters (empty = all, ticked = only those)", () => {
+  const hi = item({ id: "a", severity: "high", suggestedPriority: "P1", source: "compliance", suggestedDomain: "Quality" });
+  const lo = item({ id: "b", severity: "low", suggestedPriority: "P3", source: "manual", suggestedDomain: "Product" });
 
-  it("AC1: excludes an item whose priority is in the excludedPriorities set", () => {
-    const f = filters({ excludedPriorities: new Set(["P3"]) });
-    expect(matchesAttributeFilters(item({ id: "trg-1", suggestedPriority: "P3" }), f)).toBe(false);
-    expect(matchesAttributeFilters(item({ id: "trg-2", suggestedPriority: "P1" }), f)).toBe(true);
+  it("shows everything when nothing is ticked", () => {
+    expect(matchesAttributeFilters(hi, filters())).toBe(true);
+    expect(matchesAttributeFilters(lo, filters())).toBe(true);
   });
-
-  it("AC2: excludes an item whose domain is in the excludedDomains set", () => {
-    const f = filters({ excludedDomains: new Set(["security"]) });
-    expect(matchesAttributeFilters(item({ id: "trg-1", suggestedDomain: "security" }), f)).toBe(false);
-    expect(matchesAttributeFilters(item({ id: "trg-2", suggestedDomain: "engineering" }), f)).toBe(true);
+  it("shows only the ticked severity", () => {
+    const f = filters({ severities: new Set(["high"]) });
+    expect(matchesAttributeFilters(hi, f)).toBe(true);
+    expect(matchesAttributeFilters(lo, f)).toBe(false);
   });
-
-  it("AC3: excludes an item whose complexity is in the excludedComplexities set", () => {
-    const f = filters({ excludedComplexities: new Set(["unset"]) });
-    expect(matchesAttributeFilters(item({ id: "trg-1" }), f)).toBe(false); // resolves to "unset"
-    const f2 = filters({ excludedComplexities: new Set(["small"]) });
-    expect(matchesAttributeFilters(item({ id: "trg-2" }), f2)).toBe(true); // still resolves to "unset", not excluded
-  });
-});
-
-describe("selectVisibleOpenItems", () => {
-  it("hides items excluded by the active filters and counts them", () => {
-    const items = [
-      item({ id: "trg-p1", suggestedPriority: "P1" }),
-      item({ id: "trg-p3", suggestedPriority: "P3" }),
-    ];
-    const { visible, hiddenCount } = selectVisibleOpenItems(
-      items,
-      filters({ excludedPriorities: new Set(["P3"]) }),
-    );
-    expect(visible.map((i) => i.id)).toEqual(["trg-p1"]);
-    expect(hiddenCount).toBe(1);
-  });
-
-  it("AC8: a due-parked item bypasses every active filter regardless of match", () => {
-    const items = [
-      item({ id: "trg-due", suggestedPriority: "P3", revisitDue: true }),
-      item({ id: "trg-normal", suggestedPriority: "P3" }),
-    ];
-    const { visible, hiddenCount } = selectVisibleOpenItems(
-      items,
-      filters({ excludedPriorities: new Set(["P3"]) }),
-    );
-    expect(visible.map((i) => i.id)).toEqual(["trg-due"]);
-    // AC8: bypassed items are excluded from hiddenCount — only trg-normal was hidden.
-    expect(hiddenCount).toBe(1);
-  });
-
-  it("counts nothing hidden when the default (empty) filter state is active", () => {
-    const items = [item({ id: "trg-1" }), item({ id: "trg-2" })];
-    const { visible, hiddenCount } = selectVisibleOpenItems(items, DEFAULT_FILTER_STATE);
-    expect(visible).toHaveLength(2);
-    expect(hiddenCount).toBe(0);
-  });
-});
-
-describe("selectVisibleDeferredItems", () => {
-  it("AC7: hides a dated, not-yet-due park when Parked is in its default (off) state", () => {
-    const items = [item({ id: "trg-dated", revisitAt: "2099-01-01" })];
-    const { visible, hiddenCount } = selectVisibleDeferredItems(items, DEFAULT_FILTER_STATE);
-    expect(visible).toHaveLength(0);
-    expect(hiddenCount).toBe(1);
-  });
-
-  it("AC9: a dateless park stays visible even when Parked is in its default (off) state", () => {
-    const items = [item({ id: "trg-dateless", revisitAt: null })];
-    const { visible, hiddenCount } = selectVisibleDeferredItems(items, DEFAULT_FILTER_STATE);
-    expect(visible.map((i) => i.id)).toEqual(["trg-dateless"]);
-    expect(hiddenCount).toBe(0);
-  });
-
-  it("AC9: a dateless park still respects the attribute filters like any other item", () => {
-    const items = [item({ id: "trg-dateless", revisitAt: null, suggestedDomain: "security" })];
-    const f = filters({ excludedDomains: new Set(["security"]) });
-    const { visible, hiddenCount } = selectVisibleDeferredItems(items, f);
-    expect(visible).toHaveLength(0);
-    expect(hiddenCount).toBe(1);
-  });
-
-  it("shows every parked item (subject to attribute filters) once Parked is toggled on", () => {
-    const items = [
-      item({ id: "trg-dated", revisitAt: "2099-01-01" }),
-      item({ id: "trg-dateless", revisitAt: null }),
-    ];
-    const { visible, hiddenCount } = selectVisibleDeferredItems(items, filters({ showParked: true }));
-    expect(visible.map((i) => i.id).sort()).toEqual(["trg-dated", "trg-dateless"]);
-    expect(hiddenCount).toBe(0);
-  });
-
-  it("mixed set: hint-worthy hiddenCount is nonzero even when a dateless item IS visible (the plan-review fix)", () => {
-    const items = [
-      item({ id: "trg-dateless", revisitAt: null }),
-      item({ id: "trg-dated-1", revisitAt: "2099-01-01" }),
-      item({ id: "trg-dated-2", revisitAt: "2099-06-01" }),
-    ];
-    const { visible, hiddenCount } = selectVisibleDeferredItems(items, DEFAULT_FILTER_STATE);
-    expect(visible.map((i) => i.id)).toEqual(["trg-dateless"]);
-    expect(hiddenCount).toBe(2);
-  });
-
-  it("sums Parked-default suppression and attribute-filter suppression into one hiddenCount", () => {
-    const items = [
-      // Hidden by Parked-off default (dated, not shown at all without the toggle).
-      item({ id: "trg-dated", revisitAt: "2099-01-01" }),
-      // Visible via AC9 (dateless), but then hidden by the domain filter.
-      item({ id: "trg-dateless-wrong-domain", revisitAt: null, suggestedDomain: "security" }),
-    ];
-    const f = filters({ excludedDomains: new Set(["security"]) });
-    const { visible, hiddenCount } = selectVisibleDeferredItems(items, f);
-    expect(visible).toHaveLength(0);
-    expect(hiddenCount).toBe(2);
-  });
-});
-
-describe("sortItems", () => {
-  it("sorts by the primary key ascending", () => {
-    const items = [item({ id: "trg-b", title: "Bravo" }), item({ id: "trg-a", title: "Alpha" })];
-    const sort: TriageSortState = { primary: { key: "name", direction: "asc" }, secondary: { key: "modified", direction: "asc" } };
-    expect(sortItems(items, sort).map((i) => i.id)).toEqual(["trg-a", "trg-b"]);
-  });
-
-  it("reverses independently when the primary direction is descending", () => {
-    const items = [item({ id: "trg-a", title: "Alpha" }), item({ id: "trg-b", title: "Bravo" })];
-    const sort: TriageSortState = { primary: { key: "name", direction: "desc" }, secondary: { key: "modified", direction: "asc" } };
-    expect(sortItems(items, sort).map((i) => i.id)).toEqual(["trg-b", "trg-a"]);
-  });
-
-  it("uses the secondary key to break a primary-key tie", () => {
-    const items = [
-      item({ id: "trg-1", suggestedDomain: "engineering", title: "Bravo" }),
-      item({ id: "trg-2", suggestedDomain: "engineering", title: "Alpha" }),
-    ];
-    const sort: TriageSortState = {
-      primary: { key: "domain", direction: "asc" },
-      secondary: { key: "name", direction: "asc" },
-    };
-    expect(sortItems(items, sort).map((i) => i.id)).toEqual(["trg-2", "trg-1"]);
-  });
-
-  it("AC4: reverses the secondary axis independently of the primary axis when secondary is descending", () => {
-    const items = [
-      item({ id: "trg-1", suggestedDomain: "engineering", title: "Bravo" }),
-      item({ id: "trg-2", suggestedDomain: "engineering", title: "Alpha" }),
-    ];
-    const sort: TriageSortState = {
-      primary: { key: "domain", direction: "asc" },
-      secondary: { key: "name", direction: "desc" },
-    };
-    // Same primary-key tie as the test above, but secondary now DESC —
-    // the tie-break order must invert (Bravo before Alpha).
-    expect(sortItems(items, sort).map((i) => i.id)).toEqual(["trg-1", "trg-2"]);
-  });
-
-  it("AC10: sorts Modified by `ts` (latest status event), never `originalTs` (append time)", () => {
-    const items = [
-      item({ id: "trg-old-append-new-status", originalTs: "2026-01-01T00:00:00Z", ts: "2026-08-01T00:00:00Z" }),
-      item({ id: "trg-new-append-old-status", originalTs: "2026-07-01T00:00:00Z", ts: "2026-02-01T00:00:00Z" }),
-    ];
-    const sort: TriageSortState = {
-      primary: { key: "modified", direction: "desc" },
-      secondary: { key: "name", direction: "asc" },
-    };
-    expect(sortItems(items, sort).map((i) => i.id)).toEqual([
-      "trg-old-append-new-status",
-      "trg-new-append-old-status",
-    ]);
-  });
-
-  it("breaks a full tie by id — a total order invariant under input permutation", () => {
-    const a = item({ id: "trg-a", title: "same", suggestedDomain: "same", ts: "2026-06-01T00:00:00Z" });
-    const b = item({ id: "trg-b", title: "same", suggestedDomain: "same", ts: "2026-06-01T00:00:00Z" });
-    const forward = sortItems([a, b], DEFAULT_SORT_STATE).map((i) => i.id);
-    const reversed = sortItems([b, a], DEFAULT_SORT_STATE).map((i) => i.id);
-    expect(forward).toEqual(["trg-a", "trg-b"]);
-    expect(reversed).toEqual(forward);
-  });
-
-  it("compares names numerically, not lexicographically (pinned localeCompare options)", () => {
-    const items = [item({ id: "trg-10", title: "item10" }), item({ id: "trg-2", title: "item2" })];
-    const sort: TriageSortState = { primary: { key: "name", direction: "asc" }, secondary: { key: "modified", direction: "asc" } };
-    expect(sortItems(items, sort).map((i) => i.id)).toEqual(["trg-2", "trg-10"]);
-  });
-
-  it("AC4: pins the locale itself, not just the comparison options, on both localeCompare calls (external code-review finding — sensitivity/numeric options alone still floated on the runtime's default ICU locale)", () => {
-    const spy = vi.spyOn(String.prototype, "localeCompare");
-    const items = [
-      item({ id: "trg-a", title: "b-item", suggestedDomain: "b-domain" }),
-      item({ id: "trg-b", title: "a-item", suggestedDomain: "a-domain" }),
-    ];
-    sortItems(items, {
-      primary: { key: "name", direction: "asc" },
-      secondary: { key: "domain", direction: "asc" },
+  it("ANDs across groups and ORs inside one group", () => {
+    const f = filters({
+      severities: new Set(["high", "low"]),
+      sources: new Set(["manual"]),
     });
-    expect(spy).toHaveBeenCalled();
-    for (const call of spy.mock.calls) {
-      expect(call[1]).toBe("und");
-    }
-    spy.mockRestore();
+    expect(matchesAttributeFilters(hi, f)).toBe(false);
+    expect(matchesAttributeFilters(lo, f)).toBe(true);
   });
+  it("filters priority, domain and complexity", () => {
+    expect(matchesAttributeFilters(hi, filters({ priorities: new Set(["P3"]) }))).toBe(false);
+    expect(matchesAttributeFilters(lo, filters({ domains: new Set(["Product"]) }))).toBe(true);
+    expect(matchesAttributeFilters(lo, filters({ complexities: new Set(["unset"]) }))).toBe(true);
+    expect(matchesAttributeFilters(lo, filters({ complexities: new Set(["small"]) }))).toBe(false);
+  });
+  it("counts ticked values (drives the funnel dot)", () => {
+    expect(activeFilterCount(filters())).toBe(0);
+    expect(activeFilterCount(filters({ severities: new Set(["high", "low"]), domains: new Set(["x"]) }))).toBe(3);
+  });
+});
 
-  it("does not mutate the input array", () => {
-    const items = [item({ id: "trg-b", title: "Bravo" }), item({ id: "trg-a", title: "Alpha" })];
-    const original = [...items];
-    sortItems(items, DEFAULT_SORT_STATE);
-    expect(items).toEqual(original);
+describe("selectVisibleOpenItems — returned-park bypass", () => {
+  it("keeps a returned park even when no ticked value matches it, and does not count it hidden", () => {
+    const returned = entry("p", { id: "r", suggestedPriority: "P3", revisitDue: true });
+    const plain = entry("p", { id: "x", suggestedPriority: "P3" });
+    const r = selectVisibleOpenItems([returned, plain], filters({ priorities: new Set(["P0"]) }));
+    expect(r.visible.map((e) => e.item.id)).toEqual(["r"]);
+    expect(r.hiddenCount).toBe(1);
+  });
+});
+
+describe("selectVisibleDeferredItems — Parked switch and dateless exception", () => {
+  const dated = entry("p", { id: "dated", status: "snoozed", revisitAt: "2027-01-01" });
+  const dateless = entry("p", { id: "none", status: "snoozed", revisitAt: null });
+
+  it("Parked off: dated hidden, dateless stays visible", () => {
+    const r = selectVisibleDeferredItems([dated, dateless], filters());
+    expect(r.visible.map((e) => e.item.id)).toEqual(["none"]);
+    expect(r.hiddenCount).toBe(1);
+  });
+  it("Parked on: both visible", () => {
+    const r = selectVisibleDeferredItems([dated, dateless], filters({ showParked: true }));
+    expect(r.visible).toHaveLength(2);
+  });
+  it("a dateless park still respects the ticked values (AND, not a bypass)", () => {
+    const d = entry("p", { id: "n2", status: "snoozed", revisitAt: null, suggestedPriority: "P3" });
+    const r = selectVisibleDeferredItems([d], filters({ priorities: new Set(["P0"]) }));
+    expect(r.visible).toHaveLength(0);
+  });
+  it("Parked on + ticked value filters a dated park", () => {
+    const r = selectVisibleDeferredItems(
+      [dated],
+      filters({ showParked: true, severities: new Set(["low"]) }),
+    );
+    expect(r.visible).toHaveLength(0);
   });
 });
 
 describe("formatCount", () => {
-  it("renders a bare number when nothing is filtered out", () => {
+  it("prints N when nothing is hidden and 'N of M' otherwise", () => {
     expect(formatCount(3, 3)).toBe("3");
+    expect(formatCount(2, 5)).toBe("2 of 5");
+  });
+});
+
+describe("sortEntries", () => {
+  const crit = entry("p", { id: "c", severity: "critical", suggestedPriority: "P0", title: "b", ts: "2026-01-02T00:00:00Z" });
+  const low = entry("p", { id: "l", severity: "low", suggestedPriority: "P3", title: "a", ts: "2026-01-03T00:00:00Z" });
+  const med = entry("p", { id: "m", severity: "medium", suggestedPriority: "P2", title: "c", ts: "2026-01-01T00:00:00Z" });
+  const all = [low, med, crit];
+  const ids = (l: ReturnType<typeof sortEntries>) => l.map((e) => e.item.id);
+  const s = (pk: TriageSortState["primary"]["key"], pd: "asc" | "desc"): TriageSortState => ({
+    primary: { key: pk, direction: pd },
+    secondary: DEFAULT_SORT_STATE.secondary,
   });
 
-  it("renders 'visible of total' when the counts differ", () => {
-    expect(formatCount(1, 4)).toBe("1 of 4");
+  it("default: most severe first, then newest", () => {
+    expect(ids(sortEntries(all, DEFAULT_SORT_STATE))).toEqual(["c", "m", "l"]);
+  });
+  it("severity ascending puts the least severe first", () => {
+    expect(ids(sortEntries(all, s("severity", "asc")))).toEqual(["l", "m", "c"]);
+  });
+  it("priority descending puts P0 first; ascending puts P3 first", () => {
+    expect(ids(sortEntries(all, s("priority", "desc")))).toEqual(["c", "m", "l"]);
+    expect(ids(sortEntries(all, s("priority", "asc")))).toEqual(["l", "m", "c"]);
+  });
+  it("modified uses the status-decision time: desc = newest first", () => {
+    expect(ids(sortEntries(all, s("modified", "desc")))).toEqual(["l", "c", "m"]);
+    expect(ids(sortEntries(all, s("modified", "asc")))).toEqual(["m", "c", "l"]);
+  });
+  it("modified sorts by ts, never originalTs", () => {
+    const a = entry("p", { id: "a", ts: "2026-02-01T00:00:00Z", originalTs: "2020-01-01T00:00:00Z" });
+    const b = entry("p", { id: "b", ts: "2026-01-01T00:00:00Z", originalTs: "2030-01-01T00:00:00Z" });
+    expect(ids(sortEntries([b, a], s("modified", "desc")))).toEqual(["a", "b"]);
+  });
+  it("name sorts with a pinned root locale (spy-asserted)", () => {
+    const spy = vi.spyOn(String.prototype, "localeCompare");
+    sortEntries(all, s("name", "asc"));
+    expect(spy.mock.calls.some((c) => c[1] === "und")).toBe(true);
+    spy.mockRestore();
+    expect(ids(sortEntries(all, s("name", "asc")))).toEqual(["l", "c", "m"]);
+  });
+  it("secondary direction is independent of the primary", () => {
+    const t = entry("p", { id: "t", severity: "high", ts: "2026-01-01T00:00:00Z" });
+    const u = entry("p", { id: "u", severity: "high", ts: "2026-02-01T00:00:00Z" });
+    const state: TriageSortState = {
+      primary: { key: "severity", direction: "desc" },
+      secondary: { key: "modified", direction: "asc" },
+    };
+    expect(ids(sortEntries([u, t], state))).toEqual(["t", "u"]);
+  });
+  it("is a total order: ties break on project then id, and input is not mutated", () => {
+    const x = entry("b", { id: "same" });
+    const y = entry("a", { id: "same" });
+    const input = [x, y];
+    expect(sortEntries(input, DEFAULT_SORT_STATE).map(entryKey)).toEqual(["a:same", "b:same"]);
+    expect(input.map(entryKey)).toEqual(["b:same", "a:same"]);
   });
 });

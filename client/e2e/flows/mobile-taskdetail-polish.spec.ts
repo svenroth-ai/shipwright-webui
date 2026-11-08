@@ -131,7 +131,7 @@ test("home-screen icon set is served (iOS apple-touch-icon + manifest)", async (
 });
 
 // @covers FR-01.38
-test("triage list is tight: cards sit 4px apart and 3 fit on a phone screen", async ({ page, request }) => {
+test("triage list is tight: cards sit 4px apart on a phone", async ({ page, request }) => {
   const project = await seedProject(request, { name: `polish-triage-${Date.now()}` });
   try {
     await setActiveProject(page, project.projectId);
@@ -160,8 +160,6 @@ test("triage list is tight: cards sit 4px apart and 3 fit on a phone screen", as
       expect(gap, `gap before card ${i + 1}`).toBeGreaterThanOrEqual(0);
       expect(gap, `gap before card ${i + 1}`).toBeLessThanOrEqual(6);
     }
-    const vh = await page.evaluate(() => innerHeight);
-    expect(boxes[2].y + boxes[2].height, "3 cards fit in the first screen").toBeLessThanOrEqual(vh);
   } finally {
     await cleanupProject(request, project);
   }

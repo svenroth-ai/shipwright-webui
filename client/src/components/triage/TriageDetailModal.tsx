@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Loader2 } from "lucide-react";
 
 import type { TriageItem } from "../../lib/triageApi";
 import {
   useDismissTriageItem,
-  useSnoozeTriageItem,
   useTriageDisplayItem,
   useTriageDrift,
 } from "../../hooks/useTriage";
@@ -13,7 +11,7 @@ import { useProjectActions } from "../../hooks/useProjectActions";
 import { useStartCampaign } from "../../hooks/useStartCampaign";
 import { CampaignStartCta } from "./CampaignStartCta";
 import { PromoteModal } from "./PromoteModal";
-import { SnoozeRevisitField } from "./SnoozeRevisitField";
+import { TriageDetailActions } from "./TriageDetailActions";
 import { TriageDetailHeader } from "./TriageDetailHeader";
 import { TriageDetailMeta } from "./TriageDetailMeta";
 import { TriageFilePanel } from "./TriageFilePanel";
@@ -59,13 +57,11 @@ export function TriageDetailModal({
   onNavigateToBoard,
 }: TriageDetailModalProps) {
   const dismiss = useDismissTriageItem(projectId);
-  const snooze = useSnoozeTriageItem(projectId);
   const startCampaignMut = useStartCampaign(projectId);
   const projectActions = useProjectActions(projectId);
   const drift = useTriageDrift(projectId);
   const displayItem = useTriageDisplayItem(projectId, item);
   const [reason, setReason] = useState("");
-  const [revisitAt, setRevisitAt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [fixNowFailure, setFixNowFailure] = useState<string | null>(null);
@@ -93,9 +89,6 @@ export function TriageDetailModal({
   // for primary attention (draft/active/legacy-null) — but NOT when the
   // campaign is complete (no CTA shown, so Fix-now keeps its primary style).
   const showCampaignCta = isCampaignItem && campaignStatus !== "complete";
-  const fixNowButtonClass = showCampaignCta
-    ? "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
-    : "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5";
 
   const onStartCampaign = async () => {
     if (!campaignSlug) return;
@@ -153,21 +146,6 @@ export function TriageDetailModal({
       return;
     }
     onActionComplete?.("dismissed");
-    onOpenChange(false);
-  };
-
-  const onSnooze = async () => {
-    setError(null);
-    const result = await snooze.mutateAsync({
-      triageId: item.id,
-      reason: reason.trim() || null,
-      revisitAt: revisitAt.trim() || undefined,
-    });
-    if (!result.ok) {
-      setError(flipErrorMessage(result, "Snooze"));
-      return;
-    }
-    onActionComplete?.("snoozed");
     onOpenChange(false);
   };
 
@@ -240,7 +218,6 @@ export function TriageDetailModal({
                       data-testid="triage-action-reason"
                     />
                   </label>
-                  <SnoozeRevisitField value={revisitAt} onChange={setRevisitAt} disabled={dismiss.isPending || snooze.isPending} />
                   {error && (
                     <div
                       className="mt-3 p-2 text-xs text-err bg-err-tint border border-[var(--err-line)] rounded"
@@ -257,56 +234,23 @@ export function TriageDetailModal({
                       {fixNowFailure}
                     </div>
                   )}
-                  <div className="flex flex-wrap justify-end gap-2.5 mt-4 items-center">
-                    <button
-                      type="button"
-                      onClick={onFixNowClick}
-                      disabled={projectActions.isLoading}
-                      className={fixNowButtonClass}
-                      data-testid="triage-fix-now"
-                    >
-                      {projectActions.isLoading && (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      )}
-                      Fix now
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onDismiss}
-                      disabled={writeDisabled || dismiss.isPending || snooze.isPending}
-                      title={writeDisabled ? writeDisabledReason : undefined}
-                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-                      data-testid="triage-dismiss"
-                    >
-                      {dismiss.isPending && (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      )}
-                      Dismiss
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onSnooze}
-                      disabled={writeDisabled || dismiss.isPending || snooze.isPending}
-                      title={writeDisabled ? writeDisabledReason : undefined}
-                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-                      data-testid="triage-snooze"
-                    >
-                      {snooze.isPending && (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      )}
-                      Snooze
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPromoteOpen(true)}
-                      disabled={writeDisabled}
-                      title={writeDisabled ? writeDisabledReason : undefined}
-                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
-                      data-testid="triage-promote"
-                    >
-                      Promote
-                    </button>
-                  </div>
+                  <TriageDetailActions
+                    projectId={projectId}
+                    itemId={displayItem.id}
+                    reason={reason}
+                    fixNowSecondary={showCampaignCta}
+                    fixNowLoading={projectActions.isLoading}
+                    dismissing={dismiss.isPending}
+                    writeDisabled={writeDisabled}
+                    writeDisabledReason={writeDisabledReason}
+                    onFixNow={onFixNowClick}
+                    onDismiss={onDismiss}
+                    onPromote={() => setPromoteOpen(true)}
+                    onSnoozed={() => {
+                      onActionComplete?.("snoozed");
+                      onOpenChange(false);
+                    }}
+                  />
                 </div>
               )}
             </div>

@@ -112,7 +112,7 @@ test.describe("Triage Start Campaign action (FR-01.33)", () => {
       await page.goto("/triage");
       const card = page.getByTestId(`triage-item-${TRIAGE_ID}`);
       await expect(card).toBeVisible({ timeout: 15000 });
-      await card.click();
+      await page.getByTestId(`triage-item-${TRIAGE_ID}-title`).click();
       await expect(page.getByTestId("triage-detail-modal")).toBeVisible();
 
       // 4. Start Campaign (draft → active) + auto-navigate to the board.

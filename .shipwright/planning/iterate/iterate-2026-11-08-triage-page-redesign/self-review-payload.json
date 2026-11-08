@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name": "Spec Compliance", "verdict": "pass", "note": "All 7 declared ACs (filter include-set, sort+group, saved view, Board-style header + tiles + search>12, card/dialog actions incl. Snooze menu, quick edit title+severity, per-check help) are implemented; the approved mockup's 'Return now' was NOT built (no server endpoint) and Fix-now task linking is deferred to PR 2 - both disclosed."},
+    {"name": "Error Handling", "verdict": "pass", "note": "Per-project load error + Retry, stale-origin banner and loading line preserved in TriageProjectStatus; Snooze/QuickEdit/Dismiss/Start-campaign surface server messages inline and catch transport failures; write-availability gate disables actions; localStorage access wrapped in try/catch with validated fallback to defaults."},
+    {"name": "Security Basics", "verdict": "pass", "note": "All triage fields render as plain text (XSS test kept), no dangerouslySetInnerHTML; no new server surface; amend/snooze go through the existing validated routes; help text is static."},
+    {"name": "Test Quality", "verdict": "pass", "note": "Pure pipeline covered by unit tests incl. park bypasses and cross-project id collision; help catalog test scans the real triage log; page/card tests assert behavior; new real-browser spec (6 cases) passes on chromium and exercises reload persistence, quick edit, snooze, Fix now and phone-width popover/form containment."},
+    {"name": "Performance Basics", "verdict": "pass", "note": "One pure buildBoardModel memo; aggregate via stable useQueries combine; cards are memo'd and keyed projectId:itemId; no new network calls (same query key as before)."},
+    {"name": "Naming & Structure", "verdict": "pass", "note": "All touched files < 300 lines (TriagePage 261, modal 281, card 234); two bloat-baseline entries retired; component inventory updated; old per-project sections/filter bar deleted with their tests."},
+    {"name": "Affected Boundaries", "verdict": "pass", "note": "Only new serialized format is the browser-local saved view (key shipwright:triage-view:v1): producer serializeView / consumer parseView round-trip tested incl. corrupt, unknown-version and unknown-value inputs. Server wire formats untouched."},
+    {"name": "Test Hygiene Probe", "verdict": "pass", "note": "scan_test_hygiene.py --diff reported no findings; two obsolete Playwright specs (filter bar / filter restyle) were deleted outright, not skipped."}
+  ]
+}

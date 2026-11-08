@@ -85,7 +85,7 @@ test.describe("Triage Edit-in-place (amend)", () => {
 
     await page.goto("/triage");
     await expect(page.getByTestId("triage-item-trg-a3e0d001")).toBeVisible({ timeout: 15000 });
-    await page.getByTestId("triage-item-trg-a3e0d001").click();
+    await page.getByTestId("triage-item-trg-a3e0d001-title").click();
     await expect(page.getByTestId("triage-detail-modal")).toBeVisible();
 
     await page.getByTestId("triage-edit-toggle").click();
@@ -134,7 +134,7 @@ test.describe("Triage Edit-in-place (amend)", () => {
 
     await page.goto("/triage");
     await expect(page.getByTestId("triage-item-trg-ca4ce001")).toBeVisible({ timeout: 15000 });
-    await page.getByTestId("triage-item-trg-ca4ce001").click();
+    await page.getByTestId("triage-item-trg-ca4ce001-title").click();
     await page.getByTestId("triage-edit-toggle").click();
 
     const titleInput = page.getByTestId("triage-amend-title");

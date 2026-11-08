@@ -1,0 +1,42 @@
+{
+  "answers": [
+    {
+      "item": 0,
+      "question_sha256": "sha256:4593bf50bba59c834678ccc96e0c2eb482839e64eb2a9a684a591fb9c86016bf",
+      "choice": "yes",
+      "text": "",
+      "options": {
+        "1": {
+          "choice": "yes"
+        },
+        "2": {
+          "choice": "no"
+        },
+        "3": {
+          "choice": "explain"
+        }
+      },
+      "via": "operator",
+      "signature": "3402765ef851d20ce2c338ca237645d07f4103faed8a5c5df0f1e8aedfed14b0"
+    },
+    {
+      "item": 1,
+      "question_sha256": "sha256:56e818b7bb832dd3fe04da5784916ecb0a5b214cd9819e2bc1b9757f3e2e71e1",
+      "choice": "yes",
+      "text": "",
+      "options": {
+        "1": {
+          "choice": "yes"
+        },
+        "2": {
+          "choice": "no"
+        },
+        "3": {
+          "choice": "explain"
+        }
+      },
+      "via": "operator",
+      "signature": "35ec27161a16040230b86324aa4d2c208042c2479e25bf081e582f624b43775c"
+    }
+  ]
+}

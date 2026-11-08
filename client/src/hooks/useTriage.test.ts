@@ -41,6 +41,8 @@ function mockFetchOnce(items: unknown[]): ReturnType<typeof vi.fn> {
   return fetchSpy;
 }
 
+const PROJECT_IDS = ["proj-1"];
+
 describe("useTriageItems / useAllTriageItems — cache parity", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -55,11 +57,11 @@ describe("useTriageItems / useAllTriageItems — cache parity", () => {
     await waitFor(() => expect(itemsResult.current.isSuccess).toBe(true));
     expect(fetchSpy).toHaveBeenCalledTimes(1);
 
-    const { result: allResult } = renderHook(() => useAllTriageItems(["proj-1"]), { wrapper });
-    await waitFor(() => expect(allResult.current[0]?.isSuccess).toBe(true));
+    const { result: allResult } = renderHook(() => useAllTriageItems(PROJECT_IDS), { wrapper });
+    await waitFor(() => expect(allResult.current.statuses[0]?.isLoading).toBe(false));
 
     expect(fetchSpy).toHaveBeenCalledTimes(1); // shared cache entry, no duplicate network call
-    expect(allResult.current[0]?.data).toEqual(itemsResult.current.data);
+    expect(allResult.current.entries.map((e) => e.item)).toEqual(itemsResult.current.data);
   });
 
   it("useTriageItems still resolves correctly when useAllTriageItems populates the cache FIRST (the reverse race)", async () => {
@@ -67,8 +69,8 @@ describe("useTriageItems / useAllTriageItems — cache parity", () => {
     const queryClient = createIsolatedQueryClient();
     const wrapper = createWrapper(queryClient);
 
-    const { result: allResult } = renderHook(() => useAllTriageItems(["proj-1"]), { wrapper });
-    await waitFor(() => expect(allResult.current[0]?.isSuccess).toBe(true));
+    const { result: allResult } = renderHook(() => useAllTriageItems(PROJECT_IDS), { wrapper });
+    await waitFor(() => expect(allResult.current.statuses[0]?.isLoading).toBe(false));
     expect(fetchSpy).toHaveBeenCalledTimes(1);
 
     const { result: itemsResult } = renderHook(() => useTriageItems("proj-1"), { wrapper });

@@ -103,7 +103,7 @@ test.describe("Triage pending-delivery badge", () => {
     ).toHaveCount(0);
 
     // ── detail modal: badge + working Fix-now CTA (AC4) ─────────────────────
-    await pendingCard.click();
+    await page.getByTestId("triage-item-trg-bbbb0002-title").click();
     const modal = page.getByTestId("triage-detail-modal");
     await expect(modal).toBeVisible();
     await expect(modal.getByTestId("triage-pending-delivery")).toBeVisible();

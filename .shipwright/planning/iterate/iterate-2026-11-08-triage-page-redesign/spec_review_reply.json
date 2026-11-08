@@ -1,0 +1,15 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "Round 2: all four round-1 divergences fixed (severity help shown, complexity read-only + priority follows-severity note in card and dialog, dialog lists audit checks with help, mini-plan decision 6 amended with reason).",
+  "ac_verdicts": [
+    {"ac": "FR-01.30.AC30", "verdict": "matches", "diff_location": "client/src/lib/triageFilterSort.ts", "reason": "Include-set filters, returned-park bypass, chips, Clear filters, Showing N of M, separate empty states.", "weakens": false},
+    {"ac": "FR-01.30.AC31", "verdict": "matches", "diff_location": "client/src/lib/triageFilterSort.ts", "reason": "Sort keys severity/priority/modified/name per-level direction; grouping None/Project/Severity/Source/Priority with collapse.", "weakens": false},
+    {"ac": "item-3", "verdict": "matches", "diff_location": "client/src/lib/triageViewStorage.ts", "reason": "Versioned validated saved view with fallback.", "weakens": false},
+    {"ac": "item-4", "verdict": "matches", "diff_location": "client/src/pages/TriagePage.tsx", "reason": "Shared project dropdown, filter/group/sort menus, tiles, search above 12.", "weakens": false},
+    {"ac": "item-5", "verdict": "matches", "diff_location": "client/src/components/triage/TriageItemCard.tsx", "reason": "Card and dialog offer main action, Promote, Snooze menu, Dismiss.", "weakens": false},
+    {"ac": "item-6", "verdict": "matches", "diff_location": "client/src/components/triage/TriageQuickEdit.tsx", "reason": "Title+severity editable; priority/domain/complexity read-only.", "weakens": false},
+    {"ac": "item-7", "verdict": "matches", "diff_location": "client/src/components/triage/TriageDetailMeta.tsx", "reason": "Checks listed per line with help on card and dialog; source/severity/check help catalog.", "weakens": false}
+  ]
+}

@@ -112,41 +112,38 @@ test.describe("Triage Deferred section", () => {
     });
     await expect(page.getByTestId("triage-item-trg-past0002")).toBeVisible();
 
-    // AC6 — the Deferred section carries exactly the two still-parked items.
-    // iterate-2026-08-08-triage-filters-sort-parked: the Parked filter
-    // defaults to HIDDEN, so the dated park (future003) starts hidden and
-    // the undated one (nodate004) stays visible via its own AC9 exception
-    // — "1 of 2", not "2", until Parked is switched on.
-    const deferred = page.getByTestId("triage-deferred-section");
-    await expect(deferred).toBeVisible();
-    await expect(deferred).toContainText("Deferred (1 of 2)");
-    await page.getByTestId("triage-filter-parked-parked").click();
-    await expect(deferred).toContainText("Deferred (2)");
+    // AC6 — iterate-2026-11-08-triage-page-redesign: parked items live in a
+    // read-only Parked section. The Show-parked switch defaults to OFF, so
+    // the dated park (future003) starts hidden and the undated one
+    // (nodate004) stays visible via its own exception.
+    const parked = page.getByTestId("triage-parked-section");
+    await expect(parked).toBeVisible();
+    await expect(parked).toContainText("Parked (1)");
+    await expect(page.getByTestId("triage-item-trg-future003")).toHaveCount(0);
+    await page.getByTestId("triage-filter-menu-trigger").click();
+    await page.getByTestId("triage-filter-show-parked").click();
+    await page.keyboard.press("Escape");
+    await expect(parked).toContainText("Parked (2)");
 
-    const futureCard = page.getByTestId("triage-deferred-item-trg-future003");
+    const futureCard = page.getByTestId("triage-item-trg-future003");
     await expect(futureCard).toBeVisible();
     await expect(
       page.getByTestId("triage-deferred-item-trg-future003-revisit"),
-    ).toHaveText("Returns on 2099-06-01");
-    await expect(
-      page.getByTestId("triage-deferred-item-trg-future003-state"),
-    ).toHaveText("Parked");
+    ).toHaveText("Parked — returns on 2099-06-01");
 
-    const undatedCard = page.getByTestId("triage-deferred-item-trg-nodate004");
+    const undatedCard = page.getByTestId("triage-item-trg-nodate004");
     await expect(undatedCard).toBeVisible();
     await expect(
       page.getByTestId("triage-deferred-item-trg-nodate004-revisit"),
-    ).toHaveText("No revisit date set");
-    await expect(
-      page.getByTestId("triage-deferred-item-trg-nodate004-state"),
-    ).toHaveText("Parked — not due");
+    ).toHaveText("Parked — no revisit date set");
 
-    // Deferred is read-only — clicking it opens the detail view with no
-    // action row (item.status !== "triage").
-    await futureCard.click();
+    // Parked is read-only — the card has no action buttons, and opening it
+    // shows the detail view with no action row (item.status !== "triage").
+    await expect(page.getByTestId("triage-card-fix-now-trg-future003")).toHaveCount(0);
+    await page.getByTestId("triage-item-trg-future003-title").click();
     const modal = page.getByTestId("triage-detail-modal");
     await expect(modal).toBeVisible();
-    await expect(modal.getByTestId("triage-snooze")).toHaveCount(0);
+    await expect(modal.getByTestId("triage-snooze-menu-trg-future003")).toHaveCount(0);
   });
 
   test("Snooze with a revisit date moves the item into Deferred (AC7)", async ({
@@ -174,25 +171,26 @@ test.describe("Triage Deferred section", () => {
     projectId = ((await created.json()) as { data: { id: string } }).data.id;
 
     await page.goto("/triage");
-    const card = page.getByTestId("triage-item-trg-a0000001");
-    await expect(card).toBeVisible({ timeout: 15000 });
-    await card.click();
+    await expect(page.getByTestId("triage-item-trg-a0000001")).toBeVisible({ timeout: 15000 });
+    await page.getByTestId("triage-item-trg-a0000001-title").click();
 
     const modal = page.getByTestId("triage-detail-modal");
     await expect(modal).toBeVisible();
-    await modal.getByTestId("triage-snooze-revisit-date").fill("2099-12-25");
-    await modal.getByTestId("triage-snooze").click();
+    // The Snooze menu is a portaled popover (never clipped by the dialog).
+    await modal.getByTestId("triage-snooze-menu-trg-a0000001").click();
+    await page.getByTestId("triage-snooze-date").fill("2099-12-25");
+    await page.getByTestId("triage-snooze-date-go").click();
     await expect(modal).toBeHidden();
 
-    // iterate-2026-08-08-triage-filters-sort-parked: the newly-snoozed item
-    // is a DATED park, hidden by the Parked filter's own default (off) —
-    // switch it on to see it, same as any other dated park.
-    await page.getByTestId("triage-filter-parked-parked").click();
-    const deferredCard = page.getByTestId("triage-deferred-item-trg-a0000001");
-    await expect(deferredCard).toBeVisible({ timeout: 15000 });
+    // The newly-snoozed item is a DATED park, hidden by the Show-parked
+    // default (off) — switch it on to see it, same as any other dated park.
+    await page.getByTestId("triage-filter-menu-trigger").click();
+    await page.getByTestId("triage-filter-show-parked").click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("triage-parked-section")).toBeVisible({ timeout: 15000 });
     await expect(
       page.getByTestId("triage-deferred-item-trg-a0000001-revisit"),
-    ).toHaveText("Returns on 2099-12-25");
-    await expect(page.getByTestId("triage-item-trg-a0000001")).toHaveCount(0);
+    ).toHaveText("Parked — returns on 2099-12-25");
+    await expect(page.getByTestId("triage-open-items").getByTestId("triage-item-trg-a0000001")).toHaveCount(0);
   });
 });

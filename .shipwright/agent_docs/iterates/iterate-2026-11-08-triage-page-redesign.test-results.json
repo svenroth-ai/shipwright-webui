@@ -1,0 +1,128 @@
+{
+  "last_updated": "2026-11-08T22:38:02Z",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-08-triage-page-redesign",
+    "date": "2026-11-08",
+    "unit": {
+      "status": "passed",
+      "passed": 4999,
+      "skipped": 0,
+      "total": 4999
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 29,
+      "skipped": 0,
+      "total": 29
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Include-set filters: nothing ticked shows all, ticked values narrow; returned park bypasses attribute filters and the Critical+High tile",
+          "disposition": "tested",
+          "evidence": "triageBoardModel.test.ts + triageFilterSort.test.ts PASSED"
+        },
+        {
+          "behavior": "Dateless park stays visible with Show parked off; dated park hidden with a hint, never reported as an active filter",
+          "disposition": "tested",
+          "evidence": "TriagePage.test.tsx::dated, not-yet-due park PASSED"
+        },
+        {
+          "behavior": "Empty / filtered-out / load-error states are mutually consistent (no all-clear next to an error, no dead Clear button for parked-only)",
+          "disposition": "tested",
+          "evidence": "TriagePage.test.tsx::a failed load / all-filtered-out PASSED"
+        },
+        {
+          "behavior": "Same triage id in two projects stays two rows; actions bound to the entry's own project",
+          "disposition": "tested",
+          "evidence": "triageBoardModel.test.ts::same triage id in two projects PASSED; TriageItemCard.test.tsx::Fix now hands the intent up bound to the entry's own project PASSED"
+        },
+        {
+          "behavior": "Saved view round-trips and every corrupt/unknown field falls back per field without throwing",
+          "disposition": "tested",
+          "evidence": "triageViewStorage.test.ts + useTriageViewState.test.ts PASSED"
+        },
+        {
+          "behavior": "Filter + grouping persist across a real reload; ticking nothing shows all",
+          "disposition": "tested",
+          "evidence": "triage-redesign.spec.ts::filter + grouping persist across a reload PASSED (chromium)"
+        },
+        {
+          "behavior": "Card actions: Fix now, Promote, Snooze menu, Dismiss; Promote dialog click does not open the detail; Dismiss locked while a snooze is pending",
+          "disposition": "tested",
+          "evidence": "TriageItemCard.test.tsx PASSED; triage-redesign.spec.ts::Snooze on the card parks the item PASSED"
+        },
+        {
+          "behavior": "Quick edit changes title and severity in place via the real amend route",
+          "disposition": "tested",
+          "evidence": "triage-redesign.spec.ts::quick edit changes the title and severity in place PASSED"
+        },
+        {
+          "behavior": "Edit form and Snooze menu stay inside the dialog / viewport on a phone",
+          "disposition": "tested",
+          "evidence": "triage-redesign.spec.ts::phone: dialog edit form and Snooze menu stay inside PASSED (mobile-chromium)"
+        },
+        {
+          "behavior": "Per-check help catalog covers every real check code in the triage log; unknown codes fall back",
+          "disposition": "tested",
+          "evidence": "triageHelpText.test.ts + triageFindings.test.ts PASSED"
+        },
+        {
+          "behavior": "Collapsed saved group never hides a returned park",
+          "disposition": "tested",
+          "evidence": "TriageGroupList.test.tsx PASSED"
+        },
+        {
+          "behavior": "Snooze presets floored at UTC tomorrow",
+          "disposition": "tested",
+          "evidence": "triageSnooze.test.ts PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 12,
+        "tested": 12,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/triage-redesign.spec.ts e2e/flows/triage-amend.spec.ts e2e/flows/triage-card-block-display.spec.ts e2e/flows/triage-deferred-envelope.spec.ts e2e/flows/triage-file-viewer.spec.ts e2e/flows/triage-fix-now-more-options-clip.spec.ts e2e/flows/triage-fix-now.spec.ts e2e/flows/triage-header-restyle.spec.ts e2e/flows/triage-pending-delivery.spec.ts e2e/flows/triage-record-boundary-recovery.spec.ts e2e/flows/triage-restyle.spec.ts e2e/flows/triage-tab.spec.ts e2e/flows/start-campaign-action.spec.ts --reporter=json",
+      "exit_code": 0,
+      "tests_run": 29,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-page-redesign\\.shipwright\\runs\\iterate-2026-11-08-triage-page-redesign\\surface_verification.log",
+      "timestamp": "2026-11-08T22:37:16.981Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-08-triage-page-redesign",
+    "commit": "4fdd05944c0fe091dceea12e000ddf2a6cabd81a",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

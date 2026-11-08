@@ -177,7 +177,7 @@ describe("TriageDetailModal — Edit toggle (AC8)", () => {
     expect(screen.getByTestId("triage-write-unavailable")).toHaveTextContent("No working Python");
     expect(screen.getByTestId("triage-edit-toggle")).toBeDisabled();
     expect(screen.getByTestId("triage-dismiss")).toBeDisabled();
-    expect(screen.getByTestId("triage-snooze")).toBeDisabled();
+    expect(screen.getByTestId(`triage-snooze-menu-${baseItem.id}`)).toBeDisabled();
     expect(screen.getByTestId("triage-promote")).toBeDisabled();
   });
 

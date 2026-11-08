@@ -1,0 +1,1 @@
+- (2026-11-08) build — every TanStack useQuery observer with a refetchInterval runs its OWN timer; per-card read-only observers (select-only) must pass refetchInterval:false and leave polling to one page-level owner. → iterate-2026-11-08-triage-page-redesign

@@ -102,7 +102,7 @@ test.describe("Triage compliance file viewer", () => {
 
     await page.goto("/triage");
     await expect(page.getByTestId("triage-item-trg-fv0001")).toBeVisible({ timeout: 15000 });
-    await page.getByTestId("triage-item-trg-fv0001").click();
+    await page.getByTestId("triage-item-trg-fv0001-title").click();
 
     const modal = page.getByTestId("triage-detail-modal");
     await expect(modal).toBeVisible();
@@ -156,7 +156,7 @@ test.describe("Triage compliance file viewer", () => {
 
     await page.goto("/triage");
     await expect(page.getByTestId("triage-item-trg-fv0002")).toBeVisible({ timeout: 15000 });
-    await page.getByTestId("triage-item-trg-fv0002").click();
+    await page.getByTestId("triage-item-trg-fv0002-title").click();
 
     const modal = page.getByTestId("triage-detail-modal");
     await expect(modal).toBeVisible();
@@ -182,7 +182,7 @@ test.describe("Triage compliance file viewer", () => {
 
     await page.goto("/triage");
     await expect(page.getByTestId("triage-item-trg-fv0003")).toBeVisible({ timeout: 15000 });
-    await page.getByTestId("triage-item-trg-fv0003").click();
+    await page.getByTestId("triage-item-trg-fv0003-title").click();
 
     const modal = page.getByTestId("triage-detail-modal");
     await expect(modal).toBeVisible();
@@ -223,7 +223,7 @@ test.describe("Triage compliance file viewer", () => {
     await page.addInitScript(() => window.localStorage.setItem("shipwright:viewer-wrap-lines", "false"));
     await page.goto("/triage");
     await expect(page.getByTestId("triage-item-trg-fv0004")).toBeVisible({ timeout: 15000 });
-    await page.getByTestId("triage-item-trg-fv0004").click();
+    await page.getByTestId("triage-item-trg-fv0004-title").click();
 
     const modal = page.getByTestId("triage-detail-modal");
     await expect(modal).toBeVisible();
@@ -271,7 +271,7 @@ test.describe("Triage compliance file viewer", () => {
 
     await page.goto("/triage");
     await expect(page.getByTestId("triage-item-trg-fv0005")).toBeVisible({ timeout: 15000 });
-    await page.getByTestId("triage-item-trg-fv0005").click();
+    await page.getByTestId("triage-item-trg-fv0005-title").click();
 
     const modal = page.getByTestId("triage-detail-modal");
     await expect(modal).toBeVisible();
