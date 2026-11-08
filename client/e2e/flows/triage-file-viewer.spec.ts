@@ -77,6 +77,7 @@ async function seedProject(
   return { projectDir, projectId };
 }
 
+// @covers FR-01.02
 test.describe("Triage compliance file viewer", () => {
   let projectDir = "";
   let projectId = "";
