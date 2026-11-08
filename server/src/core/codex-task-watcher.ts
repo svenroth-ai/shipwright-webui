@@ -56,9 +56,8 @@ import {
   type EpisodeState,
 } from "./codex-task-watcher-types.js";
 
-// Types/interfaces/constants live in `codex-task-watcher-types.ts` (split to
-// stay under the 300-line guideline); re-exported here so every existing
-// import site (`from "./codex-task-watcher.js"`) is unaffected.
+// Types/constants live in `codex-task-watcher-types.ts` (300-line guideline);
+// re-exported here so every existing import site is unaffected.
 export {
   DEFAULT_STALL_TIMEOUT_MS,
   DEFAULT_LAUNCH_CONFIRM_TIMEOUT_MS,
