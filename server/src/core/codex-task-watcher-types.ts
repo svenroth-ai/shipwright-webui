@@ -81,4 +81,32 @@ export interface EpisodeState {
    *  means fresh output arrived, which starts a brand-new episode. */
   lastSeenDataAt: number;
   nudged: boolean;
+  /** Watcher clock at the nudge `write` — output landing within
+   *  `NUDGE_ECHO_GRACE_MS` of it is the nudge's own echo/redraw, not agent
+   *  progress, and must not re-arm the episode (issue #583). */
+  nudgedAt?: number;
+}
+
+/** Output within this window after a nudge write is treated as the nudge's
+ *  own terminal echo/redraw. */
+export const NUDGE_ECHO_GRACE_MS = 30 * 1000;
+
+export const WAKER_PROMPT =
+  "\n[Shipwright] Still there? If you're finished, wrap up and close with your " +
+  "SHIPWRIGHT-STATUS block. If not, please continue.\n";
+export const SELF_CHECK_PROMPT =
+  "\n[Shipwright] This phase has no automated completion check — please confirm " +
+  "your status directly: are you done, or still working? Close with your " +
+  "SHIPWRIGHT-STATUS block either way.\n";
+
+/** True when `lastDataAt` is only the echo/redraw of the nudge just written
+ *  (issue #583): the episode is spent and the output landed inside the grace. */
+export function isNudgeEcho(prev: EpisodeState, lastDataAt: number): boolean {
+  return (
+    prev.nudged &&
+    prev.nudgedAt !== undefined &&
+    prev.lastSeenDataAt !== lastDataAt &&
+    lastDataAt >= prev.nudgedAt &&
+    lastDataAt - prev.nudgedAt <= NUDGE_ECHO_GRACE_MS
+  );
 }

@@ -1,0 +1,71 @@
+{
+  "run_id": "iterate-2026-11-08-codex-watcher-selfcheck-echo",
+  "date": "2026-11-08T14:24:29.325068Z",
+  "event_at": "2026-11-07T13:31:30.141649+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/codex-watcher-selfcheck-echo",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-08-codex-watcher-selfcheck-echo",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "no_oracle: nudge's own echo does not re-arm; one write then no_oracle_unresolved",
+        "disposition": "tested",
+        "evidence": "codex-task-watcher.echo.test.ts::no_oracle echo PASSED"
+      },
+      {
+        "behavior": "not_done: waker echo does not re-arm",
+        "disposition": "tested",
+        "evidence": "codex-task-watcher.echo.test.ts::not_done echo PASSED"
+      },
+      {
+        "behavior": "valid done:false report is never nudged again",
+        "disposition": "tested",
+        "evidence": "codex-task-watcher.echo.test.ts::done:false PASSED"
+      },
+      {
+        "behavior": "valid done:true report marks done on first idle check",
+        "disposition": "tested",
+        "evidence": "codex-task-watcher.echo.test.ts::done:true PASSED"
+      },
+      {
+        "behavior": "stale other-phase report ignored",
+        "disposition": "tested",
+        "evidence": "codex-task-watcher.echo.test.ts::another phase PASSED"
+      },
+      {
+        "behavior": "grace edge absorbed, +1 not absorbed",
+        "disposition": "tested",
+        "evidence": "codex-task-watcher.echo.test.ts::grace edge PASSED"
+      },
+      {
+        "behavior": "genuine new output after grace starts new episode",
+        "disposition": "tested",
+        "evidence": "codex-task-watcher.echo.test.ts::new output PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 7,
+      "tested": 7,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 7,
+      "covered_acs": 7
+    }
+  },
+  "surface_verification": {
+    "surface": "none",
+    "justification": "Server-side in-memory watcher logic only; no UI, route or message-contract change; covered by deterministic unit tests with a fake pty/clock."
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

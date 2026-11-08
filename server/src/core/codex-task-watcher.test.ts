@@ -128,7 +128,7 @@ describe("CodexTaskWatcher — classification", () => {
         kind: "ok",
         result: { verdict: "no_oracle", phase: "adopt", session: "sess-1", evidence: {} },
       })),
-      peekTerminalText: () => '```SHIPWRIGHT-STATUS\n{"phase":"adopt","done":true}\n```',
+      peekTerminalText: () => '```SHIPWRIGHT-STATUS\n{"phase":"build","done":true}\n```',
       now: () => 20 * 60 * 1000,
     };
     const w = new CodexTaskWatcher(deps);
@@ -143,7 +143,7 @@ describe("CodexTaskWatcher — classification", () => {
       oracle: { kind: "ok", result: { verdict: "no_oracle", phase: "adopt", session: "sess-1", evidence: {} } },
     });
     (deps as typeof deps & { peekTerminalText: () => string }).peekTerminalText = () =>
-      '```SHIPWRIGHT-STATUS\n{"phase":"adopt","done":false}\n```';
+      '```SHIPWRIGHT-STATUS\n{"phase":"build","done":false}\n```';
     const w = new CodexTaskWatcher(deps);
     await w.tick();
     await w.tick();
