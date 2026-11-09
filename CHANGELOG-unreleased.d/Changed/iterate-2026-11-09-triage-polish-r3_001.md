@@ -1,0 +1,1 @@
+Triage page polish: clearer help texts (distinct per audit check, Fix now wording), cards in 2-3 columns, readable filter strip, calmer detail dialog with Edit at the bottom, project dropdown without counts

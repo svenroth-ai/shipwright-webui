@@ -1,0 +1,187 @@
+{
+  "unattended": true,
+  "resolved_items": [
+    {
+      "kind": "change",
+      "ac": "FR-01.30.AC36",
+      "old_text": "- (E) **(iterate-2026-11-08-triage-page-redesign, MODIFY)** Given a bundled compliance or phase-quality item, when it is shown, then each audit check is listed on its own line with a help marker, and sources, severities and every known audit-check code have a plain English explanation of what it is, why it is here and what to do.",
+      "new_text": "Given a bundled compliance or phase-quality item, when it is shown, then each audit check is listed on its own line with a help marker, and sources and every known audit-check code have a plain English explanation of what it is, why it is here and what Fix now does about it; severities (critical, high, medium, low) carry no help marker.",
+      "decided_by": "auto",
+      "confirmed": false
+    },
+    {
+      "kind": "change",
+      "ac": "FR-01.30.AC40",
+      "old_text": "- (E) **(iterate-2026-11-09-triage-fixnow-task, MODIFY)** Given the campaign source variant and the operator source, when their help is shown, then each has its own plain English text (the campaign variant reads like the main campaign source), and a generated list of every Triage help text sits in the specification folder (`triage-help-texts.md`) for review.",
+      "new_text": "Given a source that is not part of the framework's own producers, when its help is shown, then a generic text is used, so no project-specific source name such as a campaign label has a catalogue entry, while every framework source (compliance, phase quality, GitHub, drift, required checks, manual, operator) has its own text; the full list of Triage help texts can be reviewed as a document in the specification folder.",
+      "decided_by": "auto",
+      "confirmed": false
+    },
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.30",
+      "new_text": "Given the Triage help texts, when the operator opens a help marker, then the third section is headed What Fix now does and says what pressing Fix now starts, a GitHub security roll-up and a failing pull-request check each get their own text, and the wording is understandable to a technically minded person who is not a developer.",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.30",
+      "new_text": "Given the project dropdown on the Triage page, when it is opened, then it lists the projects without task counts (the counts belong to the Board).",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.30",
+      "new_text": "Given the Triage page with open items, when the window is wide, then the cards of a group are laid out in two columns (three on a very wide screen) and in one column on a narrow screen.",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.30",
+      "new_text": "Given the Triage detail dialog, when an item is opened, then the title comes first, followed by the same pills in the same colours and wording as its card (source, severity, pending delivery, returned, project), the explanation of the findings, and the less important fields (priority, domain, complexity, kind, timestamps, dedup key) folded away until opened; Edit is a button in the action row at the bottom, not an icon at the top.",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.30",
+      "new_text": "Given active Triage filters, when the summary strip (Showing N of M, filter chips, Clear filters) is shown, then it sits on a solid light surface with dark text so it stays readable over the photo background.",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.30",
+      "new_text": "Given a Triage card, when it is shown, then its text meets the Board's contrast (secondary text at least 12px in a dark colour on the white card), the project appears as a readable pill with the project colour, and the source reads as in the approved mockup.",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.30",
+      "new_text": "Given the Triage filter menu, when it is opened, then Reset view is the first entry at the top.",
+      "decided_by": "code",
+      "confirmed": false
+    }
+  ],
+  "ac_decisions": [
+    {
+      "ac": "FR-01.30.AC36",
+      "mode": "auto-assigned",
+      "answer": "auto",
+      "kind": "change",
+      "answered_via": "none",
+      "unconfirmed": true,
+      "note": "changed FR-01.30.AC36: \"- (E) **(iterate-2026-11-08-triage-page-redesign, MODIFY)** Given a bundled compliance or phase-quality item, when it is shown, then each audit check is list...\" -> \"Given a bundled compliance or phase-quality item, when it is shown, then each audit check is listed on its own line with a help marker, and sources and every...\"",
+      "decided_by": "auto",
+      "confirmed": false
+    },
+    {
+      "ac": "FR-01.30.AC40",
+      "mode": "auto-assigned",
+      "answer": "auto",
+      "kind": "change",
+      "answered_via": "none",
+      "unconfirmed": true,
+      "note": "changed FR-01.30.AC40: \"- (E) **(iterate-2026-11-09-triage-fixnow-task, MODIFY)** Given the campaign source variant and the operator source, when their help is shown, then each has ...\" -> \"Given a source that is not part of the framework's own producers, when its help is shown, then a generic text is used, so no project-specific source name suc...\"",
+      "decided_by": "auto",
+      "confirmed": false
+    },
+    {
+      "ac": "FR-01.30.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "ac": "FR-01.30.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "ac": "FR-01.30.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "ac": "FR-01.30.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "ac": "FR-01.30.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "ac": "FR-01.30.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "ac": "FR-01.30.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    }
+  ],
+  "counts": {
+    "total": 9,
+    "auto": 9,
+    "asked": 0,
+    "exempt": 0,
+    "restore": 0,
+    "unchanged": 0,
+    "answered_inline": 0,
+    "unconfirmed": 2,
+    "exempt_share": 0.0,
+    "restore_share": 0.0
+  },
+  "unconfirmed_assignments": [
+    "Assignments made without you (auto-assigned, unconfirmed):",
+    "1. EXISTING CRITERION changed FR-01.30.AC36: \"- (E) **(iterate-2026-11-08-triage-page-redesign, MODIFY)** Given a bundled compliance or phase-quality item, when it is shown, then each audit check is list...\" -> \"Given a bundled compliance or phase-quality item, when it is shown, then each audit check is listed on its own line with a help marker, and sources and every...\" (decided_by=auto, confirmed=false)",
+    "2. EXISTING CRITERION changed FR-01.30.AC40: \"- (E) **(iterate-2026-11-09-triage-fixnow-task, MODIFY)** Given the campaign source variant and the operator source, when their help is shown, then each has ...\" -> \"Given a source that is not part of the framework's own producers, when its help is shown, then a generic text is used, so no project-specific source name suc...\" (decided_by=auto, confirmed=false)"
+  ],
+  "status": "ok",
+  "ac_mode": {
+    "mode": "auto",
+    "source": "default (unattended)"
+  },
+  "run_id": "iterate-2026-11-09-triage-polish-r3",
+  "bind_id": "iterate-2026-11-09-triage-polish-r3",
+  "exemption_check": "tested against the current diff (4 file(s), 4 not observable)",
+  "surface": {
+    "observable": false,
+    "files": [],
+    "ignored": 4
+  }
+}

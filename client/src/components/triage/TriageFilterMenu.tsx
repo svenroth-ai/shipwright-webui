@@ -84,6 +84,15 @@ export function TriageFilterMenu({ view, facets, parkedCount }: Props) {
           data-testid="triage-filter-menu"
           className={MENU_CONTENT}
         >
+          <DropdownMenu.Item
+            onSelect={view.resetView}
+            data-testid="triage-filter-reset-view"
+            className={MENU_ITEM}
+          >
+            <span className={MENU_CHECK} />
+            <span className="flex-1">Reset view</span>
+          </DropdownMenu.Item>
+          <DropdownMenu.Separator className={MENU_SEPARATOR} />
           {sections.map((s, i) => (
             <div key={s.group}>
               {i > 0 && <DropdownMenu.Separator className={MENU_SEPARATOR} />}
@@ -124,15 +133,6 @@ export function TriageFilterMenu({ view, facets, parkedCount }: Props) {
             <span className="flex-1">Show parked</span>
             <span className={MENU_COUNT}>{parkedCount}</span>
           </DropdownMenu.CheckboxItem>
-          <DropdownMenu.Separator className={MENU_SEPARATOR} />
-          <DropdownMenu.Item
-            onSelect={view.resetView}
-            data-testid="triage-filter-reset-view"
-            className={MENU_ITEM}
-          >
-            <span className={MENU_CHECK} />
-            <span className="flex-1">Reset view</span>
-          </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

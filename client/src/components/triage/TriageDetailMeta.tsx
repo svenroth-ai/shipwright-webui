@@ -4,7 +4,6 @@ import { useFileExistence } from "../../hooks/useFileExistence";
 import { getComplexity } from "../../lib/triageFilterSort";
 import { parseFindings } from "../../lib/triageFindings";
 import { checkHelp } from "../../lib/triageHelpText";
-import { TriageHelp } from "./TriageHelp";
 import { FileLink } from "./FileLink";
 import { FileMentionText } from "./FileMentionText";
 import { TriageAmendForm } from "./TriageAmendForm";
@@ -47,49 +46,9 @@ export function TriageDetailMeta({
   const findings =
     item.source === "compliance" || item.source === "phaseQuality" ? parseFindings(item.detail) : [];
 
+  const FIELD = "text-[var(--color-muted)]";
   return (
     <>
-      <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs mb-4">
-        <div>
-          <dt className="text-[var(--color-muted)]">Suggested priority <span className="font-normal">(follows severity)</span></dt>
-          <dd className="font-mono">{item.suggestedPriority}</dd>
-        </div>
-        <div>
-          <dt className="text-[var(--color-muted)]">Suggested domain</dt>
-          <dd>{item.suggestedDomain}</dd>
-        </div>
-        <div>
-          <dt className="text-[var(--color-muted)]">Complexity</dt>
-          <dd data-testid="triage-detail-complexity">{getComplexity(item)}</dd>
-        </div>
-        <div>
-          <dt className="text-[var(--color-muted)]">Kind</dt>
-          <dd>{item.kind}</dd>
-        </div>
-        <div>
-          <dt className="text-[var(--color-muted)]">Original ts</dt>
-          <dd className="font-mono text-[10px]">{item.originalTs}</dd>
-        </div>
-        {item.dedupKey && (
-          <div className="col-span-2">
-            <dt className="text-[var(--color-muted)]">Dedup key</dt>
-            <dd className="font-mono text-[10px] break-all">{item.dedupKey}</dd>
-          </div>
-        )}
-        {item.evidencePath && (
-          <div className="col-span-2">
-            <dt className="text-[var(--color-muted)]">Evidence</dt>
-            <dd className="text-[10px] break-all">
-              {existingPaths?.has(item.evidencePath) ? (
-                <FileLink path={item.evidencePath} onOpen={onOpenFile} />
-              ) : (
-                item.evidencePath
-              )}
-            </dd>
-          </div>
-        )}
-      </dl>
-
       {editMode ? (
         <div className="border-t border-[var(--color-border)] pt-4">
           <TriageAmendForm
@@ -103,31 +62,78 @@ export function TriageDetailMeta({
           />
         </div>
       ) : (
-        <div className="border-t border-[var(--color-border)] pt-4">
-          <h4 className="text-xs font-semibold text-[var(--color-text)] uppercase mb-2">
-            Detail
-          </h4>
+        <>
           {findings.length > 0 && (
-            <ul className="m-0 mb-2 grid list-none gap-1 p-0" data-testid="triage-detail-findings">
-              {findings.map((f, i) => (
-                <li
-                  key={`${f.code}-${i}`}
-                  className="flex items-center gap-2 rounded-md bg-[var(--color-muted-bg)] px-2 py-1 text-[13px] text-[var(--color-text)]"
-                >
-                  <code className="shrink-0 rounded bg-[var(--color-surface)] px-1.5 py-px text-[11px]">{f.code}</code>
-                  <span className="min-w-0 flex-1">{f.title}</span>
-                  <TriageHelp help={checkHelp(f.code, f.title)} subject={`check-${f.code}`} />
-                </li>
-              ))}
+            <ul className="m-0 mb-4 grid list-none gap-2 p-0" data-testid="triage-detail-findings">
+              {findings.map((f, i) => {
+                const h = checkHelp(f.code, f.title);
+                return (
+                  <li key={`${f.code}-${i}`} className="rounded-md bg-[var(--color-muted-bg)] px-3 py-2 text-sm text-[var(--color-text)]">
+                    <div className="flex items-center gap-2 font-medium">
+                      <code className="shrink-0 rounded bg-[var(--color-surface)] px-1.5 py-px text-xs">{f.code}</code>
+                      <span className="min-w-0 flex-1">{f.title}</span>
+                    </div>
+                    <p className="mt-1 text-[13px] leading-snug">{h.what}</p>
+                    <p className="mt-1 text-[13px] leading-snug">{h.why}</p>
+                    <p className="mt-1 text-[13px] leading-snug">
+                      <span className="font-semibold">What Fix now does: </span>
+                      {h.todo}
+                    </p>
+                  </li>
+                );
+              })}
             </ul>
           )}
-          <p
-            className="text-sm text-[var(--color-text)] whitespace-pre-wrap"
-            data-testid="triage-detail-body"
-          >
-            <FileMentionText text={item.detail} onOpen={onOpenFile} existingPaths={existingPaths} />
-          </p>
-        </div>
+          <details className="mb-4" open={findings.length === 0} data-testid="triage-detail-raw">
+            <summary className="cursor-pointer text-sm font-semibold text-[var(--color-text)]">
+              {findings.length > 0 ? "Raw detail" : "Detail"}
+            </summary>
+            <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--color-text)]" data-testid="triage-detail-body">
+              <FileMentionText text={item.detail} onOpen={onOpenFile} existingPaths={existingPaths} />
+            </p>
+          </details>
+          {item.evidencePath && (
+            <p className="mb-4 break-all text-sm text-[var(--color-text)]" data-testid="triage-detail-evidence">
+              <span className="font-semibold">Evidence: </span>
+              {existingPaths?.has(item.evidencePath) ? (
+                <FileLink path={item.evidencePath} onOpen={onOpenFile} />
+              ) : (
+                item.evidencePath
+              )}
+            </p>
+          )}
+          <details className="mb-2" data-testid="triage-detail-more">
+            <summary className="cursor-pointer text-sm font-semibold text-[var(--color-text)]">Details</summary>
+            <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-[var(--color-text)]">
+              <div>
+                <dt className={FIELD}>Suggested priority <span className="font-normal">(follows severity)</span></dt>
+                <dd className="font-mono">{item.suggestedPriority}</dd>
+              </div>
+              <div>
+                <dt className={FIELD}>Suggested domain</dt>
+                <dd>{item.suggestedDomain}</dd>
+              </div>
+              <div>
+                <dt className={FIELD}>Complexity</dt>
+                <dd data-testid="triage-detail-complexity">{getComplexity(item)}</dd>
+              </div>
+              <div>
+                <dt className={FIELD}>Kind</dt>
+                <dd>{item.kind}</dd>
+              </div>
+              <div>
+                <dt className={FIELD}>Original ts</dt>
+                <dd className="font-mono">{item.originalTs}</dd>
+              </div>
+              {item.dedupKey && (
+                <div className="col-span-2">
+                  <dt className={FIELD}>Dedup key</dt>
+                  <dd className="break-all font-mono">{item.dedupKey}</dd>
+                </div>
+              )}
+            </dl>
+          </details>
+        </>
       )}
     </>
   );

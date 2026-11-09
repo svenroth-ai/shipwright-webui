@@ -55,9 +55,16 @@ export interface ProjectFilterDropdownProps {
    * width refined in phone-header-polish #3).
    */
   fluid?: boolean;
+  /**
+   * Show the per-project task counts (trigger + rows). Default true — the Board
+   * and Inbox want them; pages that list something else (Triage) pass false,
+   * because a task count there is meaningless
+   * (iterate-2026-11-09-triage-polish-r3).
+   */
+  showCounts?: boolean;
 }
 
-export function ProjectFilterDropdown({ className, fluid }: ProjectFilterDropdownProps) {
+export function ProjectFilterDropdown({ className, fluid, showCounts = true }: ProjectFilterDropdownProps) {
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
   const { data: tasks = [] } = useExternalTasks();
@@ -125,7 +132,7 @@ export function ProjectFilterDropdown({ className, fluid }: ProjectFilterDropdow
           {/* fluid (phone top bar): drop the task-count suffix — the pill's
               width is what actually shrinks it, not a padding tweak
               (iterate-2026-08-13-mission-mobile-visual). */}
-          {!fluid && (
+          {!fluid && showCounts && (
             <span className="text-[11px] font-normal text-[var(--color-muted)]">
               {triggerCount} {triggerCount === 1 ? "task" : "tasks"}
             </span>
@@ -152,7 +159,7 @@ export function ProjectFilterDropdown({ className, fluid }: ProjectFilterDropdow
             label="All projects"
             active={activeProjectId === null}
             onSelect={() => setActiveProjectId(null)}
-            count={tasks.length}
+            count={showCounts ? tasks.length : undefined}
             testId="project-filter-dropdown-item-all"
           />
           {projects.length > 0 && (
@@ -164,7 +171,7 @@ export function ProjectFilterDropdown({ className, fluid }: ProjectFilterDropdow
               label={p.name}
               active={activeProjectId === p.id}
               onSelect={() => setActiveProjectId(p.id)}
-              count={countByProject.get(p.id) ?? 0}
+              count={showCounts ? (countByProject.get(p.id) ?? 0) : undefined}
               color={
                 p.synthesized
                   ? undefined
@@ -197,7 +204,7 @@ interface DropdownMenuRowProps {
   label: string;
   active: boolean;
   onSelect: () => void;
-  count: number;
+  count?: number;
   color?: string;
   synthesized?: boolean;
   testId: string;
@@ -237,9 +244,9 @@ function DropdownMenuRow({
         />
       )}
       <span className="flex-1 truncate">{label}</span>
-      <span className="text-[11px] font-normal text-[var(--color-muted)]">
-        {count}
-      </span>
+      {count !== undefined && (
+        <span className="text-[11px] font-normal text-[var(--color-muted)]">{count}</span>
+      )}
       <Check
         size={14}
         className="shrink-0"

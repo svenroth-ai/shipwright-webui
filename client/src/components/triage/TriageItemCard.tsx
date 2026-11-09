@@ -21,10 +21,10 @@ import { useTriageTaskLinks } from "../../hooks/useTriageTaskLinks";
 import type { TriageItem } from "../../lib/triageApi";
 import { taskLinkKey } from "../../lib/triageTaskLinks";
 import { parseFindings } from "../../lib/triageFindings";
-import { checkHelp, severityHelp, sourceHelp } from "../../lib/triageHelpText";
-import { PendingDeliveryBadge, ReturnedBadge, SeverityBadge, SourceBadge } from "./TriageBadgeUI";
+import { checkHelp } from "../../lib/triageHelpText";
 import { PromoteModal } from "./PromoteModal";
 import { TriageHelp } from "./TriageHelp";
+import { TriagePills } from "./TriagePills";
 import { TriageCardActions } from "./TriageCardActions";
 import { TriageTaskBox } from "./TriageTaskBox";
 import { useTriageCardActions } from "./useTriageCardActions";
@@ -70,7 +70,7 @@ function TriageItemCardImpl({
   return (
     <>
     <article
-      className="flex flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-sm)] transition-shadow hover:shadow-[var(--shadow-card-hover)] max-md:px-3"
+      className="flex min-w-0 flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-sm)] transition-shadow hover:shadow-[var(--shadow-card-hover)] max-md:px-3"
       data-testid={`triage-item-${item.id}`}
       aria-label={item.title}
       onClick={(e) => {
@@ -78,29 +78,17 @@ function TriageItemCardImpl({
         onOpen();
       }}
     >
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <SourceBadge source={item.source} />
-        <TriageHelp help={sourceHelp(item.source)} subject={`source-${item.source}`} />
-        <SeverityBadge severity={item.severity} />
-        <TriageHelp help={severityHelp(item.severity)} subject={`severity-${item.severity}`} />
-        {item.pendingDelivery && <PendingDeliveryBadge />}
-        {item.revisitDue && <ReturnedBadge />}
-        {projectLabel && (
-          <span className="text-[11px] text-[var(--color-muted)]" data-testid={`triage-item-${item.id}-project`}>
-            {projectLabel}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <TriagePills item={item} projectId={projectId} projectLabel={projectLabel} />
+        <span className="flex items-center gap-2 text-xs text-[var(--color-muted)]">
+          <span className="font-mono">{item.id}</span>
+          <span title={item.originalTs} data-testid={`triage-item-${item.id}-relative-ts`}>
+            {formatRelative(item.originalTs)}
           </span>
-        )}
-        <span className="font-mono text-[11px] text-[var(--color-muted)]">{item.id}</span>
-        <span
-          className="text-[11px] text-[var(--color-muted)] min-[1500px]:ml-auto"
-          title={item.originalTs}
-          data-testid={`triage-item-${item.id}-relative-ts`}
-        >
-          {formatRelative(item.originalTs)}
         </span>
       </div>
 
-      <h3 className="text-sm font-medium leading-snug text-[var(--color-text)]">
+      <h3 className="break-words text-[15px] font-semibold leading-snug text-[var(--color-text)]">
         <button
           type="button"
           onClick={onOpen}
@@ -119,7 +107,7 @@ function TriageItemCardImpl({
               key={`${f.code}-${i}`}
               className="flex items-center gap-2 rounded-md bg-[var(--color-muted-bg)] px-2 py-1 text-[13px] text-[var(--color-text)]"
             >
-              <code className="shrink-0 rounded bg-[var(--color-surface)] px-1.5 py-px text-[11px]">{f.code}</code>
+              <code className="shrink-0 rounded bg-[var(--color-surface)] px-1.5 py-px text-xs">{f.code}</code>
               <span className="min-w-0 flex-1 truncate" title={f.detail ? `${f.title} — ${f.detail}` : f.title}>
                 {f.title}
               </span>
@@ -128,13 +116,9 @@ function TriageItemCardImpl({
           ))}
         </ul>
       ) : (
-        <p className="line-clamp-2 whitespace-pre-wrap text-xs leading-snug text-[var(--color-text)]">
+        <p className="line-clamp-2 whitespace-pre-wrap break-words text-[13px] leading-snug text-[var(--color-text)]">
           {item.detail}
         </p>
-      )}
-
-      {item.dedupKey && (
-        <p className="font-mono text-[10px] text-[var(--color-muted)]">dedup: {item.dedupKey}</p>
       )}
 
       {open && task && <TriageTaskBox itemId={item.id} task={task} />}
@@ -143,7 +127,7 @@ function TriageItemCardImpl({
         <TriageCardActions projectId={projectId} item={item} a={a} snoozing={snoozing} task={task} />
       ) : (
         <p
-          className="text-[11px] text-[var(--color-muted)]"
+          className="text-xs text-[var(--color-text)]"
           data-testid={`triage-deferred-item-${item.id}-revisit`}
         >
           {item.revisitAt ? `Parked — returns on ${item.revisitAt}` : "Parked — no revisit date set"}

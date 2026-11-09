@@ -50,12 +50,23 @@ function mount(over: Partial<TriageItem> = {}) {
 
 // @covers FR-01.30
 describe("TriageDetailMeta (dialog)", () => {
-  it("lists each audit check on its own line with a help marker, and keeps the raw detail", () => {
+  it("explains each audit check in words inline (no question-mark icon), and keeps the raw detail folded", () => {
     mount();
     const list = screen.getByTestId("triage-detail-findings");
     expect(list.querySelectorAll("li")).toHaveLength(2);
-    expect(screen.getByTestId("triage-help-check-B/B7")).toBeInTheDocument();
+    expect(screen.queryByTestId("triage-help-check-B/B7")).toBeNull();
+    expect(list).toHaveTextContent("What Fix now does");
+    expect(screen.getByTestId("triage-detail-raw")).not.toHaveAttribute("open");
+    expect(screen.getByTestId("triage-detail-more")).not.toHaveAttribute("open");
     expect(screen.getByTestId("triage-detail-body")).toHaveTextContent("hint: fix");
+  });
+
+  it("keeps the secondary fields in a collapsed Details section", () => {
+    mount();
+    const more = screen.getByTestId("triage-detail-more");
+    expect(more.tagName).toBe("DETAILS");
+    expect(more).not.toHaveAttribute("open");
+    expect(more).toContainElement(screen.getByTestId("triage-detail-complexity"));
   });
 
   it("shows no findings list for a plain item", () => {

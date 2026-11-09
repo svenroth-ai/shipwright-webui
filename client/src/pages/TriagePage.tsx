@@ -28,6 +28,7 @@ import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropd
 import { PageHead } from "../components/common/PageHead";
 import { DensityToggle } from "../components/command/DensityToggle";
 import { TriageActiveFilters } from "../components/triage/TriageActiveFilters";
+import { TRIAGE_GRID } from "../components/triage/triageGrid";
 import { TriageDetailModal } from "../components/triage/TriageDetailModal";
 import { TriageFilterMenu } from "../components/triage/TriageFilterMenu";
 import { TriageGroupList } from "../components/triage/TriageGroupList";
@@ -136,7 +137,7 @@ export default function TriagePage() {
         actionsClassName="chrome-dark-controls"
         actions={
           <>
-            <ProjectFilterDropdown />
+            <ProjectFilterDropdown showCounts={false} />
             <TriageFilterMenu view={view} facets={model.facets} parkedCount={model.parkedAll.length} />
             <TriageGroupMenu groupBy={view.groupBy} onChange={view.setGroupBy} />
             <TriageSortMenu view={view} />
@@ -189,7 +190,7 @@ export default function TriagePage() {
                   <h2 className="mb-2 text-base font-semibold text-[var(--ink)]">
                     Parked <span className="text-xs font-normal text-[var(--muted)]">({model.visibleParked.length})</span>
                   </h2>
-                  <div className="space-y-1.5 max-md:space-y-1">
+                  <div className={TRIAGE_GRID}>
                     {model.visibleParked.map((e) => (
                       <TriageItemCard
                         key={entryKey(e)}
@@ -233,6 +234,7 @@ export default function TriagePage() {
           }}
           projectId={selected.projectId}
           item={selected.item}
+          projectLabel={projectLabel(selected.projectId)}
           onFixNow={(intent) => onFixNow(selected.projectId, intent)}
           onNavigateToBoard={() => onNavigateToBoard(selected.projectId)}
         />

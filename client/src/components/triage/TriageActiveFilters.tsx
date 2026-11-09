@@ -34,17 +34,17 @@ export function TriageActiveFilters({ view, shown, total, tileLabel, onClearTile
   if (active === 0) return null;
   return (
     <div
-      className="mb-3 flex flex-wrap items-center gap-1.5 text-xs text-[var(--color-muted)]"
+      className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13px] text-[var(--color-text)] shadow-[var(--shadow-sm)]"
       data-testid="triage-active-filters"
     >
       <span data-testid="triage-showing-count">
-        Showing <b className="text-[var(--color-text)]">{shown}</b> of {total}
+        Showing <b>{shown}</b> of {total}
       </span>
       {GROUPS.flatMap(({ group, label, format }) =>
         [...(view.filters[group] as ReadonlySet<string>)].map((v) => (
           <span
             key={`${group}:${v}`}
-            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] py-0.5 pl-2 pr-1 text-[var(--color-text)]"
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-primary)] bg-[var(--color-muted-bg)] py-0.5 pl-2.5 pr-1 font-medium text-[var(--color-text)]"
             data-testid={`triage-chip-${group}-${v}`}
           >
             {label}: {format ? format(v) : v}
@@ -52,7 +52,7 @@ export function TriageActiveFilters({ view, shown, total, tileLabel, onClearTile
               type="button"
               aria-label={`Remove ${label} filter ${v}`}
               onClick={() => view.toggleFilter(group, v)}
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-[var(--color-muted-bg)]"
+              className="inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-[var(--color-surface-hover,rgba(0,0,0,.08))]"
             >
               <X size={11} />
             </button>
@@ -61,7 +61,7 @@ export function TriageActiveFilters({ view, shown, total, tileLabel, onClearTile
       )}
       {tileLabel && (
         <span
-          className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] py-0.5 pl-2 pr-1 text-[var(--color-text)]"
+          className="inline-flex items-center gap-1 rounded-full border border-[var(--color-primary)] bg-[var(--color-muted-bg)] py-0.5 pl-2.5 pr-1 font-medium text-[var(--color-text)]"
           data-testid="triage-chip-tile"
         >
           {tileLabel}
@@ -69,7 +69,7 @@ export function TriageActiveFilters({ view, shown, total, tileLabel, onClearTile
             type="button"
             aria-label="Remove tile filter"
             onClick={onClearTile}
-            className="inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-[var(--color-muted-bg)]"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-[var(--color-surface-hover,rgba(0,0,0,.08))]"
           >
             <X size={11} />
           </button>
@@ -81,7 +81,7 @@ export function TriageActiveFilters({ view, shown, total, tileLabel, onClearTile
           view.clearFilters();
           onClearTile?.();
         }}
-        className="underline hover:text-[var(--color-text)]"
+        className="font-semibold text-[var(--color-primary)] underline hover:text-[var(--color-text)]"
         data-testid="triage-clear-filters"
       >
         Clear filters
