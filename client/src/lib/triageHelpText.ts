@@ -39,7 +39,7 @@ export const SOURCE_LABELS: Record<string, string> = {
 };
 
 export function sourceLabel(source: string): string {
-  return SOURCE_LABELS[source] ?? source;
+  return Object.hasOwn(SOURCE_LABELS, source) ? SOURCE_LABELS[source] : source;
 }
 
 const GENERIC_SOURCE: Omit<HelpText, "title"> = {
@@ -135,7 +135,7 @@ export function sourceHelp(source: string, title?: string, detail?: string): Hel
         : GITHUB_OTHER;
     return { title: sourceLabel(source), ...body };
   }
-  return { title: sourceLabel(source), ...(SOURCE_HELP[source] ?? GENERIC_SOURCE) };
+  return { title: sourceLabel(source), ...(Object.hasOwn(SOURCE_HELP, source) ? SOURCE_HELP[source] : GENERIC_SOURCE) };
 }
 
 /** Every code with an explicit text — what the coverage test iterates. */

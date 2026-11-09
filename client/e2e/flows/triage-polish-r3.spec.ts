@@ -70,14 +70,24 @@ test.describe("Triage polish round 3", () => {
   });
 
   // @covers FR-01.30
-  test("cards sit in several columns on a wide window", async ({ page }) => {
-    await page.setViewportSize({ width: 1700, height: 900 });
+  test("cards sit in 1, 2 and 3 columns depending on the window width", async ({ page }) => {
+    const ids = ["trg-b2000001", "trg-b2000002", "trg-b2000003"];
+    const columns = async (): Promise<number> => {
+      const xs = new Set<number>();
+      for (const id of ids) {
+        const box = await page.getByTestId(`triage-item-${id}`).boundingBox();
+        xs.add(Math.round(box!.x));
+      }
+      return xs.size;
+    };
+    await page.setViewportSize({ width: 1000, height: 900 });
     await page.goto("/triage");
-    const a = page.getByTestId("triage-item-trg-b2000001");
-    const b = page.getByTestId("triage-item-trg-b2000002");
-    await expect(a).toBeVisible({ timeout: 35_000 });
-    const [ba, bb] = [await a.boundingBox(), await b.boundingBox()];
-    expect(ba && bb && Math.abs(ba.y - bb.y) < 4 && bb.x > ba.x + 100, "two cards share a row").toBe(true);
+    await expect(page.getByTestId(`triage-item-${ids[0]}`)).toBeVisible({ timeout: 35_000 });
+    expect(await columns(), "below 1100px").toBe(1);
+    await page.setViewportSize({ width: 1300, height: 900 });
+    await expect.poll(columns).toBe(2);
+    await page.setViewportSize({ width: 1800, height: 900 });
+    await expect.poll(columns).toBe(3);
   });
 
   // @covers FR-01.30

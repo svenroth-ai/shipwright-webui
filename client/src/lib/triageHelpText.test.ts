@@ -81,6 +81,13 @@ describe("Triage help texts", () => {
     }
   });
 
+  it("odd source names such as __proto__ or constructor show as written with the generic help", () => {
+    for (const odd of ["__proto__", "constructor", "toString"]) {
+      expect(sourceLabel(odd)).toBe(odd);
+      expect(sourceHelp(odd).what).toBe(sourceHelp("brand-new-source").what);
+    }
+  });
+
   it("every explanation says what Fix now does", () => {
     for (const code of KNOWN_CHECK_CODES) expect(checkHelp(code).todo, code).toMatch(/Fix now/);
     for (const s of ["compliance", "phaseQuality", "manual", "operator", "drift", "required-checks", "github", "other"])

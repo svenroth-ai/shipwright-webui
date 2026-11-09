@@ -74,6 +74,7 @@ export function TriageDetailMeta({
                       <span className="min-w-0 flex-1">{f.title}</span>
                     </div>
                     <p className="mt-1 text-[13px] leading-snug">{h.what}</p>
+                    <p className="mt-1 text-[13px] leading-snug">{h.why}</p>
                     <p className="mt-1 text-[13px] leading-snug">
                       <span className="font-semibold">What Fix now does: </span>
                       {h.todo}
@@ -91,6 +92,16 @@ export function TriageDetailMeta({
               <FileMentionText text={item.detail} onOpen={onOpenFile} existingPaths={existingPaths} />
             </p>
           </details>
+          {item.evidencePath && (
+            <p className="mb-4 break-all text-sm text-[var(--color-text)]" data-testid="triage-detail-evidence">
+              <span className="font-semibold">Evidence: </span>
+              {existingPaths?.has(item.evidencePath) ? (
+                <FileLink path={item.evidencePath} onOpen={onOpenFile} />
+              ) : (
+                item.evidencePath
+              )}
+            </p>
+          )}
           <details className="mb-2" data-testid="triage-detail-more">
             <summary className="cursor-pointer text-sm font-semibold text-[var(--color-text)]">Details</summary>
             <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-[var(--color-text)]">
@@ -118,18 +129,6 @@ export function TriageDetailMeta({
                 <div className="col-span-2">
                   <dt className={FIELD}>Dedup key</dt>
                   <dd className="break-all font-mono">{item.dedupKey}</dd>
-                </div>
-              )}
-              {item.evidencePath && (
-                <div className="col-span-2">
-                  <dt className={FIELD}>Evidence</dt>
-                  <dd className="break-all">
-                    {existingPaths?.has(item.evidencePath) ? (
-                      <FileLink path={item.evidencePath} onOpen={onOpenFile} />
-                    ) : (
-                      item.evidencePath
-                    )}
-                  </dd>
                 </div>
               )}
             </dl>
