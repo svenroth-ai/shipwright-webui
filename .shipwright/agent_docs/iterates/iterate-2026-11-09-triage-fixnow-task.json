@@ -61,7 +61,7 @@
   },
   "surface_verification": {
     "surface": "web",
-    "runner": "node client/e2e/isolated-stack.mjs --project=chromium --reporter=list,json  e2e/flows/triage-fixnow-task.spec.ts e2e/flows/triage-redesign.spec.ts e2e/flows/triage-fix-now.spec.ts e2e/flows/triage-fix-now-more-options-clip.spec.ts e2e/flows/triage-tab.spec.ts e2e/flows/triage-pending-delivery.spec.ts e2e/flows/start-campaign-action.spec.ts",
+    "runner": "cd client && npx playwright test e2e/flows/triage-fixnow-task.spec.ts e2e/flows/triage-redesign.spec.ts e2e/flows/triage-fix-now.spec.ts e2e/flows/triage-fix-now-more-options-clip.spec.ts e2e/flows/triage-tab.spec.ts e2e/flows/triage-pending-delivery.spec.ts e2e/flows/start-campaign-action.spec.ts",
     "exit_code": 0,
     "tests_run": 17,
     "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-fixnow-task\\.shipwright\\runs\\iterate-2026-11-09-triage-fixnow-task\\surface_verification.log",
