@@ -84,6 +84,7 @@ describe("isSecuritySource", () => {
   });
 });
 
+// @covers FR-01.30
 describe("buildFixNowIntent", () => {
   it("github source → new-task + phase=security + 'Fix for' title prefix", () => {
     const result = buildFixNowIntent(
