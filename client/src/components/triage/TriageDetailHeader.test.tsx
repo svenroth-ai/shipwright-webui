@@ -42,6 +42,7 @@ function renderHeader(props: Partial<Parameters<typeof TriageDetailHeader>[0]> =
   return utils;
 }
 
+// @covers FR-01.30
 describe("TriageDetailHeader", () => {
   it("has no Edit control any more — Edit lives in the action row at the bottom", () => {
     renderHeader();

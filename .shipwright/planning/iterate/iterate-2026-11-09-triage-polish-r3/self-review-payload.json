@@ -1,0 +1,39 @@
+{
+ "items": [
+  {
+   "name": "AC coverage",
+   "verdict": "pass",
+   "note": "all 10 asks implemented; unit + 4 new E2E tests"
+  },
+  {
+   "name": "No dead references",
+   "verdict": "pass",
+   "note": "severityHelp removed everywhere; tsc clean"
+  },
+  {
+   "name": "Solid surfaces / contrast",
+   "verdict": "pass",
+   "note": "dark text on solid tokens, >=12px"
+  },
+  {
+   "name": "File size",
+   "verdict": "pass",
+   "note": "help text split into triageCheckHelp.ts; all <300"
+  },
+  {
+   "name": "Existing specs",
+   "verdict": "pass",
+   "note": "file-viewer specs now open Details; quick-edit popover scroll fix"
+  },
+  {
+   "name": "Reviewer hand-offs",
+   "verdict": "n/a",
+   "note": "spec/code/doubt/plan/architecture reviews recorded separately"
+  },
+  {
+   "name": "Over-promising help wording",
+   "verdict": "fail",
+   "note": "Self-review caught nothing; doubt review later found Fix-now texts promising more than fixNowIntent does - fixed (texts now say it opens a pre-filled task)."
+  }
+ ]
+}

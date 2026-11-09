@@ -5,12 +5,22 @@
     "self": {
       "review_type": "self",
       "status": "completed",
-      "findings_count": 0,
-      "findings": [],
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": null,
+          "category": "Over-promising help wording",
+          "file": null,
+          "line": null,
+          "finding": "Self-review caught nothing; doubt review later found Fix-now texts promising more than fixNowIntent does - fixed (texts now say it opens a pre-filled task).",
+          "suggestion": null,
+          "source": "self-review"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-11-09T20:39:34.376427+00:00",
+      "completed_at": "2026-11-09T20:59:18.485902+00:00",
       "disposition": null,
-      "recorded_by": "claude",
+      "recorded_by": "self-review",
       "parse_status": null,
       "raw_excerpt": null
     },
