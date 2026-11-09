@@ -125,6 +125,8 @@ export interface ExternalTask {
     learningsExtracted?: boolean;
   };
   promotedFromTriageId?: string;
+  /** iterate-2026-11-09-triage-fixnow-task — triage item this Fix-now task was started from. */
+  fixNowForTriageId?: string;
   /**
    * iterate-2026-05-14 — passed through from sdk-sessions.json's
    * `parentRunMaster` flag. When true, this task is the "master
@@ -269,6 +271,8 @@ export async function createTask(args: {
   complexityHint?: "small" | "medium" | "large";
   tags?: string[];
   blockedBy?: string[];
+  /** iterate-2026-11-09-triage-fixnow-task — triage item this Fix-now task is started from. */
+  fixNowForTriageId?: string;
   /**
    * Codex Light §3.5 — the RuntimeToggle's value at creation time. Omitted
    * → server defaults to "claude". NewIssueModal always sends it

@@ -66,13 +66,19 @@ export function useTriageCardActions({ projectId, item, onFixNow, onNavigateToBo
     }
   };
 
-  const doDismiss = async () => {
+  /** Resolves true when the item was dismissed (the reason popup then closes). */
+  const doDismiss = async (reason: string | null): Promise<boolean> => {
     setError(null);
     try {
-      const result = await dismiss.mutateAsync({ triageId: item.id, reason: null });
-      if (!result.ok) setError(flipError(result, "Dismiss"));
+      const result = await dismiss.mutateAsync({ triageId: item.id, reason });
+      if (!result.ok) {
+        setError(flipError(result, "Dismiss"));
+        return false;
+      }
+      return true;
     } catch (err) {
       setError(`Dismiss failed — could not reach the server. ${String(err).slice(0, 120)}`);
+      return false;
     }
   };
 

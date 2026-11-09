@@ -50,6 +50,10 @@ vi.mock("../hooks/useProjectActions", () => ({
 vi.mock("../hooks/useStartCampaign", () => ({
   useStartCampaign: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
+const taskLinks = vi.hoisted(() => ({ map: new Map<string, unknown>() }));
+vi.mock("../hooks/useTriageTaskLinks", () => ({
+  useTriageTaskLinks: () => taskLinks.map,
+}));
 vi.mock("../hooks/useTriage", () => ({
   useAllTriageItems: () => aggregate,
   useTriageDrift: (...args: unknown[]) => mockUseTriageDrift(...args),
@@ -126,6 +130,7 @@ const mockItem = (id: string, status = "triage"): TriageItem => ({
 describe("TriagePage", () => {
   beforeEach(() => {
     aggregate = { entries: [], statuses: [] };
+    taskLinks.map = new Map();
     mockUseTriageDrift.mockReset();
     mockUseTriageDrift.mockReturnValue({ data: { available: true, behind: 0 } });
     try {
@@ -265,5 +270,28 @@ describe("TriagePage", () => {
     setItems(Array.from({ length: 13 }, (_, i) => mockItem(`trg-${String(i).padStart(8, "0")}`)));
     renderPage();
     expect(await screen.findByTestId("triage-search")).toBeInTheDocument();
+  });
+
+  it("the In progress tile counts items with a Fix-now task and narrows the list to them", async () => {
+    setItems([mockItem("trg-aaaa1111"), mockItem("trg-bbbb2222")]);
+    taskLinks.map = new Map([
+      ["proj-a:trg-aaaa1111", { taskId: "t1", title: "Fix it", state: "active", projectId: "proj-a" }],
+    ]);
+    renderPage();
+    const tile = await screen.findByTestId("triage-tile-prog");
+    expect(tile).toHaveTextContent("1");
+    expect(tile).toHaveTextContent("In progress");
+    await userEvent.click(tile);
+    expect(screen.getByTestId("triage-item-trg-aaaa1111")).toBeInTheDocument();
+    expect(screen.queryByTestId("triage-item-trg-bbbb2222")).not.toBeInTheDocument();
+    expect(screen.getByTestId("triage-chip-tile")).toHaveTextContent("In progress");
+    await userEvent.click(screen.getByLabelText("Remove tile filter"));
+    expect(screen.getByTestId("triage-item-trg-bbbb2222")).toBeInTheDocument();
+  });
+
+  it("the In progress tile shows 0 when no task is linked", async () => {
+    setItems([mockItem("trg-aaaa1111")]);
+    renderPage();
+    expect(await screen.findByTestId("triage-tile-prog")).toHaveTextContent("0");
   });
 });

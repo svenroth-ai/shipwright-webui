@@ -52,6 +52,8 @@ export interface UseNewIssueFormSubmitInput {
   leadComplexityHint: "" | "small" | "medium" | "large";
   leadTagsRaw: string;
   leadBlockedByRaw: string;
+  /** iterate-2026-11-09-triage-fixnow-task — triage item this task is started from. */
+  fixNowForTriageId?: string;
   paramValues: Record<string, string | boolean>;
   paramEnabled: Record<string, boolean>;
   // Derived
@@ -108,6 +110,7 @@ export function useNewIssueFormSubmit(input: UseNewIssueFormSubmitInput) {
           complexityHint?: "small" | "medium" | "large";
           tags?: string[];
           blockedBy?: string[];
+          fixNowForTriageId?: string;
         } = {
           title: input.title.trim(),
           cwd: input.selectedProject.path,
@@ -119,6 +122,7 @@ export function useNewIssueFormSubmit(input: UseNewIssueFormSubmitInput) {
         if (input.mode === "new-task" && input.currentPhase) {
           createPayload.phase = input.currentPhase.id;
         }
+        if (input.fixNowForTriageId) createPayload.fixNowForTriageId = input.fixNowForTriageId;
         if (input.description.trim().length > 0) {
           createPayload.description = input.description.trim();
         }

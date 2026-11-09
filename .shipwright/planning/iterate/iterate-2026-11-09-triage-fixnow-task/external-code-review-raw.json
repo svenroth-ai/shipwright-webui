@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: client/src/lib/triageTaskLinks.ts:18\n- Finding: Completing a linked task removes the card\u2019s task box and Resolve button, restoring Fix now / Promote / Snooze. The card no longer remembers or shows the completed task precisely when the operator would resolve the triage item. The spec excludes done tasks from the tile count, not from the card\u2019s remembered link.\n- Suggestion: Retain completed tasks in the card lookup. Compute the tile\u2019s eligible links separately using task state.\n\n- Category: bug\n- Severity: medium\n- File: client/src/lib/triageBoardModel.ts:66\n- Finding: `revisitDue` bypasses the In progress filter. A returned item without a linked task appears when In progress is selected, although it is absent from the tile count.\n- Suggestion: Apply the `\"prog\"` membership check before the `revisitDue` exception. Add a test with a returned, unlinked item alongside a linked item.\n\n- Category: spec\n- Severity: medium\n- File: client/src/lib/triageHelpDoc.ts:24\n- Finding: The diff adds a Markdown renderer but neither the generated help-text list in the spec folder nor the synchronization test described in the file comment. The acceptance criterion requiring a reviewable list in the spec folder remains unimplemented.\n- Suggestion: Generate and commit the Markdown document in the spec folder, and include the synchronization test if it is intended to keep that document current.\n\nOverall assessment: ship-with-fixes. The task-link plumbing and dismissal confirmation are implemented, but completed-task handling, filter membership, and the required help-text artifact need correction.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n**1. Category: spec \u2014 Severity: high**\nFile: whole diff (notably absent: `.shipwright/planning/01-adopted/triage-help-texts.md`, `client/src/lib/triageHelpDoc.test.ts`)\nFinding: The acceptance criterion \"a reviewable help-text list sits in the spec folder\" is only half-implemented. `triageHelpDoc.ts` generates the document and its comment references a committed copy plus a drift-detecting test, but neither the generated markdown file in the spec folder nor the `triageHelpDoc.test.ts` sync test appears in the diff. As shipped, no artifact exists for review and nothing enforces the generated doc stays in sync with `triageHelpText.ts`.\nSuggestion: Add the generated `triage-help-texts.md` under `.shipwright/planning/01-adopted/` and the sync test (`UPDATE_HELP_DOC=1` rewrite mode) to the change.\n\n**2. Category: bug \u2014 Severity: medium**\nFile: client/src/lib/externalApi.ts:271\u2013274\nFinding: `createTask`'s args type gains `fixNowForTriageId`, but the diff shows no hunk that actually places it into the POST body sent to `/api/external/tasks`. If the body is built field-by-field (as the server route reads `body.fixNowForTriageId`), the link will silently never reach the server, and every card/tile behavior in the spec fails. From the visible diff it's impossible to confirm forwarding; if it relies on spreading `args`, the interface comment would be the only mention.\nSuggestion: Verify the request body in `createTask` includes `fixNowForTriageId`; if it doesn't, add `...(args.fixNowForTriageId ? { fixNowForTriageId: args.fixNowForTriageId } : {})` to the fetch body.\n\n**3. Category: regression \u2014 Severity: medium**\nFile: client/src/components/triage/TriageItemCard.tsx:53\u201357 (removed exports), TriageCardActions.tsx:24\u201327 (re-added)\nFinding: `PRIMARY_BTN` / `SECONDARY_BTN` were moved from `TriageItemCard.tsx` to the new `TriageCardActions.tsx`. Any existing importer of these constants from `TriageItemCard` (not visible in the diff) will now fail to compile \u2014 the components referenced in the old file (`PromoteModal`, `TriageHelp`, badge components) are plausible consumers.\nSuggestion: Confirm no other module imports these from `TriageItemCard`; if any do, update them or keep a re-export in `TriageItemCard.tsx`.\n\n**4. Category: edge-case \u2014 Severity: medium**\nFile: client/src/lib/triageBoardModel.ts:65\u201368\nFinding: `matchesTile` short-circuits `e.item.revisitDue` to `true`, so snoozed-but-due items always appear when the \"In progress\" tile is selected \u2014 even though such items are parked, not in progress, and the `inProgress` count (line 100) only counts them if linked. A returned-due card that has no linked task will show a count of \"0 items\" under the filter yet still appear in the narrowed list, and the spec says the In progress tile narrows to items whose linked task is not done. This bypass is inherited from the \"attn\" logic where it made sense (due items surface regardless); for \"prog\" it produces an inconsistent count-vs-list.\nSuggestion: For `tile === \"prog\"`, check `input.linked?.has(entryKey(e))` regardless of `revisitDue`, or exclude due items from the prog tile filter.\n\n**5. Category: test \u2014 Severity: low**\nFile: client/e2e/flows/triage-fixnow-task.spec.ts:76 (`expect(page.getByTestId(\"triage-tile-prog\")).toContainText(\"0\")`)\nFinding: The tile count comes from `listTasks({ projectId: null })` \u2014 all projects. In a parallel/isolated stack where other tests or seeded projects exist with Fix-now-linked tasks, the \"0\" and \"1\" assertions can flake, since the count is global while the test seeds one project. Also, `TriagePage` polls every 5s, so a stale count could assert \"0\" before the link task query resolves rather than truly proving the pre-state.\nSuggestion: Scope the count assertions to the project's own card visibility (the per-card assertions already do this) or make the stack guarantee single-project state before asserting global counts.\n\n**6. Category: bug \u2014 Severity: low**\nFile: client/src/components/triage/TriageCardActions.tsx:53 (`defaultReason={...}`)\nFinding: The Resolve popover's default reason uses the task title captured at open time; if the task's title is later edited or the popup is opened before the task list poll refreshes the title, the prefilled reason reflects stale data. Minor, but the spec says the reason is \"optional\" and the prefill is an implementation nicety \u2014 acceptable, only noting that `defaultReason` re-seeds `reason` on every open, which also wipes a user's typed reason if the popover closes/reopens during a failed dismiss (error \u2192 close \u2192 reopen loses input). Behaviorally fine per spec (\"nothing happens until Dismiss\"), so low.\nSuggestion: Only reset `reason` to `defaultReason` when `defaultReason` itself changes or on first open, not on every `onOpenChange(true)` \u2014 or leave as-is if the UX is intended.\n\n## Overall\nThe core flow (link on task \u2192 validated server-side with a strict regex \u2192 per-project keyed lookup \u2192 card box/tile/Resolve + reason popovers) is well-designed and the e2e tests are behavior-driven, but the diff is missing two spec artifacts (the spec-folder help-text file and its sync test), and it must be confirmed that `createTask` actually forwards `fixNowForTriageId` in the request body. Ship-with-fixes.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-09-triage-fixnow-task",
+    "at": "2026-11-09T08:49:56.170544+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

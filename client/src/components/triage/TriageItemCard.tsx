@@ -2,9 +2,10 @@
  * TriageItemCard.tsx — one triage item as a solid card
  * (iterate-2026-11-08-triage-page-redesign). Click the title (or the card
  * body) → opens TriageDetailModal. The card carries the actions themselves:
- * the primary one (Fix now, or Start campaign / Go to board on a campaign
- * item), Promote, a Snooze menu and Dismiss, plus a pencil for title and
- * severity. A bundled compliance / phase-quality item lists each audit check
+ * (see TriageCardActions): the primary one (Fix now, or Start campaign / Go
+ * to board on a campaign item), Promote, a Snooze menu and Dismiss, plus a
+ * pencil for title and severity. After Fix now the card shows its task
+ * (TriageTaskBox) and offers Resolve. A bundled compliance / phase-quality item lists each audit check
  * on its own line with a "?" help.
  *
  * All triage fields render as plain text — no MarkdownText, no
@@ -15,17 +16,17 @@
  */
 
 import { memo } from "react";
-import { Loader2, X } from "lucide-react";
-
 import { useSnoozePending } from "../../hooks/useSnoozePending";
+import { useTriageTaskLinks } from "../../hooks/useTriageTaskLinks";
 import type { TriageItem } from "../../lib/triageApi";
+import { taskLinkKey } from "../../lib/triageTaskLinks";
 import { parseFindings } from "../../lib/triageFindings";
 import { checkHelp, severityHelp, sourceHelp } from "../../lib/triageHelpText";
 import { PendingDeliveryBadge, ReturnedBadge, SeverityBadge, SourceBadge } from "./TriageBadgeUI";
 import { PromoteModal } from "./PromoteModal";
 import { TriageHelp } from "./TriageHelp";
-import { TriageQuickEdit } from "./TriageQuickEdit";
-import { TriageSnoozeMenu } from "./TriageSnoozeMenu";
+import { TriageCardActions } from "./TriageCardActions";
+import { TriageTaskBox } from "./TriageTaskBox";
 import { useTriageCardActions } from "./useTriageCardActions";
 import type { FixNowIntent } from "./fixNowIntent";
 
@@ -50,11 +51,6 @@ function formatRelative(iso: string): string {
   return `${Math.floor(deltaSec / 86_400)}d ago`;
 }
 
-export const PRIMARY_BTN =
-  "inline-flex h-8 items-center justify-center gap-1.5 rounded-[var(--radius-button)] bg-[var(--color-primary)] px-3 text-[13px] font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed";
-export const SECONDARY_BTN =
-  "inline-flex h-8 items-center justify-center gap-1 rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-text)] transition-colors hover:border-[var(--color-primary)] disabled:opacity-50 disabled:cursor-not-allowed";
-
 function TriageItemCardImpl({
   projectId,
   item,
@@ -69,6 +65,7 @@ function TriageItemCardImpl({
     : [];
   const open = item.status === "triage";
   const snoozing = useSnoozePending(projectId);
+  const task = useTriageTaskLinks().get(taskLinkKey(projectId, item.id));
 
   return (
     <>
@@ -140,68 +137,10 @@ function TriageItemCardImpl({
         <p className="font-mono text-[10px] text-[var(--color-muted)]">dedup: {item.dedupKey}</p>
       )}
 
+      {open && task && <TriageTaskBox itemId={item.id} task={task} />}
+
       {open ? (
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="mr-auto">
-            <TriageQuickEdit projectId={projectId} item={item} />
-          </span>
-          {a.showCampaignCta && a.campaignStatus === "active" ? (
-            <button type="button" onClick={a.goToBoard} className={PRIMARY_BTN} data-testid={`triage-card-go-to-board-${item.id}`}>
-              Go to board →
-            </button>
-          ) : a.showCampaignCta ? (
-            <button
-              type="button"
-              onClick={() => void a.startCampaign()}
-              disabled={a.startingCampaign || a.writeDisabled}
-              title={a.writeDisabled ? a.writeDisabledReason : undefined}
-              className={PRIMARY_BTN}
-              data-testid={`triage-card-start-campaign-${item.id}`}
-            >
-              {a.startingCampaign && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Start campaign
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={a.fixNow}
-              disabled={a.fixNowLoading}
-              className={PRIMARY_BTN}
-              data-testid={`triage-card-fix-now-${item.id}`}
-            >
-              {a.fixNowLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Fix now
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => a.setPromoteOpen(true)}
-            disabled={a.writeDisabled}
-            title={a.writeDisabled ? a.writeDisabledReason : undefined}
-            className={SECONDARY_BTN}
-            data-testid={`triage-card-promote-${item.id}`}
-          >
-            Promote
-          </button>
-          <TriageSnoozeMenu
-            projectId={projectId}
-            itemId={item.id}
-            disabled={a.writeDisabled || a.dismissing}
-            disabledReason={a.writeDisabledReason}
-            buttonClassName={SECONDARY_BTN}
-          />
-          <button
-            type="button"
-            onClick={() => void a.dismiss()}
-            disabled={a.writeDisabled || a.dismissing || snoozing}
-            title={a.writeDisabled ? a.writeDisabledReason : "Dismiss"}
-            aria-label="Dismiss"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] disabled:opacity-50"
-            data-testid={`triage-card-dismiss-${item.id}`}
-          >
-            {a.dismissing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X size={15} />}
-          </button>
-        </div>
+        <TriageCardActions projectId={projectId} item={item} a={a} snoozing={snoozing} task={task} />
       ) : (
         <p
           className="text-[11px] text-[var(--color-muted)]"

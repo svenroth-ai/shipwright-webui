@@ -1,30 +1,33 @@
 /*
  * TriageTiles — the three summary tiles above the list: Open, Critical +
- * High, Parked (iterate-2026-11-08-triage-page-redesign). They act as quick
- * filters: "Critical + High" narrows the list (a removable chip says so),
- * "Parked" flips the Show-parked switch. The old "Needs attention" label is
+ * High, In progress (items with a Fix-now task, iterate-2026-11-09-triage-fixnow-task),
+ * Parked (iterate-2026-11-08-triage-page-redesign). They act as quick
+ * filters: "Critical + High" and "In progress" narrow the list (a removable
+ * chip says so), "Parked" flips the Show-parked switch. The old "Needs attention" label is
  * gone — it meant Critical + High and now says so.
  */
 
-export type TriageTile = "open" | "attn" | "parked";
+export type TriageTile = "open" | "attn" | "prog" | "parked";
 
 interface Props {
   open: number;
   attention: number;
+  inProgress: number;
   parked: number;
   selected: TriageTile | null;
   showParked: boolean;
   onSelect: (tile: TriageTile) => void;
 }
 
-export function TriageTiles({ open, attention, parked, selected, showParked, onSelect }: Props) {
+export function TriageTiles({ open, attention, inProgress, parked, selected, showParked, onSelect }: Props) {
   const tiles: { id: TriageTile; label: string; n: number; pressed: boolean }[] = [
     { id: "open", label: "Open", n: open, pressed: selected === null },
     { id: "attn", label: "Critical + High", n: attention, pressed: selected === "attn" },
+    { id: "prog", label: "In progress", n: inProgress, pressed: selected === "prog" },
     { id: "parked", label: "Parked", n: parked, pressed: showParked },
   ];
   return (
-    <div className="mb-4 grid grid-cols-3 gap-3 max-md:gap-2" data-testid="triage-tiles">
+    <div className="mb-4 grid grid-cols-2 gap-3 min-[560px]:grid-cols-4 max-md:gap-2" data-testid="triage-tiles">
       {tiles.map((t) => (
         <button
           key={t.id}

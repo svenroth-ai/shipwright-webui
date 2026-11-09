@@ -12,6 +12,7 @@ import { sortDeferred } from "./sortDeferred";
 import { computeFacets, type Facets } from "./triageFacets";
 import {
   SEVERITY_RANK,
+  entryKey,
   selectVisibleDeferredItems,
   selectVisibleOpenItems,
   sortEntries,
@@ -22,7 +23,7 @@ import {
 import { groupEntries, type GroupBy, type GroupProject, type TriageGroup } from "./triageGrouping";
 import { sourceLabel } from "./triageHelpText";
 
-export type TriageTileFilter = "attn" | null;
+export type TriageTileFilter = "attn" | "prog" | null;
 
 export interface BoardInput {
   /** Entries already limited to the chosen project scope. */
@@ -32,6 +33,8 @@ export interface BoardInput {
   groupBy: GroupBy;
   search: string;
   tile: TriageTileFilter;
+  /** `entryKey`s of items whose Fix-now task is linked and not done. */
+  linked?: ReadonlySet<string>;
   projects: readonly GroupProject[];
 }
 
@@ -49,12 +52,20 @@ export interface BoardModel {
   facets: Facets;
   /** Critical + High among the open entries in scope. */
   attention: number;
+  /** Open entries in scope with a linked, not-yet-done task. */
+  inProgress: number;
 }
 
 function matchesSearch(e: TriageEntry, q: string): boolean {
   if (!q) return true;
   const hay = `${e.item.title}\n${e.item.detail}\n${e.item.id}`.toLowerCase();
   return hay.includes(q);
+}
+
+function matchesTile(e: TriageEntry, input: BoardInput): boolean {
+  if (input.tile === null || e.item.revisitDue) return true;
+  if (input.tile === "prog") return input.linked?.has(entryKey(e)) ?? false;
+  return e.item.severity === "critical" || e.item.severity === "high";
 }
 
 export function buildBoardModel(input: BoardInput): BoardModel {
@@ -66,10 +77,7 @@ export function buildBoardModel(input: BoardInput): BoardModel {
   const narrowed = open.visible.filter(
     (e) =>
       (e.item.revisitDue || matchesSearch(e, q)) &&
-      (input.tile !== "attn" ||
-        e.item.revisitDue ||
-        e.item.severity === "critical" ||
-        e.item.severity === "high"),
+      matchesTile(e, input),
   );
   const visibleOpen = sortEntries(narrowed, input.sort);
 
@@ -89,6 +97,7 @@ export function buildBoardModel(input: BoardInput): BoardModel {
     visibleParked,
     hiddenParked: parked.hiddenCount,
     facets: computeFacets(openAll),
+    inProgress: openAll.filter((e) => input.linked?.has(entryKey(e))).length,
     attention: openAll.filter((e) => e.item.severity === "critical" || e.item.severity === "high").length,
   };
 }

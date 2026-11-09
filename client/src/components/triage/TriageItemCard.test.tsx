@@ -5,14 +5,19 @@
  * Dismiss, quick edit, per-check help and the read-only parked footer.
  */
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
+import { MemoryRouter } from "react-router-dom";
 
 import { TriageItemCard } from "./TriageItemCard";
 import type { TriageItem } from "../../lib/triageApi";
 
-const dismissMutate = vi.fn(async () => ({ ok: true }));
+const dismissMutate = vi.fn(async (_a: { triageId: string; reason: string | null }) => ({ ok: true }));
+const taskLinks = vi.hoisted(() => ({ map: new Map<string, unknown>() }));
+vi.mock("../../hooks/useTriageTaskLinks", () => ({
+  useTriageTaskLinks: () => taskLinks.map,
+}));
 
 vi.mock("../../hooks/useTriage", () => ({
   useDismissTriageItem: () => ({ mutateAsync: dismissMutate, isPending: false }),
@@ -63,7 +68,11 @@ const item: TriageItem = {
 
 function wrap({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>{children}</MemoryRouter>
+    </QueryClientProvider>
+  );
 }
 
 function mount(over: Partial<TriageItem> = {}, handlers: Partial<Record<"onOpen" | "onFixNow" | "onNavigateToBoard", () => void>> = {}) {
@@ -132,11 +141,44 @@ describe("TriageItemCard — actions (iterate-2026-11-08-triage-page-redesign)",
     expect((p.onFixNow as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][0]).toBe("proj-a");
   });
 
-  it("Dismiss flips the item for its own project", async () => {
+  it("Dismiss asks for a reason first and flips the item only after confirming", async () => {
+    dismissMutate.mockClear();
     mount();
     fireEvent.click(screen.getByTestId(`triage-card-dismiss-${item.id}`));
-    await Promise.resolve();
-    expect(dismissMutate).toHaveBeenCalledWith({ triageId: item.id, reason: null });
+    expect(dismissMutate).not.toHaveBeenCalled();
+    fireEvent.change(await screen.findByTestId(`triage-dismiss-reason-${item.id}`), {
+      target: { value: "  out of scope " },
+    });
+    fireEvent.click(screen.getByTestId(`triage-dismiss-confirm-${item.id}`));
+    await waitFor(() =>
+      expect(dismissMutate).toHaveBeenCalledWith({ triageId: item.id, reason: "out of scope" }),
+    );
+  });
+
+  it("Dismiss without typing a reason sends null", async () => {
+    dismissMutate.mockClear();
+    mount();
+    fireEvent.click(screen.getByTestId(`triage-card-dismiss-${item.id}`));
+    fireEvent.click(await screen.findByTestId(`triage-dismiss-confirm-${item.id}`));
+    await waitFor(() => expect(dismissMutate).toHaveBeenCalledWith({ triageId: item.id, reason: null }));
+  });
+
+  it("Cancel in the Dismiss popup dismisses nothing", async () => {
+    dismissMutate.mockClear();
+    mount();
+    fireEvent.click(screen.getByTestId(`triage-card-dismiss-${item.id}`));
+    fireEvent.click(await screen.findByTestId(`triage-dismiss-cancel-${item.id}`));
+    expect(dismissMutate).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByTestId(`triage-dismiss-popover-${item.id}`)).toBeNull());
+  });
+
+  it("a rejected Dismiss keeps the popup open and shows the error", async () => {
+    dismissMutate.mockResolvedValueOnce({ ok: false, status: 409, body: { message: "Already handled" } } as never);
+    mount();
+    fireEvent.click(screen.getByTestId(`triage-card-dismiss-${item.id}`));
+    fireEvent.click(await screen.findByTestId(`triage-dismiss-confirm-${item.id}`));
+    expect((await screen.findByTestId(`triage-card-error-${item.id}`)).textContent).toContain("Already handled");
+    expect(screen.getByTestId(`triage-dismiss-popover-${item.id}`)).toBeInTheDocument();
   });
 
   it("a campaign item offers Start campaign instead of Fix now", () => {
@@ -183,5 +225,54 @@ describe("TriageItemCard — actions (iterate-2026-11-08-triage-page-redesign)",
     mount({ status: "snoozed", revisitAt: "2026-12-01" });
     expect(screen.queryByTestId(`triage-card-fix-now-${item.id}`)).toBeNull();
     expect(screen.getByTestId(`triage-deferred-item-${item.id}-revisit`)).toHaveTextContent("returns on 2026-12-01");
+  });
+});
+
+// @covers FR-01.30
+describe("TriageItemCard — Fix-now task (iterate-2026-11-09-triage-fixnow-task)", () => {
+  const linkedTask = { taskId: "task-1", title: "Fix drift", state: "active", projectId: "proj-a" };
+
+  it("shows the In progress box and Resolve instead of Fix now, Promote and Snooze", () => {
+    taskLinks.map = new Map([[`proj-a:${item.id}`, linkedTask]]);
+    try {
+      mount();
+      const box = screen.getByTestId(`triage-task-box-${item.id}`);
+      expect(box.textContent).toContain("In progress");
+      expect(box.textContent).toContain("Fix drift");
+      expect(screen.getByTestId(`triage-task-state-${item.id}`).textContent).toBe("active");
+      expect(screen.getByTestId(`triage-task-open-${item.id}`).getAttribute("href")).toBe("/tasks/task-1");
+      expect(screen.getByTestId(`triage-card-resolve-${item.id}`)).toBeInTheDocument();
+      expect(screen.queryByTestId(`triage-card-fix-now-${item.id}`)).toBeNull();
+      expect(screen.queryByTestId(`triage-card-promote-${item.id}`)).toBeNull();
+      expect(screen.queryByTestId(`triage-snooze-menu-${item.id}`)).toBeNull();
+    } finally {
+      taskLinks.map = new Map();
+    }
+  });
+
+  it("Resolve dismisses with the prefilled task reason", async () => {
+    dismissMutate.mockClear();
+    taskLinks.map = new Map([[`proj-a:${item.id}`, linkedTask]]);
+    try {
+      mount();
+      fireEvent.click(screen.getByTestId(`triage-card-resolve-${item.id}`));
+      fireEvent.click(await screen.findByTestId(`triage-dismiss-confirm-${item.id}`));
+      await waitFor(() =>
+        expect(dismissMutate).toHaveBeenCalledWith({ triageId: item.id, reason: "Resolved via task: Fix drift" }),
+      );
+    } finally {
+      taskLinks.map = new Map();
+    }
+  });
+
+  it("a link for the same id in another project does not show", () => {
+    taskLinks.map = new Map([[`proj-b:${item.id}`, linkedTask]]);
+    try {
+      mount();
+      expect(screen.queryByTestId(`triage-task-box-${item.id}`)).toBeNull();
+      expect(screen.getByTestId(`triage-card-fix-now-${item.id}`)).toBeInTheDocument();
+    } finally {
+      taskLinks.map = new Map();
+    }
   });
 });

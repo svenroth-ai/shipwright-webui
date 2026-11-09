@@ -66,6 +66,11 @@ const SOURCE_HELP: Record<string, Omit<HelpText, "title">> = {
     why: "Nothing detected it; a person decided to keep it.",
     todo: "Promote it when you are ready to work on it.",
   },
+  operator: {
+    what: "A note or request you (the operator) added yourself.",
+    why: "You decided it should be kept, even though no check found it.",
+    todo: "Promote it when you are ready to work on it, or dismiss it if it is done.",
+  },
   github: {
     what: "A finding from GitHub: a security scan roll-up or a failing check on a pull request.",
     why: "It happened outside this app and is kept here so it is not lost.",
@@ -83,8 +88,12 @@ const SOURCE_HELP: Record<string, Omit<HelpText, "title">> = {
   },
 };
 
+/** Source spellings that share one help text (the label already merges them). */
+const SOURCE_HELP_ALIAS: Record<string, string> = { "req3-campaign": "req3" };
+
 export function sourceHelp(source: string): HelpText {
-  return { title: sourceLabel(source), ...(SOURCE_HELP[source] ?? GENERIC_SOURCE) };
+  const key = SOURCE_HELP_ALIAS[source] ?? source;
+  return { title: sourceLabel(source), ...(SOURCE_HELP[key] ?? GENERIC_SOURCE) };
 }
 
 export const SEVERITY_HELP: Record<string, string> = {

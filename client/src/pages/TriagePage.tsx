@@ -21,6 +21,7 @@ import { useProjects } from "../hooks/useProjects";
 import { useProjectActions } from "../hooks/useProjectActions";
 import { useProjectFilter } from "../hooks/useProjectFilter";
 import { useAllTriageItems } from "../hooks/useTriage";
+import { useTriageTaskLinks } from "../hooks/useTriageTaskLinks";
 import { useTriageViewState } from "../hooks/useTriageViewState";
 import { NewIssueModal } from "../components/external/NewIssueModal";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
@@ -41,6 +42,8 @@ import { entryKey, type TriageEntry } from "../lib/triageFilterSort";
 import { buildBoardModel, type TriageTileFilter } from "../lib/triageBoardModel";
 import { getProjectColor } from "../lib/projectColor";
 
+const TILE_LABEL = { none: null, attn: "Critical + High", prog: "In progress" } as const;
+
 interface FixNowModalState {
   open: boolean;
   projectId: string | null;
@@ -59,6 +62,8 @@ export default function TriagePage() {
   const view = useTriageViewState();
   const { entries: allEntries, statuses } = useAllTriageItems(projectIds);
   const [tile, setTile] = useState<TriageTileFilter>(null);
+  const taskLinks = useTriageTaskLinks(true);
+  const linked = useMemo(() => new Set(taskLinks.keys()), [taskLinks]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<TriageEntry | null>(null);
   const [fixNowModal, setFixNowModal] = useState<FixNowModalState>(FIX_NOW_INITIAL);
@@ -101,9 +106,10 @@ export default function TriagePage() {
         groupBy: view.groupBy,
         search: searchVisible ? search : "",
         tile,
+        linked,
         projects: groupProjects,
       }),
-    [scoped, view.filters, view.sort, view.groupBy, search, searchVisible, tile, groupProjects],
+    [scoped, view.filters, view.sort, view.groupBy, search, searchVisible, tile, linked, groupProjects],
   );
 
   const onNavigateToBoard = (projectId: string): void => {
@@ -115,7 +121,7 @@ export default function TriagePage() {
   };
   const onTile = (t: TriageTile): void => {
     if (t === "parked") view.setShowParked(!view.filters.showParked);
-    else setTile(t === "attn" && tile !== "attn" ? "attn" : null);
+    else setTile(t !== "open" && tile !== t ? t : null);
   };
 
   const several = scopeId === null && realProjects.length > 1;
@@ -151,6 +157,7 @@ export default function TriagePage() {
               <TriageTiles
                 open={model.openAll.length}
                 attention={model.attention}
+                inProgress={model.inProgress}
                 parked={model.parkedAll.length}
                 selected={tile}
                 showParked={view.filters.showParked}
@@ -161,7 +168,7 @@ export default function TriagePage() {
                 view={view}
                 shown={model.visibleOpen.length}
                 total={model.openAll.length}
-                tileLabel={tile === "attn" ? "Critical + High" : null}
+                tileLabel={TILE_LABEL[tile ?? "none"]}
                 onClearTile={() => {
                   setTile(null);
                   setSearch("");
@@ -242,6 +249,7 @@ export default function TriagePage() {
         initialPriority={fixNowModal.intent?.initialPriority}
         initialDomain={fixNowModal.intent?.initialDomain}
         initialProjectId={fixNowModal.intent?.projectId}
+        fixNowForTriageId={fixNowModal.intent?.triageItemId}
       />
     </div>
   );

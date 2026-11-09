@@ -42,6 +42,7 @@ type HookInput = Pick<
   | "initialPriority"
   | "initialDomain"
   | "initialProjectId"
+  | "fixNowForTriageId"
 >;
 
 export function useNewIssueForm(props: HookInput) {
@@ -59,6 +60,7 @@ export function useNewIssueForm(props: HookInput) {
     initialPriority,
     initialDomain,
     initialProjectId,
+    fixNowForTriageId,
   } = props;
 
   const mode = resolveMode(action);
@@ -189,6 +191,9 @@ export function useNewIssueForm(props: HookInput) {
     leadComplexityHint: state.leadComplexityHint,
     leadTagsRaw: state.leadTagsRaw,
     leadBlockedByRaw: state.leadBlockedByRaw,
+    // Only link when the task lands in the triage item's own project: triage ids
+    // are per project, so a link under another project would never be found.
+    fixNowForTriageId: derived.selectedProject?.id === initialProjectId ? fixNowForTriageId : undefined,
     paramValues: state.paramValues,
     paramEnabled: state.paramEnabled,
     canSubmit: derived.canSubmit,

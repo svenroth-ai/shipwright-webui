@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-09-triage-fixnow-task",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-09T08:49:40.367756+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Selecting only the “latest non-done” task loses the remembered link once that task completes. The card could revert to Fix now and offer duplicate work, even though the acceptance criteria require showing the created task and its state.",
+          "suggestion": "Keep the linked task available regardless of completion state. Derive tile membership separately: the triage item must be open and its linked task unfinished. Define a deterministic selection rule if multiple tasks reference the same item.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "Project scoping is required by the specification, but the plan only explicitly adds and validates the triage ID. The composite client map is insufficient unless tasks expose a reliable project identity matching the triage item’s project.",
+          "suggestion": "Confirm that project identity survives create → persistence → loader → client, and derive the map key from that identity. Add a test with identical triage IDs in two projects to verify that cards and tile counts remain isolated.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "“Dismiss popup … reused for Resolve” leaves Resolve’s actual behavior undefined. Dismissing a triage item and completing its linked task are different mutations; reusing the dialog without an explicit action contract could apply the wrong outcome.",
+          "suggestion": "Specify Resolve’s intended mutation and use action-specific labels and handlers. Share the dialog presentation where useful. Verify Cancel performs no mutation and failed submissions keep the dialog open with an error.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The plan does not address the interval between successful task creation and refresh of the task list used by `useTriageTaskLinks()`. During that interval, Fix now may remain available and allow another task to be created.",
+          "suggestion": "Update or invalidate the task cache on successful creation and keep the originating action pending until the link is visible. Include this transition, completed-task behavior, project isolation, and tile/chip consistency in verification.  The task-owned link is a sound, proportionate approach that respects the plugin schema boundary. Clarify linked-task lifecycle and Resolve semantics, and cover project isolation and creation refresh behavior before implementation proceeds.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-09T08:51:19.096546+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] **Findings**\n\n- **Category: edge-case / Severity: high** — The link is one-directional (task → triage). Unhandled lifecycle: what happens when the linked task is deleted, moved between projects, or completed then re-opened? The card UI (\"Resolve\" replaces Fix now) presumably reverts silently — decide and specify. Also, if a user clicks Fix now on a card that already has a linked task (state drift after reload), does it create a duplicate task? The mini-plan should state that the card's Fix-now intent is disabled/superseded once a link exists in `useTriageTaskLinks()`.\n\n- **Category: edge-case / Severity: medium** — `latest non-done` mapping: if a user creates two tasks for the same triage item (or one is done and a second is created), \"latest non-done\" is a heuristic, not a rule. If the intent is one task per triage item, enforce that (client-side guard is enough for this scope); if multiple are allowed, define what the card shows.\n\n- **Category: security / Severity: medium** — `fixNowForTriageId` is accepted from the client on task create with only a shape check (`^trg-[0-9a-f]{8}$`). A user can claim any triage id, including one belonging to a different project, making another project's triage card show a foreign task. At minimum, validate server-side that the referenced triage item exists in the same project, or document why this is acceptable (cosmetic link, no data exposure). Also bound the Dismiss reason length.\n\n- **Category: approach / Severity: low** — Resolve's semantics are undefined in both spec and plan. The popup is \"reused for Resolve,\" but what does Resolve actually do — mark the task done, dismiss the triage item, both? This is the core state transition of the feature and it's implicit. Pin it down before writing the E2E, or the test will encode a guess.\n\n- **Category: over-production / Severity: low** — Step 4 (generator script + sync test for a help-texts markdown file) is machinery for a static list. Write the file by hand and have t […truncated]\n\n[openai] 1. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** Selecting only the “latest non-done” task loses the remembered link once that task completes. The card could revert to Fix now and offer duplicate work, even though the acceptance criteria require showing the created task and its state.  \n   **Suggestion:** Keep the linked task available regardless of completion state. Derive tile membership separately: the triage item must be open and its linked task unfinished. Define a deterministic selection rule if multiple tasks reference the same item.\n\n2. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** Project scoping is required by the specification, but the plan only explicitly adds and validates the triage ID. The composite client map is insufficient unless tasks expose a reliable project identity matching the triage item’s project.  \n   **Suggestion:** Confirm that project identity survives create → persistence → loader → client, and derive the map key from that identity. Add a test with identical triage IDs in two projects to verify that cards and tile counts remain isolated.\n\n3. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** “Dismiss popup … reused for Resolve” leaves Resolve’s actual behavior undefined. Dismissing a triage item and completing its linked task are different mutations; reusing the dialog without an explicit action contract could apply the wrong outcome.  \n   **Suggestion:** Specify Resolve’s intended mutation and use action-specific labels and handlers. Share the dialog presentation where useful. Verify Cancel performs no mutation and failed submissions keep the dialog open with an error.\n\n4. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** The plan does not address the interval between successful task creation and refresh of the task list used by `useTriageTaskLinks()`. During that interval, Fix now may remain available and allow another task to be created.  \n   **Su […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/pages/TriagePage.tsx",
+          "line": 249,
+          "finding": "The link key is task.projectId:triageId, but the Fix-now modal lets the user change the target project before saving. If a different project is picked, the task is stored under that project, the card never shows the In progress box and Fix now stays available, so a second task can be created for the same item.",
+          "suggestion": "Only send fixNowForTriageId when the selected project equals the item's own project (initialProjectId). Add a test for the changed-project case.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/triageTaskLinks.ts",
+          "line": 19,
+          "finding": "Only done releases a link. Tasks in launch_failed or jsonl_missing keep the item In progress with Resolve and no Fix now, so a failed launch cannot be retried from the card. Also createdAt strings are compared lexically.",
+          "suggestion": "Decide whether launch_failed releases the link and test it. Compare with Date.parse.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/triage/TriageDismissPopover.tsx",
+          "line": 755,
+          "finding": "Popover content is outside the card DOM and has no onKeyDown stopPropagation; an ancestor key handler could see Enter/Space.",
+          "suggestion": "Optional hardening: stop key propagation on Content.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/triage/TriageDismissPopover.tsx",
+          "line": 747,
+          "finding": "The popover has no accessible name; autoFocus is used instead of onOpenAutoFocus.",
+          "suggestion": "Add aria-label to Content.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/hooks/useTriageTaskLinks.ts",
+          "line": 24,
+          "finding": "Every card runs select over the full task list; memoized per query so acceptable. The query key is shared with the Board.",
+          "suggestion": "Confirm the Board queryFn returns the same ExternalTask[] shape.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/core/task-triage-link.ts",
+          "line": 14,
+          "finding": "Strict regex on create and on load; no injection possible. Object.assign after store.create relies on create returning the live object; the reload test shows it works.",
+          "suggestion": "No action needed.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/external/tasks/create.ts",
+          "line": 9,
+          "finding": "The new import was inserted above the Hono type import, breaking ordering.",
+          "suggestion": "Move it down with the other core imports.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-09T08:42:35.269224+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/hooks/useTriageTaskLinks.ts + client/src/pages/TriagePage.tsx",
+          "line": null,
+          "finding": "Claim under doubt: (a) the link keyed projectId:triageId cannot show the wrong task / loses nothing — Traced server create.ts: the id is stored (regex-checked) with no project check; buildTaskLinks pairs it with t.projectId. No test covers a modal project override.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling / blast radius",
+          "file": "client/src/hooks/useTriageTaskLinks.ts",
+          "line": null,
+          "finding": "Claim under doubt: (d) per-card cache readers do not multiply requests — Read useExternalTasks.ts: same key, refetchInterval 2000 on the Board; no global staleTime override found.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": "client/src/components/triage/TriageDismissPopover.tsx + TriageCardActions.tsx",
+          "line": null,
+          "finding": "Claim under doubt: (c) the reason cannot be lost / Resolve acts on the intended state — onConfirm is a.dismiss closed over item.id and only runs on explicit confirm; the card onClick ignores button/input targets; Enter guarded by pending. No wrong-item path found.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "reversibility / contract",
+          "file": "client/src/lib/triageTaskLinks.ts",
+          "line": null,
+          "finding": "Claim under doubt: (b) a done task releases the item and nothing else changes the card — States are draft|awaiting_external_start|active|idle|jsonl_missing|launch_failed|done; done is the only terminal state.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "boundary & contract",
+          "file": "server/src/external/tasks/create.ts",
+          "line": null,
+          "finding": "Claim under doubt: (a)/(e) schema additive and write-on-touch — Reload test shows persistence round-trips.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-09T08:43:02.903570+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": "whole diff (notably absent: `.shipwright/planning/01-adopted/triage-help-texts.md`, `client/src/lib/triageHelpDoc.test.ts`)",
+          "line": null,
+          "finding": "The acceptance criterion \"a reviewable help-text list sits in the spec folder\" is only half-implemented. `triageHelpDoc.ts` generates the document and its comment references a committed copy plus a drift-detecting test, but neither the generated markdown file in the spec folder nor the `triageHelpDoc.test.ts` sync test appears in the diff. As shipped, no artifact exists for review and nothing enforces the generated doc stays in sync with `triageHelpText.ts`.",
+          "suggestion": "Add the generated `triage-help-texts.md` under `.shipwright/planning/01-adopted/` and the sync test (`UPDATE_HELP_DOC=1` rewrite mode) to the change.  2. Category: bug — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/lib/externalApi.ts:271–274",
+          "line": null,
+          "finding": "createTask`'s args type gains `fixNowForTriageId`, but the diff shows no hunk that actually places it into the POST body sent to `/api/external/tasks`. If the body is built field-by-field (as the server route reads `body.fixNowForTriageId`), the link will silently never reach the server, and every card/tile behavior in the spec fails. From the visible diff it's impossible to confirm forwarding; if it relies on spreading `args`, the interface comment would be the only mention.",
+          "suggestion": "Verify the request body in `createTask` includes `fixNowForTriageId`; if it doesn't, add `...(args.fixNowForTriageId ? { fixNowForTriageId: args.fixNowForTriageId } : {})` to the fetch body.  3. Category: regression — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/components/triage/TriageItemCard.tsx:53–57 (removed exports), TriageCardActions.tsx:24–27 (re-added)",
+          "line": null,
+          "finding": "PRIMARY_BTN` / `SECONDARY_BTN` were moved from `TriageItemCard.tsx` to the new `TriageCardActions.tsx`. Any existing importer of these constants from `TriageItemCard` (not visible in the diff) will now fail to compile — the components referenced in the old file (`PromoteModal`, `TriageHelp`, badge components) are plausible consumers.",
+          "suggestion": "Confirm no other module imports these from `TriageItemCard`; if any do, update them or keep a re-export in `TriageItemCard.tsx`.  4. Category: edge-case — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/lib/triageBoardModel.ts:65–68",
+          "line": null,
+          "finding": "matchesTile` short-circuits `e.item.revisitDue` to `true`, so snoozed-but-due items always appear when the \"In progress\" tile is selected — even though such items are parked, not in progress, and the `inProgress` count (line 100) only counts them if linked. A returned-due card that has no linked task will show a count of \"0 items\" under the filter yet still appear in the narrowed list, and the spec says the In progress tile narrows to items whose linked task is not done. This bypass is inherited from the \"attn\" logic where it made sense (due items surface regardless); for \"prog\" it produces an inconsistent count-vs-list.",
+          "suggestion": "For `tile === \"prog\"`, check `input.linked?.has(entryKey(e))` regardless of `revisitDue`, or exclude due items from the prog tile filter.  5. Category: test — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/e2e/flows/triage-fixnow-task.spec.ts:76 (`expect(page.getByTestId(\"triage-tile-prog\")).toContainText(\"0\")`)",
+          "line": null,
+          "finding": "The tile count comes from `listTasks({ projectId: null })` — all projects. In a parallel/isolated stack where other tests or seeded projects exist with Fix-now-linked tasks, the \"0\" and \"1\" assertions can flake, since the count is global while the test seeds one project. Also, `TriagePage` polls every 5s, so a stale count could assert \"0\" before the link task query resolves rather than truly proving the pre-state.",
+          "suggestion": "Scope the count assertions to the project's own card visibility (the per-card assertions already do this) or make the stack guarantee single-project state before asserting global counts.  6. Category: bug — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/components/triage/TriageCardActions.tsx:53 (`defaultReason={...}`)",
+          "line": null,
+          "finding": "The Resolve popover's default reason uses the task title captured at open time; if the task's title is later edited or the popup is opened before the task list poll refreshes the title, the prefilled reason reflects stale data. Minor, but the spec says the reason is \"optional\" and the prefill is an implementation nicety — acceptable, only noting that `defaultReason` re-seeds `reason` on every open, which also wipes a user's typed reason if the popover closes/reopens during a failed dismiss (error → close → reopen loses input). Behaviorally fine per spec (\"nothing happens until Dismiss\"), so low.",
+          "suggestion": "Only reset `reason` to `defaultReason` when `defaultReason` itself changes or on first open, not on every `onOpenChange(true)` — or leave as-is if the UX is intended.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/lib/triageTaskLinks.ts",
+          "line": 18,
+          "finding": "Completing a linked task removes the card’s task box and Resolve button, restoring Fix now / Promote / Snooze. The card no longer remembers or shows the completed task precisely when the operator would resolve the triage item. The spec excludes done tasks from the tile count, not from the card’s remembered link.",
+          "suggestion": "Retain completed tasks in the card lookup. Compute the tile’s eligible links separately using task state.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/lib/triageBoardModel.ts",
+          "line": 66,
+          "finding": "revisitDue` bypasses the In progress filter. A returned item without a linked task appears when In progress is selected, although it is absent from the tile count.",
+          "suggestion": "Apply the `\"prog\"` membership check before the `revisitDue` exception. Add a test with a returned, unlinked item alongside a linked item.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/lib/triageHelpDoc.ts",
+          "line": 24,
+          "finding": "The diff adds a Markdown renderer but neither the generated help-text list in the spec folder nor the synchronization test described in the file comment. The acceptance criterion requiring a reviewable list in the spec folder remains unimplemented.",
+          "suggestion": "Generate and commit the Markdown document in the spec folder, and include the synchronization test if it is intended to keep that document current.  Overall assessment: ship-with-fixes. The task-link plumbing and dismissal confirmation are implemented, but completed-task handling, filter membership, and the required help-text artifact need correction.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-09T08:50:53.762781+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Category: spec — Severity: high**\nFile: whole diff (notably absent: `.shipwright/planning/01-adopted/triage-help-texts.md`, `client/src/lib/triageHelpDoc.test.ts`)\nFinding: The acceptance criterion \"a reviewable help-text list sits in the spec folder\" is only half-implemented. `triageHelpDoc.ts` generates the document and its comment references a committed copy plus a drift-detecting test, but neither the generated markdown file in the spec folder nor the `triageHelpDoc.test.ts` sync test appears in the diff. As shipped, no artifact exists for review and nothing enforces the generated doc stays in sync with `triageHelpText.ts`.\nSuggestion: Add the generated `triage-help-texts.md` under `.shipwright/planning/01-adopted/` and the sync test (`UPDATE_HELP_DOC=1` rewrite mode) to the change.\n\n**2. Category: bug — Severity: medium**\nFile: client/src/lib/externalApi.ts:271–274\nFinding: `createTask`'s args type gains `fixNowForTriageId`, but the diff shows no hunk that actually places it into the POST body sent to `/api/external/tasks`. If the body is built field-by-field (as the server route reads `body.fixNowForTriageId`), the link will silently never reach the server, and every card/tile behavior in the spec fails. From the visible diff it's impossible to confirm forwarding; if it relies on spreading `args`, the interface comment would be the only mention.\nSuggestion: Verify the request body in `createTask` includes `fixNowForTriageId`; if it doesn't, add `...(args.fixNowForTriageId ? { fixNowForTriageId: args.fixNowForTriageId } : {})` to the fetch body.\n\n**3. Category: regression — Severity: medium**\nFile: client/src/components/triage/TriageItemCard.tsx:53–57 (removed exports), TriageCardActions.tsx:24–27 (re-added)\nFinding: `PRIMARY_BTN` / `SECONDARY_BTN` were moved from `TriageItemCard.tsx` to the new `TriageCardActions.tsx`. Any existing importer of these constants from `TriageItemCard` (not visible in the diff) will now fail to compil […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/lib/triageTaskLinks.ts:18\n- Finding: Completing a linked task removes the card’s task box and Resolve button, restoring Fix now / Promote / Snooze. The card no longer remembers or shows the completed task precisely when the operator would resolve the triage item. The spec excludes done tasks from the tile count, not from the card’s remembered link.\n- Suggestion: Retain completed tasks in the card lookup. Compute the tile’s eligible links separately using task state.\n\n- Category: bug\n- Severity: medium\n- File: client/src/lib/triageBoardModel.ts:66\n- Finding: `revisitDue` bypasses the In progress filter. A returned item without a linked task appears when In progress is selected, although it is absent from the tile count.\n- Suggestion: Apply the `\"prog\"` membership check before the `revisitDue` exception. Add a test with a returned, unlinked item alongside a linked item.\n\n- Category: spec\n- Severity: medium\n- File: client/src/lib/triageHelpDoc.ts:24\n- Finding: The diff adds a Markdown renderer but neither the generated help-text list in the spec folder nor the synchronization test described in the file comment. The acceptance criterion requiring a reviewable list in the spec folder remains unimplemented.\n- Suggestion: Generate and commit the Markdown document in the spec folder, and include the synchronization test if it is intended to keep that document current.\n\nOverall assessment: ship-with-fixes. The task-link plumbing and dismissal confirmation are implemented, but completed-task handling, filter membership, and the required help-text artifact need correction.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-09T08:42:22.737633+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "ac_verdicts": [
+        {
+          "ac": "AC1 Fix now links task; In progress box; Resolve replaces Fix now/Promote/Snooze",
+          "verdict": "matches",
+          "diff_location": "client/src/components/triage/TriageCardActions.tsx",
+          "reason": "Fix-now intent carries triageItemId, sent as fixNowForTriageId on create and stored by the create route. The card renders TriageTaskBox with title, state and Open task link, and swaps the Fix now / Promote / Snooze row for Resolve.",
+          "weakens": false
+        },
+        {
+          "ac": "AC2 In progress tile and removable chip",
+          "verdict": "matches",
+          "diff_location": "client/src/lib/triageBoardModel.ts",
+          "reason": "inProgress counts open entries keyed projectId:triageId in the linked set built from tasks that are not done. The prog tile narrows the list and the chip says In progress.",
+          "weakens": false
+        },
+        {
+          "ac": "AC3 Dismiss cross opens popup with optional reason; nothing until confirmed",
+          "verdict": "matches",
+          "diff_location": "client/src/components/triage/TriageDismissPopover.tsx",
+          "reason": "The cross is a popover trigger and dismiss runs only from the Dismiss button or Enter. Cancel closes without calling dismiss; an empty reason is sent as null. Tests cover confirm, cancel and rejection.",
+          "weakens": false
+        },
+        {
+          "ac": "AC4 Campaign help for req3-campaign + reviewable help list in spec folder",
+          "verdict": "matches",
+          "diff_location": "client/src/lib/triageHelpText.ts",
+          "reason": "SOURCE_HELP_ALIAS maps req3-campaign to the req3 help. The generated triage-help-texts.md is kept in sync with the code by triageHelpDoc.test.ts.",
+          "weakens": false
+        }
+      ]
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-09T08:52:08.158676+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-09T08:52:08.278729+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    }
+  }
+}
