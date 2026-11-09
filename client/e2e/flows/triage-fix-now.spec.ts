@@ -57,6 +57,7 @@ function removeChart() {
   rmSync(LEADS_ROOT, { recursive: true, force: true });
 }
 
+// @covers FR-01.30
 test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)", () => {
   let tmpDir = "";
   let projectId = "";
@@ -158,7 +159,7 @@ test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)",
 
     const itemCard = page.getByTestId("triage-item-trg-fixghub1");
     await expect(itemCard).toBeVisible({ timeout: 35_000 });
-    await itemCard.click();
+    await page.getByTestId(`${await itemCard.getAttribute("data-testid")}-title`).click();
 
     await expect(page.getByTestId("triage-detail-modal")).toBeVisible();
 
@@ -214,7 +215,7 @@ test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)",
 
     const itemCard = page.getByTestId("triage-item-trg-fixiter1");
     await expect(itemCard).toBeVisible({ timeout: 35_000 });
-    await itemCard.click();
+    await page.getByTestId(`${await itemCard.getAttribute("data-testid")}-title`).click();
 
     await expect(page.getByTestId("triage-detail-modal")).toBeVisible();
     await page.getByTestId("triage-fix-now").click();

@@ -2,7 +2,7 @@
  * TriageDetailHeader.tsx — title/badges/provenance + Edit/Close controls
  * for TriageDetailModal's header row. Split out of TriageDetailModal.tsx
  * (already bloat-baselined) for iterate-2026-08-08-triage-amend-reader
- * (AC8), same extraction-over-growth pattern as SnoozeRevisitField.tsx.
+ * (AC8), same extraction-over-growth pattern as TriageDetailActions.tsx.
  *
  * Per the Design Notes, the "title/severity/detail block" toggles between
  * read display and TriageAmendForm's inline form — while `editMode` is true,
@@ -21,6 +21,8 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Pencil, X } from "lucide-react";
 
 import type { TriageItem } from "../../lib/triageApi";
+import { severityHelp } from "../../lib/triageHelpText";
+import { TriageHelp } from "./TriageHelp";
 import { PendingDeliveryBadge, SeverityBadge, SourceBadge, StatusBadge } from "./TriageBadgeUI";
 
 interface TriageDetailHeaderProps {
@@ -41,6 +43,7 @@ export function TriageDetailHeader({ item, editMode, onEdit, writeDisabled = fal
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <SourceBadge source={item.source} />
           {!editMode && <SeverityBadge severity={item.severity} />}
+          {!editMode && <TriageHelp help={severityHelp(item.severity)} subject={`severity-${item.severity}`} />}
           <StatusBadge status={item.status} />
           {item.pendingDelivery && <PendingDeliveryBadge />}
           <code className="text-[11px] text-[var(--color-muted)]">{item.id}</code>

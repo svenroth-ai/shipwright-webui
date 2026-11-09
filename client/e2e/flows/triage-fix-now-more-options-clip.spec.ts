@@ -46,6 +46,7 @@ function removeChart() {
   rmSync(LEADS_ROOT, { recursive: true, force: true });
 }
 
+// @covers FR-01.30
 test.describe("New Iterate from triage — More options is not clipped", () => {
   let tmpDir = "";
   let projectId = "";
@@ -130,7 +131,7 @@ test.describe("New Iterate from triage — More options is not clipped", () => {
 
     const itemCard = page.getByTestId("triage-item-trg-clip0001");
     await expect(itemCard).toBeVisible({ timeout: 35_000 });
-    await itemCard.click();
+    await page.getByTestId(`${await itemCard.getAttribute("data-testid")}-title`).click();
 
     await expect(page.getByTestId("triage-detail-modal")).toBeVisible();
     await page.getByTestId("triage-fix-now").click();

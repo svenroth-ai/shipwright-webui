@@ -1,0 +1,18 @@
+{
+  "section": "iterate-2026-11-08-triage-page-redesign",
+  "verdict": "REJECT",
+  "round": 1,
+  "review": [
+    {"severity": "high", "file": "client/src/components/triage/TriageItemCard.tsx", "finding": "PromoteModal rendered inside the card article whose onClick opens the detail; portal click bubbles via React tree and opens a second modal."},
+    {"severity": "medium", "file": "client/src/pages/TriagePage.tsx", "finding": "All-filtered-out block shows when only dated parked items exist and no filter is active; clear-filters does nothing."},
+    {"severity": "medium", "file": "client/src/pages/TriagePage.tsx", "finding": "Load-error block and 'No triage items pending' all-clear shown together when a scoped project errors."},
+    {"severity": "low", "file": "client/src/lib/triageBoardModel.ts", "finding": "Tile and search hide a returned park; spec says a returned park always shows."},
+    {"severity": "low", "file": "client/src/lib/triageViewStorage.ts", "finding": "parseLevel invalid direction falls back to asc instead of fallback.direction."},
+    {"severity": "low", "file": "client/src/pages/TriagePage.tsx", "finding": "hiddenTotal ignores search/tile; no count shown for search alone."},
+    {"severity": "low", "file": "client/src/components/triage/TriageDetailActions.tsx", "finding": "Dismiss no longer disabled while a snooze is pending."},
+    {"severity": "low", "file": "client/src/lib/triageFacets.ts", "finding": "Plain-object facet counts break on keys like constructor/__proto__."},
+    {"severity": "low", "file": "client/src/components/triage/TriageGroupList.tsx", "finding": "memo(TriageItemCard) never hits due to fresh callbacks."},
+    {"severity": "low", "file": "client/src/components/triage/TriageHelp.tsx", "finding": "aria-label built from internal subject id; popover content has no accessible name."},
+    {"severity": "low", "file": "client/src/components/triage/TriageDetailHeader.tsx", "finding": "Comments reference deleted files (also TriageBadgeUI.tsx:90, mobile-triage-spacing-filters.spec.ts:18-19)."}
+  ]
+}

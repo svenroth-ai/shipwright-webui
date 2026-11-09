@@ -44,10 +44,11 @@ const TOUCHED = [
   "pages/inbox/InboxProjectSection.tsx",
   "pages/InboxPage.tsx",
   "pages/TriagePage.tsx",
-  "components/triage/PerProjectTriageSection.tsx",
-  "components/triage/DeferredTriageSection.tsx",
+  "components/triage/TriageGroupList.tsx",
+  "components/triage/TriageProjectStatus.tsx",
 ];
 
+// @covers FR-01.30
 describe("on-photo legibility — AC1 flipping-token fence", () => {
   it("board CAMPAIGNS label uses the flipping --muted token, not the legacy alias", () => {
     const src = read("components/external/CampaignsLane.tsx");
@@ -64,44 +65,28 @@ describe("on-photo legibility — AC1 flipping-token fence", () => {
     expect(src).not.toContain('color: "var(--color-muted)"');
   });
 
-  it("triage group + project headers use --ink / --muted, not the legacy text aliases", () => {
-    // Moved to PerProjectTriageSection.tsx (iterate-2026-08-05-triage-
-    // deferred-envelope extraction) — TriagePage.tsx itself no longer
-    // renders these headers directly.
-    const src = read("components/triage/PerProjectTriageSection.tsx");
+  it("triage group headers (bare on the photo) use --ink / --muted, not the legacy text aliases", () => {
+    // iterate-2026-11-08-triage-page-redesign: the per-project sections were
+    // replaced by TriageGroupList (collapsible groups); its headers and the
+    // Parked heading in TriagePage ride bare on the photo.
+    const src = read("components/triage/TriageGroupList.tsx");
     expect(src).toMatch(/text-\[var\(--ink\)\]/);
     expect(src).toMatch(/text-\[var\(--muted\)\]/);
     expect(src).not.toMatch(/text-\[var\(--color-text\)\]/);
     expect(src).not.toMatch(/text-\[var\(--color-muted\)\]/);
   });
 
-  it("Deferred section's heading + hidden-count hint (bare on-photo) use the flipping tokens — but its in-card item detail (opaque surface) may keep --color-muted (iterate-2026-08-08-triage-filters-sort-parked, AC7)", () => {
-    const src = read("components/triage/DeferredTriageSection.tsx");
-    // The <h3> and the AC7 hint ride bare on the photo, like the group/project
-    // headers above — must use the flipping tokens.
-    expect(src).toMatch(/text-\[var\(--ink\)\]/);
-    expect(src).toContain('data-testid="triage-deferred-hidden-count"');
-    // A real fence, not just a presence check (code-reviewer finding #7).
-    // No exact-string pin on the full className here (re-review finding
-    // NEW-7 — a harmless addition like `mt-1` would redden this for no
-    // legibility reason, and it's redundant with the regex fence below,
-    // which already fails closed on the load-bearing property):
-    // this file legitimately keeps --color-muted / --color-text for the id
-    // + revisit-date + title spans (they sit inside the opaque
-    // bg-[var(--color-surface)] item buttons), so a whole-file ban would be
-    // a false positive. Instead, isolate the specific hidden-count-hint
-    // element by its unique testid and assert THAT element's className
-    // never regresses to the legacy alias — a future edit that swaps
-    // `--muted` back to `--color-muted` on this one line goes RED even
-    // though the file still contains `--color-muted` elsewhere.
-    const hintElement = src.match(
-      /<p\s+className="([^"]*)"\s+data-testid="triage-deferred-hidden-count"/,
-    );
-    expect(hintElement).not.toBeNull();
-    expect(hintElement?.[1]).not.toMatch(/--color-muted/);
+  it("the Parked heading and its hidden-parked hint (bare on-photo) use the flipping tokens", () => {
+    const src = read("pages/TriagePage.tsx");
+    expect(src).toMatch(/<h2 className="mb-2 text-base font-semibold text-\[var\(--ink\)\]">/);
+    const hint = src.match(/<p className="([^"]*)" data-testid="triage-parked-hidden-hint"/);
+    expect(hint).not.toBeNull();
+    expect(hint?.[1]).toMatch(/--muted/);
+    expect(hint?.[1]).not.toMatch(/--color-muted/);
   });
 });
 
+// @covers FR-01.30
 describe("on-photo legibility — grade-result band pill resets to solid-surface tokens (iterate-2026-08-26-grade-pill-contrast)", () => {
   // The GRADE door's head (ring + headline + band pill) rides BARE on the
   // scene photo, like the surfaces above — it is not wrapped in a `.iw-card`.
@@ -130,6 +115,7 @@ describe("on-photo legibility — grade-result band pill resets to solid-surface
   });
 });
 
+// @covers FR-01.30
 describe("on-photo legibility — New-Project plan card phase list resets to solid-surface tokens (iterate-2026-09-19-fix-wizard-plan-card-white-text)", () => {
   // The New-Project wizard's "Here's what I understood." plan card renders a
   // white phase list (Project/Design/Plan/.../Deploy) with a per-phase
@@ -190,6 +176,7 @@ describe("on-photo legibility — New-Project plan card phase list resets to sol
   });
 });
 
+// @covers FR-01.30
 describe("on-photo legibility — AC4 no text-shadow on the touched surfaces", () => {
   for (const rel of TOUCHED) {
     it(`${rel} introduces no text-shadow`, () => {

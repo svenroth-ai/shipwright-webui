@@ -53,6 +53,13 @@ function makeWrapper() {
   };
 }
 
+const CARD_PROPS = {
+  projectId: "proj-a",
+  onOpen: vi.fn(),
+  onFixNow: vi.fn(),
+  onNavigateToBoard: vi.fn(),
+};
+
 const baseItem: TriageItem = {
   id: "trg-dddd4444",
   ts: "2026-06-10T09:00:00Z",
@@ -78,6 +85,7 @@ const baseItem: TriageItem = {
   amendedAt: null,
 };
 
+// @covers FR-01.30
 describe("PendingDeliveryBadge", () => {
   it("renders the label and the ships-with-next-iterate explainer tooltip", () => {
     render(<PendingDeliveryBadge />);
@@ -87,25 +95,29 @@ describe("PendingDeliveryBadge", () => {
   });
 });
 
+// @covers FR-01.30
 describe("TriageItemCard pending-delivery (AC3)", () => {
   it("shows the badge for an outbox-only item", () => {
     render(
-      <TriageItemCard item={{ ...baseItem, pendingDelivery: true }} onClick={vi.fn()} />,
+      <TriageItemCard item={{ ...baseItem, pendingDelivery: true }} {...CARD_PROPS} />,
+      { wrapper: makeWrapper() },
     );
     expect(screen.getByTestId("triage-pending-delivery")).toBeInTheDocument();
   });
 
   it("shows NO badge for a tracked item (false) nor for a legacy un-enriched item (absent)", () => {
     const { rerender } = render(
-      <TriageItemCard item={{ ...baseItem, pendingDelivery: false }} onClick={vi.fn()} />,
+      <TriageItemCard item={{ ...baseItem, pendingDelivery: false }} {...CARD_PROPS} />,
+      { wrapper: makeWrapper() },
     );
     expect(screen.queryByTestId("triage-pending-delivery")).toBeNull();
     // External review Gem3: absent (undefined) must degrade to "not pending".
-    rerender(<TriageItemCard item={baseItem} onClick={vi.fn()} />);
+    rerender(<TriageItemCard item={baseItem} {...CARD_PROPS} />);
     expect(screen.queryByTestId("triage-pending-delivery")).toBeNull();
   });
 });
 
+// @covers FR-01.30
 describe("TriageDetailModal pending-delivery (AC3 + AC4 CTA assurance)", () => {
   function mountModal(item: TriageItem, onFixNow?: (i: FixNowIntent) => void) {
     return render(

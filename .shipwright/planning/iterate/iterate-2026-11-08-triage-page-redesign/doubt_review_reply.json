@@ -1,0 +1,78 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "doubts": [
+    {
+      "severity": "medium",
+      "lens": "concurrency",
+      "file": "client/src/components/triage/useTriageCardActions.ts:33",
+      "claim_under_doubt": "single polling owner",
+      "finding": "Per-card useTriageDrift observers each carry the 30s refetchInterval, multiplying polls after remounts.",
+      "disproof_attempt": "Per-card useTriageDrift observers each carry the 30s refetchInterval, multiplying polls after remounts."
+    },
+    {
+      "severity": "medium",
+      "lens": "reversibility",
+      "file": "client/src/components/triage/TriageItemCard.tsx:193",
+      "claim_under_doubt": "card Dismiss is safe",
+      "finding": "One-click, no confirm/undo, no un-dismiss endpoint.",
+      "disproof_attempt": "One-click, no confirm/undo, no un-dismiss endpoint."
+    },
+    {
+      "severity": "medium",
+      "lens": "hidden coupling",
+      "file": "client/src/components/triage/TriageGroupList.tsx:40",
+      "claim_under_doubt": "returned park always shows",
+      "finding": "Persisted collapsed group can hide a returned park.",
+      "disproof_attempt": "Persisted collapsed group can hide a returned park."
+    },
+    {
+      "severity": "low",
+      "file": "client/src/pages/TriagePage.tsx:241",
+      "finding": "Detail modal keeps showing the click-time snapshot with live actions after the item vanished from the list (other tab or CLI); pre-existing, now more reachable. Accepted, follow-up.",
+      "claim_under_doubt": "Detail modal keeps showing the click-time snapshot with live actions after the item vanished from the list (other tab or CLI); pre-existing, now more reachable. Accepted, follow-up.",
+      "disproof_attempt": "Detail modal keeps showing the click-time snapshot with live actions after the item vanished from the list (other tab or CLI); pre-existing, now more reachable. Accepted, follow-up.",
+      "lens": "boundary"
+    },
+    {
+      "severity": "low",
+      "file": "client/src/components/triage/TriageItemCard.tsx:225",
+      "finding": "Promote dialog form resets if the item identity changes while open (poll or amend in another tab). Narrow window; accepted.",
+      "claim_under_doubt": "Promote dialog form resets if the item identity changes while open (poll or amend in another tab). Narrow window; accepted.",
+      "disproof_attempt": "Promote dialog form resets if the item identity changes while open (poll or amend in another tab). Narrow window; accepted.",
+      "lens": "boundary"
+    },
+    {
+      "severity": "low",
+      "file": "client/src/components/triage/TriageItemCard.tsx:77",
+      "finding": "Card test ids are id-only, so two projects sharing an id make strict Playwright locators ambiguous. Test-only debt; real users unaffected.",
+      "claim_under_doubt": "Card test ids are id-only, so two projects sharing an id make strict Playwright locators ambiguous. Test-only debt; real users unaffected.",
+      "disproof_attempt": "Card test ids are id-only, so two projects sharing an id make strict Playwright locators ambiguous. Test-only debt; real users unaffected.",
+      "lens": "boundary"
+    },
+    {
+      "severity": "low",
+      "file": "client/src/lib/triageBoardModel.ts:66",
+      "finding": "Critical+High tile count excludes returned parks that the tile filter lets through, and a stored search query survives the search box hiding. Cosmetic; accepted.",
+      "claim_under_doubt": "Critical+High tile count excludes returned parks that the tile filter lets through, and a stored search query survives the search box hiding. Cosmetic; accepted.",
+      "disproof_attempt": "Critical+High tile count excludes returned parks that the tile filter lets through, and a stored search query survives the search box hiding. Cosmetic; accepted.",
+      "lens": "boundary"
+    },
+    {
+      "severity": "low",
+      "file": "client/src/components/triage/TriageGroupList.tsx:69",
+      "finding": "memo(TriageItemCard) never hits because onOpen is an inline closure and combine yields a new array per fetch status; performance only, no render loop. Accepted.",
+      "claim_under_doubt": "memo(TriageItemCard) never hits because onOpen is an inline closure and combine yields a new array per fetch status; performance only, no render loop. Accepted.",
+      "disproof_attempt": "memo(TriageItemCard) never hits because onOpen is an inline closure and combine yields a new array per fetch status; performance only, no render loop. Accepted.",
+      "lens": "boundary"
+    },
+    {
+      "severity": "low",
+      "file": "client/src/components/triage/TriageDetailModal.tsx:138",
+      "finding": "TriageDetailModal onDismiss has no try/catch so a transport failure is an unhandled rejection; pre-existing behaviour, out of scope for this redesign.",
+      "claim_under_doubt": "TriageDetailModal onDismiss has no try/catch so a transport failure is an unhandled rejection; pre-existing behaviour, out of scope for this redesign.",
+      "disproof_attempt": "TriageDetailModal onDismiss has no try/catch so a transport failure is an unhandled rejection; pre-existing behaviour, out of scope for this redesign.",
+      "lens": "boundary"
+    }
+  ]
+}

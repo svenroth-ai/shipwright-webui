@@ -1,0 +1,1 @@
+Triage page now filters like the Board (nothing ticked shows everything), can be grouped by project, severity, source or priority and sorted per level, and remembers your filters, sort and grouping after a reload.

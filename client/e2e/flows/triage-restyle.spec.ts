@@ -92,6 +92,7 @@ async function mockTriage(page: Page) {
   );
 }
 
+// @covers FR-01.30
 test.describe('Triage restyle — white-surface cards + wizard-matched dialogs', () => {
   // @covers FR-01.30
   test('cards render on the white --color-surface with a real shadow', async ({ page }, testInfo) => {
@@ -118,7 +119,7 @@ test.describe('Triage restyle — white-surface cards + wizard-matched dialogs',
     await mockTriage(page);
     await page.goto('/triage');
 
-    await page.getByTestId('triage-item-trg-bbbb2222').click();
+    await page.getByTestId('triage-item-trg-bbbb2222-title').click();
     const modal = page.getByTestId('triage-detail-modal');
     await expect(modal).toBeVisible();
 
@@ -137,7 +138,7 @@ test.describe('Triage restyle — white-surface cards + wizard-matched dialogs',
     await mockTriage(page);
     await page.goto('/triage');
 
-    await page.getByTestId('triage-item-trg-bbbb2222').click();
+    await page.getByTestId('triage-item-trg-bbbb2222-title').click();
     await page.getByTestId('triage-promote').click();
     const modal = page.getByTestId('triage-promote-modal');
     await expect(modal).toBeVisible();

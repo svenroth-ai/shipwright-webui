@@ -7,7 +7,15 @@
  * external review #14).
  */
 
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+  type UseQueryResult,
+} from "@tanstack/react-query";
+import { snoozeMutationKey } from "./useSnoozePending";
 import {
   amendTriageItem,
   dismissTriageItem,
@@ -24,6 +32,7 @@ import {
   type TriageListResponse,
   type TriageOrigin,
 } from "../lib/triageApi";
+import type { TriageEntry } from "../lib/triageFilterSort";
 
 const POLL_MS = 30_000;
 const WRITE_AVAILABILITY_RETRY_MS = 1_000;
@@ -38,7 +47,7 @@ const DEGRADED_ORIGIN: TriageOrigin = { available: false, behind: null };
  * `useTriageDrift` reuse the SAME queryKey + queryFn so TanStack fetches once
  * and each hook applies its own `select` — no duplicate request.
  */
-function triageListQuery(projectId: string | undefined, enabled: boolean) {
+function triageListQuery(projectId: string | undefined, enabled: boolean, poll = true) {
   return {
     queryKey: itemsKey(projectId ?? ""),
     queryFn: (): Promise<TriageListResponse> =>
@@ -46,10 +55,10 @@ function triageListQuery(projectId: string | undefined, enabled: boolean) {
         ? fetchTriage(projectId)
         : Promise.resolve({ items: [], origin: DEGRADED_ORIGIN }),
     enabled: Boolean(projectId) && enabled,
-    refetchInterval: (query: { state: { data?: TriageListResponse } }) =>
-      query.state.data?.origin.write?.checking === true
-        ? WRITE_AVAILABILITY_RETRY_MS
-        : POLL_MS,
+    refetchInterval: poll
+      ? (query: { state: { data?: TriageListResponse } }) =>
+          query.state.data?.origin.write?.checking === true ? WRITE_AVAILABILITY_RETRY_MS : POLL_MS
+      : (false as const),
     refetchIntervalInBackground: false,
   };
 }
@@ -72,42 +81,58 @@ export function useTriageDrift(
   projectId: string | undefined,
   opts: { enabled?: boolean } = {},
 ) {
+  // Read-only observer: every card mounts one, and each observer would run its
+  // own interval timer — the page's useAllTriageItems owns the polling.
   return useQuery<TriageListResponse, Error, TriageOrigin>({
-    ...triageListQuery(projectId, opts.enabled ?? true),
+    ...triageListQuery(projectId, opts.enabled ?? true, false),
     select: (r) => r.origin,
   });
 }
 
 /**
+ * Aggregated view for the Triage page (iterate-2026-11-08-triage-page-redesign).
  * Derived from `triageListQuery` — same queryKey AND queryFn (the raw
- * `TriageListResponse`, not a pre-selected shape) — so a `useQueries`
- * caller (TriagePage, for the Domain filter's live option list + the
- * page-level aggregate hidden-count) shares the exact cache entry
- * `useTriageItems`/`useTriageDrift` already populate. TanStack caches
- * by queryKey regardless of which call populates it first — a queryFn
- * returning a DIFFERENT shape under the same key would poison the
- * cache for whichever hook runs second (caught before it shipped: an
- * earlier draft duplicated `triageListQuery`'s shape by hand with its
- * queryFn pre-selecting `.items`, which would have broken
- * `useTriageItems`'s own `select: r => r.items` the moment this hook's
- * fetch won the race — deriving from the one shared function instead
- * of re-declaring it structurally guarantees the two can't drift, per
- * code-reviewer). `refetchInterval: false` deliberately overridden —
- * the section-owned `useTriageItems` observer on the same key already
- * drives the 30s poll; this aggregation only needs to read what's
- * already cached; see iterate-2026-08-08-triage-filters-sort-parked
- * plan review finding 6.
+ * `TriageListResponse`) — so it shares the exact cache entry the per-card
+ * `useTriageDrift` / modal `useTriageItems` observers use. It is now the
+ * POLLING OWNER of the page (the per-project sections that used to drive the
+ * 30 s poll are gone), so the refetch interval is NOT overridden here.
+ * `combine` is a module-level function so the aggregate keeps a stable
+ * identity until a query result actually changes.
  */
-function triageItemsQueryOptions(projectId: string) {
-  return { ...triageListQuery(projectId, true), refetchInterval: false as const };
+export interface TriageProjectStatus {
+  projectId: string;
+  isLoading: boolean;
+  isError: boolean;
+  behind: number | null;
+  originAvailable: boolean;
+  refetch: () => void;
 }
 
-export function useAllTriageItems(projectIds: readonly string[]) {
+export interface TriageAggregate {
+  entries: TriageEntry[];
+  statuses: TriageProjectStatus[];
+}
+
+export function useAllTriageItems(projectIds: readonly string[]): TriageAggregate {
+  const combine = useCallback(
+    (results: UseQueryResult<TriageListResponse>[]): TriageAggregate => ({
+      entries: results.flatMap((r, i) =>
+        (r.data?.items ?? []).map((item) => ({ projectId: projectIds[i], item })),
+      ),
+      statuses: results.map((r, i) => ({
+        projectId: projectIds[i],
+        isLoading: r.isLoading,
+        isError: r.isError,
+        behind: r.data?.origin.behind ?? null,
+        originAvailable: r.data?.origin.available !== false,
+        refetch: () => void r.refetch(),
+      })),
+    }),
+    [projectIds],
+  );
   return useQueries({
-    queries: projectIds.map((id) => ({
-      ...triageItemsQueryOptions(id),
-      select: (r: TriageListResponse) => r.items,
-    })),
+    queries: projectIds.map((id) => triageListQuery(id, true)),
+    combine,
   });
 }
 
@@ -149,6 +174,7 @@ export function useDismissTriageItem(projectId: string) {
 export function useSnoozeTriageItem(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: snoozeMutationKey(projectId),
     mutationFn: (body: StatusFlipBody) => snoozeTriageItem(projectId, body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: itemsKey(projectId) });

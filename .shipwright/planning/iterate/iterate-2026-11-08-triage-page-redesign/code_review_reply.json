@@ -1,0 +1,11 @@
+{
+  "section": "iterate-2026-11-08-triage-page-redesign",
+  "verdict": "PASS",
+  "round": 2,
+  "summary": "Round 1 REJECT (1 high: PromoteModal inside clickable card; 2 medium: empty/filtered-out/error states; 8 low) fixed and verified in round 2. No high/medium remain. Round-2 lows (snooze not locked during dismiss; hiddenTotal counting switch-hidden parks) applied afterwards.",
+  "review": [
+    {"severity": "low", "category": "correctness", "file": "client/src/components/triage/TriageItemCard.tsx", "finding": "Snooze not disabled while dismiss in flight (fixed after round 2)."},
+    {"severity": "low", "category": "correctness", "file": "client/src/hooks/useSnoozePending.ts", "finding": "Pending check keyed per project, not per item; accepted (harmless)."},
+    {"severity": "low", "category": "readability", "file": "client/src/pages/TriagePage.tsx", "finding": "hiddenTotal counted switch-hidden parks (fixed after round 2)."}
+  ]
+}

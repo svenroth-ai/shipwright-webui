@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-08-triage-page-redesign",
+  "date": "2026-11-08",
+  "section": "Iterate — change: triage page redesign",
+  "title": "Triage page: one aggregated list, include-set filters, saved view",
+  "context": "Per-project sections, exclude-set filters, no persisted view and unexplained audit jargon made the Triage page hard to use and unlike the Board.",
+  "decision": "One aggregated {projectId,item} list with Board-style include-set filters, group/sort menus, a saved view and plain-English help; actions stay bound to each entry's own project.",
+  "consequences": "Old per-project sections and filter bar removed; polling moves to useAllTriageItems; parked cards stay read-only (no un-snooze endpoint); Fix-now task link is a follow-up PR.",
+  "rationale": "Triage ids are not unique across projects, so identity and actions must carry projectId; one pure pipeline keeps counts, chips and the list consistent.",
+  "rejected": "Keeping per-project sections; coupling filters to the Board; persisting search/tile; free-text amend of domain/priority/complexity.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-11-08-triage-page-redesign-triage-page-model.md"
+}

@@ -1,0 +1,41 @@
+{
+ "items": [
+  {
+   "kind": "change",
+   "ac": "FR-01.30.AC30",
+   "old_text": "- (E) **(iterate-2026-08-08-triage-filters-sort-parked, MODIFY)** Given the Triage tab, when the operator excludes a value from the Priority, Domain, or Complexity filter (chips start active; clicking one excludes it — an exclude-set, never an allow-set), then no open item matching an excluded value renders, except a due parked item (see below); a \"N hidden by filter\" line names the exact excluded count whenever it is greater than zero, distinct from the genuine \"no triage items pending\" empty state. Complexity offers exactly `small` / `medium` / `large` / `Unset` — visible and clickable even though no `TriageItem` yet carries a real complexity value, so every currently-loaded item classifies `Unset` today. When every item across every project is filtered to zero, the page shows an explicit \"N hidden by the active filters — clear filters to see them\" state with a working Clear-filters control (resets filters only, never sort).",
+   "new_text": "Given the Triage page, when the operator ticks values in the filter menu (Severity, Source, Priority, Domain, Complexity), then only open items matching the ticked values are shown, and a group with nothing ticked shows every value; a returned park is always shown; active filters appear as removable chips with a Clear filters link and a count of shown against total, and the page tells apart items hidden by filters from the genuine no triage items pending state."
+  },
+  {
+   "kind": "change",
+   "ac": "FR-01.30.AC31",
+   "old_text": "- (E) **(iterate-2026-08-08-triage-filters-sort-parked, MODIFY)** Given the Triage tab, when the operator sets a primary and secondary sort key (Domain / Name / Modified, each independently ascending or descending), then open items render in that order — `title`/`suggestedDomain` compared with a locale-pinned `localeCompare` (fixed `\"und\"` root locale + `{sensitivity:\"base\", numeric:true}`, so ordering never varies by runtime ICU locale) and Modified sorting by the server-resolved latest-status-event `ts`, never the original append `ts`. The per-source group heading is dropped — items render as one continuous sorted list — while each card keeps its inline domain text and `SourceBadge` (source is demoted from a heading, not lost).",
+   "new_text": "Given the Triage page, when the operator picks a primary and a secondary sort (Severity, Priority, Modified or Name, each ascending or descending) and a grouping (None, Project, Severity, Source or Priority), then open items appear grouped and ordered accordingly, Modified meaning the time of the latest status decision, and each group can be collapsed."
+  },
+  {
+   "kind": "add",
+   "owner_fr": "FR-01.30",
+   "new_text": "Given the operator changed filters, sorting, grouping or collapsed groups on the Triage page, when they reload the page or come back later, then the same view is shown, and an unreadable or outdated saved view silently falls back to the defaults."
+  },
+  {
+   "kind": "add",
+   "owner_fr": "FR-01.30",
+   "new_text": "Given the Triage page header, when it is shown, then it offers the same project dropdown as the Board (the project choice is shared with the Board, the other filters are not), a filter menu, a Group menu and a Sort menu, and the summary tiles read Open, Critical plus High, and Parked, with search appearing only above twelve open items."
+  },
+  {
+   "kind": "add",
+   "owner_fr": "FR-01.30",
+   "new_text": "Given an open triage item, when it is shown as a card or in the detail dialog, then it offers its main action (Fix now, or Start campaign for campaign items), Promote, a Snooze menu (tomorrow, one week, one month, pick a date, no date) and Dismiss."
+  },
+  {
+   "kind": "add",
+   "owner_fr": "FR-01.30",
+   "new_text": "Given an open triage item, when the operator edits it from the card or the detail dialog, then title and severity can be changed in place while priority, domain and complexity are shown read-only and priority follows severity."
+  },
+  {
+   "kind": "add",
+   "owner_fr": "FR-01.30",
+   "new_text": "Given a bundled compliance or phase-quality item, when it is shown, then each audit check is listed on its own line with a help marker, and sources, severities and every known audit-check code have a plain English explanation of what it is, why it is here and what to do."
+  }
+ ]
+}

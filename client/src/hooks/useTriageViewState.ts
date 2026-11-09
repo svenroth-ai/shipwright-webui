@@ -1,39 +1,48 @@
 /*
- * useTriageViewState.ts — owns the Triage tab's filter/sort UI state.
+ * useTriageViewState.ts — owns the Triage page's view: filters, sort,
+ * grouping and collapsed groups.
  *
- * Purely a VIEW concern (iterate-2026-08-08-triage-filters-sort-parked):
- * in-memory only, no store write, no persistence across reloads/
- * navigation. Extracted out of TriagePage.tsx so that file's growth
- * stays in one small, focused module rather than several inline
- * `useState` calls padding the page component (bloat-ceiling risk
- * flagged at internal plan review).
+ * iterate-2026-11-08-triage-page-redesign: the view is now REMEMBERED
+ * (localStorage, versioned + validated in lib/triageViewStorage.ts). State
+ * starts from a lazy read — never an effect — and only writes after a
+ * change, so a first render can never overwrite the saved view with
+ * defaults. Still purely a view concern: no store write, no network.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   DEFAULT_FILTER_STATE,
-  DEFAULT_SORT_STATE,
-  type ComplexityFilterValue,
   type SortLevel,
   type TriageFilterState,
   type TriageSortState,
 } from "../lib/triageFilterSort";
-import type { TriagePriority } from "../lib/triageApi";
+import type { GroupBy } from "../lib/triageGrouping";
+import {
+  defaultView,
+  loadView,
+  saveView,
+  type TriageViewSnapshot,
+} from "../lib/triageViewStorage";
+
+export type FilterGroup = "severities" | "sources" | "priorities" | "domains" | "complexities";
 
 export interface TriageViewState {
   filters: TriageFilterState;
   sort: TriageSortState;
-  togglePriority: (value: TriagePriority) => void;
-  toggleDomain: (value: string) => void;
-  toggleComplexity: (value: ComplexityFilterValue) => void;
+  groupBy: GroupBy;
+  /** Collapsed group keys for the CURRENT grouping. */
+  collapsed: ReadonlySet<string>;
+  toggleFilter: (group: FilterGroup, value: string) => void;
   setShowParked: (value: boolean) => void;
-  /** Resets `filters` (not `sort`) to DEFAULT_FILTER_STATE — the affordance
-   * AC5's "clear filters to see them" copy promises (code-reviewer finding:
-   * the copy existed with no control to back it). */
+  /** Resets the filters (not sort/grouping); Parked goes back to hidden. */
   clearFilters: () => void;
   setPrimarySort: (level: SortLevel) => void;
   setSecondarySort: (level: SortLevel) => void;
+  setGroupBy: (value: GroupBy) => void;
+  toggleCollapsed: (key: string) => void;
+  /** Back to the defaults for everything. */
+  resetView: () => void;
 }
 
 function toggleInSet<T>(set: ReadonlySet<T>, value: T): Set<T> {
@@ -44,68 +53,96 @@ function toggleInSet<T>(set: ReadonlySet<T>, value: T): Set<T> {
 }
 
 export function useTriageViewState(): TriageViewState {
-  const [filters, setFilters] = useState<TriageFilterState>(DEFAULT_FILTER_STATE);
-  const [sort, setSort] = useState<TriageSortState>(DEFAULT_SORT_STATE);
+  const [view, setView] = useState<TriageViewSnapshot>(loadView);
 
-  const togglePriority = useCallback((value: TriagePriority) => {
-    setFilters((prev) => ({
-      ...prev,
-      excludedPriorities: toggleInSet(prev.excludedPriorities, value),
-    }));
-  }, []);
+  // Persist after every change, but never before the first user change —
+  // the initial state IS what was just read, so writing it back is a no-op
+  // we skip to keep a blocked/failing storage from being hit on mount.
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    saveView(view);
+  }, [view]);
 
-  const toggleDomain = useCallback((value: string) => {
-    setFilters((prev) => ({
+  const toggleFilter = useCallback((group: FilterGroup, value: string) => {
+    setView((prev) => ({
       ...prev,
-      excludedDomains: toggleInSet(prev.excludedDomains, value),
-    }));
-  }, []);
-
-  const toggleComplexity = useCallback((value: ComplexityFilterValue) => {
-    setFilters((prev) => ({
-      ...prev,
-      excludedComplexities: toggleInSet(prev.excludedComplexities, value),
+      filters: {
+        ...prev.filters,
+        [group]: toggleInSet(prev.filters[group] as ReadonlySet<string>, value),
+      },
     }));
   }, []);
 
   const setShowParked = useCallback((value: boolean) => {
-    setFilters((prev) => ({ ...prev, showParked: value }));
+    setView((prev) => ({ ...prev, filters: { ...prev.filters, showParked: value } }));
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFilters(DEFAULT_FILTER_STATE);
+    setView((prev) => ({ ...prev, filters: DEFAULT_FILTER_STATE }));
   }, []);
 
   const setPrimarySort = useCallback((level: SortLevel) => {
-    setSort((prev) => ({ ...prev, primary: level }));
+    setView((prev) => ({ ...prev, sort: { ...prev.sort, primary: level } }));
   }, []);
 
   const setSecondarySort = useCallback((level: SortLevel) => {
-    setSort((prev) => ({ ...prev, secondary: level }));
+    setView((prev) => ({ ...prev, sort: { ...prev.sort, secondary: level } }));
   }, []);
+
+  const setGroupBy = useCallback((value: GroupBy) => {
+    setView((prev) =>
+      prev.groupBy === value
+        ? prev
+        : { ...prev, groupBy: value, collapsed: { groupBy: value, keys: [] } },
+    );
+  }, []);
+
+  const toggleCollapsed = useCallback((key: string) => {
+    setView((prev) => ({
+      ...prev,
+      collapsed: {
+        groupBy: prev.groupBy,
+        keys: [...toggleInSet(new Set(prev.collapsed.keys), key)],
+      },
+    }));
+  }, []);
+
+  const resetView = useCallback(() => setView(defaultView()), []);
+
+  const collapsed = useMemo(() => new Set(view.collapsed.keys), [view.collapsed]);
 
   return useMemo(
     () => ({
-      filters,
-      sort,
-      togglePriority,
-      toggleDomain,
-      toggleComplexity,
+      filters: view.filters,
+      sort: view.sort,
+      groupBy: view.groupBy,
+      collapsed,
+      toggleFilter,
       setShowParked,
       clearFilters,
       setPrimarySort,
       setSecondarySort,
+      setGroupBy,
+      toggleCollapsed,
+      resetView,
     }),
     [
-      filters,
-      sort,
-      togglePriority,
-      toggleDomain,
-      toggleComplexity,
+      view.filters,
+      view.sort,
+      view.groupBy,
+      collapsed,
+      toggleFilter,
       setShowParked,
       clearFilters,
       setPrimarySort,
       setSecondarySort,
+      setGroupBy,
+      toggleCollapsed,
+      resetView,
     ],
   );
 }

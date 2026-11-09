@@ -1,0 +1,423 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-08-triage-page-redesign",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-08T22:08:28.971020+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "Replacing per-project sections with an aggregated list removes the context that previously scoped card actions. The plan does not explicitly preserve each item’s originating project for Fix now, Start campaign, Promote, Snooze, Dismiss and amend. Using the shared project selection would be incorrect when showing multiple projects.",
+          "suggestion": "Carry project identity through grouping and action handlers. Test actions on items from two projects while the project dropdown shows all projects, including any project-scoped item IDs.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The interaction between include filters, “Show parked,” and the returned/dateless park bypasses is underspecified. A blanket bypass could also ignore the selected project or search, and summary counts could disagree with the visible list.",
+          "suggestion": "Define the filtering order and exactly which filters each park exception bypasses. Specify what “Showing N of M,” the tiles and the search threshold count, then test these rules together.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The findings parser and help-coverage test need an authoritative audit-code catalog and representative bundle payloads. Testing against a manually maintained list in the new help file would not detect newly introduced codes, while an unexpected detail format could silently lose findings.",
+          "suggestion": "Identify the existing catalog used by the coverage test and add fixtures from both compliance and phase-quality bundles. Preserve unparsed text and provide a readable fallback for unknown codes.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Sharing quick edit between cards and the modal introduces concurrent views of the same mutable item. The plan does not cover failed amendments, duplicate submission or a successful edit leaving severity ordering, grouping, priority or the open modal stale.",
+          "suggestion": "Reuse the existing mutation and cache-update path, handle pending/error states, and verify that an edit updates both views and recomputes derived placement and priority.  The approach is sound and appropriately scoped, with useful reuse and no unnecessary dependency. Clarify these behavioral contracts and add targeted regression coverage before implementation proceeds.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-08T21:39:48.997056+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ## Review Findings\n\n- **Category: dependency — Severity: medium**\n  The \"project choice shared with the Board\" mechanism is underspecified. `useProjectFilter` is reused, but if the Board persists its project choice in a Board-scoped localStorage key (or nowhere), the Triage page needs a decision: shared key, or a new shared key both pages read/write. With both pages open, last-write-wins is fine, but the spec should name the key and owner so Triage doesn't accidentally get a private project choice. Confirm `useProjectFilter` actually persists; if it's currently in-memory only, this becomes a small extra change the plan doesn't account for.\n\n- **Category: edge-case — Severity: medium**\n  `triageFindings.ts` parses the bundle `detail` into per-check lines, but no format contract is stated. Pin the parser tests to a real fixture from an actual API response, and define the fallback for unparseable detail (render raw text, don't drop the card). A regex/greedy parser that silently swallows unknown detail shapes would hide findings from the operator.\n\n- **Category: edge-case — Severity: medium**\n  Snooze semantics: \"pick a date\" needs validation (past dates, timezone-of-day boundary — end-of-day vs midnight) and \"no date\" interacts with the kept \"dateless park stays visible\" bypass: a snooze with no date could mean an item that never resurfaces. Clarify what \"no date\" means operationally (immediate re-listing? dateless park?) and test it.\n\n- **Category: risk — Severity: low**\n  \"Testids kept where they still exist\" — removed components (`TriageFilterSortBar`, `TriageSortLevel`, etc.) likely carry testids used by other E2E specs or external scripts. Grep the full Playwright suite for selectors before deletion so the ported tests cover every consumer, not just the triage spec.\n\n- **Category: edge-case — Severity: low**\n  Search is absent from the persisted-view list. AC says filters/sort/grouping/collapsed survive reload; decide explicitly whether search counts  […truncated]\n\n[openai] 1. **Category: risk · Severity: high**  \n   **Finding:** Replacing per-project sections with an aggregated list removes the context that previously scoped card actions. The plan does not explicitly preserve each item’s originating project for Fix now, Start campaign, Promote, Snooze, Dismiss and amend. Using the shared project selection would be incorrect when showing multiple projects.  \n   **Suggestion:** Carry project identity through grouping and action handlers. Test actions on items from two projects while the project dropdown shows all projects, including any project-scoped item IDs.\n\n2. **Category: edge-case · Severity: medium**  \n   **Finding:** The interaction between include filters, “Show parked,” and the returned/dateless park bypasses is underspecified. A blanket bypass could also ignore the selected project or search, and summary counts could disagree with the visible list.  \n   **Suggestion:** Define the filtering order and exactly which filters each park exception bypasses. Specify what “Showing N of M,” the tiles and the search threshold count, then test these rules together.\n\n3. **Category: dependency · Severity: medium**  \n   **Finding:** The findings parser and help-coverage test need an authoritative audit-code catalog and representative bundle payloads. Testing against a manually maintained list in the new help file would not detect newly introduced codes, while an unexpected detail format could silently lose findings.  \n   **Suggestion:** Identify the existing catalog used by the coverage test and add fixtures from both compliance and phase-quality bundles. Preserve unparsed text and provide a readable fallback for unknown codes.\n\n4. **Category: edge-case · Severity: medium**  \n   **Finding:** Sharing quick edit between cards and the modal introduces concurrent views of the same mutable item. The plan does not cover failed amendments, duplicate submission or a successful edit leaving severity ordering, grouping, priority or the o […truncated]",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      },
+      "model_tier": "opus"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/triage/TriageItemCard.tsx",
+          "line": null,
+          "finding": "Snooze not disabled while dismiss in flight (fixed after round 2).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/hooks/useSnoozePending.ts",
+          "line": null,
+          "finding": "Pending check keyed per project, not per item; accepted (harmless).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/pages/TriagePage.tsx",
+          "line": null,
+          "finding": "hiddenTotal counted switch-hidden parks (fixed after round 2).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-08T22:22:51.080958+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "concurrency",
+          "file": "client/src/components/triage/useTriageCardActions.ts:33",
+          "line": null,
+          "finding": "Claim under doubt: single polling owner — Per-card useTriageDrift observers each carry the 30s refetchInterval, multiplying polls after remounts.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "reversibility",
+          "file": "client/src/components/triage/TriageItemCard.tsx:193",
+          "line": null,
+          "finding": "Claim under doubt: card Dismiss is safe — One-click, no confirm/undo, no un-dismiss endpoint.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling",
+          "file": "client/src/components/triage/TriageGroupList.tsx:40",
+          "line": null,
+          "finding": "Claim under doubt: returned park always shows — Persisted collapsed group can hide a returned park.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/pages/TriagePage.tsx:241",
+          "line": null,
+          "finding": "Claim under doubt: Detail modal keeps showing the click-time snapshot with live actions after the item vanished from the list (other tab or CLI); pre-existing, now more reachable. Accepted, follow-up. — Detail modal keeps showing the click-time snapshot with live actions after the item vanished from the list (other tab or CLI); pre-existing, now more reachable. Accepted, follow-up.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/components/triage/TriageItemCard.tsx:225",
+          "line": null,
+          "finding": "Claim under doubt: Promote dialog form resets if the item identity changes while open (poll or amend in another tab). Narrow window; accepted. — Promote dialog form resets if the item identity changes while open (poll or amend in another tab). Narrow window; accepted.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/components/triage/TriageItemCard.tsx:77",
+          "line": null,
+          "finding": "Claim under doubt: Card test ids are id-only, so two projects sharing an id make strict Playwright locators ambiguous. Test-only debt; real users unaffected. — Card test ids are id-only, so two projects sharing an id make strict Playwright locators ambiguous. Test-only debt; real users unaffected.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/lib/triageBoardModel.ts:66",
+          "line": null,
+          "finding": "Claim under doubt: Critical+High tile count excludes returned parks that the tile filter lets through, and a stored search query survives the search box hiding. Cosmetic; accepted. — Critical+High tile count excludes returned parks that the tile filter lets through, and a stored search query survives the search box hiding. Cosmetic; accepted.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/components/triage/TriageGroupList.tsx:69",
+          "line": null,
+          "finding": "Claim under doubt: memo(TriageItemCard) never hits because onOpen is an inline closure and combine yields a new array per fetch status; performance only, no render loop. Accepted. — memo(TriageItemCard) never hits because onOpen is an inline closure and combine yields a new array per fetch status; performance only, no render loop. Accepted.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/components/triage/TriageDetailModal.tsx:138",
+          "line": null,
+          "finding": "Claim under doubt: TriageDetailModal onDismiss has no try/catch so a transport failure is an unhandled rejection; pre-existing behaviour, out of scope for this redesign. — TriageDetailModal onDismiss has no try/catch so a transport failure is an unhandled rejection; pre-existing behaviour, out of scope for this redesign.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-08T22:29:19.036277+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 12,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/lib/triageHelpText.test.ts:16 (`const LOG = resolve(__dirname, \"../../../.shipwright/triage.jsonl\")`)",
+          "line": null,
+          "finding": "The coverage test does `readFileSync(LOG)` on the repository's own working-tree triage log. In a clean checkout / CI clone where that file is absent (it is a local artifact, not committed test data), the test throws ENOENT and fails the suite — not because a code lacks help text, but because the fixture doesn't exist.",
+          "suggestion": "Guard the read (`existsSync`) and skip (or assert against a committed fixture list) when the log is absent, so the test enforces coverage where the data exists without hard-failing otherwise.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/triage-redesign.spec.ts:157-162 (\"Fix now … for the entry's own project\")",
+          "line": null,
+          "finding": "The test's name promises the fix-now dialog opens bound to the entry's own project, but it only asserts `getByRole(\"dialog\")` is visible. A regression that binds fix-now to the page-level/scope project (the exact cross-project-id hazard this redesign calls out) would still pass.",
+          "suggestion": "Assert the project preselect inside the dialog (e.g. the NewIssueModal's selected project equals the seeded project, including a second seeded project so the wrong binding is distinguishable).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/triage/TriageActiveFilters.tsx:82-88 (`onClick={() => { view.clearFilters(); onClearTile?.(); }}`)",
+          "line": null,
+          "finding": "The chips bar's \"Clear filters\" clears attribute filters and the tile but not the search text. With an active search hiding items, \"Showing 0 of N\" (or a partially narrowed list) survives \"Clear filters\" with no chip representing the cause — the very \"invisible filter\" problem the component's own docstring says it exists to prevent.",
+          "suggestion": "Either clear the search too (lift it or pass an `onClearSearch`), or render a removable \"Search: …\" chip alongside the others.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/src/components/triage/TriageViewMenus.tsx:103-119 (native `<select>` inside `Popover.Content`)",
+          "line": null,
+          "finding": "A native `<select>` inside a Radix `Popover.Content` is a known trap: opening the option list registers as an outside interaction and can close the popover (and on some platforms focus loss) before `onChange` fires, making the Sort menu's key selects unreliable, particularly on mobile — and there is no E2E/unit coverage exercising the Sort popover selects (only grouping is E2E'd).",
+          "suggestion": "Verify on the real stack; if it closes, render the sort keys as menu items or add `onInteractOutside`/`modal={false}` handling, and add an E2E that changes the primary sort key through the popover.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/pages/TriagePage.tsx (`hiddenTotal` computation near `showFilteredOut`)",
+          "line": null,
+          "finding": "The all-filtered-out message says \"N hidden by the active filters\", but `hiddenTotal = openAll − visibleOpen (+ hiddenParked)`, which also counts items narrowed away by the search and the tile — copy promises filters only.",
+          "suggestion": "Either exclude search/tile from the count, or word it neutrally (\"hidden by the current view\").",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/components/triage/TriageQuickEdit.tsx:41-44 (`const [initial] = useState(item); const [title, setTitle] = useState(item.title)`)",
+          "line": null,
+          "finding": "initial` is captured once per popover body mount. If the 30 s poll replaces the item (or another surface amended it) while the popover is open, the change-diff is computed against the stale snapshot — the user \"saves\" a title/severity relative to an outdated baseline and can silently clobber a concurrent amend.",
+          "suggestion": "Diff against the current `item` prop (or key the `Body` on the item's amendedAt/id so it remounts when the item changes).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/e2e/flows/triage-redesign.spec.ts:76-78 (`afterEach` / `project` cleanup)",
+          "line": null,
+          "finding": "If `beforeEach` fails before `seedProject` resolves, `project` is undefined and `cleanupProject(request, project)` throws in cleanup, masking the original failure with an opaque TypeError.",
+          "suggestion": "Guard `afterEach` with `if (project) …` (or initialize `project` to a sentinel) so the real failure surfaces.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/triage/TriageItemCard.tsx (card `<article onClick …>`)",
+          "line": null,
+          "finding": "The card body lost `data-nav-item` and any keyboard-accessible activation it had as a `<button>`; the title button remains the keyboard path, but focus/keyboard-nav regressions in the card body (e.g. voice-control \"click the card\") are unfenced.",
+          "suggestion": "Confirm the keyboard-nav test suite still covers the card, or add `role`/`tabindex` handling for the body click.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/pages/TriagePage.tsx:61 — `tile` state",
+          "line": null,
+          "finding": "Clicking “Critical + High” creates an active filter stored only in component state. Reloading or navigating away resets it, despite the requirement that Triage filters survive reload and navigation.",
+          "suggestion": "Represent this tile selection in the persisted view, or implement it through the persisted severity filter.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/lib/triageBoardModel.ts:68 — `matchesSearch(e, q)",
+          "line": null,
+          "finding": "Search hides returned parks before the tile bypass is evaluated. With more than 12 open items, entering a query that does not match a returned item makes it disappear, violating the retained “a returned park always shows” behavior.",
+          "suggestion": "Apply the returned-park bypass around the complete search-and-tile predicate. Add a pipeline test combining search with a nonmatching returned park.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "client/src/pages/TriagePage.tsx:132 — `showEmpty` calculation",
+          "line": null,
+          "finding": "The empty-state condition uses visible parked items rather than the unfiltered parked population. If there are only dateless parks and an attribute filter excludes them, the page says “No triage items pending. ✓” even though pending items exist. The previous implementation explicitly distinguished this from a genuinely empty queue.",
+          "suggestion": "Base the genuine-empty state on both unfiltered populations. Show a filtered-out state with a working clear-filters action when filters hide the remaining parked items.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/lib/triageHelpText.ts:250 — `KNOWN_CHECK_CODES",
+          "line": null,
+          "finding": "The known-code catalog is derived from the help entries themselves, so the coverage test cannot detect a known producer code that lacks help. Scanning the historical triage log only catches codes already emitted there; an omitted known check that has never failed still passes.",
+          "suggestion": "Obtain the known-code set independently from the audit producers or a canonical catalog, then assert that every code has an explicit help entry.  Overall assessment: ship-with-fixes. The implementation covers most of the redesign, but filter persistence, returned-item visibility, empty-state correctness, and the required help-coverage guard need specific corrections.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-08T22:31:05.329788+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ### Findings\n\n- Category: test\n  Severity: medium\n  File: client/src/lib/triageHelpText.test.ts:16 (`const LOG = resolve(__dirname, \"../../../.shipwright/triage.jsonl\")`)\n  Finding: The coverage test does `readFileSync(LOG)` on the repository's own working-tree triage log. In a clean checkout / CI clone where that file is absent (it is a local artifact, not committed test data), the test throws ENOENT and fails the suite — not because a code lacks help text, but because the fixture doesn't exist.\n  Suggestion: Guard the read (`existsSync`) and skip (or assert against a committed fixture list) when the log is absent, so the test enforces coverage where the data exists without hard-failing otherwise.\n\n- Category: test\n  Severity: medium\n  File: client/e2e/flows/triage-redesign.spec.ts:157-162 (\"Fix now … for the entry's own project\")\n  Finding: The test's name promises the fix-now dialog opens bound to the entry's own project, but it only asserts `getByRole(\"dialog\")` is visible. A regression that binds fix-now to the page-level/scope project (the exact cross-project-id hazard this redesign calls out) would still pass.\n  Suggestion: Assert the project preselect inside the dialog (e.g. the NewIssueModal's selected project equals the seeded project, including a second seeded project so the wrong binding is distinguishable).\n\n- Category: bug\n  Severity: medium\n  File: client/src/components/triage/TriageActiveFilters.tsx:82-88 (`onClick={() => { view.clearFilters(); onClearTile?.(); }}`)\n  Finding: The chips bar's \"Clear filters\" clears attribute filters and the tile but not the search text. With an active search hiding items, \"Showing 0 of N\" (or a partially narrowed list) survives \"Clear filters\" with no chip representing the cause — the very \"invisible filter\" problem the component's own docstring says it exists to prevent.\n  Suggestion: Either clear the search too (lift it or pass an `onClearSearch`), or render a removable \"Search: …\" chip alongside the o […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/pages/TriagePage.tsx:61 — `tile` state\n- Finding: Clicking “Critical + High” creates an active filter stored only in component state. Reloading or navigating away resets it, despite the requirement that Triage filters survive reload and navigation.\n- Suggestion: Represent this tile selection in the persisted view, or implement it through the persisted severity filter.\n\n- Category: bug\n- Severity: medium\n- File: client/src/lib/triageBoardModel.ts:68 — `matchesSearch(e, q)`\n- Finding: Search hides returned parks before the tile bypass is evaluated. With more than 12 open items, entering a query that does not match a returned item makes it disappear, violating the retained “a returned park always shows” behavior.\n- Suggestion: Apply the returned-park bypass around the complete search-and-tile predicate. Add a pipeline test combining search with a nonmatching returned park.\n\n- Category: regression\n- Severity: medium\n- File: client/src/pages/TriagePage.tsx:132 — `showEmpty` calculation\n- Finding: The empty-state condition uses visible parked items rather than the unfiltered parked population. If there are only dateless parks and an attribute filter excludes them, the page says “No triage items pending. ✓” even though pending items exist. The previous implementation explicitly distinguished this from a genuinely empty queue.\n- Suggestion: Base the genuine-empty state on both unfiltered populations. Show a filtered-out state with a working clear-filters action when filters hide the remaining parked items.\n\n- Category: test\n- Severity: medium\n- File: client/src/lib/triageHelpText.ts:250 — `KNOWN_CHECK_CODES`\n- Finding: The known-code catalog is derived from the help entries themselves, so the coverage test cannot detect a known producer code that lacks help. Scanning the historical triage log only catches codes already emitted there; an omitted known check that has never failed still passes.\n- Suggestion: O […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-08T22:13:56.536880+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "ac_verdicts": [
+        {
+          "ac": "FR-01.30.AC30",
+          "verdict": "matches",
+          "diff_location": "client/src/lib/triageFilterSort.ts",
+          "reason": "Include-set filters, returned-park bypass, chips, Clear filters, Showing N of M, separate empty states.",
+          "weakens": false
+        },
+        {
+          "ac": "FR-01.30.AC31",
+          "verdict": "matches",
+          "diff_location": "client/src/lib/triageFilterSort.ts",
+          "reason": "Sort keys severity/priority/modified/name per-level direction; grouping None/Project/Severity/Source/Priority with collapse.",
+          "weakens": false
+        },
+        {
+          "ac": "item-3",
+          "verdict": "matches",
+          "diff_location": "client/src/lib/triageViewStorage.ts",
+          "reason": "Versioned validated saved view with fallback.",
+          "weakens": false
+        },
+        {
+          "ac": "item-4",
+          "verdict": "matches",
+          "diff_location": "client/src/pages/TriagePage.tsx",
+          "reason": "Shared project dropdown, filter/group/sort menus, tiles, search above 12.",
+          "weakens": false
+        },
+        {
+          "ac": "item-5",
+          "verdict": "matches",
+          "diff_location": "client/src/components/triage/TriageItemCard.tsx",
+          "reason": "Card and dialog offer main action, Promote, Snooze menu, Dismiss.",
+          "weakens": false
+        },
+        {
+          "ac": "item-6",
+          "verdict": "matches",
+          "diff_location": "client/src/components/triage/TriageQuickEdit.tsx",
+          "reason": "Title+severity editable; priority/domain/complexity read-only.",
+          "weakens": false
+        },
+        {
+          "ac": "item-7",
+          "verdict": "matches",
+          "diff_location": "client/src/components/triage/TriageDetailMeta.tsx",
+          "reason": "Checks listed per line with help on card and dialog; source/severity/check help catalog.",
+          "weakens": false
+        }
+      ]
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-08T21:40:24.492308+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-08T21:40:47.447285+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}
