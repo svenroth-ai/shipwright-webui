@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-09-triage-polish-r3",
+  "date": "2026-11-09",
+  "section": "Iterate — change: triage polish round 3",
+  "title": "Triage help is framework-only and honest about Fix now",
+  "context": "Operator review: identical security texts, project-specific source labels, severity ? noise, Fix now promises more than it does.",
+  "decision": "Help catalogue covers only framework sources; unknown sources show as written with generic text; severity has no help; every todo says Fix now opens a pre-filled task.",
+  "consequences": "req3/tooling labels gone (raw names, separate groups); texts are static client copy.",
+  "rationale": "Customer projects differ; fixNowIntent only pre-fills a task dialog, so wording must not promise more.",
+  "rejected": "Server-generated help (new API contract); per-project source catalogue.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-09-triage-polish-r3",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-09T20:39:34.376427+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "sourceHelp(source, title)` appears to distinguish GitHub security findings from failing PR checks using the title. Titles can change or contain overlapping terms, causing the help to explain the wrong action.",
+          "suggestion": "Use an existing structured item-kind discriminator where available. Otherwise, recognize only established title formats and use generic help for ambiguous cases. Test both GitHub kinds, unknown titles, and project-specific sources.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The grid classes respond to viewport width, while card space depends on the list’s available width. Navigation or other surrounding panels could trigger three columns with insufficient space for readable titles, pills, and actions.",
+          "suggestion": "Use container-based breakpoints or a grid with a tested minimum card width. Verify the supported navigation layouts and long content, including the parked list.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "A coloured project pill needs an explicit foreground/background contrast rule. Applying `projectColor` and dark text alone may fail for some project colours; regenerating visual baselines would not detect that reliably.",
+          "suggestion": "Reuse the Board’s existing colour and contrast treatment, including its fallback for missing colours. Verify representative light and dark project colours before accepting the new baseline.  The approach is appropriately scoped, and the default-on count prop preserves existing dropdown behaviour. Resolve the help discriminator, available-width layout, and colour handling before implementation is considered ready; no specific security concern is evident from the proposed scope.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-09T20:45:08.681383+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ## Review Findings\n\n- **Category: risk — Severity: medium**\n  Dropping `req3`, `req3-campaign`, `tooling`, and `severityHelp` from the help catalogue assumes those keys are consumed only by Triage. If the catalogue (`triageHelpText.ts`) is shared with any doc-generation, export, or other surface, removing entries silently changes behaviour there. Verify by grepping for consumers of `severityHelp` and each source key before deletion; the plan already regenerates `triageHelpDoc.ts`, which suggests the catalogue has a second consumer — confirm the doc change is acceptable content-wise, not just mechanically regenerated.\n\n- **Category: edge-case — Severity: medium**\n  `sourceHelp(source, title)` branches on item kind for GitHub items, but sources are free text per the design note. The plan should state how near-matches are handled (exact match on known source keys vs. substring/normalized matching) — substring matching on free text (\"github\" appearing in a project-specific source name) would leak the GitHub-specific help onto unrelated items. Specify exact-key match with generic fallback.\n\n- **Category: approach — Severity: low**\n  The `showCounts` prop on `ProjectFilterDropdown` is fine, but confirm no other consumer already passes an incompatible prop shape; default `true` preserves existing callers, which is correct. No change needed if so — just flagging to verify.\n\n- **Category: approach — Severity: low**\n  Two grid implementations (step 3 covers both `TriageGroupList.tsx` and the parked list in `TriagePage.tsx`) should share one class string or constant, otherwise the 2/3-column breakpoints will drift apart in later polish rounds. One extracted string is enough — no wrapper component needed.\n\n- **Category: dependency — Severity: medium**\n  \"Regenerate the visual baseline\" (step 8) is a hard dependency for the Playwright visual specs but has no ordering or owner stated. If the baseline regen lands before the component changes (or with stale screenshots […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** `sourceHelp(source, title)` appears to distinguish GitHub security findings from failing PR checks using the title. Titles can change or contain overlapping terms, causing the help to explain the wrong action.  \n   **Suggestion:** Use an existing structured item-kind discriminator where available. Otherwise, recognize only established title formats and use generic help for ambiguous cases. Test both GitHub kinds, unknown titles, and project-specific sources.\n\n2. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The grid classes respond to viewport width, while card space depends on the list’s available width. Navigation or other surrounding panels could trigger three columns with insufficient space for readable titles, pills, and actions.  \n   **Suggestion:** Use container-based breakpoints or a grid with a tested minimum card width. Verify the supported navigation layouts and long content, including the parked list.\n\n3. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** A coloured project pill needs an explicit foreground/background contrast rule. Applying `projectColor` and dark text alone may fail for some project colours; regenerating visual baselines would not detect that reliably.  \n   **Suggestion:** Reuse the Board’s existing colour and contrast treatment, including its fallback for missing colours. Verify representative light and dark project colours before accepting the new baseline.\n\nThe approach is appropriately scoped, and the default-on count prop preserves existing dropdown behaviour. Resolve the help discriminator, available-width layout, and colour handling before implementation is considered ready; no specific security concern is evident from the proposed scope.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      },
+      "reviewed_commit": "bd0a0f67236469bf0df7158c2df829cb5688526b"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/triageHelpText.ts",
+          "line": 58,
+          "finding": "securityKinds regex handles the real example string correctly; only an unparenthesised 'unavailable' would be misread as a finding (negligible edge case).",
+          "suggestion": "none required",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-09T20:39:47.954675+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "reviewed_commit": "82b0b6dc0a23d195f32eafd2d37978facc3d05e9"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "contract",
+          "file": "client/src/lib/triageHelpText.ts",
+          "line": null,
+          "finding": "Claim under doubt: Compliance help text accurate — It referred to per-line Promote/Dismiss that do not exist. FIXED: sentence removed.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "contract",
+          "file": "client/src/lib/triageCheckHelp.ts",
+          "line": null,
+          "finding": "Claim under doubt: Fix now help texts describe real behaviour — fixNowIntent only opens a pre-filled task dialog. FIXED: every todo now says 'opens a new task, pre-filled with this item, meant to ...'.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "layout",
+          "file": "client/src/components/triage/triageGrid.ts",
+          "line": null,
+          "finding": "Claim under doubt: Grid is overflow-safe — 1fr tracks without min-w-0 can be widened by long tokens; breakpoints ignore sidebar. FIXED: minmax(0,1fr) tracks, min-w-0/break-words on card, thresholds 1100/1700.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "honesty",
+          "file": ".shipwright/planning/01-adopted/triage-help-texts.md",
+          "line": null,
+          "finding": "Claim under doubt: Generated doc is verified prose — Header still said not verified. FIXED: header states readability-checked, semantics not verified against check code.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "regression",
+          "file": "client/src/lib/triageHelpText.ts",
+          "line": null,
+          "finding": "Claim under doubt: Dropping req3/tooling labels loses nothing — Those sources now show raw and group separately; deliberate per user request (no project-specific catalogue).",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-09T20:42:13.755176+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "reviewed_commit": "82b0b6dc0a23d195f32eafd2d37978facc3d05e9"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/pages/TriagePage.tsx:236` (`projectLabel={projectLabel(selected.projectId)}`)",
+          "line": null,
+          "finding": "The detail modal always receives a project label, so the project pill shows in the dialog even when the list shows only one project. The AC (and the card path) says the pill appears \"when several projects are listed.\" Unless `projectLabel()` returns `undefined` for the single-project case — which the call shape doesn't suggest — the dialog now diverges from the card and from the AC.",
+          "suggestion": "Pass the label conditionally (same predicate the card list uses to decide whether to hand `projectLabel` down), or make `projectLabel()` return `undefined` when the view mixes only one project and document that.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "client/src/components/triage/TriageDetailActions.tsx:48-56",
+          "line": null,
+          "finding": "The old header Edit control was explicitly gated on `item.status === \"triage\"`; the new bottom-row Edit button is only gated by `writeDisabled`. If `TriageDetailActions` renders for snoozed/dismissed items in the modal, the Edit button appears where it didn't before, and submitting hits the server's 409 path (per the amend AC, edit is in-scope only for open cards). The diff does not show a status gate around the action row.",
+          "suggestion": "Confirm the action row is only rendered for open items; if it isn't, add `item.status === \"triage\" &&` (or equivalent) to the Edit button's render condition.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "regression",
+          "file": "client/src/lib/triageHelpText.ts` (removed `SEVERITY_HELP`, `severityHelp`, `SOURCE_HELP_ALIAS`)",
+          "line": null,
+          "finding": "Three exports were deleted from `triageHelpText.ts`. The diff updates the known callers, but any caller outside the shown files (e.g. the quick-edit or resolved-view) would now fail at compile time. Worth a repo-wide grep before merge; severity low because TypeScript would catch it.",
+          "suggestion": "Run a workspace build/typecheck; nothing else to do if it compiles.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/triage-polish-r3.spec.ts:75-81` (\"cards sit in several columns on a wide window\")",
+          "line": null,
+          "finding": "The multi-column AC specifies 1 / 2 / 3 columns at <1100 / ≥1100 / ≥1700 px, but the e2e only checks one pair of cards at 1700 px. The 1100 px two-column breakpoint and the single-column case below 1100 are never exercised in a browser; the `TriagePills.test.tsx` check of `TRIAGE_GRID` is a regex against a class string, which passes even if the breakpoints never take effect in the browser (e.g. a Tailwind purge miss on arbitrary `min-[1100px]:…` classes would go unnoticed).",
+          "suggestion": "Add viewport checks at ~1150 px (two columns) and ~900 px (single column), and assert the grid element's computed `grid-template-columns` rather than only relative card positions.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/triage-polish-r3.spec.ts:84-92` (\"Reset view is the first row\")",
+          "line": null,
+          "finding": "menu.boundingBox()` is used with a non-null assertion without first awaiting visibility; if the menu is still animating in, `mb` is `null` and the test throws a TypeError rather than failing an assertion. Also `rb!.y - mb!.y < 48` is a brittle pixel threshold.",
+          "suggestion": "await expect(menu).toBeVisible()` before measuring, and compare Reset view's `y` against the first section item's `y`, or check DOM order instead of pixels.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/triageHelpText.ts` (`securityKinds`, `has()` regex)",
+          "line": null,
+          "finding": "The kind-detection regex `key:\\s(?!\\(unavailable\\)|0\\b)\\S` requires a non-space char right after the count-position, but a value like `code-scanning: (some error)` or any text that isn't a bare count still counts as \"present\" — acceptable — while a phrasing like `code-scanning:  0 open` (two spaces) is handled by `\\s`, fine. The real gap: a title like \"Fix the security check\" for a non-security GitHub item routes to `githubSecurity` because detection keys off `/security/i` in the title, producing a \"Security scan results\" help for a plain finding. Narrow, but a plausible mismatch given titles are free text.",
+          "suggestion": "Tighten the security detection to `/^GitHub security\\b/i` (matching the actual roll-up headline format) rather than any occurrence of \"security\".",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/triage-polish-r3.spec.ts:73` (`getByText(/\\b\\d+ tasks?\\b/)` count 0)",
+          "line": null,
+          "finding": "This only proves the closed trigger shows no counts; the dropdown rows (where `count` also renders when `showCounts` is true) are never opened in the e2e, so a regression that hides the trigger suffix but leaks row counts would pass. The unit test in `ProjectFilterDropdown.test.tsx` covers `textContent` of the closed component only, so rows are untested there too.",
+          "suggestion": "In the unit test, open the dropdown (or assert on row props) so the `count={showCounts ? … : undefined}` path for rows is actually validated.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/triage/TriageDetailMeta.tsx",
+          "line": 80,
+          "finding": "The dialog renders `h.what` and `h.todo`, but omits `h.why` and removes the help popover that previously exposed it. Audit findings in the dialog therefore lose the required “why is it here” explanation.",
+          "suggestion": "Render `h.why` alongside the other inline explanations.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "regression",
+          "file": "client/src/components/triage/TriageBadgeUI.tsx",
+          "line": 51,
+          "finding": "Rendering `sourceLabel(source)` directly introduces a failure for unknown sources such as `__proto__`. `SOURCE_LABELS` is a normal object, so the lookup returns an inherited object instead of the original string, which React cannot render. This violates the requirement that arbitrary project sources appear as written.",
+          "suggestion": "Use an own-property check for catalogue lookups in both `sourceLabel` and `sourceHelp`, falling back to the original source and generic help.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/triage-polish-r3.spec.ts",
+          "line": 76,
+          "finding": "The browser grid test checks only that two cards share a row at 1700 px. An implementation with two columns at every desktop width would pass; the unit test merely checks the class string. Neither verifies the required rendered 1 / 2 / 3 column behavior.",
+          "suggestion": "Assert rendered positions of all three cards below 1100 px, at 1100 px, and at 1700 px, including the third card sharing the row only at the final breakpoint.  Overall assessment: ship-with-fixes. The approach fits the specification, but the missing explanation and unsafe source lookup need correction, and responsive behavior needs meaningful browser coverage.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-09T20:45:08.812560+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: spec\n  - Severity: medium\n  File: `client/src/pages/TriagePage.tsx:236` (`projectLabel={projectLabel(selected.projectId)}`)\n  Finding: The detail modal always receives a project label, so the project pill shows in the dialog even when the list shows only one project. The AC (and the card path) says the pill appears \"when several projects are listed.\" Unless `projectLabel()` returns `undefined` for the single-project case — which the call shape doesn't suggest — the dialog now diverges from the card and from the AC.\n  Suggestion: Pass the label conditionally (same predicate the card list uses to decide whether to hand `projectLabel` down), or make `projectLabel()` return `undefined` when the view mixes only one project and document that.\n\n- Category: regression\n  - Severity: medium\n  File: `client/src/components/triage/TriageDetailActions.tsx:48-56`\n  Finding: The old header Edit control was explicitly gated on `item.status === \"triage\"`; the new bottom-row Edit button is only gated by `writeDisabled`. If `TriageDetailActions` renders for snoozed/dismissed items in the modal, the Edit button appears where it didn't before, and submitting hits the server's 409 path (per the amend AC, edit is in-scope only for open cards). The diff does not show a status gate around the action row.\n  Suggestion: Confirm the action row is only rendered for open items; if it isn't, add `item.status === \"triage\" &&` (or equivalent) to the Edit button's render condition.\n\n- Category: regression\n  - Severity: low\n  File: `client/src/lib/triageHelpText.ts` (removed `SEVERITY_HELP`, `severityHelp`, `SOURCE_HELP_ALIAS`)\n  Finding: Three exports were deleted from `triageHelpText.ts`. The diff updates the known callers, but any caller outside the shown files (e.g. the quick-edit or resolved-view) would now fail at compile time. Worth a repo-wide grep before merge; severity low because TypeScript would catch it.\n  Suggestion: Run a workspace build/typecheck;  […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/components/triage/TriageDetailMeta.tsx:80\n- Finding: The dialog renders `h.what` and `h.todo`, but omits `h.why` and removes the help popover that previously exposed it. Audit findings in the dialog therefore lose the required “why is it here” explanation.\n- Suggestion: Render `h.why` alongside the other inline explanations.\n\n- Category: regression\n- Severity: low\n- File: client/src/components/triage/TriageBadgeUI.tsx:51\n- Finding: Rendering `sourceLabel(source)` directly introduces a failure for unknown sources such as `__proto__`. `SOURCE_LABELS` is a normal object, so the lookup returns an inherited object instead of the original string, which React cannot render. This violates the requirement that arbitrary project sources appear as written.\n- Suggestion: Use an own-property check for catalogue lookups in both `sourceLabel` and `sourceHelp`, falling back to the original source and generic help.\n\n- Category: test\n- Severity: medium\n- File: client/e2e/flows/triage-polish-r3.spec.ts:76\n- Finding: The browser grid test checks only that two cards share a row at 1700 px. An implementation with two columns at every desktop width would pass; the unit test merely checks the class string. Neither verifies the required rendered 1 / 2 / 3 column behavior.\n- Suggestion: Assert rendered positions of all three cards below 1100 px, at 1100 px, and at 1700 px, including the third card sharing the row only at the final breakpoint.\n\nOverall assessment: ship-with-fixes. The approach fits the specification, but the missing explanation and unsafe source lookup need correction, and responsive behavior needs meaningful browser coverage.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      },
+      "reviewed_commit": "bd0a0f67236469bf0df7158c2df829cb5688526b"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-09T20:39:47.811289+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "reviewed_commit": "82b0b6dc0a23d195f32eafd2d37978facc3d05e9"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-09T20:45:03.495028+00:00",
+      "disposition": null,
+      "recorded_by": "claude (opus-plan-reviewer: pass; evidence link moved out of Details)",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "reviewed_commit": "bd0a0f67236469bf0df7158c2df829cb5688526b"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-09T20:39:09.880310+00:00",
+      "disposition": null,
+      "recorded_by": "claude (architecture-internal-reviewer: verdict proceed, 5 low notes, none blocking)",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "reviewed_commit": "82b0b6dc0a23d195f32eafd2d37978facc3d05e9"
+    }
+  }
+}

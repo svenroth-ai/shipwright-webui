@@ -1,0 +1,70 @@
+{
+  "run_id": "iterate-2026-11-09-triage-polish-r3",
+  "date": "2026-11-09T20:51:29.095658Z",
+  "event_at": "2026-11-09T08:54:45.938660+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/triage-polish-r3",
+  "spec": ".shipwright/planning/iterate/2026-11-09-triage-polish-r3.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-09-triage-polish-r3",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Help texts: every audit check has its own why-text (E1-E5 family excepted); GitHub security texts name only the finding kinds present; odd source names (__proto__) show as written; every todo says Fix now opens a pre-filled task",
+        "disposition": "tested",
+        "evidence": "triageHelpText.test.ts + triageHelpDoc.test.ts PASSED"
+      },
+      {
+        "behavior": "Severity pill has no help marker; source pill shows the framework label; project-specific sources show as written with generic help",
+        "disposition": "tested",
+        "evidence": "TriagePills.test.tsx + TriageItemCard.test.tsx PASSED; triage-polish-r3.spec.ts::unknown project source PASSED (chromium)"
+      },
+      {
+        "behavior": "Card list is 1 / 2 / 3 columns by window width with overflow-safe tracks",
+        "disposition": "tested",
+        "evidence": "TriagePills.test.tsx (grid classes) PASSED; triage-polish-r3.spec.ts::1, 2 and 3 columns PASSED (chromium)"
+      },
+      {
+        "behavior": "Project dropdown shows counts by default and none on the Triage page; Reset view is first in the filter menu",
+        "disposition": "tested",
+        "evidence": "ProjectFilterDropdown.test.tsx PASSED; triage-polish-r3.spec.ts::no counts + Reset view first PASSED (chromium)"
+      },
+      {
+        "behavior": "Detail dialog: pills like the card, findings explained inline (what/why/Fix now does), raw detail folded, Details collapsed, evidence link visible, Edit button in the action row",
+        "disposition": "tested",
+        "evidence": "TriageDetailHeader.test.tsx + TriageDetailMeta.test.tsx + TriageDetailModal.amend.test.tsx PASSED; triage-polish-r3.spec.ts::detail dialog + triage-file-viewer.spec.ts + triage-amend.spec.ts PASSED (chromium)"
+      },
+      {
+        "behavior": "Quick-edit and help popovers scroll inside the available height instead of leaving the viewport",
+        "disposition": "tested",
+        "evidence": "triage-redesign.spec.ts::quick edit PASSED (chromium); tokens.no-dead-vars.test.ts PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 6,
+      "tested": 6,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 11,
+      "covered_acs": 11
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "cd client && npx playwright test e2e/flows/triage-polish-r3.spec.ts e2e/flows/triage-redesign.spec.ts e2e/flows/triage-fix-now.spec.ts e2e/flows/triage-fix-now-more-options-clip.spec.ts e2e/flows/triage-tab.spec.ts e2e/flows/triage-pending-delivery.spec.ts e2e/flows/triage-file-viewer.spec.ts e2e/flows/triage-amend.spec.ts e2e/flows/triage-restyle.spec.ts e2e/flows/triage-fixnow-task.spec.ts e2e/flows/mobile-triage-spacing-filters.spec.ts",
+    "exit_code": 0,
+    "tests_run": 34,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-polish-r3\\.shipwright\\runs\\iterate-2026-11-09-triage-polish-r3\\surface_verification.log",
+    "timestamp": "2026-11-09T20:50:32.049Z"
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}
