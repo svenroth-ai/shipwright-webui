@@ -106,3 +106,31 @@ describe("buildBoardModel", () => {
     expect(m.hiddenByFilters).toBe(1);
   });
 });
+
+// @covers FR-01.30
+describe("buildBoardModel — In progress tile", () => {
+  const linked = new Set(["p1:a"]);
+
+  it("counts open items whose task is linked, and narrows to them with the tile", () => {
+    const base = input({ entries: all, linked });
+    expect(buildBoardModel(base).inProgress).toBe(1);
+    const m = buildBoardModel({ ...base, tile: "prog" });
+    expect(m.visibleOpen.map((e) => e.item.id)).toEqual(["a"]);
+  });
+
+  it("a returned park still shows under the In progress tile", () => {
+    const r = entry("p1", { id: "r", revisitDue: true });
+    const m = buildBoardModel(input({ entries: [r, a, b], linked, tile: "prog" }));
+    expect(m.visibleOpen.map((e) => e.item.id).sort()).toEqual(["a", "r"]);
+  });
+
+  it("a linked key from another project does not match the same id", () => {
+    const x = entry("p2", { id: "a" });
+    const m = buildBoardModel(input({ entries: [a, x], linked, tile: "prog" }));
+    expect(m.visibleOpen.map((e) => `${e.projectId}:${e.item.id}`)).toEqual(["p1:a"]);
+  });
+
+  it("no linked set means nothing is in progress", () => {
+    expect(buildBoardModel(input({ entries: all })).inProgress).toBe(0);
+  });
+});

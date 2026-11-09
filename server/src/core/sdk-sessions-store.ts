@@ -34,8 +34,8 @@ import type { MissionContextAssociation } from "./mission-context/types.js";
 import { atomicWriteFile, cloneSessions, ensureFileReady, mergeSessions, reReadDisk } from "./sdk-sessions-merge.js";
 import { refreshRowFromDisk as mergeRefreshRowFromDisk } from "./sdk-sessions-refresh.js";
 import { UNASSIGNED_PROJECT_ID, validateExternalTask } from "./sdk-sessions-validate.js";
-// Re-exported for the many callers that historically imported it from here.
-export { UNASSIGNED_PROJECT_ID } from "./sdk-sessions-validate.js";
+import type { TaskTriageLink } from "./task-triage-link.js";
+export { UNASSIGNED_PROJECT_ID } from "./sdk-sessions-validate.js"; // re-export for historical callers
 
 export type ExternalTaskState =
   | "draft"
@@ -112,7 +112,7 @@ export type LeadComplexityHint = "small" | "medium" | "large";
  */
 export type Runtime = "claude" | "codex";
 
-export interface ExternalTask {
+export interface ExternalTask extends TaskTriageLink {
   taskId: string;
   sessionUuid: string;
   cwd: string;

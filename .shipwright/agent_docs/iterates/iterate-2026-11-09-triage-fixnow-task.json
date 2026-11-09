@@ -1,0 +1,75 @@
+{
+  "run_id": "iterate-2026-11-09-triage-fixnow-task",
+  "date": "2026-11-09T08:54:36.115818Z",
+  "event_at": "2026-11-08T22:38:14.313160+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/triage-fixnow-task",
+  "spec": ".shipwright/planning/iterate/2026-11-09-triage-fixnow-task.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-09-triage-fixnow-task",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Fix-now task is remembered: create route stores fixNowForTriageId (regex-checked), drops malformed ids, reloads from disk; promotedFromTriageId stays refused",
+        "disposition": "tested",
+        "evidence": "routes.fixnow-triage-link.test.ts PASSED"
+      },
+      {
+        "behavior": "Link join keyed projectId:triageId; done and launch_failed tasks release the item; newest wins by real timestamp",
+        "disposition": "tested",
+        "evidence": "triageTaskLinks.test.ts PASSED"
+      },
+      {
+        "behavior": "Link is sent only when the task lands in the item's own project; ordinary tasks omit the key",
+        "disposition": "tested",
+        "evidence": "payload-create.fixnow-link.test.tsx PASSED"
+      },
+      {
+        "behavior": "Card shows In progress box (title, state, Open task) and Resolve replaces Fix now/Promote/Snooze; other cards untouched",
+        "disposition": "tested",
+        "evidence": "TriageItemCard.test.tsx PASSED; triage-fixnow-task.spec.ts::Fix now -> In progress box PASSED (chromium)"
+      },
+      {
+        "behavior": "In progress tile counts live links and narrows the list with a removable chip; a returned park always surfaces",
+        "disposition": "tested",
+        "evidence": "triageBoardModel.test.ts + TriagePage.test.tsx PASSED; triage-fixnow-task.spec.ts PASSED"
+      },
+      {
+        "behavior": "Dismiss cross opens a reason popup; Cancel dismisses nothing; Dismiss stores the reason; Resolve prefills the task name; popup stays inside a phone viewport",
+        "disposition": "tested",
+        "evidence": "TriageItemCard.test.tsx PASSED; triage-fixnow-task.spec.ts::Dismiss cross + phone width PASSED"
+      },
+      {
+        "behavior": "req3-campaign shares the Campaign help text; operator source has its own help; every help text is rendered into triage-help-texts.md and the file is kept in sync",
+        "disposition": "tested",
+        "evidence": "triageHelpDoc.test.ts + triageHelpText.test.ts PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 7,
+      "tested": 7,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 4,
+      "covered_acs": 4
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium --reporter=list,json  e2e/flows/triage-fixnow-task.spec.ts e2e/flows/triage-redesign.spec.ts e2e/flows/triage-fix-now.spec.ts e2e/flows/triage-fix-now-more-options-clip.spec.ts e2e/flows/triage-tab.spec.ts e2e/flows/triage-pending-delivery.spec.ts e2e/flows/start-campaign-action.spec.ts",
+    "exit_code": 0,
+    "tests_run": 17,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-fixnow-task\\.shipwright\\runs\\iterate-2026-11-09-triage-fixnow-task\\surface_verification.log",
+    "timestamp": "2026-11-09T08:53:10.550Z"
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

@@ -1,0 +1,10 @@
+{"items":[
+{"name":"1. Spec Compliance","verdict":"pass","note":"All four requested behaviours exist (task box + Resolve + In progress tile, reason popup, req3-campaign/operator help, generated help doc); nothing beyond them."},
+{"name":"2. Error Handling","verdict":"pass","note":"Malformed fixNowForTriageId is dropped on create and on load; Dismiss popover keeps itself open when the dismiss fails; launch_failed releases the link."},
+{"name":"3. Security Basics","verdict":"pass","note":"New field is regex-validated (trg-8hex) server side, rendered as text only; promotedFromTriageId stays daemon-owned and refused on the public route."},
+{"name":"4. Test Quality","verdict":"pass","note":"Server round-trip + client unit + component + 3 real-browser E2E tests cover happy and error paths including project mismatch and launch_failed."},
+{"name":"5. Performance Basics","verdict":"pass","note":"Card readers share the Board's cached task-list query with refetchOnMount off; only the page polls (5s)."},
+{"name":"6. Naming & Structure","verdict":"pass","note":"New files are small and grouped under triage/, lib/, hooks/; store file held at its 591-line baseline by extracting task-triage-link.ts."},
+{"name":"7. Affected Boundaries","verdict":"pass","note":"sdk-sessions.json producer (create route) and consumer (loader/validate) pair covered by a store-and-reload test; additive field, write-on-touch."},
+{"name":"8. Test Hygiene Probe","verdict":"pass","note":"No skipped, focused or quarantined tests added."}
+]}

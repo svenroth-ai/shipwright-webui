@@ -43,6 +43,8 @@ export interface FixNowIntent {
   initialPhaseId?: string;
   initialPriority?: TriagePriority;
   initialDomain?: string;
+  /** The triage item this Fix now starts from; sent on create so the card can show the task. */
+  triageItemId: string;
 }
 
 export type FixNowResolution =
@@ -87,6 +89,7 @@ export function buildFixNowIntent(
       initialPhaseId: isSecurity ? "security" : undefined,
       initialPriority: item.suggestedPriority,
       initialDomain: item.suggestedDomain,
+      triageItemId: item.id,
     },
   };
 }

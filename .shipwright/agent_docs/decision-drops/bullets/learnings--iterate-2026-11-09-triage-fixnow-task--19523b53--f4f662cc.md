@@ -1,0 +1,1 @@
+- (2026-11-09) iterate — Triage ids are only unique per project: key any cross-project join on projectId:triageId, and a modal that can change the project must not carry the link. → iterate-2026-11-09-triage-fixnow-task

@@ -11,6 +11,7 @@ import type { Hono } from "hono";
 import { SdkSessionsStore } from "../../core/sdk-sessions-store.js";
 import { loadActionsForProjectRecord } from "../../core/project-actions-loader.js";
 import { normalizeFsPath } from "../../core/normalize-fs-path.js";
+import { readFixNowTriageId } from "../../core/task-triage-link.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import {
   normalizeDescription,
@@ -182,6 +183,7 @@ export function registerTasksCreate(
       runtime,
       ...leadFields,
     });
+    Object.assign(task, readFixNowTriageId(body));
     await store.persist();
     return c.json({ task: withLiveSession(task, ptyManager) });
   });

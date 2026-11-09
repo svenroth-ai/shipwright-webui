@@ -80,6 +80,11 @@ export interface NewIssueModalProps {
    * pre-fill that wins over useProjectFilter()'s sidebar scope.
    */
   initialProjectId?: string;
+  /**
+   * iterate-2026-11-09-triage-fixnow-task — the triage item a Fix-now task is
+   * started from; sent on create so the card can show the task.
+   */
+  fixNowForTriageId?: string;
 }
 
 /** Helper to keep body components decoupled from the shell's children API. */

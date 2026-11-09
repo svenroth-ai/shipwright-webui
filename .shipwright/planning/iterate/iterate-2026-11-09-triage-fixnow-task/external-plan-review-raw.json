@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "**Findings**\n\n- **Category: edge-case / Severity: high** \u2014 The link is one-directional (task \u2192 triage). Unhandled lifecycle: what happens when the linked task is deleted, moved between projects, or completed then re-opened? The card UI (\"Resolve\" replaces Fix now) presumably reverts silently \u2014 decide and specify. Also, if a user clicks Fix now on a card that already has a linked task (state drift after reload), does it create a duplicate task? The mini-plan should state that the card's Fix-now intent is disabled/superseded once a link exists in `useTriageTaskLinks()`.\n\n- **Category: edge-case / Severity: medium** \u2014 `latest non-done` mapping: if a user creates two tasks for the same triage item (or one is done and a second is created), \"latest non-done\" is a heuristic, not a rule. If the intent is one task per triage item, enforce that (client-side guard is enough for this scope); if multiple are allowed, define what the card shows.\n\n- **Category: security / Severity: medium** \u2014 `fixNowForTriageId` is accepted from the client on task create with only a shape check (`^trg-[0-9a-f]{8}$`). A user can claim any triage id, including one belonging to a different project, making another project's triage card show a foreign task. At minimum, validate server-side that the referenced triage item exists in the same project, or document why this is acceptable (cosmetic link, no data exposure). Also bound the Dismiss reason length.\n\n- **Category: approach / Severity: low** \u2014 Resolve's semantics are undefined in both spec and plan. The popup is \"reused for Resolve,\" but what does Resolve actually do \u2014 mark the task done, dismiss the triage item, both? This is the core state transition of the feature and it's implicit. Pin it down before writing the E2E, or the test will encode a guess.\n\n- **Category: over-production / Severity: low** \u2014 Step 4 (generator script + sync test for a help-texts markdown file) is machinery for a static list. Write the file by hand and have the test import the same source constant the UI uses; skip the generator.\n\n- **Category: risk / Severity: low** \u2014 Loader change (\"keeps/drops\" on bad id shapes) means old persisted sessions with malformed ids silently lose links \u2014 fine, but add the round-trip test case for a *pre-existing* session file without the field (backward-compat read), not just fresh creates.\n\n**Overall assessment:** The one-way link-on-task design is a reasonable fit given the out-of-scope triage.jsonl constraint, and the server probe work is good. But Resolve semantics and the task-lifecycle edge cases are load-bearing and currently unspecified \u2014 clarify those and add the server-side project check before implementing.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** Selecting only the \u201clatest non-done\u201d task loses the remembered link once that task completes. The card could revert to Fix now and offer duplicate work, even though the acceptance criteria require showing the created task and its state.  \n   **Suggestion:** Keep the linked task available regardless of completion state. Derive tile membership separately: the triage item must be open and its linked task unfinished. Define a deterministic selection rule if multiple tasks reference the same item.\n\n2. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** Project scoping is required by the specification, but the plan only explicitly adds and validates the triage ID. The composite client map is insufficient unless tasks expose a reliable project identity matching the triage item\u2019s project.  \n   **Suggestion:** Confirm that project identity survives create \u2192 persistence \u2192 loader \u2192 client, and derive the map key from that identity. Add a test with identical triage IDs in two projects to verify that cards and tile counts remain isolated.\n\n3. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** \u201cDismiss popup \u2026 reused for Resolve\u201d leaves Resolve\u2019s actual behavior undefined. Dismissing a triage item and completing its linked task are different mutations; reusing the dialog without an explicit action contract could apply the wrong outcome.  \n   **Suggestion:** Specify Resolve\u2019s intended mutation and use action-specific labels and handlers. Share the dialog presentation where useful. Verify Cancel performs no mutation and failed submissions keep the dialog open with an error.\n\n4. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** The plan does not address the interval between successful task creation and refresh of the task list used by `useTriageTaskLinks()`. During that interval, Fix now may remain available and allow another task to be created.  \n   **Suggestion:** Update or invalidate the task cache on successful creation and keep the originating action pending until the link is visible. Include this transition, completed-task behavior, project isolation, and tile/chip consistency in verification.\n\nThe task-owned link is a sound, proportionate approach that respects the plugin schema boundary. Clarify linked-task lifecycle and Resolve semantics, and cover project isolation and creation refresh behavior before implementation proceeds.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-09-triage-fixnow-task",
+    "at": "2026-11-09T08:50:54.042082+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

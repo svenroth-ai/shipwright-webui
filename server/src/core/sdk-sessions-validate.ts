@@ -12,6 +12,7 @@
  */
 
 import { isBoardColumn } from "./board-column.js";
+import { readFixNowTriageId } from "./task-triage-link.js";
 import { isMissionContextAssociation } from "./mission-context/types.js";
 import type {
   ExternalTask,
@@ -290,5 +291,6 @@ export function validateExternalTask(
     ...(claimPid !== undefined ? { claimPid } : {}),
     ...(leadHandoff !== undefined ? { leadHandoff } : {}),
     ...(promotedFromTriageId !== undefined ? { promotedFromTriageId } : {}),
+    ...readFixNowTriageId(r),
   };
 }

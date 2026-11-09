@@ -220,7 +220,7 @@ The `client/src/components/terminal/` folder also houses colocated hooks / helpe
 
 ### `triage/` (ADR-101)
 
-Triage page redesign (iterate-2026-11-08-triage-page-redesign, FR-01.30): the page is one aggregated `{projectId, item}` list. `TriagePage` composes `TriageFilterMenu` / `TriageGroupMenu` / `TriageSortMenu` (Board-style header toolbar), `TriageTiles`, `TriageActiveFilters`, `TriageGroupList` (collapsible groups of `TriageItemCard`s) and a read-only Parked section; the saved view lives in `hooks/useTriageViewState.ts` + `lib/triageViewStorage.ts`, the pipeline in `lib/triageBoardModel.ts`. The per-project sections and the old filter/sort bar were removed.
+Triage page redesign (iterate-2026-11-08-triage-page-redesign, FR-01.30): the page is one aggregated `{projectId, item}` list. `TriagePage` composes `TriageFilterMenu` / `TriageGroupMenu` / `TriageSortMenu` (Board-style header toolbar), `TriageTiles`, `TriageActiveFilters`, `TriageGroupList` (collapsible groups of `TriageItemCard`s) and a read-only Parked section; the saved view lives in `hooks/useTriageViewState.ts` + `lib/triageViewStorage.ts`, the pipeline in `lib/triageBoardModel.ts`. The per-project sections and the old filter/sort bar were removed. Follow-up (iterate-2026-11-09-triage-fixnow-task): a Fix-now task is linked to its item via `ExternalTask.fixNowForTriageId` (set by the public create route, read via `hooks/useTriageTaskLinks.ts` + `lib/triageTaskLinks.ts`); the card shows `TriageTaskBox` and `TriageCardActions` (Resolve), the Dismiss cross and Resolve open `TriageDismissPopover` for an optional reason, and `TriageTiles` gained an In progress tile.
 
 Compliance file viewer (iterate-2026-08-29-compliance-file-viewer, FR-01 file
 references): `TriageDetailMeta` (extracted from `TriageDetailModal` to hold
@@ -254,6 +254,9 @@ Dialog) that nests the existing `external/SmartViewer` inside
 | `TriageListStates` | `triage/TriageListStates.tsx` | 62 | 1 |
 | `TriageProjectStatus` | `triage/TriageProjectStatus.tsx` | 65 | 1 |
 | `TriageSearch` | `triage/TriageSearch.tsx` | 30 | 1 |
+| `TriageCardActions` | `triage/TriageCardActions.tsx` | 129 | 1 |
+| `TriageDismissPopover` | `triage/TriageDismissPopover.tsx` | 96 | 1 |
+| `TriageTaskBox` | `triage/TriageTaskBox.tsx` | 39 | 1 |
 
 ### `compliance/` (FR-01.43, iterate-2026-06-30-compliance-grade-webui)
 

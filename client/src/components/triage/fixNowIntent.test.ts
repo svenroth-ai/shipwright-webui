@@ -107,6 +107,7 @@ describe("buildFixNowIntent", () => {
     expect(result.intent.initialDescription).toBe("Detail body");
     expect(result.intent.initialPriority).toBe("P1");
     expect(result.intent.initialDomain).toBe("engineering");
+    expect(result.intent.triageItemId).toBe(makeItem({}).id);
   });
 
   it("non-github source → new-iterate, no phase pre-fill", () => {
