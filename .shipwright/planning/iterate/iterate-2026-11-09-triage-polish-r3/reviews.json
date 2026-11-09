@@ -264,12 +264,31 @@
     "spec": {
       "review_type": "spec",
       "status": "completed",
-      "findings_count": 0,
-      "findings": [],
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": null,
+          "category": "wording",
+          "file": ".shipwright/planning/01-adopted/spec.md",
+          "line": null,
+          "finding": "Raw detail is open by default when the item has no audit findings; wording only accurate for items with findings (fixed in spec: 'open by default only when the item has no audit findings') — spec: FR-01.30 detail-dialog bullet: raw detail folded away",
+          "suggestion": "FR-01.30 detail-dialog bullet: raw detail folded away",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "scope",
+          "file": "client/src/components/triage/TriageHelp.tsx",
+          "line": null,
+          "finding": "Popover max-height/scroll, removed dedup line from card, font-size bumps are not separate asks; accepted as part of asks 8/9 and documented as a spec bullet — spec: user asks 1-10",
+          "suggestion": "user asks 1-10",
+          "source": "spec-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-11-09T20:39:47.811289+00:00",
+      "completed_at": "2026-11-09T21:08:25.528132+00:00",
       "disposition": null,
-      "recorded_by": "claude",
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
       "model_tier": "inherit",
