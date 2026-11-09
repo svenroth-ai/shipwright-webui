@@ -45,12 +45,12 @@ export function sourceLabel(source: string): string {
 const GENERIC_SOURCE: Omit<HelpText, "title"> = {
   what: "Reported by a tool or a working session in this project.",
   why: "This app has no built-in explanation for this source. The card's own text describes the problem.",
-  todo: "Fix now starts a task that uses the title and description as its brief. Open the card to read the details first.",
+  todo: "Fix now opens a new task, pre-filled with this item, meant to use the title and description as its brief. Open the card to read the details first.",
 };
 
 const GITHUB_SECURITY_WHY = "GitHub reported these outside this app. One card collects the findings of one scan so none is lost.";
 const GITHUB_SECURITY_TODO =
-  "Fix now starts a task that reviews the findings, most serious first, and fixes what it safely can.";
+  "Fix now opens a new task, pre-filled with this item, meant to review the findings, most serious first, and fix what it safely can.";
 
 /** The kinds of security finding named in a roll-up's detail line, in plain words. */
 function securityKinds(detail: string): string[] {
@@ -77,45 +77,45 @@ function githubSecurity(detail?: string): Omit<HelpText, "title"> {
 const GITHUB_PR_CHECK: Omit<HelpText, "title"> = {
   what: "A pull request (a proposed change) has an automatic check on GitHub that fails.",
   why: "A failing check usually keeps the change from being merged.",
-  todo: "Fix now starts a task that finds out why the check fails and tries to fix it.",
+  todo: "Fix now opens a new task, pre-filled with this item, meant to find out why the check fails and try to fix it.",
 };
 
 const GITHUB_OTHER: Omit<HelpText, "title"> = {
   what: "A finding reported by GitHub.",
   why: "It happened outside this app and is kept here so it is not lost.",
-  todo: "Fix now starts a task that uses the title and description as its brief.",
+  todo: "Fix now opens a new task, pre-filled with this item, meant to use the title and description as its brief.",
 };
 
 const SOURCE_HELP: Record<string, Omit<HelpText, "title">> = {
   compliance: {
     what: "A regular health check compared the project's requirements, code, tests and documents and found gaps.",
     why: "All open findings of one check run sit on this card. It stays until the gaps are closed or you decide they are fine.",
-    todo: "Fix now starts a task that works through the findings on this card. For single lines use Promote (turn it into a planned task) or Dismiss (ignore it).",
+    todo: "Fix now opens a new task, pre-filled with this item, meant to work through the findings on this card.",
   },
   phaseQuality: {
     what: "A finished step of the project's build process (a phase) is missing a required record, such as its completion note or changelog entry.",
     why: "The phase shows as done, but the project's own quality check found that bookkeeping step missing.",
-    todo: "Fix now starts a short task that writes the missing record.",
+    todo: "Fix now opens a new task, pre-filled with this item, meant to write the missing record.",
   },
   manual: {
     what: "Added by a person, or by an AI work session on their behalf, not by an automatic check.",
     why: "Somebody decided it was worth keeping.",
-    todo: "Fix now starts a task from this note, using its text as the brief.",
+    todo: "Fix now opens a new task from this note, using its text as the brief.",
   },
   operator: {
     what: "A note or request you added yourself.",
     why: "You decided it should be kept, even though no automatic check found it.",
-    todo: "Fix now starts a task from this note, using its text as the brief.",
+    todo: "Fix now opens a new task from this note, using its text as the brief.",
   },
   drift: {
     what: "The project's documentation and the files on disk no longer match.",
     why: "A file or folder exists that the documentation does not mention, or the other way round.",
-    todo: "Fix now starts a task that updates the documentation to match, or removes the file if it is a leftover.",
+    todo: "Fix now opens a new task, pre-filled with this item, meant to update the documentation to match, or remove the file if it is a leftover.",
   },
   "required-checks": {
     what: "Some automatic checks run on every change but are not marked as must-pass for merging.",
     why: "Because they are not required, a failing check would not stop a change from being merged.",
-    todo: "Fix now starts a task that adds them to the must-pass list, or marks them as optional on purpose.",
+    todo: "Fix now opens a new task, pre-filled with this item, meant to add them to the must-pass list, or mark them as optional on purpose.",
   },
 };
 
@@ -144,7 +144,7 @@ export const KNOWN_CHECK_CODES: readonly string[] = Object.keys(CHECK_HELP);
 const GENERIC_CHECK: Omit<HelpText, "title"> = {
   what: "One check of an audit failed.",
   why: "The audit compares the project's records and lists every gap it finds.",
-  todo: "Fix now starts a task that works on this line. Open the item and read the line for the detail.",
+  todo: "Fix now opens a new task, pre-filled with this item, meant to work on this line. Open the item and read the line for the detail.",
 };
 
 /** Help for one audit-check code; never throws, unknown codes get a generic text. */

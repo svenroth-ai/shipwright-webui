@@ -1,8 +1,10 @@
 /*
  * triageGrid.ts — the column layout of a Triage card list
  * (iterate-2026-11-09-triage-polish-r3): one column on a narrow window, two
- * from 900px, three from 1500px. `items-start` keeps a short card from
- * stretching to the height of its taller neighbour.
+ * from 1100px, three from 1700px (the sidebar takes part of the viewport, so
+ * the thresholds are higher than the content width a card needs). Tracks are
+ * minmax(0,1fr) so a long unbroken word can never widen a column;
+ * `items-start` keeps a short card from stretching to its taller neighbour.
  */
 export const TRIAGE_GRID =
-  "grid grid-cols-1 items-start gap-1.5 min-[900px]:grid-cols-2 min-[1500px]:grid-cols-3 max-md:gap-1";
+  "grid grid-cols-[minmax(0,1fr)] items-start gap-1.5 min-[1100px]:grid-cols-[repeat(2,minmax(0,1fr))] min-[1700px]:grid-cols-[repeat(3,minmax(0,1fr))] max-md:gap-1";

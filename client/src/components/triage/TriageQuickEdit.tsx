@@ -58,7 +58,7 @@ function Body({ projectId, item, onDone }: Props & { onDone: () => void }) {
 
   return (
     <div
-      className="grid max-h-[calc(var(--radix-popover-content-available-height)-24px)] gap-2.5 overflow-y-auto"
+      className="grid max-h-[calc(var(--radix-popover-content-available-height,80vh)-24px)] gap-2.5 overflow-y-auto"
       data-testid="triage-quick-edit"
     >
       <label className={label}>

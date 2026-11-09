@@ -33,7 +33,7 @@ export function TriageHelp({ help, subject }: { help: HelpText; subject: string 
           onClick={(e) => e.stopPropagation()}
           aria-label={help.title}
           data-testid="triage-help-content"
-          className="z-[70] max-h-[var(--radix-popover-content-available-height)] w-[min(320px,calc(100vw-16px))] overflow-y-auto rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-xs leading-snug text-[var(--color-text)] shadow-[var(--shadow-card)]"
+          className="z-[70] max-h-[var(--radix-popover-content-available-height,80vh)] w-[min(320px,calc(100vw-16px))] overflow-y-auto rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-xs leading-snug text-[var(--color-text)] shadow-[var(--shadow-card)]"
         >
           <h4 className="mb-1.5 text-[13px] font-semibold">{help.title}</h4>
           {(

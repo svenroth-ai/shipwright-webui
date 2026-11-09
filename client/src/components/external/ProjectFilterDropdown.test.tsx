@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
 });
 
-function renderDropdown(props: { fluid?: boolean } = {}) {
+function renderDropdown(props: { fluid?: boolean; showCounts?: boolean } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={qc}>
@@ -48,5 +48,14 @@ describe("ProjectFilterDropdown width (#3)", () => {
     const btn = renderDropdown();
     expect(btn.className).toContain("min-w-[220px]");
     expect(btn.className).not.toContain("max-w-[60vw]");
+  });
+});
+
+describe("ProjectFilterDropdown task counts (iterate-2026-11-09-triage-polish-r3)", () => {
+  // @covers FR-01.30
+  it("shows the task count by default and drops it when showCounts is false", () => {
+    expect(renderDropdown().textContent).toMatch(/\d+ tasks?/);
+    cleanup();
+    expect(renderDropdown({ showCounts: false }).textContent).not.toMatch(/\d+ tasks?/);
   });
 });

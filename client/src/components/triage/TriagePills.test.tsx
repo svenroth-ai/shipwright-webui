@@ -36,9 +36,9 @@ describe("TriagePills + grid", () => {
   });
 
   it("the card grid is 1 column, then 2, then 3", () => {
-    expect(TRIAGE_GRID).toMatch(/grid-cols-1/);
-    expect(TRIAGE_GRID).toMatch(/min-\[900px\]:grid-cols-2/);
-    expect(TRIAGE_GRID).toMatch(/min-\[1500px\]:grid-cols-3/);
+    expect(TRIAGE_GRID).toMatch(/grid-cols-\[minmax\(0,1fr\)\]/);
+    expect(TRIAGE_GRID).toMatch(/min-\[1100px\]:grid-cols-\[repeat\(2,minmax\(0,1fr\)\)\]/);
+    expect(TRIAGE_GRID).toMatch(/min-\[1700px\]:grid-cols-\[repeat\(3,minmax\(0,1fr\)\)\]/);
   });
 
   it("a project-specific source is shown as written and gets the generic help", () => {

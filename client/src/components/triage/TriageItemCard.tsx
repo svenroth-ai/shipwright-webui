@@ -70,7 +70,7 @@ function TriageItemCardImpl({
   return (
     <>
     <article
-      className="flex flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-sm)] transition-shadow hover:shadow-[var(--shadow-card-hover)] max-md:px-3"
+      className="flex min-w-0 flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-sm)] transition-shadow hover:shadow-[var(--shadow-card-hover)] max-md:px-3"
       data-testid={`triage-item-${item.id}`}
       aria-label={item.title}
       onClick={(e) => {
@@ -88,7 +88,7 @@ function TriageItemCardImpl({
         </span>
       </div>
 
-      <h3 className="text-[15px] font-semibold leading-snug text-[var(--color-text)]">
+      <h3 className="break-words text-[15px] font-semibold leading-snug text-[var(--color-text)]">
         <button
           type="button"
           onClick={onOpen}
@@ -116,7 +116,7 @@ function TriageItemCardImpl({
           ))}
         </ul>
       ) : (
-        <p className="line-clamp-2 whitespace-pre-wrap text-[13px] leading-snug text-[var(--color-text)]">
+        <p className="line-clamp-2 whitespace-pre-wrap break-words text-[13px] leading-snug text-[var(--color-text)]">
           {item.detail}
         </p>
       )}
