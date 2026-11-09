@@ -52,15 +52,17 @@ const GITHUB_SECURITY_WHY = "GitHub reported these outside this app. One card co
 const GITHUB_SECURITY_TODO =
   "Fix now opens a new task, pre-filled with this item, meant to review the findings, most serious first, and fix what it safely can.";
 
+/** Each security source the roll-up line can name, with the plain-words description (static patterns only). */
+const SECURITY_KINDS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/code-scanning:\s*(?!\(unavailable\)|0\b)\S/i, "code scanning (code patterns an attacker could abuse)"],
+  [/dependabot:\s*(?!\(unavailable\)|0\b)\S/i, "dependency alerts (a third-party library with a known security hole)"],
+  [/secret-scanning:\s*(?!\(unavailable\)|0\b)\S/i, "secret scanning (a password or key saved in the code)"],
+  [/shipwright-security:\s*(?!\(unavailable\)|0\b)\S/i, "the project's own security check"],
+];
+
 /** The kinds of security finding named in a roll-up's detail line, in plain words. */
 function securityKinds(detail: string): string[] {
-  const kinds: string[] = [];
-  const has = (key: string) => new RegExp(`${key}:\\s*(?!\\(unavailable\\)|0\\b)\\S`, "i").test(detail);
-  if (has("code-scanning")) kinds.push("code scanning (code patterns an attacker could abuse)");
-  if (has("dependabot")) kinds.push("dependency alerts (a third-party library with a known security hole)");
-  if (has("secret-scanning")) kinds.push("secret scanning (a password or key saved in the code)");
-  if (has("shipwright-security")) kinds.push("the project's own security check");
-  return kinds;
+  return SECURITY_KINDS.filter(([re]) => re.test(detail)).map(([, text]) => text);
 }
 
 function githubSecurity(detail?: string): Omit<HelpText, "title"> {
@@ -130,7 +132,7 @@ export function sourceHelp(source: string, title?: string, detail?: string): Hel
     const t = title ?? "";
     const body = /security/i.test(t)
       ? githubSecurity(detail)
-      : /^\[pr-ci\]|failing check/i.test(t)
+      : (/^\[pr-ci\]/i.test(t) || /failing check/i.test(t))
         ? GITHUB_PR_CHECK
         : GITHUB_OTHER;
     return { title: sourceLabel(source), ...body };
