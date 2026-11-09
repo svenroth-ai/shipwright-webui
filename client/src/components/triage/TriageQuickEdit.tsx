@@ -57,7 +57,10 @@ function Body({ projectId, item, onDone }: Props & { onDone: () => void }) {
   const label = "grid gap-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--color-muted)]";
 
   return (
-    <div className="grid gap-2.5" data-testid="triage-quick-edit">
+    <div
+      className="grid max-h-[calc(var(--radix-popover-content-available-height)-24px)] gap-2.5 overflow-y-auto"
+      data-testid="triage-quick-edit"
+    >
       <label className={label}>
         Title
         <input
@@ -146,7 +149,7 @@ export function TriageQuickEdit({ projectId, item }: Props) {
           title="Edit title and severity"
           onClick={(e) => e.stopPropagation()}
           data-testid={`triage-quick-edit-trigger-${item.id}`}
-          className="inline-flex items-center gap-1 rounded px-1 text-[11px] text-[var(--color-muted)] hover:text-[var(--color-text)]"
+          className="inline-flex items-center gap-1 rounded px-1 text-xs text-[var(--color-text)] hover:text-[var(--color-text)]"
         >
           <Pencil size={11} /> Suggested {item.suggestedPriority} · {item.suggestedDomain}
         </button>

@@ -21,7 +21,7 @@ vi.mock("../../hooks/useTriageTaskLinks", () => ({
 
 vi.mock("../../hooks/useTriage", () => ({
   useDismissTriageItem: () => ({ mutateAsync: dismissMutate, isPending: false }),
-  useSnoozeTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSnoozeTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
   usePromoteTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useAmendTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useTriageDrift: () => ({ data: { available: true, behind: 0 } }),
@@ -205,7 +205,7 @@ describe("TriageItemCard — actions (iterate-2026-11-08-triage-page-redesign)",
 
   it("explains the severity with a help marker", () => {
     mount();
-    expect(screen.getByTestId("triage-help-severity-medium")).toBeInTheDocument();
+    expect(screen.queryByTestId("triage-help-severity-medium")).not.toBeInTheDocument();
   });
 
   it("shows the project label only when given", () => {

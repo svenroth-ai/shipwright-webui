@@ -10,6 +10,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import type { GroupBy, TriageGroup } from "../../lib/triageGrouping";
 import { entryKey, type TriageEntry } from "../../lib/triageFilterSort";
 import { TriageItemCard } from "./TriageItemCard";
+import { TRIAGE_GRID } from "./triageGrid";
 import type { FixNowIntent } from "./fixNowIntent";
 
 interface Props {
@@ -62,7 +63,7 @@ export function TriageGroupList({
               </h2>
             )}
             {!isCollapsed && (
-              <div className="space-y-1.5 max-md:space-y-1">
+              <div className={TRIAGE_GRID} data-testid={`triage-grid-${g.key}`}>
                 {g.entries.map((e) => (
                   <TriageItemCard
                     key={entryKey(e)}

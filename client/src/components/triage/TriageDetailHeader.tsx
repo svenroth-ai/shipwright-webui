@@ -1,86 +1,54 @@
 /*
- * TriageDetailHeader.tsx — title/badges/provenance + Edit/Close controls
- * for TriageDetailModal's header row. Split out of TriageDetailModal.tsx
- * (already bloat-baselined) for iterate-2026-08-08-triage-amend-reader
- * (AC8), same extraction-over-growth pattern as TriageDetailActions.tsx.
+ * TriageDetailHeader.tsx — title + the same pill row the card shows + Close
+ * (iterate-2026-11-09-triage-polish-r3: Edit moved to the action row at the
+ * bottom, pills now come from the shared TriagePills).
  *
- * Per the Design Notes, the "title/severity/detail block" toggles between
- * read display and TriageAmendForm's inline form — while `editMode` is true,
- * the visible title text and the SeverityBadge are hidden here, since the
- * form immediately below shows an editable title input and severity select
- * for the same two fields; showing both was a mixed read/edit dual-display
- * (external code-review finding, iterate-2026-08-08-triage-amend-reader).
- * `Dialog.Title` itself still renders (Radix requires it for the dialog's
- * accessible name) but visually hidden (`sr-only`) in that state. The
- * source/status/pending-delivery badges, id and provenance line are NOT
- * part of that block — they carry no editable counterpart in the form, so
- * they stay visible throughout.
+ * While `editMode` is true the visible title and the severity pill are hidden
+ * (the form below has an editable title and severity); `Dialog.Title` still
+ * renders, visually hidden, as Radix requires it for the accessible name.
  */
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { Pencil, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import type { TriageItem } from "../../lib/triageApi";
-import { severityHelp } from "../../lib/triageHelpText";
-import { TriageHelp } from "./TriageHelp";
-import { PendingDeliveryBadge, SeverityBadge, SourceBadge, StatusBadge } from "./TriageBadgeUI";
+import { StatusBadge } from "./TriageBadgeUI";
+import { TriagePills } from "./TriagePills";
 
 interface TriageDetailHeaderProps {
   item: TriageItem;
+  projectId: string;
+  projectLabel?: string;
   editMode: boolean;
-  onEdit: () => void;
-  writeDisabled?: boolean;
-  writeDisabledReason?: string;
 }
 
-export function TriageDetailHeader({ item, editMode, onEdit, writeDisabled = false, writeDisabledReason }: TriageDetailHeaderProps) {
+export function TriageDetailHeader({ item, projectId, projectLabel, editMode }: TriageDetailHeaderProps) {
   return (
-    <div className="flex items-start justify-between mb-4">
-      <div>
-        <Dialog.Title className={editMode ? "sr-only" : "text-lg font-semibold"}>
+    <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <Dialog.Title className={editMode ? "sr-only" : "text-lg font-semibold leading-snug text-[var(--color-text)]"}>
           {item.title}
         </Dialog.Title>
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <SourceBadge source={item.source} />
-          {!editMode && <SeverityBadge severity={item.severity} />}
-          {!editMode && <TriageHelp help={severityHelp(item.severity)} subject={`severity-${item.severity}`} />}
-          <StatusBadge status={item.status} />
-          {item.pendingDelivery && <PendingDeliveryBadge />}
-          <code className="text-[11px] text-[var(--color-muted)]">{item.id}</code>
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <TriagePills item={item} projectId={projectId} projectLabel={projectLabel} hideSeverity={editMode} />
+          {item.status !== "triage" && <StatusBadge status={item.status} />}
+          <code className="text-xs text-[var(--color-muted)]">{item.id}</code>
         </div>
         {item.amendedBy && (
-          <div
-            className="mt-1 text-[11px] text-[var(--color-muted)]"
-            data-testid="triage-amend-provenance"
-          >
+          <div className="mt-1 text-xs text-[var(--color-muted)]" data-testid="triage-amend-provenance">
             Last edited by {item.amendedBy} · {item.amendedAt}
           </div>
         )}
       </div>
-      <div className="flex items-center gap-1">
-        {item.status === "triage" && !editMode && (
-          <button
-            type="button"
-            onClick={onEdit}
-            disabled={writeDisabled}
-            title={writeDisabledReason}
-            className="w-8 h-8 flex items-center justify-center rounded-md text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Edit"
-            data-testid="triage-edit-toggle"
-          >
-            <Pencil size={16} />
-          </button>
-        )}
-        <Dialog.Close asChild>
-          <button
-            type="button"
-            className="w-8 h-8 flex items-center justify-center rounded-md text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] transition-colors"
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-        </Dialog.Close>
-      </div>
+      <Dialog.Close asChild>
+        <button
+          type="button"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[var(--color-muted)] transition-colors hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)]"
+          aria-label="Close"
+        >
+          <X size={18} />
+        </button>
+      </Dialog.Close>
     </div>
   );
 }

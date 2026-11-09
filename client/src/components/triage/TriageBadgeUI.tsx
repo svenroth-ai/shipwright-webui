@@ -10,6 +10,7 @@
  * external review.
  */
 
+import { sourceLabel } from "../../lib/triageHelpText";
 import type {
   TriageSeverity,
   TriageStatus,
@@ -33,7 +34,7 @@ const STATUS_CLASSES: Record<TriageStatus, string> = {
 export function SeverityBadge({ severity }: { severity: TriageSeverity }) {
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${SEVERITY_CLASSES[severity]}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold capitalize border ${SEVERITY_CLASSES[severity]}`}
       data-testid={`triage-severity-${severity}`}
     >
       {severity}
@@ -44,10 +45,10 @@ export function SeverityBadge({ severity }: { severity: TriageSeverity }) {
 export function SourceBadge({ source }: { source: string }) {
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-inset text-[var(--color-text)] border border-[var(--color-border)]"
+      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-inset text-[var(--color-text)] border border-[var(--color-border)]"
       data-testid={`triage-source-${source}`}
     >
-      {source}
+      {sourceLabel(source)}
     </span>
   );
 }
@@ -55,7 +56,7 @@ export function SourceBadge({ source }: { source: string }) {
 export function StatusBadge({ status }: { status: TriageStatus }) {
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${STATUS_CLASSES[status]}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${STATUS_CLASSES[status]}`}
     >
       {status}
     </span>
@@ -72,7 +73,7 @@ export function StatusBadge({ status }: { status: TriageStatus }) {
 export function PendingDeliveryBadge() {
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-warn-tint text-warn border border-[var(--warn-line)]"
+      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warn-tint text-warn border border-[var(--warn-line)]"
       title="Not yet in the tracked triage log — ships with the next iterate PR (setup sweep delivers it automatically)"
       data-testid="triage-pending-delivery"
     >
@@ -94,7 +95,7 @@ export function PendingDeliveryBadge() {
 export function ReturnedBadge() {
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-info-tint text-info border border-[var(--info-line)]"
+      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-info-tint text-info border border-[var(--info-line)]"
       title="This item's park came due and returned to the open list — it stays visible regardless of active filters until you act on it"
       data-testid="triage-returned-badge"
     >

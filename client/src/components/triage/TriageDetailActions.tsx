@@ -24,6 +24,7 @@ interface Props {
   onFixNow: () => void;
   onDismiss: () => void;
   onPromote: () => void;
+  onEdit: () => void;
   onSnoozed: () => void;
 }
 
@@ -44,12 +45,23 @@ export function TriageDetailActions({
   onFixNow,
   onDismiss,
   onPromote,
+  onEdit,
   onSnoozed,
 }: Props) {
   const why = writeDisabled ? writeDisabledReason : undefined;
   const snoozing = useSnoozePending(projectId);
   return (
     <div className="flex flex-wrap justify-end gap-2.5 mt-4 items-center">
+      <button
+        type="button"
+        onClick={onEdit}
+        disabled={writeDisabled}
+        title={why}
+        className={`${SECONDARY} mr-auto`}
+        data-testid="triage-edit-toggle"
+      >
+        Edit
+      </button>
       <button
         type="button"
         onClick={onFixNow}

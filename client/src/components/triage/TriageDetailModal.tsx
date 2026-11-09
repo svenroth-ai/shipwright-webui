@@ -22,6 +22,8 @@ interface TriageDetailModalProps {
   onOpenChange: (open: boolean) => void;
   projectId: string;
   item: TriageItem;
+  /** Project name pill - only when the list mixes several projects. */
+  projectLabel?: string;
   onActionComplete?: (kind: "promoted" | "dismissed" | "snoozed") => void;
   /**
    * iterate-2026-05-21 — invoked when the operator clicks Fix-now AND
@@ -52,6 +54,7 @@ export function TriageDetailModal({
   onOpenChange,
   projectId,
   item,
+  projectLabel,
   onActionComplete,
   onFixNow,
   onNavigateToBoard,
@@ -167,10 +170,9 @@ export function TriageDetailModal({
             >
               <TriageDetailHeader
                 item={displayItem}
+                projectId={projectId}
+                projectLabel={projectLabel}
                 editMode={editMode}
-                onEdit={() => setEditMode(true)}
-                writeDisabled={writeDisabled}
-                writeDisabledReason={writeDisabledReason}
               />
 
               <TriageDetailMeta
@@ -246,6 +248,7 @@ export function TriageDetailModal({
                     onFixNow={onFixNowClick}
                     onDismiss={onDismiss}
                     onPromote={() => setPromoteOpen(true)}
+                    onEdit={() => setEditMode(true)}
                     onSnoozed={() => {
                       onActionComplete?.("snoozed");
                       onOpenChange(false);

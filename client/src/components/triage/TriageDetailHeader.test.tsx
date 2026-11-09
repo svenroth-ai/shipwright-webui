@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+// @covers FR-01.30
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
 import * as Dialog from "@radix-ui/react-dialog";
 
 import { TriageDetailHeader } from "./TriageDetailHeader";
@@ -31,37 +32,32 @@ const item: TriageItem = {
 };
 
 function renderHeader(props: Partial<Parameters<typeof TriageDetailHeader>[0]> = {}) {
-  const onEdit = vi.fn();
   const utils = render(
     <Dialog.Root open>
       <Dialog.Content>
-        <TriageDetailHeader item={item} editMode={false} onEdit={onEdit} {...props} />
+        <TriageDetailHeader item={item} projectId="p1" editMode={false} {...props} />
       </Dialog.Content>
     </Dialog.Root>,
   );
-  return { ...utils, onEdit };
+  return utils;
 }
 
 describe("TriageDetailHeader", () => {
-  it("shows the pencil Edit toggle for a triage-status item not being edited", () => {
+  it("has no Edit control any more — Edit lives in the action row at the bottom", () => {
     renderHeader();
-    expect(screen.getByTestId("triage-edit-toggle")).toBeTruthy();
-  });
-
-  it("hides the pencil for a non-triage status", () => {
-    renderHeader({ item: { ...item, status: "dismissed" } });
     expect(screen.queryByTestId("triage-edit-toggle")).toBeNull();
   });
 
-  it("hides the pencil while already in edit mode", () => {
-    renderHeader({ editMode: true });
-    expect(screen.queryByTestId("triage-edit-toggle")).toBeNull();
+  it("shows the same pills as the card: source label, severity, no severity help", () => {
+    renderHeader();
+    expect(screen.getByTestId("triage-source-phaseQuality")).toHaveTextContent("Phase quality");
+    expect(screen.getByTestId("triage-help-source-phaseQuality")).toBeTruthy();
+    expect(screen.queryByTestId("triage-help-severity-high")).toBeNull();
   });
 
-  it("clicking the pencil invokes onEdit", () => {
-    const { onEdit } = renderHeader();
-    fireEvent.click(screen.getByTestId("triage-edit-toggle"));
-    expect(onEdit).toHaveBeenCalledTimes(1);
+  it("shows the project pill only when a label is given", () => {
+    renderHeader({ projectLabel: "alpha" });
+    expect(screen.getByTestId("triage-item-trg-aaaa1111-project")).toHaveTextContent("alpha");
   });
 
   it("shows no provenance subtitle when never amended", () => {

@@ -161,6 +161,7 @@ test.describe("Triage compliance file viewer", () => {
 
     const modal = page.getByTestId("triage-detail-modal");
     await expect(modal).toBeVisible();
+    await modal.getByTestId("triage-detail-more").locator("summary").click();
     await modal.locator('[data-file-path="architecture.md"]').click();
 
     await expect(page.getByTestId("triage-file-panel")).toBeVisible();
@@ -228,6 +229,7 @@ test.describe("Triage compliance file viewer", () => {
 
     const modal = page.getByTestId("triage-detail-modal");
     await expect(modal).toBeVisible();
+    await modal.getByTestId("triage-detail-more").locator("summary").click();
     await modal.locator('[data-file-path="long_module.py"]').click();
 
     const code = page.getByTestId("smart-viewer-code");

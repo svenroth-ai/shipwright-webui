@@ -24,9 +24,11 @@ describe("Triage help-text review document", () => {
     }
   });
 
-  it("the campaign source variant reads exactly like the main campaign source", () => {
-    const a = sourceHelp("req3");
-    const b = sourceHelp("req3-campaign");
-    expect({ what: b.what, why: b.why, todo: b.todo }).toEqual({ what: a.what, why: a.why, todo: a.todo });
+  it("project-specific sources have no catalogue entry and no label of their own", () => {
+    const generic = sourceHelp("brand-new-source");
+    for (const s of ["req3", "req3-campaign", "tooling"]) {
+      expect(Object.keys(SOURCE_LABELS)).not.toContain(s);
+      expect(sourceHelp(s).what, s).toBe(generic.what);
+    }
   });
 });

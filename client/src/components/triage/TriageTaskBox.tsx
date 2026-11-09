@@ -22,7 +22,7 @@ export function TriageTaskBox({ itemId, task }: { itemId: string; task: External
         Task <b className="font-semibold">{task.title}</b>
       </span>
       <span
-        className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-px text-[11px] text-[var(--color-muted)]"
+        className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-px text-xs text-[var(--color-text)]"
         data-testid={`triage-task-state-${itemId}`}
       >
         {task.state.replace(/_/g, " ")}

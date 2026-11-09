@@ -4,13 +4,11 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   KNOWN_CHECK_CODES,
-  SEVERITY_HELP,
   checkHelp,
   sourceHelp,
   sourceLabel,
 } from "./triageHelpText";
 import { parseFindings } from "./triageFindings";
-import { SEVERITY_VALUES } from "./triageFilterSort";
 
 /** The project's own tracked triage log — real bundles, not a hand-made list. */
 const LOG = resolve(__dirname, "../../../.shipwright/triage.jsonl");
@@ -55,7 +53,37 @@ describe("Triage help texts", () => {
     expect(sourceLabel("brand-new-source")).toBe("brand-new-source");
   });
 
-  it("every severity has a help line", () => {
-    for (const s of SEVERITY_VALUES) expect(SEVERITY_HELP[s]).toBeTruthy();
+  it("GitHub explains a security scan summary and a failing pull-request check differently", () => {
+    const sec = sourceHelp("github", "GitHub security: 12 shipwright-security finding(s) (low)");
+    const pr = sourceHelp("github", "[pr-ci] PR #191 has 1 failing check(s) on iterate/x");
+    expect(sec.what).not.toBe(pr.what);
+    expect(sec.todo).not.toBe(pr.todo);
+    expect(sourceHelp("github", "Something else").what.length).toBeGreaterThan(0);
+  });
+
+  it("GitHub security summaries name only the kinds of finding they hold", () => {
+    const code = sourceHelp("github", "GitHub security: 3 finding(s)", "code-scanning: 3 open; dependabot: 0; secret-scanning: (unavailable)");
+    const deps = sourceHelp("github", "GitHub security: 2 finding(s)", "dependabot: 2 open");
+    expect(code.what).toMatch(/code scanning/);
+    expect(code.what).not.toMatch(/dependency|secret/);
+    expect(deps.what).toMatch(/dependency/);
+    expect(deps.what).not.toMatch(/code scanning/);
+    expect(code.what).not.toBe(deps.what);
+  });
+
+  it("no two audit checks share the same why-text unless they are the stale-report family", () => {
+    const seen = new Map<string, string>();
+    for (const c of KNOWN_CHECK_CODES) {
+      const w = checkHelp(c).why;
+      const prev = seen.get(w);
+      if (prev) expect(c.startsWith("E/") && prev.startsWith("E/"), `${prev} vs ${c}`).toBe(true);
+      seen.set(w, c);
+    }
+  });
+
+  it("every explanation says what Fix now does", () => {
+    for (const code of KNOWN_CHECK_CODES) expect(checkHelp(code).todo, code).toMatch(/Fix now/);
+    for (const s of ["compliance", "phaseQuality", "manual", "operator", "drift", "required-checks", "github", "other"])
+      expect(sourceHelp(s).todo, s).toMatch(/Fix now/);
   });
 });
