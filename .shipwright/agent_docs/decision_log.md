@@ -5960,3 +5960,80 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Consequences:** Both layouts render; a project without the folders renders exactly as before. A damaged own drop reads as could-not-be-read, never as no record. Campaign status ignores drop amendments (Python parity, monorepo follow-up).
 - **Rejected:** Per-projection layout logic (six drifting copies); drops-only reading without archive or per-file status (breaks at the first fold); doing nothing (blocks the flip).
 - **Details:** [iterate-2026-11-07-events-drop-files-reader-assembled-event-log.md](../planning/adr/iterate-2026-11-07-events-drop-files-reader-assembled-event-log.md)
+
+---
+
+### ADR-419: Condense re-export comment to stay at the size limit
+- **Date:** 2026-11-08
+- **Section:** Iterate — change: keep codex-task-watcher.ts at 300 lines
+- **Run-ID:** iterate-2026-11-08-codex-watcher-300-lines
+- **Context:** PR #584 left codex-task-watcher.ts at 301 lines, one over the 300-line limit it sat exactly at before.
+- **Decision:** Condense the re-export comment from three lines to two; no code change.
+- **Commit:** (assigned post-merge)
+- **Consequences:** File is back at 300 lines; no behavior change.
+
+---
+
+### ADR-420: Nudge echo is absorbed; self-report checked before nudging
+- **Date:** 2026-11-08
+- **Section:** Iterate — bug: Codex watcher nudge re-arms from its own echo
+- **Run-ID:** iterate-2026-11-08-codex-watcher-selfcheck-echo
+- **Context:** Issue #583: any changed lastDataAt reset the episode's nudged flag, so the watcher's own reminder echo re-armed another reminder every idle interval, and a valid SHIPWRIGHT-STATUS report was parsed only in the already-nudged branch.
+- **Decision:** Output within 30s after a nudge write is absorbed into the spent episode (EpisodeState.nudgedAt + isNudgeEcho). For no_oracle the self-report is parsed first: done:true marks done, any same-phase report or a spent episode yields no_oracle_unresolved without writing.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Smallest change that fixes the loop at its cause without changing PtyManager's generic lastDataAt semantics.
+- **Consequences:** A nudge fires at most once per real episode; a genuine reply landing inside the 30s grace and then going silent is not re-nudged (Inbox-only for no_oracle). Reports for another phase are ignored.
+- **Rejected:** Content-matching the echo via peekTerminalText (brittle against TUI redraw); changing lastDataAt in PtyManager (shared by launch-confirmation and idle-ceiling).
+
+---
+
+### ADR-421: Triage page: one aggregated list, include-set filters, saved view
+- **Date:** 2026-11-08
+- **Section:** Iterate — change: triage page redesign
+- **Run-ID:** iterate-2026-11-08-triage-page-redesign
+- **Context:** Per-project sections, exclude-set filters, no persisted view and unexplained audit jargon made the Triage page hard to use and unlike the Board.
+- **Decision:** One aggregated {projectId,item} list with Board-style include-set filters, group/sort menus, a saved view and plain-English help; actions stay bound to each entry's own project.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Triage ids are not unique across projects, so identity and actions must carry projectId; one pure pipeline keeps counts, chips and the list consistent.
+- **Consequences:** Old per-project sections and filter bar removed; polling moves to useAllTriageItems; parked cards stay read-only (no un-snooze endpoint); Fix-now task link is a follow-up PR.
+- **Rejected:** Keeping per-project sections; coupling filters to the Board; persisting search/tile; free-text amend of domain/priority/complexity.
+- **Details:** [iterate-2026-11-08-triage-page-redesign-triage-page-model.md](../planning/adr/iterate-2026-11-08-triage-page-redesign-triage-page-model.md)
+
+---
+
+### ADR-422: Fix-now task link lives on the task, not in triage.jsonl
+- **Date:** 2026-11-09
+- **Section:** Iterate — feature: Fix now remembers its task
+- **Run-ID:** iterate-2026-11-09-triage-fixnow-task
+- **Context:** Fix now created a task but the Triage card forgot it, inviting duplicate tasks and giving no In progress view.
+- **Decision:** Store an optional create-only fixNowForTriageId on the webui-owned task; the client joins it on projectId:triageId. The card shows an In progress box and Resolve; Dismiss/Resolve open a reason popup.
+- **Commit:** (assigned post-merge)
+- **Rationale:** triage.jsonl is plugin-owned (single writer); the task record is ours, additive and write-on-touch (DO-NOT #15), and the Board already polls the task list.
+- **Consequences:** No plugin-schema write; the link is released when the task is done or launch_failed. Tasks in another project or Unassigned never match (cosmetic). sdk-sessions-store.ts sits exactly at its 591-line baseline.
+- **Rejected:** Writing the link into triage.jsonl (schema boundary, extra writer); a new server join endpoint (more surface for no gain).
+
+---
+
+### ADR-423: Triage help is framework-only and honest about Fix now
+- **Date:** 2026-11-09
+- **Section:** Iterate — change: triage polish round 3
+- **Run-ID:** iterate-2026-11-09-triage-polish-r3
+- **Context:** Operator review: identical security texts, project-specific source labels, severity ? noise, Fix now promises more than it does.
+- **Decision:** Help catalogue covers only framework sources; unknown sources show as written with generic text; severity has no help; every todo says Fix now opens a pre-filled task.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Customer projects differ; fixNowIntent only pre-fills a task dialog, so wording must not promise more.
+- **Consequences:** req3/tooling labels gone (raw names, separate groups); texts are static client copy.
+- **Rejected:** Server-generated help (new API contract); per-project source catalogue.
+
+---
+
+### ADR-424: Boolean default:true opens pre-checked; slash_command takes fixed plain flags
+- **Date:** 2026-11-10
+- **Section:** Iterate — feature: pre-checked boolean params + slash_command flags
+- **Run-ID:** iterate-2026-11-10-screenshots-with-description
+- **Context:** Custom actions could not pre-check a boolean parameter (validator rejected default:true and the dialog reset every optional param to false) and slash_command rejected anything beyond the skill token, so --noreview could not be expressed.
+- **Decision:** Accept boolean default:true as a UI hint: the dialog seeds the box checked via initialBooleanValue, the server stays opt-in. Extend SLASH_COMMAND_PATTERN to the skill token plus plain -x/--long[=value] flags. boolean+required stays rejected.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Smallest change that makes both requested variants work without a second field; the allowlist keeps the existing q()-escaped prompt path safe.
+- **Consequences:** Authors can ship a default-on option and fixed flags. A fixed flag equal to a parameter cli_flag is emitted twice (documented as unconditional). The regex stays a strict allowlist (no quotes, ;, $, |).
+- **Rejected:** A separate slash_args field (extra schema surface); auto-applying defaults server-side (would break opt-in semantics for optional params).
