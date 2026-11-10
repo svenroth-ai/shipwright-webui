@@ -163,10 +163,13 @@ describe("MermaidRenderer — large diagram readability", () => {
     const wrap = document.createElement("div");
     wrap.style.background = bg;
     document.body.appendChild(wrap);
-    render(<MermaidRenderer text="graph TD; A-->B" />, { container: wrap });
-    await waitFor(() => expect(initSpy).toHaveBeenCalled());
-    expect(initSpy.mock.calls[0][0].theme).toBe(theme);
-    wrap.remove();
+    try {
+      render(<MermaidRenderer text="graph TD; A-->B" />, { container: wrap });
+      await waitFor(() => expect(initSpy).toHaveBeenCalled());
+      expect(initSpy.mock.calls[0][0].theme).toBe(theme);
+    } finally {
+      wrap.remove();
+    }
   });
 
   // @covers FR-01.02

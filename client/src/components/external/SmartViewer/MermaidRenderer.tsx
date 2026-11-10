@@ -172,6 +172,7 @@ function MermaidRendererImpl({ text, contentHash }: Props) {
           Mermaid failed to render: {error}
         </div>
       )}
+      {!loading && !error && (
       <button
         type="button"
         onClick={() => setFit((v) => !v)}
@@ -181,12 +182,13 @@ function MermaidRendererImpl({ text, contentHash }: Props) {
         data-testid="smart-viewer-mermaid-fit"
       >
         {fit ? <Minimize2 size={12} aria-hidden="true" /> : <Maximize2 size={12} aria-hidden="true" />}
-        {fit ? "Actual size" : "Fit to width"}
+        Fit to width
       </button>
+      )}
       <div
         ref={containerRef}
         data-testid="smart-viewer-mermaid-svg"
-        className={fit ? "[&_svg]:h-auto [&_svg]:max-w-full" : "[&_svg]:max-w-none"}
+        className={fit ? "[&_svg]:h-auto [&_svg]:max-w-full" : "[&_svg]:!max-w-none"}
       />
     </div>
   );
