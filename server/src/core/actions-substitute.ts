@@ -128,7 +128,7 @@ export class UnknownActionError extends Error {
   readonly actionId: string;
   constructor(actionId: string) {
     super(
-      `Action id "${actionId}" is not one of the bundled actions ("new-task", "new-iterate", "new-pipeline") and has no valid "slash_command". A custom action whose command_template uses {task.initial_prompt} must declare a "slash_command" matching ${SLASH_COMMAND_PATTERN.source} (e.g. "/content-orchestrator"). Alternatively, use the {task.description?} placeholder instead of {task.initial_prompt}.`,
+      `Action id "${actionId}" is not one of the bundled actions ("new-task", "new-iterate", "new-pipeline") and has no valid "slash_command". A custom action whose command_template uses {task.initial_prompt} must declare a "slash_command" matching ${SLASH_COMMAND_PATTERN.source} (e.g. "/content-orchestrator" or "/content-orchestrator --noreview"). Alternatively, use the {task.description?} placeholder instead of {task.initial_prompt}.`,
     );
     this.name = "UnknownActionError";
     this.actionId = actionId;
@@ -217,7 +217,9 @@ export const BUILTIN_INITIAL_PROMPT_ACTIONS: ReadonlySet<string> = new Set([
 // Allowlist for a custom action's `slash_command` (leading-slash skill token,
 // e.g. `/content-orchestrator`). Still q()-escaped at substitution time; this
 // pattern rejects garbage at load and is reused by `validateActionsSchema`.
-export const SLASH_COMMAND_PATTERN = /^\/[A-Za-z][A-Za-z0-9:_-]*$/;
+// Skill token + optional FIXED plain flags (`/x --noreview --depth=3`); no quotes/`;`/`$`/`|`.
+export const SLASH_COMMAND_PATTERN =
+  /^\/[A-Za-z][A-Za-z0-9:_-]*(?: --?[A-Za-z][A-Za-z0-9_-]*(?:=[A-Za-z0-9_.-]+)?)*$/;
 
 function buildSlashCommand(
   actionId: string,

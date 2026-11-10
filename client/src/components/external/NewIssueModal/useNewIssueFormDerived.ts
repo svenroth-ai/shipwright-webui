@@ -26,6 +26,7 @@ import type { Project } from "../../../types";
 
 import type { Mode } from "./types";
 import { isIterateModelTierField } from "./modelTierOverrideSchema";
+import { initialBooleanValue } from "./paramHelpers";
 
 export interface UseNewIssueFormDerivedInput {
   open: boolean;
@@ -139,6 +140,9 @@ export function useNewIssueFormDerived(input: UseNewIssueFormDerivedInput) {
         }
       } else {
         nextEnabled[s.name] = false;
+        // Boolean `default: true` opens PRE-CHECKED (the user may uncheck it).
+        const pre = initialBooleanValue(s);
+        if (pre !== undefined) nextValues[s.name] = pre;
       }
     }
     setParamValues(nextValues);

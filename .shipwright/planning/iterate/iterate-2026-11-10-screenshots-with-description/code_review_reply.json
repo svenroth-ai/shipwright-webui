@@ -1,0 +1,37 @@
+{
+  "section": "iterate-2026-11-10-screenshots-with-description (FR-01.37)",
+  "review": [
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "server/src/core/actions-substitute.ts",
+      "line": 221,
+      "finding": "Regex checked and found sound. ReDoS: each repeat group starts with a literal space and the flag body excludes space, so there is no ambiguous overlap and matching is linear. Anchoring: JS `$` without the `m` flag matches only at end of input, so a trailing newline or embedded newline cannot bypass it. Shell-escape path: buildSlashCommand returns the trimmed string, and the whole fused `{task.initial_prompt}` is still wrapped by the outer q()/qPs/qCmd/qPosix. The allowlist excludes quotes, `;`, `$`, `|`, backtick and whitespace other than a single space, so there is no bypass. Residual: a fixed flag can duplicate a parameter's cli_flag, e.g. slash_command `--noreview` plus a `--noreview` boolean parameter. That emits the flag twice and the user's uncheck has no effect. This is not a security issue.",
+      "suggestion": "Optional. Reject at validation time when a slash_command flag collides with a parameter cli_flag, or document that the flags are unconditional (docs/guide.md already says they are always emitted)."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "server/src/core/actions-substitute.ts",
+      "line": 131,
+      "finding": "The UnknownActionError message still gives only the bare example \"/content-orchestrator\" and prints the regex source. That is still accurate but does not hint that fixed flags are now allowed. Cosmetic.",
+      "suggestion": "Append an example such as '/content-orchestrator --noreview' to the message."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "server/src/core/actions-schema-validator.ts",
+      "line": 415,
+      "finding": "The replacement comment narrates the removed behaviour (\"Previously rejected ... lifted by iterate-...\"). That history belongs in the commit message or ADR, not the source tree (dead-code and obsolete-comment rule). Note also that the `invalid_default_value` code may now have fewer producers.",
+      "suggestion": "Trim the comment to the current invariant (default:true is a UI hint, the server stays opt-in). Check that `invalid_default_value` is still emitted elsewhere in the file and not left as a dead union member."
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "client/src/components/external/NewIssueModal/useNewIssueFormDerived.ts",
+      "line": 143,
+      "finding": "Pre-checked boolean value is seeded with `nextEnabled[name]=false`. This relies on explicitParamEntries and paramsToPreview treating a boolean value of true as enabled regardless of the enabled map. The unit test covers explicitParamEntries with an empty enabled map, and the e2e covers the checkbox state, but nothing asserts that the submitted launch payload or command preview contains the flag after the modal opens with the box ticked.",
+      "suggestion": "Add one assertion, either in the e2e (command preview contains --noreview) or in a hook-level test, that the pre-checked default reaches the request or preview without any user interaction."
+    }
+  ]
+}

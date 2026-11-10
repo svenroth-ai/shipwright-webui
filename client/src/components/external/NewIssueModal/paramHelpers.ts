@@ -60,6 +60,16 @@ export function paramsToPreview(
 }
 
 /**
+ * Initial value for an OPTIONAL boolean param when the modal opens: a schema
+ * `default: true` opens PRE-CHECKED (the user may still uncheck it); anything
+ * else stays unset (unchecked). Required booleans are rejected by the server
+ * validator, so they never reach here.
+ */
+export function initialBooleanValue(s: RenderableParamSchema): true | undefined {
+  return s.type === "boolean" && s.default === true ? true : undefined;
+}
+
+/**
  * Drop schema entries that the user did NOT explicitly enable.
  *
  * Forwarding rules:

@@ -1189,10 +1189,11 @@ edits on disk only see the read-side validators: the upload-only rows
 | Body > 256 KB on upload | 413 `payload_too_large` (rejected via `Content-Length` pre-check, before buffering). |
 | Malformed JSON on upload | 400 `invalid_json` with parser detail. |
 | Malformed JSON on direct edit | Bundled default served + a diagnostic chip on the project page (`actions_file_malformed`). The Kanban stays usable. |
-| Schema error (duplicate `id`, missing `command_template`, invalid `defaults.autonomy`, empty `phases[]`, unsupported `modal_fields` entry, boolean param with `default:true` or `required:true`, …) | 400 with the full `errors[]` array. On **upload** the top-level `error` is `schema_validation_failed`; on the **catalog-read** endpoint it's the first specific code (e.g. `duplicate_action_id`). |
+| Schema error (duplicate `id`, missing `command_template`, invalid `defaults.autonomy`, empty `phases[]`, unsupported `modal_fields` entry, boolean param with `required:true`, …) | 400 with the full `errors[]` array. On **upload** the top-level `error` is `schema_validation_failed`; on the **catalog-read** endpoint it's the first specific code (e.g. `duplicate_action_id`). |
 | Unknown placeholder in `command_template` | 400 `invalid_placeholder` naming the offending token + `actionId`. Same check runs at upload time AND at every catalog read. |
 | `.shipwright-webui/` resolves outside the project root (symlink escape) | 400 `path_unsafe` with the rejected `reason` (`traversal` / `symlink_escape` / `drive_change`). |
 | Unknown `actionId` at launch | 400 `unknown_action_id`. |
+| `slash_command` with anything beyond the skill token and plain fixed flags (`/my-skill --noreview --depth=3`), e.g. quotes, `;`, `$`, `\|` | 400 `invalid_slash_command`. Fixed flags are always emitted; a boolean parameter with `default: true` opens pre-checked instead and the user can uncheck it. |
 | Unknown phase, invalid title/parameter, unknown placeholder, or a custom action missing its `slash_command`, at launch | 400 `command_substitution_failed`. |
 
 #### Constraints
