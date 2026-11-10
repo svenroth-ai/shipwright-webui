@@ -33,6 +33,7 @@ describe("validateActionsSchema — boolean default:true", () => {
     expect(withBoolean({ default: true })).toEqual([]);
   });
 
+  // @covers FR-01.37
   it("still rejects boolean + required, even with default:true", () => {
     const errs = withBoolean({ default: true, required: true });
     expect(errs.some((e) => e.code === "invalid_param_required")).toBe(true);
