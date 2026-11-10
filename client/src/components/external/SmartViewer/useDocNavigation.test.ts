@@ -36,26 +36,31 @@ describe("resolveDocPath", () => {
     expect(resolveDocPath("a.md", "../../../etc/passwd.md").path).toBe("etc/passwd.md");
   });
 
+  // @covers FR-01.02
   it("hops between sibling sub-folders and handles ./ (the VS Code-style case)", () => {
     expect(resolveDocPath("docs/a/one.md", "../b/two.md").path).toBe("docs/b/two.md");
     expect(resolveDocPath("docs/a/one.md", "./sub/../three.md").path).toBe("docs/a/three.md");
   });
 
+  // @covers FR-01.02
   it("decodes %20 once (no double-encoding) and tolerates a malformed escape", () => {
     expect(resolveDocPath("docs/one.md", "../My%20Notes/a%20b.md").path).toBe("My Notes/a b.md");
     expect(resolveDocPath("docs/one.md", "x%ZZ.md#100%")).toEqual({ path: "docs/x%ZZ.md", fragment: "100%" });
   });
 
+  // @covers FR-01.02
   it("ignores a ?query and resolves a leading / against the project root", () => {
     expect(resolveDocPath("docs/one.md", "two.md?plain=1#top")).toEqual({ path: "docs/two.md", fragment: "top" });
     expect(resolveDocPath("docs/deep/one.md", "/README.md").path).toBe("README.md");
   });
 
+  // @covers FR-01.02
   it("resolves non-markdown targets and fragment-only links", () => {
     expect(resolveDocPath("docs/one.md", "../src/app.ts").path).toBe("src/app.ts");
     expect(resolveDocPath("docs/one.md", "#sec")).toEqual({ path: "docs/one.md", fragment: "sec" });
   });
 
+  // @covers FR-01.02
   it("resolves against an OUTSIDE absolute path (drive / posix / UNC) and clamps at its root", () => {
     expect(resolveDocPath("C:\\work\\docs\\a.md", "../b/c.md").path).toBe("C:/work/b/c.md");
     expect(resolveDocPath("C:/work/a.md", "../../../x.md").path).toBe("C:/x.md");

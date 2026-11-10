@@ -105,6 +105,7 @@ test.describe("SmartViewer relative links across sibling folders", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.02
   test("clicks hop between sibling folders in-pane (md, %20 path, json) and never leave /preview", async ({ page }) => {
     await page.goto(
       `/preview?projectId=${encodeURIComponent(project.projectId)}&path=${encodeURIComponent("docs/a/one.md")}`,

@@ -192,6 +192,7 @@ describe("SmartViewer — following a relative link picks the renderer of the TA
     ["cfg", "smart-viewer-code"],
     ["img", "smart-viewer-image"],
     ["zip", "smart-viewer-unknown"],
+  // @covers FR-01.02
   ])("md → %s renders %s (not the markdown pane)", async (name, testId) => {
     setup();
     await waitFor(() => expect(screen.getByTestId("smart-viewer-markdown")).toBeTruthy());
@@ -200,6 +201,7 @@ describe("SmartViewer — following a relative link picks the renderer of the TA
     expect(screen.queryByTestId("smart-viewer-markdown")).toBeNull();
   });
 
+  // @covers FR-01.02
   it("md → sibling-folder md fetches the resolved path; a root link stays put", async () => {
     const urls = setup();
     await waitFor(() => expect(screen.getByTestId("smart-viewer-markdown")).toBeTruthy());

@@ -57,6 +57,7 @@ describe("findAnchorTarget", () => {
 });
 
 describe("isInternalDocLink", () => {
+  // @covers FR-01.02
   it("matches every relative file link (any extension, sibling/sub/parent folder), not #frag/scheme/protocol-relative", () => {
     expect(isInternalDocLink("../spec.md#fr-0101")).toBe(true);
     expect(isInternalDocLink("other.markdown")).toBe(true);
@@ -71,6 +72,7 @@ describe("isInternalDocLink", () => {
     expect(isInternalDocLink("")).toBe(false);
   });
 
+  // @covers FR-01.02
   it("a relative link to a non-markdown file is followed in-pane, not opened in a new tab", () => {
     const onDocLinkClick = vi.fn();
     const { container } = render(
