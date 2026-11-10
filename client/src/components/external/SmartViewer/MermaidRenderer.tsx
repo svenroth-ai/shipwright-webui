@@ -21,7 +21,7 @@
  */
 
 import { memo, useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Maximize2, Minimize2 } from "lucide-react";
 
 interface Props {
   text: string;
@@ -42,8 +42,31 @@ function hashSource(input: string): string {
   return (hash >>> 0).toString(16);
 }
 
+/**
+ * Is the page painted dark? Reads the real body background (the app has no
+ * global theme attribute), falling back to the OS preference. Mermaid's
+ * default theme is light (white/yellow), which is unreadable on a dark page.
+ */
+export function prefersDarkSurface(): boolean {
+  try {
+    const bg = getComputedStyle(document.body).backgroundColor;
+    const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(bg);
+    if (m && (m[4] === undefined || Number(m[4]) > 0)) {
+      const lum = (0.299 * +m[1] + 0.587 * +m[2] + 0.114 * +m[3]) / 255;
+      return lum < 0.5;
+    }
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+  } catch {
+    return false;
+  }
+}
+
 function MermaidRendererImpl({ text, contentHash }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [dark] = useState<boolean>(prefersDarkSurface);
+  // Wide diagrams (e.g. `flowchart LR` with many subgraphs) render at natural
+  // size and scroll; "fit" squeezes them into the pane width instead.
+  const [fit, setFit] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -80,7 +103,18 @@ function MermaidRendererImpl({ text, contentHash }: Props) {
         if (disposed) return;
         const mermaid = mod.default;
         try {
-          mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+          mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: "strict",
+            theme: dark ? "dark" : "default",
+            // Natural size: max-width:100% shrank wide graphs to unreadable specks.
+            flowchart: { useMaxWidth: false },
+            sequence: { useMaxWidth: false },
+            gantt: { useMaxWidth: false },
+            er: { useMaxWidth: false },
+            state: { useMaxWidth: false },
+            class: { useMaxWidth: false },
+          });
           const { svg } = await mermaid.render(renderId, text);
           if (disposed || !containerRef.current) return;
           containerRef.current.innerHTML = svg;
@@ -114,8 +148,8 @@ function MermaidRendererImpl({ text, contentHash }: Props) {
 
   return (
     <div
-      className="smart-viewer-mermaid h-full overflow-auto p-4"
-      style={{ background: "var(--color-surface, #ffffff)" }}
+      className="smart-viewer-mermaid h-full overflow-auto p-1"
+      style={{ background: `var(--color-surface, ${dark ? "#111827" : "#ffffff"})` }}
       data-testid="smart-viewer-mermaid"
     >
       {loading && !error && (
@@ -137,7 +171,22 @@ function MermaidRendererImpl({ text, contentHash }: Props) {
           Mermaid failed to render: {error}
         </div>
       )}
-      <div ref={containerRef} data-testid="smart-viewer-mermaid-svg" />
+      <button
+        type="button"
+        onClick={() => setFit((v) => !v)}
+        className="mb-2 inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px]"
+        style={{ color: "var(--color-muted, #6b7280)", borderColor: "currentColor" }}
+        aria-pressed={fit}
+        data-testid="smart-viewer-mermaid-fit"
+      >
+        {fit ? <Minimize2 size={12} aria-hidden="true" /> : <Maximize2 size={12} aria-hidden="true" />}
+        {fit ? "Actual size" : "Fit to width"}
+      </button>
+      <div
+        ref={containerRef}
+        data-testid="smart-viewer-mermaid-svg"
+        className={fit ? "[&_svg]:h-auto [&_svg]:max-w-full" : "[&_svg]:max-w-none"}
+      />
     </div>
   );
 }
