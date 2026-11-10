@@ -156,6 +156,20 @@ describe("MermaidRenderer — large diagram readability", () => {
   });
 
   // @covers FR-01.02
+  it.each([
+    ["rgb(17, 24, 39)", "dark"],
+    ["rgb(255, 255, 255)", "default"],
+  ])("picks the mermaid theme from the surface colour (%s -> %s)", async (bg, theme) => {
+    const wrap = document.createElement("div");
+    wrap.style.background = bg;
+    document.body.appendChild(wrap);
+    render(<MermaidRenderer text="graph TD; A-->B" />, { container: wrap });
+    await waitFor(() => expect(initSpy).toHaveBeenCalled());
+    expect(initSpy.mock.calls[0][0].theme).toBe(theme);
+    wrap.remove();
+  });
+
+  // @covers FR-01.02
   it("fit toggle switches the svg host between natural size and fit-to-width", async () => {
     render(<MermaidRenderer text="graph TD; A-->B" />);
     const btn = await screen.findByTestId("smart-viewer-mermaid-fit");

@@ -43,17 +43,19 @@ function hashSource(input: string): string {
 }
 
 /**
- * Is the page painted dark? Reads the real body background (the app has no
- * global theme attribute), falling back to the OS preference. Mermaid's
- * default theme is light (white/yellow), which is unreadable on a dark page.
+ * Is the surface the diagram sits on dark? Walks up from `el` to the first
+ * ancestor with an (at least half) opaque background — the pane's own card,
+ * not just <body> — and falls back to the OS preference. Mermaid's default
+ * theme is light (white/yellow), unreadable on a dark surface.
  */
-export function prefersDarkSurface(): boolean {
+export function prefersDarkSurface(el: Element | null = null): boolean {
   try {
-    const bg = getComputedStyle(document.body).backgroundColor;
-    const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(bg);
-    if (m && (m[4] === undefined || Number(m[4]) > 0)) {
-      const lum = (0.299 * +m[1] + 0.587 * +m[2] + 0.114 * +m[3]) / 255;
-      return lum < 0.5;
+    for (let n: Element | null = el ?? document.body; n; n = n.parentElement) {
+      const bg = getComputedStyle(n).backgroundColor;
+      const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(bg);
+      if (m && (m[4] === undefined || Number(m[4]) >= 0.5)) {
+        return (0.299 * +m[1] + 0.587 * +m[2] + 0.114 * +m[3]) / 255 < 0.5;
+      }
     }
     return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
   } catch {
@@ -63,7 +65,6 @@ export function prefersDarkSurface(): boolean {
 
 function MermaidRendererImpl({ text, contentHash }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [dark] = useState<boolean>(prefersDarkSurface);
   // Wide diagrams (e.g. `flowchart LR` with many subgraphs) render at natural
   // size and scroll; "fit" squeezes them into the pane width instead.
   const [fit, setFit] = useState<boolean>(false);
@@ -106,7 +107,7 @@ function MermaidRendererImpl({ text, contentHash }: Props) {
           mermaid.initialize({
             startOnLoad: false,
             securityLevel: "strict",
-            theme: dark ? "dark" : "default",
+            theme: prefersDarkSurface(el) ? "dark" : "default",
             // Natural size: max-width:100% shrank wide graphs to unreadable specks.
             flowchart: { useMaxWidth: false },
             sequence: { useMaxWidth: false },
@@ -149,7 +150,7 @@ function MermaidRendererImpl({ text, contentHash }: Props) {
   return (
     <div
       className="smart-viewer-mermaid h-full overflow-auto p-1"
-      style={{ background: `var(--color-surface, ${dark ? "#111827" : "#ffffff"})` }}
+      style={{ background: "var(--color-surface, #ffffff)" }}
       data-testid="smart-viewer-mermaid"
     >
       {loading && !error && (
