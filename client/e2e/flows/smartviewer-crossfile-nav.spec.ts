@@ -81,3 +81,55 @@ test.describe("SmartViewer cross-file nav (FR-01.02, real RTM)", () => {
     });
   });
 });
+
+// Relative links between sibling sub-folders resolve like in VS Code: in-pane, never as a
+// `localhost:<port>/…` browser URL. Covers ../ hops, a %20 path, and a non-markdown target.
+test.describe("SmartViewer relative links across sibling folders", () => {
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, {
+      name: "smartviewer-relative-links",
+      adopted: true,
+      files: {
+        "docs/a/one.md": "# One\n\n[to two](../b/two.md)\n\n[spaced](../My%20Notes/note.md)\n\n[config](../../data/app.json)\n",
+        "docs/b/two.md": "# Two\n\nSECOND-DOC-BODY\n\n[back](../a/one.md)\n",
+        "docs/My Notes/note.md": "# Note\n\nSPACED-DOC-BODY\n",
+        "data/app.json": "{\n  \"marker\": \"JSON-FILE-BODY\"\n}\n",
+      },
+    });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
+  test("clicks hop between sibling folders in-pane (md, %20 path, json) and never leave /preview", async ({ page }) => {
+    await page.goto(
+      `/preview?projectId=${encodeURIComponent(project.projectId)}&path=${encodeURIComponent("docs/a/one.md")}`,
+    );
+    const doc = page.getByTestId("document-markdown");
+    await expect(doc).toContainText("One", { timeout: 8000 });
+    const previewUrl = page.url();
+
+    await page.getByRole("link", { name: "to two" }).click();
+    await expect(doc).toContainText("SECOND-DOC-BODY", { timeout: 8000 });
+
+    await page.getByRole("link", { name: "back" }).click();
+    await page.getByRole("link", { name: "spaced" }).click();
+    await expect(doc).toContainText("SPACED-DOC-BODY", { timeout: 8000 });
+
+    // A non-markdown target is followed in the viewer too (it used to open a new tab).
+    await page.goBack().catch(() => undefined);
+    await page.goto(previewUrl);
+    await expect(doc).toContainText("One", { timeout: 8000 });
+    const popup = page.waitForEvent("popup", { timeout: 1500 }).then(() => true, () => false);
+    await page.getByRole("link", { name: "config" }).click();
+    await expect(page.getByTestId("smart-viewer-code")).toContainText("JSON-FILE-BODY", { timeout: 8000 }).catch(async () => {
+      await expect(page.locator("body")).toContainText("JSON-FILE-BODY", { timeout: 8000 });
+    });
+    expect(await popup).toBe(false);
+    expect(page.url()).toContain("/preview");
+  });
+});

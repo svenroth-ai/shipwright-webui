@@ -1,0 +1,6 @@
+{"stage":"doubt","gating":"advisory-must-address","doubts":[
+{"severity":"high","claim_under_doubt":"renderer follows the navigated path","disproof_attempt":"kind/ext derived from the selected prop path, so md->json rendered as markdown and the outside header went stale","disposition":"FIXED: navigation lifted into SmartViewer; kind, header and fetch all follow nav.effectivePath; tests md->json/png/zip assert target renderer"},
+{"severity":"medium","claim_under_doubt":"resolveDocPath always yields a loadable path","disproof_attempt":"/ ./ ../ resolve to root/empty","disposition":"FIXED: navigateToDoc ignores root/empty targets; test covers it"},
+{"severity":"medium","claim_under_doubt":"always preventDefault is harmless for handler-less hosts","disproof_attempt":"root-relative app routes die; middle-click leaks localhost URL","disposition":"FIXED: handler-less root-relative links left to the browser; onAuxClick swallows middle click"},
+{"severity":"low","claim_under_doubt":"segment decode equals URL API","disproof_attempt":"%2F decoded before split","disposition":"FIXED: per-segment decode"}
+],"summary":"1 high + 2 medium + 1 low, all fixed"}

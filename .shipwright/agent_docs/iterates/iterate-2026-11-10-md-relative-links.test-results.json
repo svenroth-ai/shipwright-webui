@@ -1,0 +1,100 @@
+{
+  "last_updated": "2026-11-10",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-10-md-relative-links",
+    "date": "2026-11-10",
+    "unit": {
+      "status": "passed",
+      "passed": 5054,
+      "skipped": 0,
+      "total": 5054
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0,
+      "total": 2
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "relative link to a markdown file in a sibling sub-folder (../b/two.md) is followed in the viewer",
+          "disposition": "tested",
+          "evidence": "useDocNavigation.test.ts + SmartViewer.test.tsx (sib link) + e2e smartviewer-crossfile-nav relative links PASSED"
+        },
+        {
+          "behavior": "relative link to a non-markdown file (json/png/zip) is followed in-pane and renders with the TARGET file's renderer",
+          "disposition": "tested",
+          "evidence": "SmartViewer.test.tsx md->cfg/img/zip it.each + e2e json PASSED"
+        },
+        {
+          "behavior": "percent-encoded path (%20) is decoded once; malformed escape and ?query do not throw",
+          "disposition": "tested",
+          "evidence": "useDocNavigation.test.ts decodes %20 once / ignores ?query + e2e My%20Notes PASSED"
+        },
+        {
+          "behavior": "links clamp at project/drive/UNC root; root-only targets are ignored",
+          "disposition": "tested",
+          "evidence": "useDocNavigation.test.ts clamp + OUTSIDE absolute path cases; SmartViewer.test.tsx root link stays put"
+        },
+        {
+          "behavior": "external, mailto and protocol-relative links keep opening externally; handler-less hosts do not intercept root-relative app routes",
+          "disposition": "tested",
+          "evidence": "DocumentMarkdown.test.tsx isInternalDocLink matrix + in-pane click test"
+        },
+        {
+          "behavior": "an outside-project file whose linked sibling is not evidenced by the session is refused by the server",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "server session-file route unchanged; its evidence gate is covered by the existing session-file server tests"
+        }
+      ],
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium smartviewer-crossfile-nav",
+      "exit_code": 0,
+      "tests_run": 2,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\md-relative-links\\.shipwright\\runs\\iterate-2026-11-10-md-relative-links\\surface_verification.log",
+      "timestamp": "2026-11-10T15:10:16.479Z",
+      "attempts": 1
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-10-md-relative-links",
+    "commit": "5c5fc6b621af62ca22590b76de9d5545ee9ebf10",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

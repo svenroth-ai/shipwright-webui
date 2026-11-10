@@ -1,0 +1,9 @@
+{"items":[
+{"name":"AC coverage","verdict":"pass","note":"all 5 promises implemented; unit tests for resolver/links/renderer dispatch + 2 Playwright tests in a real browser"},
+{"name":"No dead references","verdict":"pass","note":"NO_DOC_NAV removed everywhere; tsc clean; htmlMarkupScan caller unchanged in behaviour"},
+{"name":"Existing specs","verdict":"pass","note":"isInternalDocLink test rewritten to the new contract; full client suite 563 files / 5054 tests green"},
+{"name":"File size","verdict":"pass","note":"all touched files stay under 300 lines"},
+{"name":"Security","verdict":"pass","note":"segment resolver clamps at project/drive/UNC root; outside files still go through the evidence-gated session-file route, no server change"},
+{"name":"Reviewer hand-offs","verdict":"n/a","note":"spec/code/doubt recorded as separate passes"},
+{"name":"Affected boundaries","verdict":"pass","note":"click interception in DocumentMarkdown hosts without a handler (Mission/Compliance) made inert except root-relative app routes"}
+]}

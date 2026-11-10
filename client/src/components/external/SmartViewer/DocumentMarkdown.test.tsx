@@ -57,14 +57,29 @@ describe("findAnchorTarget", () => {
 });
 
 describe("isInternalDocLink", () => {
-  it("matches relative *.md links (with/without fragment), not #frag/http/non-md", () => {
+  it("matches every relative file link (any extension, sibling/sub/parent folder), not #frag/scheme/protocol-relative", () => {
     expect(isInternalDocLink("../spec.md#fr-0101")).toBe(true);
     expect(isInternalDocLink("other.markdown")).toBe(true);
+    expect(isInternalDocLink("sub/folder/page.md")).toBe(true);
+    expect(isInternalDocLink("/docs/page.md")).toBe(true);
+    expect(isInternalDocLink("logo.png")).toBe(true);
+    expect(isInternalDocLink("../code.ts")).toBe(true);
     expect(isInternalDocLink("#frag")).toBe(false);
     expect(isInternalDocLink("https://github.com/x")).toBe(false);
     expect(isInternalDocLink("mailto:a@b.com")).toBe(false);
-    expect(isInternalDocLink("logo.png")).toBe(false);
-    expect(isInternalDocLink("../code.ts")).toBe(false);
+    expect(isInternalDocLink("//cdn.example.com/x.md")).toBe(false);
+    expect(isInternalDocLink("")).toBe(false);
+  });
+
+  it("a relative link to a non-markdown file is followed in-pane, not opened in a new tab", () => {
+    const onDocLinkClick = vi.fn();
+    const { container } = render(
+      <DocumentMarkdown text={"[cfg](../config/app.json)"} onDocLinkClick={onDocLinkClick} />,
+    );
+    const a = container.querySelector("a")!;
+    expect(a.getAttribute("target")).toBeNull();
+    a.click();
+    expect(onDocLinkClick).toHaveBeenCalledWith("../config/app.json");
   });
 });
 

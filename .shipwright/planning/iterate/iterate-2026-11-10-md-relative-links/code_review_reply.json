@@ -1,0 +1,6 @@
+{"review":[
+{"severity":"medium","finding":"drive-letter hrefs (C:/x.md) are treated as external","resolution":"accepted - authored absolute drive links stay external"},
+{"severity":"medium","finding":"outside-file link chaining relies on server evidence","resolution":"verified - session-file route evidence-gated, unchanged"},
+{"severity":"low","finding":"decode before split","resolution":"fixed - per-segment decode"},
+{"severity":"low","finding":"modified/middle clicks swallowed","resolution":"fixed for middle click"},
+{"severity":"nit","finding":"stale comments, duplicate safeDecode","resolution":"fixed"}]}

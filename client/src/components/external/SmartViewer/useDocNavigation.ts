@@ -4,7 +4,7 @@
  *
  * Real project docs cross-link to OTHER files, e.g. the RTM:
  *   [FR-01.01](../../.shipwright/planning/01-adopted/spec.md#fr-0101)
- * — a relative `*.md` path + fragment, NOT a same-document `#fragment`.
+ * — a relative file path + fragment, NOT a same-document `#fragment`.
  * This hook lets the SmartViewer follow such links WITHOUT any parent
  * wiring: it keeps an internal override of the displayed path (+ a pending
  * scroll fragment). The override resets whenever the parent selects a
@@ -24,25 +24,46 @@ export interface DocNavigation {
 }
 
 /**
- * Resolve a relative doc `href` against `currentPath` (project-root-relative
- * POSIX) using the URL API, which normalises `./` + `../` and clamps at the
- * root (so a link cannot escape above the project). Returns the resolved
- * path and the decoded fragment. Exported for unit tests.
+ * Resolve a relative file `href` (any extension) against `currentPath`
+ * (project-root-relative POSIX, or an absolute outside path) segment by
+ * segment: `./` + `../` are normalised and clamped at the root (a link cannot
+ * escape above the project / drive). Returns the resolved path and the decoded
+ * fragment. Exported for unit tests.
  */
 export function resolveDocPath(
   currentPath: string,
   href: string,
 ): { path: string; fragment: string | null } {
   const hashIdx = href.indexOf("#");
-  const rawPath = hashIdx >= 0 ? href.slice(0, hashIdx) : href;
-  const fragment = hashIdx >= 0 ? decodeURIComponent(href.slice(hashIdx + 1)) : null;
+  let rawPath = hashIdx >= 0 ? href.slice(0, hashIdx) : href;
+  const fragment = hashIdx >= 0 ? safeDecode(href.slice(hashIdx + 1)) : null;
+  const queryIdx = rawPath.indexOf("?");
+  if (queryIdx >= 0) rawPath = rawPath.slice(0, queryIdx); // `?plain=1` etc. is not part of the file name
   if (!rawPath) return { path: currentPath, fragment };
+
+  // Segment-wise resolution (no URL API: it double-encodes `%20` and cannot carry a drive letter).
+  // A leading `/` means the root of the tree the current file lives in — the project root for a
+  // project file (like VS Code's workspace root), the drive / filesystem root for an outside file.
+  const cur = currentPath.replaceAll("\\", "/");
+  const rootMatch = /^(?:[a-zA-Z]:\/|\/\/[^/]+\/[^/]+\/|\/)/.exec(cur);
+  const root = rootMatch ? rootMatch[0] : "";
+  const baseDir = cur.slice(root.length).split("/").slice(0, -1);
+  const target = rawPath.replaceAll("\\", "/");
+  const segs = target.startsWith("/") ? [] : baseDir;
+  // Decode PER SEGMENT, after splitting: an encoded `%2F` stays part of a file name, never a separator.
+  for (const seg of target.split("/").map(safeDecode)) {
+    if (seg === "" || seg === ".") continue;
+    if (seg === "..") segs.pop(); // clamps at the root: a link cannot escape above it
+    else segs.push(seg);
+  }
+  return { path: root + segs.join("/"), fragment };
+}
+
+export function safeDecode(s: string): string {
   try {
-    const base = new URL("https://_local_/" + encodeURI(currentPath));
-    const resolved = new URL(encodeURI(rawPath), base).pathname.replace(/^\/+/, "");
-    return { path: decodeURI(resolved), fragment };
+    return decodeURIComponent(s);
   } catch {
-    return { path: rawPath.replace(/^\.?\//, ""), fragment };
+    return s; // malformed escape (`100%`) — keep it literal rather than throw
   }
 }
 
@@ -61,7 +82,11 @@ export function useDocNavigation(initialPath: string): DocNavigation {
 
   const navigateToDoc = useCallback(
     (href: string) => {
-      setOverride((prev) => resolveDocPath(prev?.path ?? initialPath, href));
+      setOverride((prev) => {
+        const next = resolveDocPath(prev?.path ?? initialPath, href);
+        // A link to the root / a bare drive (`/`, `./..`) names no file: stay where we are.
+        return /^(?:[a-zA-Z]:\/|\/\/[^/]+\/[^/]+\/|\/)?$/.test(next.path) ? prev : next;
+      });
     },
     [initialPath],
   );

@@ -1,0 +1,1 @@
+File viewer: relative links between files (also across sibling folders, with spaces in names, any file type, and files opened from outside the project) now open the linked file in the viewer instead of a localhost address.
