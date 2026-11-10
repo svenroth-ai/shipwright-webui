@@ -116,6 +116,45 @@ describe("validateActionsSchema — slash_command for custom {task.initial_promp
     expect(errs.find((e) => e.code === "missing_slash_command")).toBeDefined();
   });
 
+  // @covers FR-01.37
+  it.each([
+    "/content-orchestrator --noreview",
+    "/content-orchestrator --noreview --depth=3 -v",
+  ])("accepts fixed plain flags after the skill token: %s", (slash) => {
+    const errs = validateActionsSchema(
+      baseActions({
+        id: "orchestrate",
+        label: "Orchestrate",
+        kind: "external_launch",
+        slash_command: slash,
+        command_template:
+          "claude --session-id {task.uuid} {plugin.dirs} {task.initial_prompt}",
+      }) as never,
+    );
+    expect(errs.filter((e) => e.code === "invalid_slash_command")).toEqual([]);
+  });
+
+  // @covers FR-01.37
+  it.each([
+    "/content-orchestrator --noreview; rm -rf /",
+    "/content-orchestrator --x=$(id)",
+    "/content-orchestrator --x='a b'",
+    "/content-orchestrator noflag",
+    "/content-orchestrator --noreview | cat",
+  ])("still rejects shell metacharacters / non-flag tokens: %s", (slash) => {
+    const errs = validateActionsSchema(
+      baseActions({
+        id: "orchestrate",
+        label: "Orchestrate",
+        kind: "external_launch",
+        slash_command: slash,
+        command_template:
+          "claude --session-id {task.uuid} {plugin.dirs} {task.initial_prompt}",
+      }) as never,
+    );
+    expect(errs.some((e) => e.code === "invalid_slash_command")).toBe(true);
+  });
+
   it("accepts a stray-padded-but-valid slash_command (trim parity with substituter)", () => {
     const errs = validateActionsSchema(
       baseActions({

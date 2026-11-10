@@ -412,30 +412,15 @@ function validateParamArray(
       }
     }
 
-    // iterate/fix-adopt-prompt-shape — boolean params with default:true
-    // are unrepresentable under opt-in semantics: an unchecked checkbox
-    // means "no flag emitted", so the default-true becomes effectively
-    // unreachable. Reject at load time so users don't author broken
-    // schemas. Required-boolean-default-true is rejected separately
-    // below (the only escape is required+default fallback for STRINGS).
-    if (param.type === "boolean" && param.default === true) {
-      errors.push({
-        code: "invalid_default_value",
-        actionId,
-        name: param.name,
-        default: param.default,
-        reason: "boolean default:true is unrepresentable under opt-in semantics",
-      });
-    }
+    // Boolean `default:true` is a UI hint (the modal opens it pre-checked);
+    // the server stays opt-in and never auto-applies an optional default.
 
-    // iterate/v030-five-ux-fixes (P6) — boolean + required is also
+    // iterate/v030-five-ux-fixes (P6) — boolean + required stays
     // unrepresentable under opt-in. The enable-checkbox IS the value for
     // booleans, so a "required" boolean would either need to be forced-on
-    // (= effectively default:true, already rejected) or allow the user to
-    // submit unchecked (= unsatisfied required gate). Either way, the
-    // schema models a state that opt-in semantics can't reach. Hard-reject
-    // at load time so misauthored configs fail loudly instead of silently
-    // breaking the submit-gate at runtime.
+    // or allow the user to submit unchecked (= unsatisfied required gate).
+    // Hard-reject at load time so misauthored configs fail loudly instead of
+    // silently breaking the submit-gate at runtime.
     if (param.type === "boolean" && param.required === true) {
       errors.push({
         code: "invalid_param_required",

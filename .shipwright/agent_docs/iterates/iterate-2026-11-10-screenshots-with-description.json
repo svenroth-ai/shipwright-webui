@@ -1,0 +1,71 @@
+{
+  "run_id": "iterate-2026-11-10-screenshots-with-description",
+  "date": "2026-11-10T11:06:10.531374Z",
+  "event_at": "2026-11-09T20:51:35.591299+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/screenshots-with-description",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-10-screenshots-with-description",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Validator accepts boolean default:true",
+        "disposition": "tested",
+        "evidence": "server/src/core/actions-schema-validator.boolean-default.test.ts::accepts default:true PASSED"
+      },
+      {
+        "behavior": "boolean+required stays rejected (even with default:true)",
+        "disposition": "tested",
+        "evidence": "actions-schema-validator.boolean-default.test.ts::still rejects boolean + required PASSED"
+      },
+      {
+        "behavior": "slash_command accepts fixed plain flags after the skill token",
+        "disposition": "tested",
+        "evidence": "actions-schema-validation.slash-command.test.ts::accepts fixed plain flags (2 cases) PASSED"
+      },
+      {
+        "behavior": "slash_command with shell metacharacters / non-flag tokens still rejected",
+        "disposition": "tested",
+        "evidence": "actions-schema-validation.slash-command.test.ts::still rejects shell metacharacters (5 cases) PASSED"
+      },
+      {
+        "behavior": "default:true boolean opens pre-checked; unchecked value is dropped from the launch entries",
+        "disposition": "tested",
+        "evidence": "paramHelpers.test.ts::initialBooleanValue (2 tests) PASSED"
+      },
+      {
+        "behavior": "Real browser: pre-checked box sends the flag on launch; unticking stops it; metachar upload is 400",
+        "disposition": "tested",
+        "evidence": "e2e/flows/110-action-boolean-default-checked.spec.ts 3 passed"
+      }
+    ],
+    "counts": {
+      "testable": 6,
+      "tested": 6,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 0,
+      "covered_acs": 0
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium --reporter=list,json client/e2e/flows/110-action-boolean-default-checked.spec.ts",
+    "exit_code": 0,
+    "tests_run": 3,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\screenshots-with-description\\.shipwright\\runs\\iterate-2026-11-10-screenshots-with-description\\surface_verification.log",
+    "timestamp": "2026-11-10T11:05:17.782Z"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

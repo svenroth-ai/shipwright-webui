@@ -6,8 +6,45 @@
 
 import { describe, it, expect } from "vitest";
 
-import { explicitParamEntries, paramsToPreview } from "./paramHelpers";
+import {
+  explicitParamEntries,
+  initialBooleanValue,
+  paramsToPreview,
+} from "./paramHelpers";
 import type { RenderableParamSchema } from "../../../types/action-schema";
+
+describe("initialBooleanValue (pre-checked boolean default)", () => {
+  // @covers FR-01.37
+  it("default:true boolean opens pre-checked and is forwarded; unchecking drops it", () => {
+    const s: RenderableParamSchema = {
+      name: "noreview",
+      label: "No review",
+      type: "boolean",
+      cli_flag: "--noreview",
+      default: true,
+    };
+    expect(initialBooleanValue(s)).toBe(true);
+    expect(explicitParamEntries([s], { noreview: true }, {})).toEqual({
+      noreview: true,
+    });
+    expect(explicitParamEntries([s], { noreview: false }, {})).toEqual({});
+  });
+
+  // @covers FR-01.37
+  it("no default / default:false boolean stays unchecked; non-booleans are ignored", () => {
+    expect(
+      initialBooleanValue({ name: "f", label: "F", type: "boolean", cli_flag: "--f" }),
+    ).toBeUndefined();
+    expect(
+      initialBooleanValue({
+        name: "f", label: "F", type: "boolean", cli_flag: "--f", default: false,
+      }),
+    ).toBeUndefined();
+    expect(
+      initialBooleanValue({ name: "s", label: "S", type: "string", default: "x" }),
+    ).toBeUndefined();
+  });
+});
 
 describe("paramsToPreview", () => {
   it("boolean param: emits cli_flag when value === true", () => {

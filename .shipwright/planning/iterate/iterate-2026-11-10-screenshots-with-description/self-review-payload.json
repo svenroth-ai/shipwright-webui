@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Both requested variants exist: boolean default:true opens pre-checked (validator accepts, modal seeds via initialBooleanValue) and slash_command accepts fixed plain flags. boolean+required stays rejected as the screenshots demand."},
+{"name":"Error Handling","verdict":"pass","note":"Invalid slash_command and boolean+required still fail loudly at upload/load with typed codes; no new runtime failure paths."},
+{"name":"Security Basics","verdict":"pass","note":"SLASH_COMMAND_PATTERN stays a strict allowlist (token + -x/--long[=value] flags only); shell metacharacters, quotes, spaces in values rejected and tested; value is still q()-escaped by the substituter."},
+{"name":"Test Quality","verdict":"pass","note":"Validator accept/reject cases, pure initialBooleanValue + explicitParamEntries round trip (checked -> forwarded, unchecked -> dropped), and a real-browser E2E (pre-checked box, uncheck, metachar upload 400)."},
+{"name":"Performance Basics","verdict":"pass","note":"No loops over data or I/O added; one regex and one O(n) schema pass."},
+{"name":"Naming & Structure","verdict":"pass","note":"New test moved to its own file and the pattern comment shortened to stay under the bloat-baseline ceilings (actions-schema-validator.test.ts untouched, actions-substitute.ts 645 <= 646)."},
+{"name":"Affected Boundaries","verdict":"pass","note":"actions.json (user-edited) -> validator -> GET /actions -> modal init -> explicitParamEntries -> launch payload; the server never auto-applies an optional default, so unchecking emits no flag. Round trip covered by the E2E upload + dialog."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"scan_test_hygiene.py --diff: no findings."}
+]}
