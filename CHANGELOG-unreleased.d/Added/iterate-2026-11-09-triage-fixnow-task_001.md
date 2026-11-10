@@ -1,1 +1,0 @@
-Triage: Fix now now remembers its task — the card shows an In progress box with the task state and an Open task link, Resolve replaces Fix now/Promote/Snooze, and a new In progress tile filters the list

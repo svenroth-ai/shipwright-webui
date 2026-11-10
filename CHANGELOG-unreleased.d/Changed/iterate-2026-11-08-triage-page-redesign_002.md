@@ -1,1 +1,0 @@
-Triage cards now carry Fix now / Start campaign, Promote, a Snooze menu (tomorrow, 1 week, 1 month, pick a date) and Dismiss, plus a quick edit for title and severity; compliance and security items list each audit check with a plain-English help marker.

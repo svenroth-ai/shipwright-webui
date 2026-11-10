@@ -1,1 +1,0 @@
-Triage: the card's Dismiss cross opens a small popup with an optional reason; the Campaign (req3-campaign) and Operator sources have their own help text, and all Triage help texts are listed in .shipwright/planning/01-adopted/triage-help-texts.md

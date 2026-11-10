@@ -1,17 +1,17 @@
 # Commit Change Log
 
-Generated: 2026-11-07T12:49:55.622643+00:00
-Source-State: run=iterate-2026-11-07-events-drop-files-reader base=2db6980308de release=v0.31.0
-Consistency-audit: last run 2026-09-29 (39 days earlier) — PASS
-Total commits: 1001
+Generated: 2026-11-10T11:06:10.715331+00:00
+Source-State: run=iterate-2026-11-10-screenshots-with-description base=ed44d09bcaa7 release=v0.32.0
+Consistency-audit: last run 2026-09-29 (42 days earlier) — PASS
+Total commits: 1008
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 395
-    "feat" : 263
-    "chore" : 167
+    "fix" : 396
+    "feat" : 267
+    "chore" : 169
     "docs" : 79
     "refactor" : 37
     "test" : 34
@@ -23,10 +23,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 395 commits
+### Fixes (fix) — 396 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-08 | codex-watcher | stop self-check reminder re-arming from its own echo (#583) (#584) | 6a60d504873e |
 | 2026-11-04 | ui | list load-error state readable on the photo backdrop (#572) | 1ebffeb1554b |
 | 2026-11-04 | wizard | readable empty state + calmer readiness banner (#571) | 6d0f80444fe1 |
 | 2026-11-03 | terminal | first tap on a file path opens it on a phone; spec 106 asserts post-#565 behaviour (#569) | 69008390af6d |
@@ -423,10 +424,14 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 263 commits
+### Features (feat) — 267 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-10 | actions | pre-checked boolean params + fixed flags in slash_command (#589) | ed44d09bcaa7 |
+| 2026-11-09 | triage | polish round 3 — distinct help texts, shared pills, multi-column cards, calmer detail dialog (#588) | 8e08030337c1 |
+| 2026-11-09 | triage | Fix now remembers its task; Dismiss asks for a reason (#587) | fc21e31cd5ee |
+| 2026-11-09 | triage | redesign the Triage page to match the Board (#586) | d1aa5209c982 |
 | 2026-11-07 | events | read the plugin's drop-files layout and bullet drops (events-drop-files S1 + S5b) (#581) | 2db6980308de |
 | 2026-11-05 | actions | add {task.slug} and {task.short_id} command-template placeholders (#578) | 32ba62825a8f |
 | 2026-11-04 | standalone | plain Claude only without an actions.json (#575) | 5b875a16eec2 |
@@ -691,10 +696,12 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 167 commits
+### Chores (chore) — 169 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-08 | codex-watcher | keep codex-task-watcher.ts at 300 lines (#585) | 49f95290369c |
+| 2026-11-07 | release | v0.31.0 (#582) | bf4016d26eb5 |
 | 2026-11-05 | release | v0.30.0 (#580) | 498a67484cfe |
 | 2026-11-05 | deps | sync lockfile versions to 0.29.1 (#577) | d9879c05e53c |
 | 2026-11-04 | release | v0.29.1 (#576) | eb3212116adc |
@@ -1078,7 +1085,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 1001 |
+| Total commits | 1008 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 1001 |
+| Human-authored commits | 1008 |
 

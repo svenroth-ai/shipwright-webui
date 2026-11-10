@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-11-07T12:49:55.622643+00:00
-Source-State: run=iterate-2026-11-07-events-drop-files-reader base=2db6980308de release=v0.31.0
-Consistency-audit: last run 2026-09-29 (39 days earlier) — PASS
+Generated: 2026-11-10T11:06:10.715331+00:00
+Source-State: run=iterate-2026-11-10-screenshots-with-description base=ed44d09bcaa7 release=v0.32.0
+Consistency-audit: last run 2026-09-29 (42 days earlier) — PASS
 
 ## Summary
 

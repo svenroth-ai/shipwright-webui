@@ -1,9 +1,9 @@
 {
   "schema_version": 4,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-11-07T12:49:55.622643+00:00",
-  "source_commit": "2db6980308dec9a667099f28b6598c36d17cc64b",
-  "spec_hash": "sha256:262f65a1781edbe0c810bf1901cccd84241bc78917b026218f265e9d8d3c7c87",
+  "generated_at": "2026-11-10T11:06:10.715331+00:00",
+  "source_commit": "ed44d09bcaa77124db13385ee66fc05665331586",
+  "spec_hash": "sha256:9abb9a1d8603d6575dc6cbd1262a290fe997cd9aecc7f9dde0f8b5a2225a5475",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
@@ -2746,6 +2746,38 @@
           {
             "id": "client/e2e/flows/triage-file-viewer.spec.ts::a long, wide .py file scrolls both vertically and horizontally instead of being clipped (iterate-2026-08-30-triage-file-viewer-followups)",
             "path": "client/e2e/flows/triage-file-viewer.spec.ts::a long, wide .py file scrolls both vertically and horizontally instead of being clipped (iterate-2026-08-30-triage-file-viewer-followups)",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-file-viewer.spec.ts::a file mention in a compliance finding's detail opens the real file beside the triage panel",
+            "path": "client/e2e/flows/triage-file-viewer.spec.ts::a file mention in a compliance finding's detail opens the real file beside the triage panel",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-file-viewer.spec.ts::evidencePath renders as a clickable link for a structured-source finding",
+            "path": "client/e2e/flows/triage-file-viewer.spec.ts::evidencePath renders as a clickable link for a structured-source finding",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-file-viewer.spec.ts::on a narrow (phone-width) viewport, opening the file panel does not clip either surface",
+            "path": "client/e2e/flows/triage-file-viewer.spec.ts::on a narrow (phone-width) viewport, opening the file panel does not clip either surface",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-file-viewer.spec.ts::a mention of a file that does not exist under the project renders as plain text, never a clickable link (iterate-2026-08-30-triage-file-viewer-followups)",
+            "path": "client/e2e/flows/triage-file-viewer.spec.ts::a mention of a file that does not exist under the project renders as plain text, never a clickable link (iterate-2026-08-30-triage-file-viewer-followups)",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -14645,6 +14677,86 @@
       "tests": {
         "unit": [
           {
+            "id": "server/src/core/codex-task-watcher.echo.test.ts::control: no echo → one self-check, then no_oracle_unresolved",
+            "path": "server/src/core/codex-task-watcher.echo.test.ts::control: no echo → one self-check, then no_oracle_unresolved",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/codex-task-watcher.echo.test.ts::no_oracle: the reminder's own echo does not re-arm — one write, then unresolved",
+            "path": "server/src/core/codex-task-watcher.echo.test.ts::no_oracle: the reminder's own echo does not re-arm — one write, then unresolved",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/codex-task-watcher.echo.test.ts::not_done: the waker's own echo does not re-arm either",
+            "path": "server/src/core/codex-task-watcher.echo.test.ts::not_done: the waker's own echo does not re-arm either",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/codex-task-watcher.echo.test.ts::a valid done:false report on screen is never nudged again, even with echo",
+            "path": "server/src/core/codex-task-watcher.echo.test.ts::a valid done:false report on screen is never nudged again, even with echo",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/codex-task-watcher.echo.test.ts::a valid done:true report is honoured on the FIRST idle check — task done, no nudge",
+            "path": "server/src/core/codex-task-watcher.echo.test.ts::a valid done:true report is honoured on the FIRST idle check — task done, no nudge",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/codex-task-watcher.echo.test.ts::a report for ANOTHER phase (stale scrollback) is ignored — still nudged, never marked done",
+            "path": "server/src/core/codex-task-watcher.echo.test.ts::a report for ANOTHER phase (stale scrollback) is ignored — still nudged, never marked done",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/codex-task-watcher.echo.test.ts::echo at the grace edge is absorbed; one tick later it is not",
+            "path": "server/src/core/codex-task-watcher.echo.test.ts::echo at the grace edge is absorbed; one tick later it is not",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/codex-task-watcher.echo.test.ts::genuinely new agent output AFTER the grace window still starts a new episode",
+            "path": "server/src/core/codex-task-watcher.echo.test.ts::genuinely new agent output AFTER the grace window still starts a new episode",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/codex-task-watcher.test.ts::§5.4 — no_oracle + a done:true self-report on-screen after the spent nudge marks the task done (external-review finding)",
+            "path": "server/src/core/codex-task-watcher.test.ts::§5.4 — no_oracle + a done:true self-report on-screen after the spent nudge marks the task done (external-review finding)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/codex-task-watcher.test.ts::§5.4 — no_oracle + a done:false (or absent) self-report still falls back to no_oracle_unresolved",
+            "path": "server/src/core/codex-task-watcher.test.ts::§5.4 — no_oracle + a done:false (or absent) self-report still falls back to no_oracle_unresolved",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "server/src/core/launcher-codex.test.ts::emits three shell forms with the codex binary and a cd prefix",
             "path": "server/src/core/launcher-codex.test.ts::emits three shell forms with the codex binary and a cd prefix",
             "layer": "unit",
@@ -19206,13 +19318,29 @@
     "01::FR-01.37": {
       "id": "FR-01.37",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "A custom action can name a slash command (for example '/content-orchestrator') so that the task's description is combined with that command into a single prompt sent to Claude. If a custom action needs this but names no valid slash command, the app reports a clear error up front rather than failing silently or breaking at launch.<br>**Updates:** A command template can also insert the task title as a readable, shell-safe lowercase slug and the first six characters of the task id, so a worktree can be named like 'wt-gap-analyse-3d9e8b'.",
+      "title": "A custom action can name a slash command (for example '/content-orchestrator') so that the task's description is combined with that command into a single prompt sent to Claude. If a custom action needs this but names no valid slash command, the app reports a clear error up front rather than failing silently or breaking at launch.<br>**Updates:** A command template can also insert the task title as a readable, shell-safe lowercase slug and the first six characters of the task id, so a worktree can be named like 'wt-gap-analyse-3d9e8b'. The slash command can also carry fixed flags (for example '/content-orchestrator --noreview') that are always sent, and a checkbox option declared with 'default: true' opens already ticked in the start dialog so the user can still untick it.",
       "priority": "Should",
       "status": "active",
       "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
+          {
+            "id": "server/src/core/actions-schema-validator.boolean-default.test.ts::accepts default:true (pre-checked, still opt-in on the server)",
+            "path": "server/src/core/actions-schema-validator.boolean-default.test.ts::accepts default:true (pre-checked, still opt-in on the server)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/actions-schema-validator.boolean-default.test.ts::still rejects boolean + required, even with default:true",
+            "path": "server/src/core/actions-schema-validator.boolean-default.test.ts::still rejects boolean + required, even with default:true",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
           {
             "id": "server/src/core/actions-substitute.slug.test.ts::lowercases and hyphenates",
             "path": "server/src/core/actions-substitute.slug.test.ts::lowercases and hyphenates",
@@ -20028,11 +20156,70 @@
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/external/actions-schema-validation.slash-command.test.ts::accepts fixed plain flags after the skill token: %s",
+            "path": "server/src/external/actions-schema-validation.slash-command.test.ts::accepts fixed plain flags after the skill token: %s",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/external/actions-schema-validation.slash-command.test.ts::still rejects shell metacharacters / non-flag tokens: %s",
+            "path": "server/src/external/actions-schema-validation.slash-command.test.ts::still rejects shell metacharacters / non-flag tokens: %s",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/NewIssueModal/paramHelpers.test.ts::default:true boolean opens pre-checked and is forwarded; unchecking drops it",
+            "path": "client/src/components/external/NewIssueModal/paramHelpers.test.ts::default:true boolean opens pre-checked and is forwarded; unchecking drops it",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/NewIssueModal/paramHelpers.test.ts::no default / default:false boolean stays unchecked; non-booleans are ignored",
+            "path": "client/src/components/external/NewIssueModal/paramHelpers.test.ts::no default / default:false boolean stays unchecked; non-booleans are ignored",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          }
+        ],
+        "e2e": [
+          {
+            "id": "client/e2e/flows/110-action-boolean-default-checked.spec.ts::upload accepts default:true + flagged slash_command; dialog opens ticked and sends the flag",
+            "path": "client/e2e/flows/110-action-boolean-default-checked.spec.ts::upload accepts default:true + flagged slash_command; dialog opens ticked and sends the flag",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/110-action-boolean-default-checked.spec.ts::the user can untick the pre-checked box and the flag is then not sent",
+            "path": "client/e2e/flows/110-action-boolean-default-checked.spec.ts::the user can untick the pre-checked box and the flag is then not sent",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/110-action-boolean-default-checked.spec.ts::a slash_command with shell metacharacters is still rejected",
+            "path": "client/e2e/flows/110-action-boolean-default-checked.spec.ts::a slash_command with shell metacharacters is still rejected",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
           }
         ]
       },
       "coverage": {
-        "unit": "MISSING"
+        "unit": "MISSING",
+        "e2e": "MISSING"
       }
     },
     "01::FR-01.45": {
@@ -21339,7 +21526,7 @@
     "01::FR-01.30": {
       "id": "FR-01.30",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "A Triage tab (and sidebar entry) that gathers triage items from every project into one list, refreshing about every 30 seconds, with per-project counts and an orange badge. From here you can Promote an item into a real task (done reliably, without creating duplicates on retry), or Dismiss or Snooze it.",
+      "title": "A Triage tab (and sidebar entry) that gathers triage items from every project into one list, refreshing about every 30 seconds, with per-project counts and an orange badge. From here you can Promote an item into a real task (done reliably, without creating duplicates on retry), Fix it now, edit its title/severity, or Dismiss or Snooze it. The page filters, sorts and groups like the Board, remembers your view, remembers which task a Fix now started, and explains audit terms in plain English.",
       "priority": "Must",
       "status": "active",
       "required_layers": [],
@@ -21675,6 +21862,30 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "server/src/external/routes.fixnow-triage-link.test.ts::stores a well-formed triage id and keeps it after a reload",
+            "path": "server/src/external/routes.fixnow-triage-link.test.ts::stores a well-formed triage id and keeps it after a reload",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/external/routes.fixnow-triage-link.test.ts::drops a malformed id (%j)",
+            "path": "server/src/external/routes.fixnow-triage-link.test.ts::drops a malformed id (%j)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/external/routes.fixnow-triage-link.test.ts::still refuses to let the public create set promotedFromTriageId",
+            "path": "server/src/external/routes.fixnow-triage-link.test.ts::still refuses to let the public create set promotedFromTriageId",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "server/src/types/triage-schema-sync.test.ts::server TriageItem and client TriageItem declare the same field set",
             "path": "server/src/types/triage-schema-sync.test.ts::server TriageItem and client TriageItem declare the same field set",
             "layer": "unit",
@@ -21685,6 +21896,134 @@
           {
             "id": "server/src/types/triage-schema-sync.test.ts::launchPayload is declared on both halves (regression fence for iterate-2026-05-20)",
             "path": "server/src/types/triage-schema-sync.test.ts::launchPayload is declared on both halves (regression fence for iterate-2026-05-20)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/NewIssueModal/payload-create.fixnow-link.test.tsx::sends fixNowForTriageId when the modal was opened from a triage item",
+            "path": "client/src/components/external/NewIssueModal/payload-create.fixnow-link.test.tsx::sends fixNowForTriageId when the modal was opened from a triage item",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/NewIssueModal/payload-create.fixnow-link.test.tsx::omits the key when the task is not tied to the item's own project",
+            "path": "client/src/components/external/NewIssueModal/payload-create.fixnow-link.test.tsx::omits the key when the task is not tied to the item's own project",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/NewIssueModal/payload-create.fixnow-link.test.tsx::omits the key for an ordinary task",
+            "path": "client/src/components/external/NewIssueModal/payload-create.fixnow-link.test.tsx::omits the key for an ordinary task",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/ProjectFilterDropdown.test.tsx::shows the task count by default and drops it when showCounts is false",
+            "path": "client/src/components/external/ProjectFilterDropdown.test.tsx::shows the task count by default and drops it when showCounts is false",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/fixNowIntent.test.ts::github source → new-task + phase=security + 'Fix for' title prefix",
+            "path": "client/src/components/triage/fixNowIntent.test.ts::github source → new-task + phase=security + 'Fix for' title prefix",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/fixNowIntent.test.ts::non-github source → new-iterate, no phase pre-fill",
+            "path": "client/src/components/triage/fixNowIntent.test.ts::non-github source → new-iterate, no phase pre-fill",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/fixNowIntent.test.ts::returns failed when catalog is undefined (not loaded yet)",
+            "path": "client/src/components/triage/fixNowIntent.test.ts::returns failed when catalog is undefined (not loaded yet)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/fixNowIntent.test.ts::returns failed when the resolved actionId is missing from the catalog",
+            "path": "client/src/components/triage/fixNowIntent.test.ts::returns failed when the resolved actionId is missing from the catalog",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/fixNowIntent.test.ts::intent carries projectId so the modal pre-selects the right project (github source)",
+            "path": "client/src/components/triage/fixNowIntent.test.ts::intent carries projectId so the modal pre-selects the right project (github source)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/fixNowIntent.test.ts::intent carries projectId for non-github sources too (new-iterate route)",
+            "path": "client/src/components/triage/fixNowIntent.test.ts::intent carries projectId for non-github sources too (new-iterate route)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/PendingDelivery.test.tsx::renders the label and the ships-with-next-iterate explainer tooltip",
+            "path": "client/src/components/triage/PendingDelivery.test.tsx::renders the label and the ships-with-next-iterate explainer tooltip",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/PendingDelivery.test.tsx::shows the badge for an outbox-only item",
+            "path": "client/src/components/triage/PendingDelivery.test.tsx::shows the badge for an outbox-only item",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/PendingDelivery.test.tsx::shows NO badge for a tracked item (false) nor for a legacy un-enriched item (absent)",
+            "path": "client/src/components/triage/PendingDelivery.test.tsx::shows NO badge for a tracked item (false) nor for a legacy un-enriched item (absent)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/PendingDelivery.test.tsx::shows the badge in the header chip row for a pending item",
+            "path": "client/src/components/triage/PendingDelivery.test.tsx::shows the badge in the header chip row for a pending item",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/PendingDelivery.test.tsx::shows NO badge for a non-pending item (layout regression fence)",
+            "path": "client/src/components/triage/PendingDelivery.test.tsx::shows NO badge for a non-pending item (layout regression fence)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/PendingDelivery.test.tsx::Fix-now stays enabled on a pending item and emits the intent (residence never gates the CTA)",
+            "path": "client/src/components/triage/PendingDelivery.test.tsx::Fix-now stays enabled on a pending item and emits the intent (residence never gates the CTA)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -21741,6 +22080,182 @@
           {
             "id": "client/src/components/triage/PromoteModal.test.tsx::dialog surface matches the Project Creation wizard tokens",
             "path": "client/src/components/triage/PromoteModal.test.tsx::dialog surface matches the Project Creation wizard tokens",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailHeader.test.tsx::has no Edit control any more — Edit lives in the action row at the bottom",
+            "path": "client/src/components/triage/TriageDetailHeader.test.tsx::has no Edit control any more — Edit lives in the action row at the bottom",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailHeader.test.tsx::shows the same pills as the card: source label, severity, no severity help",
+            "path": "client/src/components/triage/TriageDetailHeader.test.tsx::shows the same pills as the card: source label, severity, no severity help",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailHeader.test.tsx::shows the project pill only when a label is given",
+            "path": "client/src/components/triage/TriageDetailHeader.test.tsx::shows the project pill only when a label is given",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailHeader.test.tsx::shows no provenance subtitle when never amended",
+            "path": "client/src/components/triage/TriageDetailHeader.test.tsx::shows no provenance subtitle when never amended",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailHeader.test.tsx::shows the provenance subtitle when amendedBy is set",
+            "path": "client/src/components/triage/TriageDetailHeader.test.tsx::shows the provenance subtitle when amendedBy is set",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailHeader.test.tsx::external-review regression: hides the visible title text and the severity badge while editing (TriageAmendForm shows editable equivalents)",
+            "path": "client/src/components/triage/TriageDetailHeader.test.tsx::external-review regression: hides the visible title text and the severity badge while editing (TriageAmendForm shows editable equivalents)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailHeader.test.tsx::shows the title and severity badge normally when not editing",
+            "path": "client/src/components/triage/TriageDetailHeader.test.tsx::shows the title and severity badge normally when not editing",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailMeta.test.tsx::explains each audit check in words inline (no question-mark icon), and keeps the raw detail folded",
+            "path": "client/src/components/triage/TriageDetailMeta.test.tsx::explains each audit check in words inline (no question-mark icon), and keeps the raw detail folded",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailMeta.test.tsx::keeps the secondary fields in a collapsed Details section",
+            "path": "client/src/components/triage/TriageDetailMeta.test.tsx::keeps the secondary fields in a collapsed Details section",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailMeta.test.tsx::shows no findings list for a plain item",
+            "path": "client/src/components/triage/TriageDetailMeta.test.tsx::shows no findings list for a plain item",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailMeta.test.tsx::shows complexity read-only and notes that priority follows severity",
+            "path": "client/src/components/triage/TriageDetailMeta.test.tsx::shows complexity read-only and notes that priority follows severity",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailModal.amend.test.tsx::shows the pencil Edit toggle for a status===triage item",
+            "path": "client/src/components/triage/TriageDetailModal.amend.test.tsx::shows the pencil Edit toggle for a status===triage item",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailModal.amend.test.tsx::hides the Edit toggle for a non-triage status (dismissed)",
+            "path": "client/src/components/triage/TriageDetailModal.amend.test.tsx::hides the Edit toggle for a non-triage status (dismissed)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailModal.amend.test.tsx::clicking Edit swaps the Detail read display for the amend form, and hides the action row",
+            "path": "client/src/components/triage/TriageDetailModal.amend.test.tsx::clicking Edit swaps the Detail read display for the amend form, and hides the action row",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailModal.amend.test.tsx::Cancel returns to the read display without amending",
+            "path": "client/src/components/triage/TriageDetailModal.amend.test.tsx::Cancel returns to the read display without amending",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailModal.amend.test.tsx::Save submits the delta and returns to the read display on success",
+            "path": "client/src/components/triage/TriageDetailModal.amend.test.tsx::Save submits the delta and returns to the read display on success",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailModal.amend.test.tsx::shows the 'last edited' provenance subtitle when amendedBy is set",
+            "path": "client/src/components/triage/TriageDetailModal.amend.test.tsx::shows the 'last edited' provenance subtitle when amendedBy is set",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailModal.amend.test.tsx::shows no provenance subtitle when the item has never been amended",
+            "path": "client/src/components/triage/TriageDetailModal.amend.test.tsx::shows no provenance subtitle when the item has never been amended",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailModal.amend.test.tsx::AC9: discloses a tracked-store write when the drift signal says writes will NOT route to outbox",
+            "path": "client/src/components/triage/TriageDetailModal.amend.test.tsx::AC9: discloses a tracked-store write when the drift signal says writes will NOT route to outbox",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailModal.amend.test.tsx::AC9: shows no disclosure when writes route to the outbox (idle main)",
+            "path": "client/src/components/triage/TriageDetailModal.amend.test.tsx::AC9: shows no disclosure when writes route to the outbox (idle main)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailModal.amend.test.tsx::disables every triage write action with a visible engine-unavailable reason",
+            "path": "client/src/components/triage/TriageDetailModal.amend.test.tsx::disables every triage write action with a visible engine-unavailable reason",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageDetailModal.amend.test.tsx::disables an already-open Edit form if the write engine becomes unavailable",
+            "path": "client/src/components/triage/TriageDetailModal.amend.test.tsx::disables an already-open Edit form if the write engine becomes unavailable",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -21883,16 +22398,24 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::renders on the white --color-surface with a resting shadow (not beige-on-beige)",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::renders on the white --color-surface with a resting shadow (not beige-on-beige)",
+            "id": "client/src/components/triage/TriageGroupList.test.tsx::a saved-collapsed group hides its cards",
+            "path": "client/src/components/triage/TriageGroupList.test.tsx::a saved-collapsed group hides its cards",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::lifts to the stronger hover shadow on hover",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::lifts to the stronger hover shadow on hover",
+            "id": "client/src/components/triage/TriageGroupList.test.tsx::a collapsed group holding a returned park stays open",
+            "path": "client/src/components/triage/TriageGroupList.test.tsx::a collapsed group holding a returned park stays open",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::renders on the white --color-surface with a resting shadow (not beige-on-beige)",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::renders on the white --color-surface with a resting shadow (not beige-on-beige)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -21913,9 +22436,1201 @@
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::clicking the title opens the detail",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::clicking the title opens the detail",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::clicking an action button does NOT also open the detail",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::clicking an action button does NOT also open the detail",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::clicking inside the open Promote dialog does NOT open the detail",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::clicking inside the open Promote dialog does NOT open the detail",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::Fix now hands the intent up bound to the entry's own project",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::Fix now hands the intent up bound to the entry's own project",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::Dismiss asks for a reason first and flips the item only after confirming",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::Dismiss asks for a reason first and flips the item only after confirming",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::Dismiss without typing a reason sends null",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::Dismiss without typing a reason sends null",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::Cancel in the Dismiss popup dismisses nothing",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::Cancel in the Dismiss popup dismisses nothing",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::a rejected Dismiss keeps the popup open and shows the error",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::a rejected Dismiss keeps the popup open and shows the error",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::a campaign item offers Start campaign instead of Fix now",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::a campaign item offers Start campaign instead of Fix now",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::an active campaign offers Go to board",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::an active campaign offers Go to board",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::lists each audit check of a compliance bundle on its own line with a help button",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::lists each audit check of a compliance bundle on its own line with a help button",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::explains the severity with a help marker",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::explains the severity with a help marker",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::shows the project label only when given",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::shows the project label only when given",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::a parked item is read-only and says when it returns",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::a parked item is read-only and says when it returns",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::shows the In progress box and Resolve instead of Fix now, Promote and Snooze",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::shows the In progress box and Resolve instead of Fix now, Promote and Snooze",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::Resolve dismisses with the prefilled task reason",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::Resolve dismisses with the prefilled task reason",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::a link for the same id in another project does not show",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::a link for the same id in another project does not show",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriagePills.test.tsx::shows the source label with its help, a severity pill WITHOUT help, and no project pill by default",
+            "path": "client/src/components/triage/TriagePills.test.tsx::shows the source label with its help, a severity pill WITHOUT help, and no project pill by default",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriagePills.test.tsx::project pill uses dark text on the muted surface, never a translucent one",
+            "path": "client/src/components/triage/TriagePills.test.tsx::project pill uses dark text on the muted surface, never a translucent one",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriagePills.test.tsx::the card grid is 1 column, then 2, then 3",
+            "path": "client/src/components/triage/TriagePills.test.tsx::the card grid is 1 column, then 2, then 3",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriagePills.test.tsx::a project-specific source is shown as written and gets the generic help",
+            "path": "client/src/components/triage/TriagePills.test.tsx::a project-specific source is shown as written and gets the generic help",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageQuickEdit.test.tsx::sends only the changed fields",
+            "path": "client/src/components/triage/TriageQuickEdit.test.tsx::sends only the changed fields",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageQuickEdit.test.tsx::closes without a request when nothing changed",
+            "path": "client/src/components/triage/TriageQuickEdit.test.tsx::closes without a request when nothing changed",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageQuickEdit.test.tsx::shows the server message on a failed save",
+            "path": "client/src/components/triage/TriageQuickEdit.test.tsx::shows the server message on a failed save",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageQuickEdit.test.tsx::shows a network error when the request throws",
+            "path": "client/src/components/triage/TriageQuickEdit.test.tsx::shows a network error when the request throws",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageQuickEdit.test.tsx::disables Save and says why when writing is unavailable",
+            "path": "client/src/components/triage/TriageQuickEdit.test.tsx::disables Save and says why when writing is unavailable",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageQuickEdit.test.tsx::a preset snoozes with a date and the trimmed reason",
+            "path": "client/src/components/triage/TriageQuickEdit.test.tsx::a preset snoozes with a date and the trimmed reason",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageQuickEdit.test.tsx::No date snoozes without a revisit date",
+            "path": "client/src/components/triage/TriageQuickEdit.test.tsx::No date snoozes without a revisit date",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageQuickEdit.test.tsx::the date button stays off until a valid date is picked, then snoozes",
+            "path": "client/src/components/triage/TriageQuickEdit.test.tsx::the date button stays off until a valid date is picked, then snoozes",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageQuickEdit.test.tsx::shows the server message and keeps the menu open on a rejected snooze",
+            "path": "client/src/components/triage/TriageQuickEdit.test.tsx::shows the server message and keeps the menu open on a rejected snooze",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageQuickEdit.test.tsx::snooze shows a network error when the request throws",
+            "path": "client/src/components/triage/TriageQuickEdit.test.tsx::snooze shows a network error when the request throws",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useTriage.test.ts::useAllTriageItems reads the SAME cache entry useTriageItems already populated — no second fetch",
+            "path": "client/src/hooks/useTriage.test.ts::useAllTriageItems reads the SAME cache entry useTriageItems already populated — no second fetch",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useTriage.test.ts::useTriageItems still resolves correctly when useAllTriageItems populates the cache FIRST (the reverse race)",
+            "path": "client/src/hooks/useTriage.test.ts::useTriageItems still resolves correctly when useAllTriageItems populates the cache FIRST (the reverse race)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useTriageViewState.test.ts::starts from the defaults when nothing is saved",
+            "path": "client/src/hooks/useTriageViewState.test.ts::starts from the defaults when nothing is saved",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useTriageViewState.test.ts::ticks and unticks a filter value (empty set = all)",
+            "path": "client/src/hooks/useTriageViewState.test.ts::ticks and unticks a filter value (empty set = all)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useTriageViewState.test.ts::remembers the view across a remount (the reload case)",
+            "path": "client/src/hooks/useTriageViewState.test.ts::remembers the view across a remount (the reload case)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useTriageViewState.test.ts::never overwrites a saved view with defaults on mount",
+            "path": "client/src/hooks/useTriageViewState.test.ts::never overwrites a saved view with defaults on mount",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useTriageViewState.test.ts::changing the grouping resets collapsed groups",
+            "path": "client/src/hooks/useTriageViewState.test.ts::changing the grouping resets collapsed groups",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useTriageViewState.test.ts::clearFilters resets filters (incl. Parked) but keeps sort and grouping",
+            "path": "client/src/hooks/useTriageViewState.test.ts::clearFilters resets filters (incl. Parked) but keeps sort and grouping",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useTriageViewState.test.ts::resetView restores every default",
+            "path": "client/src/hooks/useTriageViewState.test.ts::resetView restores every default",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::splits open and parked, sorts most severe first",
+            "path": "client/src/lib/triageBoardModel.test.ts::splits open and parked, sorts most severe first",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::Parked off: dateless park visible, dated hidden and counted",
+            "path": "client/src/lib/triageBoardModel.test.ts::Parked off: dateless park visible, dated hidden and counted",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::ticked filter narrows the open list and counts what it hid",
+            "path": "client/src/lib/triageBoardModel.test.ts::ticked filter narrows the open list and counts what it hid",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::search matches title, detail and id, case-insensitively",
+            "path": "client/src/lib/triageBoardModel.test.ts::search matches title, detail and id, case-insensitively",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::the Critical + High tile narrows to those severities; attention counts them",
+            "path": "client/src/lib/triageBoardModel.test.ts::the Critical + High tile narrows to those severities; attention counts them",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::groups the visible list",
+            "path": "client/src/lib/triageBoardModel.test.ts::groups the visible list",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::facet counts cover all open entries regardless of filters",
+            "path": "client/src/lib/triageBoardModel.test.ts::facet counts cover all open entries regardless of filters",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::the same triage id in two projects stays two distinct rows",
+            "path": "client/src/lib/triageBoardModel.test.ts::the same triage id in two projects stays two distinct rows",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::a returned park also bypasses the Critical + High tile",
+            "path": "client/src/lib/triageBoardModel.test.ts::a returned park also bypasses the Critical + High tile",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::a returned park also bypasses a search that does not match it",
+            "path": "client/src/lib/triageBoardModel.test.ts::a returned park also bypasses a search that does not match it",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::facet counts survive keys that collide with Object.prototype",
+            "path": "client/src/lib/triageBoardModel.test.ts::facet counts survive keys that collide with Object.prototype",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::a returned park shows even when no ticked value matches it and is not counted hidden",
+            "path": "client/src/lib/triageBoardModel.test.ts::a returned park shows even when no ticked value matches it and is not counted hidden",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::counts open items whose task is linked, and narrows to them with the tile",
+            "path": "client/src/lib/triageBoardModel.test.ts::counts open items whose task is linked, and narrows to them with the tile",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::a returned park still shows under the In progress tile",
+            "path": "client/src/lib/triageBoardModel.test.ts::a returned park still shows under the In progress tile",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::a linked key from another project does not match the same id",
+            "path": "client/src/lib/triageBoardModel.test.ts::a linked key from another project does not match the same id",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageBoardModel.test.ts::no linked set means nothing is in progress",
+            "path": "client/src/lib/triageBoardModel.test.ts::no linked set means nothing is in progress",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::resolves to 'unset' when the item carries no complexity field",
+            "path": "client/src/lib/triageFilterSort.test.ts::resolves to 'unset' when the item carries no complexity field",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::classifies an unrecognized producer value as 'unset'",
+            "path": "client/src/lib/triageFilterSort.test.ts::classifies an unrecognized producer value as 'unset'",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::passes a real value through",
+            "path": "client/src/lib/triageFilterSort.test.ts::passes a real value through",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::shows everything when nothing is ticked",
+            "path": "client/src/lib/triageFilterSort.test.ts::shows everything when nothing is ticked",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::shows only the ticked severity",
+            "path": "client/src/lib/triageFilterSort.test.ts::shows only the ticked severity",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::ANDs across groups and ORs inside one group",
+            "path": "client/src/lib/triageFilterSort.test.ts::ANDs across groups and ORs inside one group",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::filters priority, domain and complexity",
+            "path": "client/src/lib/triageFilterSort.test.ts::filters priority, domain and complexity",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::counts ticked values (drives the funnel dot)",
+            "path": "client/src/lib/triageFilterSort.test.ts::counts ticked values (drives the funnel dot)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::keeps a returned park even when no ticked value matches it, and does not count it hidden",
+            "path": "client/src/lib/triageFilterSort.test.ts::keeps a returned park even when no ticked value matches it, and does not count it hidden",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::Parked off: dated hidden, dateless stays visible",
+            "path": "client/src/lib/triageFilterSort.test.ts::Parked off: dated hidden, dateless stays visible",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::Parked on: both visible",
+            "path": "client/src/lib/triageFilterSort.test.ts::Parked on: both visible",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::a dateless park still respects the ticked values (AND, not a bypass)",
+            "path": "client/src/lib/triageFilterSort.test.ts::a dateless park still respects the ticked values (AND, not a bypass)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::Parked on + ticked value filters a dated park",
+            "path": "client/src/lib/triageFilterSort.test.ts::Parked on + ticked value filters a dated park",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::prints N when nothing is hidden and 'N of M' otherwise",
+            "path": "client/src/lib/triageFilterSort.test.ts::prints N when nothing is hidden and 'N of M' otherwise",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::default: most severe first, then newest",
+            "path": "client/src/lib/triageFilterSort.test.ts::default: most severe first, then newest",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::severity ascending puts the least severe first",
+            "path": "client/src/lib/triageFilterSort.test.ts::severity ascending puts the least severe first",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::priority descending puts P0 first; ascending puts P3 first",
+            "path": "client/src/lib/triageFilterSort.test.ts::priority descending puts P0 first; ascending puts P3 first",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::modified uses the status-decision time: desc = newest first",
+            "path": "client/src/lib/triageFilterSort.test.ts::modified uses the status-decision time: desc = newest first",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::modified sorts by ts, never originalTs",
+            "path": "client/src/lib/triageFilterSort.test.ts::modified sorts by ts, never originalTs",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::name sorts with a pinned root locale (spy-asserted)",
+            "path": "client/src/lib/triageFilterSort.test.ts::name sorts with a pinned root locale (spy-asserted)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::secondary direction is independent of the primary",
+            "path": "client/src/lib/triageFilterSort.test.ts::secondary direction is independent of the primary",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFilterSort.test.ts::is a total order: ties break on project then id, and input is not mutated",
+            "path": "client/src/lib/triageFilterSort.test.ts::is a total order: ties break on project then id, and input is not mutated",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFindings.test.ts::reads code, title, detail and hint from a real compliance bundle",
+            "path": "client/src/lib/triageFindings.test.ts::reads code, title, detail and hint from a real compliance bundle",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFindings.test.ts::reads phase-quality lines with or without a colon",
+            "path": "client/src/lib/triageFindings.test.ts::reads phase-quality lines with or without a colon",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFindings.test.ts::accepts unknown-shape codes such as E/E? and CRLF line endings",
+            "path": "client/src/lib/triageFindings.test.ts::accepts unknown-shape codes such as E/E? and CRLF line endings",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageFindings.test.ts::returns [] when no line looks like a check, so the caller shows the raw text",
+            "path": "client/src/lib/triageFindings.test.ts::returns [] when no line looks like a check, so the caller shows the raw text",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageGrouping.test.ts::none: one unlabeled group in input order; empty input -> no groups",
+            "path": "client/src/lib/triageGrouping.test.ts::none: one unlabeled group in input order; empty input -> no groups",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageGrouping.test.ts::project: follows the project order, carries name and colour, omits empty groups",
+            "path": "client/src/lib/triageGrouping.test.ts::project: follows the project order, carries name and colour, omits empty groups",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageGrouping.test.ts::severity: most severe first; priority: P0 first",
+            "path": "client/src/lib/triageGrouping.test.ts::severity: most severe first; priority: P0 first",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageGrouping.test.ts::source: alphabetical by display label",
+            "path": "client/src/lib/triageGrouping.test.ts::source: alphabetical by display label",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageGrouping.test.ts::keys are <groupBy>:<value> and stable",
+            "path": "client/src/lib/triageGrouping.test.ts::keys are <groupBy>:<value> and stable",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageGrouping.test.ts::never drops an entry whose project is not in the project list",
+            "path": "client/src/lib/triageGrouping.test.ts::never drops an entry whose project is not in the project list",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageHelpDoc.test.ts::the committed document matches the code (regenerate with UPDATE_HELP_DOC=1)",
+            "path": "client/src/lib/triageHelpDoc.test.ts::the committed document matches the code (regenerate with UPDATE_HELP_DOC=1)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageHelpDoc.test.ts::every known source has its own help text, not the generic fallback",
+            "path": "client/src/lib/triageHelpDoc.test.ts::every known source has its own help text, not the generic fallback",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageHelpDoc.test.ts::project-specific sources have no catalogue entry and no label of their own",
+            "path": "client/src/lib/triageHelpDoc.test.ts::project-specific sources have no catalogue entry and no label of their own",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageHelpText.test.ts::every known check code has all three parts of an explanation",
+            "path": "client/src/lib/triageHelpText.test.ts::every known check code has all three parts of an explanation",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageHelpText.test.ts::every code that really appears in the project's triage log has a text (placeholder 'E/E?' excepted)",
+            "path": "client/src/lib/triageHelpText.test.ts::every code that really appears in the project's triage log has a text (placeholder 'E/E?' excepted)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageHelpText.test.ts::unknown codes and sources fall back to a generic text instead of failing",
+            "path": "client/src/lib/triageHelpText.test.ts::unknown codes and sources fall back to a generic text instead of failing",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageHelpText.test.ts::GitHub explains a security scan summary and a failing pull-request check differently",
+            "path": "client/src/lib/triageHelpText.test.ts::GitHub explains a security scan summary and a failing pull-request check differently",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageHelpText.test.ts::GitHub security summaries name only the kinds of finding they hold",
+            "path": "client/src/lib/triageHelpText.test.ts::GitHub security summaries name only the kinds of finding they hold",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageHelpText.test.ts::no two audit checks share the same why-text unless they are the stale-report family",
+            "path": "client/src/lib/triageHelpText.test.ts::no two audit checks share the same why-text unless they are the stale-report family",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageHelpText.test.ts::odd source names such as __proto__ or constructor show as written with the generic help",
+            "path": "client/src/lib/triageHelpText.test.ts::odd source names such as __proto__ or constructor show as written with the generic help",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageHelpText.test.ts::every explanation says what Fix now does",
+            "path": "client/src/lib/triageHelpText.test.ts::every explanation says what Fix now does",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageSnooze.test.ts::tomorrow / 1 week / 1 month as calendar dates",
+            "path": "client/src/lib/triageSnooze.test.ts::tomorrow / 1 week / 1 month as calendar dates",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageSnooze.test.ts::clamps 1 month to the end of a shorter month",
+            "path": "client/src/lib/triageSnooze.test.ts::clamps 1 month to the end of a shorter month",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageSnooze.test.ts::rolls over month and year ends for tomorrow and 1 week",
+            "path": "client/src/lib/triageSnooze.test.ts::rolls over month and year ends for tomorrow and 1 week",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageSnooze.test.ts::is stable across a daylight-saving change (calendar arithmetic, not milliseconds)",
+            "path": "client/src/lib/triageSnooze.test.ts::is stable across a daylight-saving change (calendar arithmetic, not milliseconds)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageSnooze.test.ts::never offers a date the server would still count as today",
+            "path": "client/src/lib/triageSnooze.test.ts::never offers a date the server would still count as today",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageTaskLinks.test.ts::keys a linked task by project and triage id",
+            "path": "client/src/lib/triageTaskLinks.test.ts::keys a linked task by project and triage id",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageTaskLinks.test.ts::a task whose launch failed releases the item so Fix now can be retried",
+            "path": "client/src/lib/triageTaskLinks.test.ts::a task whose launch failed releases the item so Fix now can be retried",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageTaskLinks.test.ts::ignores tasks without a link and done tasks",
+            "path": "client/src/lib/triageTaskLinks.test.ts::ignores tasks without a link and done tasks",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageTaskLinks.test.ts::the same triage id in two projects stays two links",
+            "path": "client/src/lib/triageTaskLinks.test.ts::the same triage id in two projects stays two links",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageTaskLinks.test.ts::the newest live task wins",
+            "path": "client/src/lib/triageTaskLinks.test.ts::the newest live task wins",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageViewStorage.test.ts::round-trips filters, sort, grouping and collapsed groups",
+            "path": "client/src/lib/triageViewStorage.test.ts::round-trips filters, sort, grouping and collapsed groups",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageViewStorage.test.ts::falls back to defaults for null, garbage, wrong version and non-objects",
+            "path": "client/src/lib/triageViewStorage.test.ts::falls back to defaults for null, garbage, wrong version and non-objects",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageViewStorage.test.ts::ignores the legacy exclude-set shape instead of misreading it",
+            "path": "client/src/lib/triageViewStorage.test.ts::ignores the legacy exclude-set shape instead of misreading it",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageViewStorage.test.ts::drops unknown values inside a valid payload (never 'show nothing')",
+            "path": "client/src/lib/triageViewStorage.test.ts::drops unknown values inside a valid payload (never 'show nothing')",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageViewStorage.test.ts::validates every field on its own",
+            "path": "client/src/lib/triageViewStorage.test.ts::validates every field on its own",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageViewStorage.test.ts::resets collapsed groups when they belong to a different grouping",
+            "path": "client/src/lib/triageViewStorage.test.ts::resets collapsed groups when they belong to a different grouping",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageViewStorage.test.ts::bounds string lists and drops non-strings",
+            "path": "client/src/lib/triageViewStorage.test.ts::bounds string lists and drops non-strings",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageViewStorage.test.ts::loadView/saveView use the versioned key and survive a throwing storage",
+            "path": "client/src/lib/triageViewStorage.test.ts::loadView/saveView use the versioned key and survive a throwing storage",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::renders empty state when there is nothing open or parked",
+            "path": "client/src/pages/TriagePage.test.tsx::renders empty state when there is nothing open or parked",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::renders item cards in one aggregated list",
+            "path": "client/src/pages/TriagePage.test.tsx::renders item cards in one aggregated list",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::shows the three summary tiles with their counts",
+            "path": "client/src/pages/TriagePage.test.tsx::shows the three summary tiles with their counts",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::hides the empty state when there are zero open items but a dateless park exists",
+            "path": "client/src/pages/TriagePage.test.tsx::hides the empty state when there are zero open items but a dateless park exists",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::renders item with XSS-unsafe title as plain text (not as HTML)",
+            "path": "client/src/pages/TriagePage.test.tsx::renders item with XSS-unsafe title as plain text (not as HTML)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::clicking an item title opens the detail modal",
+            "path": "client/src/pages/TriagePage.test.tsx::clicking an item title opens the detail modal",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::shows the staleness banner when the local checkout is behind origin",
+            "path": "client/src/pages/TriagePage.test.tsx::shows the staleness banner when the local checkout is behind origin",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::hides the staleness banner when in sync (behind 0) or when behind is unknown",
+            "path": "client/src/pages/TriagePage.test.tsx::hides the staleness banner when in sync (behind 0) or when behind is unknown",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::adds a ghost-risk note only when origin is unavailable (degraded)",
+            "path": "client/src/pages/TriagePage.test.tsx::adds a ghost-risk note only when origin is unavailable (degraded)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::a failed load shows the error block with Retry, not an empty page",
+            "path": "client/src/pages/TriagePage.test.tsx::a failed load shows the error block with Retry, not an empty page",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::a ticked filter that hides everything shows the all-filtered-out message and Clear restores the list",
+            "path": "client/src/pages/TriagePage.test.tsx::a ticked filter that hides everything shows the all-filtered-out message and Clear restores the list",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::a dated, not-yet-due park is hidden by default with a hint, not reported as an active filter",
+            "path": "client/src/pages/TriagePage.test.tsx::a dated, not-yet-due park is hidden by default with a hint, not reported as an active filter",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::search appears only above 12 open items",
+            "path": "client/src/pages/TriagePage.test.tsx::search appears only above 12 open items",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::the In progress tile counts items with a Fix-now task and narrows the list to them",
+            "path": "client/src/pages/TriagePage.test.tsx::the In progress tile counts items with a Fix-now task and narrows the list to them",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/TriagePage.test.tsx::the In progress tile shows 0 when no task is linked",
+            "path": "client/src/pages/TriagePage.test.tsx::the In progress tile shows 0 when no task is linked",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/styles/on-photo-legibility.test.ts::board CAMPAIGNS label uses the flipping --muted token, not the legacy alias",
+            "path": "client/src/styles/on-photo-legibility.test.ts::board CAMPAIGNS label uses the flipping --muted token, not the legacy alias",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/styles/on-photo-legibility.test.ts::inbox project group header uses --ink / --muted, not --color-text / --color-muted",
+            "path": "client/src/styles/on-photo-legibility.test.ts::inbox project group header uses --ink / --muted, not --color-text / --color-muted",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/styles/on-photo-legibility.test.ts::triage group headers (bare on the photo) use --ink / --muted, not the legacy text aliases",
+            "path": "client/src/styles/on-photo-legibility.test.ts::triage group headers (bare on the photo) use --ink / --muted, not the legacy text aliases",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/styles/on-photo-legibility.test.ts::the Parked heading and its hidden-parked hint (bare on-photo) use the flipping tokens",
+            "path": "client/src/styles/on-photo-legibility.test.ts::the Parked heading and its hidden-parked hint (bare on-photo) use the flipping tokens",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/styles/on-photo-legibility.test.ts::GradeResult's band pill carries a class the .on-photo solid-surface reset targets",
+            "path": "client/src/styles/on-photo-legibility.test.ts::GradeResult's band pill carries a class the .on-photo solid-surface reset targets",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/styles/on-photo-legibility.test.ts::wizard-plan-phases container carries a class the .on-photo solid-surface reset targets",
+            "path": "client/src/styles/on-photo-legibility.test.ts::wizard-plan-phases container carries a class the .on-photo solid-surface reset targets",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/styles/on-photo-legibility.test.ts::wizard-plan-phases container sets no inline background/boxShadow (must come from the .on-photo-reset class, not an inline override)",
+            "path": "client/src/styles/on-photo-legibility.test.ts::wizard-plan-phases container sets no inline background/boxShadow (must come from the .on-photo-reset class, not an inline override)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/styles/on-photo-legibility.test.ts::${rel} introduces no text-shadow",
+            "path": "client/src/styles/on-photo-legibility.test.ts::${rel} introduces no text-shadow",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
           }
         ],
         "e2e": [
+          {
+            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): the filter menu opens fully inside the viewport",
+            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): the filter menu opens fully inside the viewport",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::all four action buttons are fully within the dialog/viewport at 375px",
+            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::all four action buttons are fully within the dialog/viewport at 375px",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): group/list margins resolve to the tightened max-md values",
+            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): group/list margins resolve to the tightened max-md values",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): group margin stays at the original 16px value",
+            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): group margin stays at the original 16px value",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-amend.spec.ts::editing title + severity writes an amend event and the resolved card + provenance update",
+            "path": "client/e2e/flows/triage-amend.spec.ts::editing title + severity writes an amend event and the resolved card + provenance update",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-amend.spec.ts::Cancel discards edits — no amend event is written and the original title stays",
+            "path": "client/e2e/flows/triage-amend.spec.ts::Cancel discards edits — no amend event is written and the original title stays",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-deferred-envelope.spec.ts::expired park auto-reopens; future-dated + undated parks render in Deferred with the right revisit info",
+            "path": "client/e2e/flows/triage-deferred-envelope.spec.ts::expired park auto-reopens; future-dated + undated parks render in Deferred with the right revisit info",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-deferred-envelope.spec.ts::Snooze with a revisit date moves the item into Deferred (AC7)",
+            "path": "client/e2e/flows/triage-deferred-envelope.spec.ts::Snooze with a revisit date moves the item into Deferred (AC7)",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-fix-now-more-options-clip.spec.ts::auto-expanded More options renders every field — panel is not squeezed, the modal body scrolls instead",
+            "path": "client/e2e/flows/triage-fix-now-more-options-clip.spec.ts::auto-expanded More options renders every field — panel is not squeezed, the modal body scrolls instead",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
           {
             "id": "client/e2e/flows/triage-fix-now.spec.ts::github source: Fix-now opens new-task modal pre-filled with phase=security",
             "path": "client/e2e/flows/triage-fix-now.spec.ts::github source: Fix-now opens new-task modal pre-filled with phase=security",
@@ -21927,6 +23642,126 @@
           {
             "id": "client/e2e/flows/triage-fix-now.spec.ts::iterate source: Fix-now opens new-iterate modal (no phase picker)",
             "path": "client/e2e/flows/triage-fix-now.spec.ts::iterate source: Fix-now opens new-iterate modal (no phase picker)",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-fixnow-task.spec.ts::Fix now → In progress box, tile and Resolve with a reason",
+            "path": "client/e2e/flows/triage-fixnow-task.spec.ts::Fix now → In progress box, tile and Resolve with a reason",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-fixnow-task.spec.ts::Dismiss cross: Cancel keeps the card, Dismiss stores the reason",
+            "path": "client/e2e/flows/triage-fixnow-task.spec.ts::Dismiss cross: Cancel keeps the card, Dismiss stores the reason",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-fixnow-task.spec.ts::phone width: the Dismiss popup stays inside the viewport",
+            "path": "client/e2e/flows/triage-fixnow-task.spec.ts::phone width: the Dismiss popup stays inside the viewport",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-pending-delivery.spec.ts::outbox-only finding is badged pending-delivery; tracked finding is not; Fix-now works on the pending item",
+            "path": "client/e2e/flows/triage-pending-delivery.spec.ts::outbox-only finding is badged pending-delivery; tracked finding is not; Fix-now works on the pending item",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-polish-r3.spec.ts::cards sit in 1, 2 and 3 columns depending on the window width",
+            "path": "client/e2e/flows/triage-polish-r3.spec.ts::cards sit in 1, 2 and 3 columns depending on the window width",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-polish-r3.spec.ts::project dropdown has no counts and Reset view is first in the filter menu",
+            "path": "client/e2e/flows/triage-polish-r3.spec.ts::project dropdown has no counts and Reset view is first in the filter menu",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-polish-r3.spec.ts::detail dialog: explained findings first, Details collapsed, Edit at the bottom",
+            "path": "client/e2e/flows/triage-polish-r3.spec.ts::detail dialog: explained findings first, Details collapsed, Edit at the bottom",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-polish-r3.spec.ts::an unknown project source shows as written with the generic help",
+            "path": "client/e2e/flows/triage-polish-r3.spec.ts::an unknown project source shows as written with the generic help",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-record-boundary-recovery.spec.ts::both findings on one concatenated line reach the Inbox, and a partial line keeps its valid record",
+            "path": "client/e2e/flows/triage-record-boundary-recovery.spec.ts::both findings on one concatenated line reach the Inbox, and a partial line keeps its valid record",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-redesign.spec.ts::filter + grouping persist across a reload; ticking nothing shows all",
+            "path": "client/e2e/flows/triage-redesign.spec.ts::filter + grouping persist across a reload; ticking nothing shows all",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-redesign.spec.ts::keyboard: the filter menu opens with Enter and closes with Escape",
+            "path": "client/e2e/flows/triage-redesign.spec.ts::keyboard: the filter menu opens with Enter and closes with Escape",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-redesign.spec.ts::quick edit changes the title and severity in place",
+            "path": "client/e2e/flows/triage-redesign.spec.ts::quick edit changes the title and severity in place",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-redesign.spec.ts::Snooze on the card parks the item (tomorrow preset)",
+            "path": "client/e2e/flows/triage-redesign.spec.ts::Snooze on the card parks the item (tomorrow preset)",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-redesign.spec.ts::Fix now on the card opens the new-task dialog for the entry's own project",
+            "path": "client/e2e/flows/triage-redesign.spec.ts::Fix now on the card opens the new-task dialog for the entry's own project",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-redesign.spec.ts::phone: dialog edit form and Snooze menu stay inside the dialog / viewport",
+            "path": "client/e2e/flows/triage-redesign.spec.ts::phone: dialog edit form and Snooze menu stay inside the dialog / viewport",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -25022,46 +26857,6 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/DeferredTriageSection.test.tsx::wrapper margin is tightened on phone, unchanged above it",
-            "path": "client/src/components/triage/DeferredTriageSection.test.tsx::wrapper margin is tightened on phone, unchanged above it",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/triage/PerProjectTriageSection.test.tsx::section + heading + open-items-list margins are tightened on phone, unchanged above it",
-            "path": "client/src/components/triage/PerProjectTriageSection.test.tsx::section + heading + open-items-list margins are tightened on phone, unchanged above it",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/triage/TriageFilterSortBar.test.tsx::desktop/tablet (>=768px): no toggle renders, content always visible",
-            "path": "client/src/components/triage/TriageFilterSortBar.test.tsx::desktop/tablet (>=768px): no toggle renders, content always visible",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/triage/TriageFilterSortBar.test.tsx::phone (<768px): toggle renders, content collapsed on first render",
-            "path": "client/src/components/triage/TriageFilterSortBar.test.tsx::phone (<768px): toggle renders, content collapsed on first render",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/triage/TriageFilterSortBar.test.tsx::phone: clicking the toggle expands the filter/sort content",
-            "path": "client/src/components/triage/TriageFilterSortBar.test.tsx::phone: clicking the toggle expands the filter/sort content",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
             "id": "client/src/hooks/useKeyboardViewportFit.test.ts::detects the keyboard and mirrors the visual viewport box",
             "path": "client/src/hooks/useKeyboardViewportFit.test.ts::detects the keyboard and mirrors the visual viewport box",
             "layer": "unit",
@@ -25200,8 +26995,8 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/e2e/flows/mobile-taskdetail-polish.spec.ts::triage list is tight: cards sit 4px apart and 3 fit on a phone screen",
-            "path": "client/e2e/flows/mobile-taskdetail-polish.spec.ts::triage list is tight: cards sit 4px apart and 3 fit on a phone screen",
+            "id": "client/e2e/flows/mobile-taskdetail-polish.spec.ts::triage list is tight: cards sit 4px apart and stay compact on a phone",
+            "path": "client/e2e/flows/mobile-taskdetail-polish.spec.ts::triage list is tight: cards sit 4px apart and stay compact on a phone",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -25240,32 +27035,16 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): section/heading/list margins resolve to the tightened max-md values",
-            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): section/heading/list margins resolve to the tightened max-md values",
+            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): group/list margins resolve to the tightened max-md values",
+            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): group/list margins resolve to the tightened max-md values",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): section margin stays at the original 32px value",
-            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): section margin stays at the original 32px value",
-            "layer": "e2e",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): collapsed on first paint, expands on tap",
-            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): collapsed on first paint, expands on tap",
-            "layer": "e2e",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): no toggle, filters always visible",
-            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): no toggle, filters always visible",
+            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): group margin stays at the original 16px value",
+            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): group margin stays at the original 16px value",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -28659,23 +30438,7 @@
     "client/e2e/flows/title-bar-full-bleed.spec.ts::Settings scrolls its own body while the title bar stays put",
     "client/e2e/flows/title-bar-full-bleed.spec.ts::no strip is carved out of the title bar on ${route}",
     "client/e2e/flows/title-bar-full-bleed.spec.ts::the shell scroller never scrolls, so no route pays for a scrollbar",
-    "client/e2e/flows/triage-amend.spec.ts::Cancel discards edits — no amend event is written and the original title stays",
-    "client/e2e/flows/triage-amend.spec.ts::editing title + severity writes an amend event and the resolved card + provenance update",
-    "client/e2e/flows/triage-deferred-envelope.spec.ts::Snooze with a revisit date moves the item into Deferred (AC7)",
-    "client/e2e/flows/triage-deferred-envelope.spec.ts::expired park auto-reopens; future-dated + undated parks render in Deferred with the right revisit info",
-    "client/e2e/flows/triage-file-viewer.spec.ts::a file mention in a compliance finding's detail opens the real file beside the triage panel",
-    "client/e2e/flows/triage-file-viewer.spec.ts::a mention of a file that does not exist under the project renders as plain text, never a clickable link (iterate-2026-08-30-triage-file-viewer-followups)",
-    "client/e2e/flows/triage-file-viewer.spec.ts::evidencePath renders as a clickable link for a structured-source finding",
-    "client/e2e/flows/triage-file-viewer.spec.ts::on a narrow (phone-width) viewport, opening the file panel does not clip either surface",
-    "client/e2e/flows/triage-filter-preview-restyle.spec.ts::Preview button is a legible light-blue pill on the dark Board toolbar, hidden on All Projects",
-    "client/e2e/flows/triage-filter-preview-restyle.spec.ts::filter chips use --radius-button geometry, and on/off differ by more than hue",
-    "client/e2e/flows/triage-filters-sort-parked.spec.ts::AC1/AC2/AC5: excluding a Priority chip hides matching items and shows the all-filtered-out banner; Clear filters restores them",
-    "client/e2e/flows/triage-filters-sort-parked.spec.ts::AC4: two-level sort (Name asc) actually reorders the rendered cards through the real stack",
-    "client/e2e/flows/triage-filters-sort-parked.spec.ts::Parked filter defaults hidden; AC8 a due park survives regardless; AC9 a dateless park stays visible without toggling Parked; toggling Parked reveals the dated-not-due park",
-    "client/e2e/flows/triage-fix-now-more-options-clip.spec.ts::auto-expanded More options renders every field — panel is not squeezed, the modal body scrolls instead",
     "client/e2e/flows/triage-header-restyle.spec.ts::full-bleed white title bar, 24px/700 h1, count badge, no subtitle",
-    "client/e2e/flows/triage-pending-delivery.spec.ts::outbox-only finding is badged pending-delivery; tracked finding is not; Fix-now works on the pending item",
-    "client/e2e/flows/triage-record-boundary-recovery.spec.ts::both findings on one concatenated line reach the Inbox, and a partial line keeps its valid record",
     "client/e2e/flows/v0-9-2-embedded-terminal-mount-races.spec.ts::AC-1: no transient readonly banner across the 1500ms grace window",
     "client/e2e/flows/v0-9-2-embedded-terminal-mount-races.spec.ts::AC-2: no dimensions pageerror during mount + replay + resume click",
     "client/e2e/flows/v0-9-3-resume-state-machine.spec.ts::AC-1 + AC-2: Resume click on idle new-plain converges to active and STAYS active across multiple poll cycles",
@@ -30056,41 +31819,12 @@
     "client/src/components/triage/CampaignStartCta.test.tsx::complete renders a static note and no buttons",
     "client/src/components/triage/CampaignStartCta.test.tsx::draft renders 'Start Campaign' and calls onStart",
     "client/src/components/triage/CampaignStartCta.test.tsx::legacy null status also offers Start Campaign",
-    "client/src/components/triage/DeferredTriageSection.test.tsx::invokes onClick with the item when its card is clicked",
-    "client/src/components/triage/DeferredTriageSection.test.tsx::renders nothing when there are no deferred items and nothing is hidden (AC6)",
-    "client/src/components/triage/DeferredTriageSection.test.tsx::renders the section (heading absent, hint present) when EVERY parked item is hidden — items.length === 0",
-    "client/src/components/triage/DeferredTriageSection.test.tsx::shows 'No revisit date set' and the not-due label for a parked-without-date item",
-    "client/src/components/triage/DeferredTriageSection.test.tsx::shows a bare count in the heading when nothing is hidden",
-    "client/src/components/triage/DeferredTriageSection.test.tsx::shows no hint when nothing is hidden",
-    "client/src/components/triage/DeferredTriageSection.test.tsx::shows the hint even when some parked items ARE visible — the mixed dateless+dated case (plan-review fix)",
-    "client/src/components/triage/DeferredTriageSection.test.tsx::shows the hint with the hidden count",
-    "client/src/components/triage/DeferredTriageSection.test.tsx::shows the revisit date when set",
-    "client/src/components/triage/DeferredTriageSection.test.tsx::uses singular phrasing for exactly one hidden item",
     "client/src/components/triage/FileMentionText.test.tsx::mixed batch: only the resolving mention becomes a link, the other two stay plain text",
     "client/src/components/triage/FileMentionText.test.tsx::renders a detected mention as PLAIN TEXT when it does not resolve to a real file (broken link)",
     "client/src/components/triage/FileMentionText.test.tsx::renders a mention as plain text while existence is still unknown (existingPaths=null)",
     "client/src/components/triage/FileMentionText.test.tsx::renders one link per distinct mention that resolves to a real file",
     "client/src/components/triage/FileMentionText.test.tsx::renders plain text unchanged when no mention is detected",
     "client/src/components/triage/FileMentionText.test.tsx::wraps a detected mention that resolves to a real file in a clickable link, preserving surrounding text",
-    "client/src/components/triage/PendingDelivery.test.tsx::Fix-now stays enabled on a pending item and emits the intent (residence never gates the CTA)",
-    "client/src/components/triage/PendingDelivery.test.tsx::renders the label and the ships-with-next-iterate explainer tooltip",
-    "client/src/components/triage/PendingDelivery.test.tsx::shows NO badge for a non-pending item (layout regression fence)",
-    "client/src/components/triage/PendingDelivery.test.tsx::shows NO badge for a tracked item (false) nor for a legacy un-enriched item (absent)",
-    "client/src/components/triage/PendingDelivery.test.tsx::shows the badge for an outbox-only item",
-    "client/src/components/triage/PendingDelivery.test.tsx::shows the badge in the header chip row for a pending item",
-    "client/src/components/triage/PerProjectTriageSection.test.tsx::AC5: still renders the section (heading + hidden-count line) when EVERY item is filtered out",
-    "client/src/components/triage/PerProjectTriageSection.test.tsx::AC7: a dated, not-due park is hidden by the Parked-off default and counted in the Deferred hidden hint",
-    "client/src/components/triage/PerProjectTriageSection.test.tsx::AC8: a due-parked item survives an excluding filter and shows the Returned badge",
-    "client/src/components/triage/PerProjectTriageSection.test.tsx::AC9: a dateless parked item stays visible in Deferred when Parked is off by default",
-    "client/src/components/triage/PerProjectTriageSection.test.tsx::load-error retry calls refetch",
-    "client/src/components/triage/PerProjectTriageSection.test.tsx::renders a flat list with no source heading",
-    "client/src/components/triage/PerProjectTriageSection.test.tsx::renders a load-error state (not `null`) when the project's items fetch fails",
-    "client/src/components/triage/PerProjectTriageSection.test.tsx::renders nothing when the project genuinely has zero items (not a filtering artifact)",
-    "client/src/components/triage/PerProjectTriageSection.test.tsx::shows 'visible of total' and the hidden-count line when a filter narrows the list",
-    "client/src/components/triage/PerProjectTriageSection.test.tsx::shows the plain count when nothing is filtered",
-    "client/src/components/triage/SnoozeRevisitField.test.tsx::calls onChange with the new value",
-    "client/src/components/triage/SnoozeRevisitField.test.tsx::disables the input when disabled is set",
-    "client/src/components/triage/SnoozeRevisitField.test.tsx::renders the current value",
     "client/src/components/triage/TriageAmendForm.test.tsx::AC9: shows no disclosure when writesRouteToOutbox is explicitly true",
     "client/src/components/triage/TriageAmendForm.test.tsx::AC9: shows the tracked-store disclosure when writesRouteToOutbox is false",
     "client/src/components/triage/TriageAmendForm.test.tsx::AC9: shows the tracked-store disclosure when writesRouteToOutbox is unknown (undefined)",
@@ -30104,25 +31838,6 @@
     "client/src/components/triage/TriageAmendForm.test.tsx::external-review regression: an untouched title with incidental stored whitespace is not sent as changed",
     "client/src/components/triage/TriageAmendForm.test.tsx::pre-fills title/detail/severity from the item",
     "client/src/components/triage/TriageAmendForm.test.tsx::shows an inline error and stays open when the server rejects the amend",
-    "client/src/components/triage/TriageDetailHeader.test.tsx::clicking the pencil invokes onEdit",
-    "client/src/components/triage/TriageDetailHeader.test.tsx::external-review regression: hides the visible title text and the severity badge while editing (TriageAmendForm shows editable equivalents)",
-    "client/src/components/triage/TriageDetailHeader.test.tsx::hides the pencil for a non-triage status",
-    "client/src/components/triage/TriageDetailHeader.test.tsx::hides the pencil while already in edit mode",
-    "client/src/components/triage/TriageDetailHeader.test.tsx::shows no provenance subtitle when never amended",
-    "client/src/components/triage/TriageDetailHeader.test.tsx::shows the pencil Edit toggle for a triage-status item not being edited",
-    "client/src/components/triage/TriageDetailHeader.test.tsx::shows the provenance subtitle when amendedBy is set",
-    "client/src/components/triage/TriageDetailHeader.test.tsx::shows the title and severity badge normally when not editing",
-    "client/src/components/triage/TriageDetailModal.amend.test.tsx::AC9: discloses a tracked-store write when the drift signal says writes will NOT route to outbox",
-    "client/src/components/triage/TriageDetailModal.amend.test.tsx::AC9: shows no disclosure when writes route to the outbox (idle main)",
-    "client/src/components/triage/TriageDetailModal.amend.test.tsx::Cancel returns to the read display without amending",
-    "client/src/components/triage/TriageDetailModal.amend.test.tsx::Save submits the delta and returns to the read display on success",
-    "client/src/components/triage/TriageDetailModal.amend.test.tsx::clicking Edit swaps the Detail read display for the amend form, and hides the action row",
-    "client/src/components/triage/TriageDetailModal.amend.test.tsx::disables an already-open Edit form if the write engine becomes unavailable",
-    "client/src/components/triage/TriageDetailModal.amend.test.tsx::disables every triage write action with a visible engine-unavailable reason",
-    "client/src/components/triage/TriageDetailModal.amend.test.tsx::hides the Edit toggle for a non-triage status (dismissed)",
-    "client/src/components/triage/TriageDetailModal.amend.test.tsx::shows no provenance subtitle when the item has never been amended",
-    "client/src/components/triage/TriageDetailModal.amend.test.tsx::shows the 'last edited' provenance subtitle when amendedBy is set",
-    "client/src/components/triage/TriageDetailModal.amend.test.tsx::shows the pencil Edit toggle for a status===triage item",
     "client/src/components/triage/TriageDetailModal.fileViewer.test.tsx::a file mention detected inside the detail text opens the same panel",
     "client/src/components/triage/TriageDetailModal.fileViewer.test.tsx::an evidencePath that does NOT resolve to a real file renders as plain text, never a link",
     "client/src/components/triage/TriageDetailModal.fileViewer.test.tsx::closing and reopening the modal on the same item does not resurrect the previous file panel",
@@ -30131,36 +31846,6 @@
     "client/src/components/triage/TriageDetailModal.fileViewer.test.tsx::evidencePath renders as a clickable link that opens the file panel",
     "client/src/components/triage/TriageDetailModal.fileViewer.test.tsx::switching to a different triage item closes any file panel left open on the previous one",
     "client/src/components/triage/TriageFilePanel.test.tsx::bounds BOTH axes of its outer flex container (min-h-0 AND min-w-0)",
-    "client/src/components/triage/TriageFilterGroup.test.tsx::calls onToggle with the clicked option's value",
-    "client/src/components/triage/TriageFilterGroup.test.tsx::distinguishes on/off for a single-option group (Parked's real shape)",
-    "client/src/components/triage/TriageFilterGroup.test.tsx::gives every chip the Board's --radius-button / 1.5px-border geometry",
-    "client/src/components/triage/TriageFilterGroup.test.tsx::included state has no line-through",
-    "client/src/components/triage/TriageFilterGroup.test.tsx::marks a selected option pressed",
-    "client/src/components/triage/TriageFilterGroup.test.tsx::renders every option, unselected by default",
-    "client/src/components/triage/TriageFilterGroup.test.tsx::renders the excluded (off) state with a line-through + inset fill + ink-fixed text, not --color-muted or --color-faint",
-    "client/src/components/triage/TriageFilterGroup.test.tsx::renders the included (majority) state as plain text, no primary colour",
-    "client/src/components/triage/TriageFilterGroup.test.tsx::reserves --color-primary for the hover BORDER only, on both states",
-    "client/src/components/triage/TriageFilterSortBar.test.tsx::AC1/AC3: every Priority and Complexity chip is active by default (nothing excluded)",
-    "client/src/components/triage/TriageFilterSortBar.test.tsx::AC1: an excluded priority renders un-highlighted while its siblings stay active",
-    "client/src/components/triage/TriageFilterSortBar.test.tsx::AC1: clicking an active Priority chip calls togglePriority with that value (excludes it)",
-    "client/src/components/triage/TriageFilterSortBar.test.tsx::AC2: every Domain chip is active by default (nothing excluded)",
-    "client/src/components/triage/TriageFilterSortBar.test.tsx::Parked toggle calls setShowParked with the flipped value",
-    "client/src/components/triage/TriageFilterSortBar.test.tsx::Parked toggle reflects the current showParked state",
-    "client/src/components/triage/TriageFilterSortBar.test.tsx::renders all four filter groups including Complexity, always visible",
-    "client/src/components/triage/TriageFilterSortBar.test.tsx::renders both sort levels",
-    "client/src/components/triage/TriageFilterSortBar.test.tsx::renders domain options from availableDomains",
-    "client/src/components/triage/TriageFilterSortBar.test.tsx::wires distinct ariaLabel props into the two sort levels — nothing regresses to the shared default (re-review finding NEW-4: the per-level unit test alone didn't prove this bar actually passes them)",
-    "client/src/components/triage/TriageSortLevel.test.tsx::changes the key independently of direction",
-    "client/src/components/triage/TriageSortLevel.test.tsx::distinguishes itself for assistive tech via ariaLabel, independent of the sibling level, while keeping the visible label IN the accessible name — WCAG 2.5.3 Label in Name (code-reviewer finding, tightened at re-review NEW-5)",
-    "client/src/components/triage/TriageSortLevel.test.tsx::gives the select and direction button the same geometry as the filter chips",
-    "client/src/components/triage/TriageSortLevel.test.tsx::renders the current key and direction",
-    "client/src/components/triage/TriageSortLevel.test.tsx::toggles direction independently of key",
-    "client/src/components/triage/fixNowIntent.test.ts::github source → new-task + phase=security + 'Fix for' title prefix",
-    "client/src/components/triage/fixNowIntent.test.ts::intent carries projectId for non-github sources too (new-iterate route)",
-    "client/src/components/triage/fixNowIntent.test.ts::intent carries projectId so the modal pre-selects the right project (github source)",
-    "client/src/components/triage/fixNowIntent.test.ts::non-github source → new-iterate, no phase pre-fill",
-    "client/src/components/triage/fixNowIntent.test.ts::returns failed when catalog is undefined (not loaded yet)",
-    "client/src/components/triage/fixNowIntent.test.ts::returns failed when the resolved actionId is missing from the catalog",
     "client/src/components/triage/fixNowIntent.test.ts::returns false for source=compliance (regression guard — compliance is iterate-flow per Sven UAT 2026-05-21)",
     "client/src/components/triage/fixNowIntent.test.ts::returns false for source=iterate (regression guard — iterate is iterate-flow)",
     "client/src/components/triage/fixNowIntent.test.ts::returns false for source=phaseQuality",
@@ -30630,15 +32315,6 @@
     "client/src/hooks/useTerminalSocket.refocus.test.ts::AC-6: a focus regain NEVER reconnects a replay-only (done) attach",
     "client/src/hooks/useTerminalSocket.refocus.test.ts::AC-7: reconnecting flips true the instant a refocus probe starts, before the probe deadline",
     "client/src/hooks/useTerminalSocket.refocus.test.ts::AC-7b: a probe answered in time flips reconnecting back off",
-    "client/src/hooks/useTriage.test.ts::useAllTriageItems reads the SAME cache entry useTriageItems already populated — no second fetch",
-    "client/src/hooks/useTriage.test.ts::useTriageItems still resolves correctly when useAllTriageItems populates the cache FIRST (the reverse race)",
-    "client/src/hooks/useTriageViewState.test.ts::AC3: toggles a complexity value, including 'unset', into the excluded set",
-    "client/src/hooks/useTriageViewState.test.ts::Parked is its own boolean, not a value inside any other filter set",
-    "client/src/hooks/useTriageViewState.test.ts::clearFilters resets filters to DEFAULT_FILTER_STATE without touching sort (the affordance behind AC5's 'clear filters' copy)",
-    "client/src/hooks/useTriageViewState.test.ts::defaults to the empty-filter, default-sort state (view-only, no persistence)",
-    "client/src/hooks/useTriageViewState.test.ts::sets primary and secondary sort levels independently",
-    "client/src/hooks/useTriageViewState.test.ts::toggles a domain independently of priority",
-    "client/src/hooks/useTriageViewState.test.ts::toggles a priority into and back out of the excluded set (AC1 — click excludes, click again restores)",
     "client/src/hooks/useViewerTabs.test.ts::closeTab on last tab sets activeTab to null",
     "client/src/hooks/useViewerTabs.test.ts::closeTab removes tab and activates neighbor",
     "client/src/hooks/useViewerTabs.test.ts::openTab adds and activates a tab",
@@ -31384,33 +33060,6 @@
     "client/src/lib/taskLifecycle.test.ts::is true when firstJsonlObservedAt is a non-empty string",
     "client/src/lib/taskLifecycle.test.ts::returns false for %s",
     "client/src/lib/taskLifecycle.test.ts::returns true for %s",
-    "client/src/lib/triageFilterSort.test.ts::AC10: sorts Modified by `ts` (latest status event), never `originalTs` (append time)",
-    "client/src/lib/triageFilterSort.test.ts::AC1: excludes an item whose priority is in the excludedPriorities set",
-    "client/src/lib/triageFilterSort.test.ts::AC2: excludes an item whose domain is in the excludedDomains set",
-    "client/src/lib/triageFilterSort.test.ts::AC3: excludes an item whose complexity is in the excludedComplexities set",
-    "client/src/lib/triageFilterSort.test.ts::AC4: pins the locale itself, not just the comparison options, on both localeCompare calls (external code-review finding — sensitivity/numeric options alone still floated on the runtime's default ICU locale)",
-    "client/src/lib/triageFilterSort.test.ts::AC4: reverses the secondary axis independently of the primary axis when secondary is descending",
-    "client/src/lib/triageFilterSort.test.ts::AC7: hides a dated, not-yet-due park when Parked is in its default (off) state",
-    "client/src/lib/triageFilterSort.test.ts::AC8: a due-parked item bypasses every active filter regardless of match",
-    "client/src/lib/triageFilterSort.test.ts::AC9: a dateless park stays visible even when Parked is in its default (off) state",
-    "client/src/lib/triageFilterSort.test.ts::AC9: a dateless park still respects the attribute filters like any other item",
-    "client/src/lib/triageFilterSort.test.ts::breaks a full tie by id — a total order invariant under input permutation",
-    "client/src/lib/triageFilterSort.test.ts::compares names numerically, not lexicographically (pinned localeCompare options)",
-    "client/src/lib/triageFilterSort.test.ts::counts nothing hidden when the default (empty) filter state is active",
-    "client/src/lib/triageFilterSort.test.ts::does not mutate the input array",
-    "client/src/lib/triageFilterSort.test.ts::hides items excluded by the active filters and counts them",
-    "client/src/lib/triageFilterSort.test.ts::matches everything when every filter dimension is empty (default state)",
-    "client/src/lib/triageFilterSort.test.ts::mixed set: hint-worthy hiddenCount is nonzero even when a dateless item IS visible (the plan-review fix)",
-    "client/src/lib/triageFilterSort.test.ts::normalizes an unrecognized wire value to 'unset' rather than passing it through unfilterable",
-    "client/src/lib/triageFilterSort.test.ts::reads a forward-compat suggestedComplexity field when present on the wire object",
-    "client/src/lib/triageFilterSort.test.ts::renders 'visible of total' when the counts differ",
-    "client/src/lib/triageFilterSort.test.ts::renders a bare number when nothing is filtered out",
-    "client/src/lib/triageFilterSort.test.ts::resolves to 'unset' when the item carries no complexity field (today's reality for every item)",
-    "client/src/lib/triageFilterSort.test.ts::reverses independently when the primary direction is descending",
-    "client/src/lib/triageFilterSort.test.ts::shows every parked item (subject to attribute filters) once Parked is toggled on",
-    "client/src/lib/triageFilterSort.test.ts::sorts by the primary key ascending",
-    "client/src/lib/triageFilterSort.test.ts::sums Parked-default suppression and attribute-filter suppression into one hiddenCount",
-    "client/src/lib/triageFilterSort.test.ts::uses the secondary key to break a primary-key tie",
     "client/src/lib/virtualizerSizeCache.test.ts::a load-after-persist returns the same Map",
     "client/src/lib/virtualizerSizeCache.test.ts::caps entries at MAX_ENTRIES (drops oldest, keeps most recent)",
     "client/src/lib/virtualizerSizeCache.test.ts::does not mutate the input cache",
@@ -31498,18 +33147,6 @@
     "client/src/pages/TaskDetailPage.test.tsx::gitignore-suggestion toast STAYS OPEN with an error message when /append-gitignore returns non-OK (external review F9)",
     "client/src/pages/TaskDetailPage.test.tsx::gitignore-suggestion toast surfaces on EmbeddedTerminal callback; Append calls /append-gitignore",
     "client/src/pages/TaskDetailPage.test.tsx::renders the terminal pane, mounted and active, plus the EmbeddedTerminal mock",
-    "client/src/pages/TriagePage.test.tsx::AC5: shows the all-filtered-out message (not the genuine-empty state) when items exist but the active filters hide all of them, and its Clear-filters button restores them (code-reviewer finding #3/#8)",
-    "client/src/pages/TriagePage.test.tsx::adds a ghost-risk note only when origin is unavailable (degraded)",
-    "client/src/pages/TriagePage.test.tsx::clicking an item opens the detail modal",
-    "client/src/pages/TriagePage.test.tsx::does NOT show the all-filtered-out message when the only hidden items are parked-and-not-due (Parked's own default-hidden state, not an active attribute filter) — the Clear-filters button can't reveal those anyway, since DEFAULT_FILTER_STATE.showParked is false (re-review finding NEW-1: the first cut of this banner double-counted Parked-suppressed items as 'hidden by the active filters', so the Clear button it just gained would have been a no-op in this exact state)",
-    "client/src/pages/TriagePage.test.tsx::hides empty state when items > 0",
-    "client/src/pages/TriagePage.test.tsx::hides empty state when there are zero OPEN items but deferredTotal > 0 (code review fix)",
-    "client/src/pages/TriagePage.test.tsx::hides the banner when drift data is absent (older server → behind null)",
-    "client/src/pages/TriagePage.test.tsx::hides the staleness banner when the checkout is in sync (behind 0)",
-    "client/src/pages/TriagePage.test.tsx::renders empty state when total triage count is 0",
-    "client/src/pages/TriagePage.test.tsx::renders item cards as a flat list, with no source-derived group heading (AC6, iterate-2026-08-08-triage-filters-sort-parked)",
-    "client/src/pages/TriagePage.test.tsx::renders item with XSS-unsafe title as plain text (not as HTML)",
-    "client/src/pages/TriagePage.test.tsx::shows the staleness banner when the local checkout is behind origin",
     "client/src/pages/inbox/InboxCard.LeadQuestion.test.tsx::Discuss in terminal prewarms the pty and navigates to the task, without also submitting an answer",
     "client/src/pages/inbox/InboxCard.LeadQuestion.test.tsx::Dismiss calls the lq-<taskId> dismiss endpoint, not the card's navigate",
     "client/src/pages/inbox/InboxCard.LeadQuestion.test.tsx::Send answer PATCHes poFeedback with the typed text plus a timestamp",
@@ -31563,14 +33200,6 @@
     "client/src/styles/command-center.test.ts::uses backdrop-filter (the frosted glass, not a flat tint)",
     "client/src/styles/no-hardcoded-colors.test.ts::has zero arbitrary-hex colour classes in client/src",
     "client/src/styles/no-hardcoded-colors.test.ts::has zero hardcoded Tailwind palette classes in client/src",
-    "client/src/styles/on-photo-legibility.test.ts::${rel} introduces no text-shadow",
-    "client/src/styles/on-photo-legibility.test.ts::Deferred section's heading + hidden-count hint (bare on-photo) use the flipping tokens — but its in-card item detail (opaque surface) may keep --color-muted (iterate-2026-08-08-triage-filters-sort-parked, AC7)",
-    "client/src/styles/on-photo-legibility.test.ts::GradeResult's band pill carries a class the .on-photo solid-surface reset targets",
-    "client/src/styles/on-photo-legibility.test.ts::board CAMPAIGNS label uses the flipping --muted token, not the legacy alias",
-    "client/src/styles/on-photo-legibility.test.ts::inbox project group header uses --ink / --muted, not --color-text / --color-muted",
-    "client/src/styles/on-photo-legibility.test.ts::triage group + project headers use --ink / --muted, not the legacy text aliases",
-    "client/src/styles/on-photo-legibility.test.ts::wizard-plan-phases container carries a class the .on-photo solid-surface reset targets",
-    "client/src/styles/on-photo-legibility.test.ts::wizard-plan-phases container sets no inline background/boxShadow (must come from the .on-photo-reset class, not an inline override)",
     "client/src/styles/tokens.contrast.test.ts::$name >= $min:1",
     "client/src/styles/type-scale.test.ts::24px is NOT allowlisted — the five page titles were landed on the 20px step",
     "client/src/styles/type-scale.test.ts::has zero UNACCOUNTED off-scale inline font-sizes in client/src",
@@ -31892,8 +33521,6 @@
     "server/src/core/codex-task-watcher.test.ts::skips a task with no live pty (getLastDataAt → null)",
     "server/src/core/codex-task-watcher.test.ts::§5.2 — a launch_confirmation_failed notice clears once the task leaves awaiting_external_start (doubt-review finding)",
     "server/src/core/codex-task-watcher.test.ts::§5.2 — awaiting_external_start with no output past the launch-confirm window surfaces a distinct notice",
-    "server/src/core/codex-task-watcher.test.ts::§5.4 — no_oracle + a done:false (or absent) self-report still falls back to no_oracle_unresolved",
-    "server/src/core/codex-task-watcher.test.ts::§5.4 — no_oracle + a done:true self-report on-screen after the spent nudge marks the task done (external-review finding)",
     "server/src/core/codex-task-watcher.thread-discovery.test.ts::a discovered threadId is available to the same tick's stall logic (no stale task reference)",
     "server/src/core/codex-task-watcher.thread-discovery.test.ts::a tick after the previous one has fully completed runs normally (guard resets)",
     "server/src/core/codex-task-watcher.thread-discovery.test.ts::does not attempt discovery for a task that already has a threadId",

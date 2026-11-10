@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-11-10
+
+### Added
+
+- Triage: Fix now now remembers its task — the card shows an In progress box with the task state and an Open task link, Resolve replaces Fix now/Promote/Snooze, and a new In progress tile filters the list
+- Custom-action boolean parameters declared with `default: true` now open pre-checked in the start dialog and can still be unticked.
+- A custom action's `slash_command` may carry fixed plain flags, for example `/content-orchestrator --noreview`.
+
+### Changed
+
+- Keep the Codex task watcher source file within the 300-line guideline (comment-only)
+- Triage page now filters like the Board (nothing ticked shows everything), can be grouped by project, severity, source or priority and sorted per level, and remembers your filters, sort and grouping after a reload.
+- Triage cards now carry Fix now / Start campaign, Promote, a Snooze menu (tomorrow, 1 week, 1 month, pick a date) and Dismiss, plus a quick edit for title and severity; compliance and security items list each audit check with a plain-English help marker.
+- Triage: the card's Dismiss cross opens a small popup with an optional reason; the Campaign (req3-campaign) and Operator sources have their own help text, and all Triage help texts are listed in .shipwright/planning/01-adopted/triage-help-texts.md
+- Triage page polish: clearer help texts (distinct per audit check, Fix now wording), cards in 2-3 columns, readable filter strip, calmer detail dialog with Edit at the bottom, project dropdown without counts
+
+### Removed
+
+- Triage page: the per-project sections, the Deferred section and the old filter bar are replaced by one aggregated list; parked items are shown read-only in a Parked section.
+
+### Fixed
+
+- Codex task watcher no longer re-injects the self-check reminder from its own terminal echo, and now honours a SHIPWRIGHT-STATUS report (done or blocked) before nudging (#583)
+
 ## [0.31.0] - 2026-11-07
 
 ### Added
