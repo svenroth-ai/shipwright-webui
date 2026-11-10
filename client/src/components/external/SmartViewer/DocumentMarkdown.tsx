@@ -18,7 +18,7 @@
  *
  * Anchor nav (AC8) — two cases, both scoped to THIS pane (never the window):
  *   - same-document `#fragment` → scroll the matching id into view here.
- *   - relative `*.md(#frag)` cross-file link (e.g. the RTM → spec.md) →
+ *   - relative cross-file link, any extension (e.g. the RTM → spec.md) →
  *     delegated to `onDocLinkClick`, which the SmartViewer follows in-pane
  *     and re-lands via `scrollToFragment`.
  * Fragment resolution checks both the raw id AND its `user-content-`-prefixed
@@ -36,6 +36,7 @@ import rehypeHighlight from "rehype-highlight";
 
 import { MermaidRenderer } from "./MermaidRenderer";
 import { useAutoFitTableColumns } from "./useAutoFitTableColumns";
+import { safeDecode } from "./useDocNavigation";
 
 const SANITIZE_SCHEMA = {
   ...defaultSchema,
@@ -78,12 +79,19 @@ export function frontmatterToCodeFence(text: string): string {
   return "```yaml\n" + m[1] + "\n```\n" + text.slice(m[0].length);
 }
 
-/** A relative link to another previewable doc (`*.md`), not `#frag`/http(s). */
+/**
+ * A relative link to another file of the same tree (`../sub/x.md`, `data.json`,
+ * `/docs/a.md`), not `#frag` / `scheme:` / `//host`. Every such link is followed
+ * IN the viewer (like VS Code) — letting the browser resolve it would open
+ * `localhost:<port>/…` in a new tab. The viewer shows what it can (markdown,
+ * code, text, image) and a "no preview" state for the rest.
+ */
 export function isInternalDocLink(href: string): boolean {
   if (!href || href.startsWith("#")) return false;
   if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//")) return false;
-  return /\.(md|markdown)(#.*)?$/i.test(href);
+  return true;
 }
+
 
 /**
  * Resolve a `#fragment` link to its target element within `container`,
@@ -193,15 +201,19 @@ export function DocumentMarkdown({ text, onDocLinkClick, scrollToFragment }: Pro
       if (!container) return;
       if (href.startsWith("#")) {
         if (href === "#") return;
-        const target = findAnchorTarget(container, decodeURIComponent(href.slice(1)));
+        const target = findAnchorTarget(container, safeDecode(href.slice(1)));
         if (!target) return; // unknown fragment — let the browser handle it
         e.preventDefault();
         scrollTargetIntoPane(container, target);
         return;
       }
-      if (onDocLinkClick && isInternalDocLink(href)) {
+      if (isInternalDocLink(href)) {
+        // Hosts without a handler (Mission, Compliance) may carry root-relative APP routes
+        // (`/projects/…`): leave those to the browser. Everything else is swallowed — a relative
+        // href resolved by the browser would leave the app for `localhost:<port>/…`.
+        if (!onDocLinkClick && href.startsWith("/")) return;
         e.preventDefault();
-        onDocLinkClick(href);
+        if (e.button === 0) onDocLinkClick?.(href); // a middle-click is swallowed, not followed
       }
     },
     [onDocLinkClick],
@@ -224,6 +236,7 @@ export function DocumentMarkdown({ text, onDocLinkClick, scrollToFragment }: Pro
       className="markdown-body text-sm leading-relaxed"
       data-testid="document-markdown"
       onClick={onClick}
+      onAuxClick={onClick}
     >
       <ReactMarkdown
         remarkPlugins={REMARK_PLUGINS}

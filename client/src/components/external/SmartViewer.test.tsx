@@ -173,6 +173,45 @@ describe("SmartViewer — markdown + text + code happy paths", () => {
   });
 });
 
+describe("SmartViewer — following a relative link picks the renderer of the TARGET file", () => {
+  const LINKS = "[cfg](../data/app.json) [img](../img/logo.png) [zip](../a.zip) [sib](../b/two.md) [root](/)";
+
+  function setup() {
+    const urls: string[] = [];
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      urls.push(url);
+      const body = url.includes("one.md") ? LINKS : url.includes("two.md") ? "# Two" : "{}";
+      return new Response(body, { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    }) as unknown as typeof fetch;
+    render(<SmartViewer projectId="p1" path="docs/a/one.md" />);
+    return urls;
+  }
+
+  it.each([
+    ["cfg", "smart-viewer-code"],
+    ["img", "smart-viewer-image"],
+    ["zip", "smart-viewer-unknown"],
+  // @covers FR-01.02
+  ])("md → %s renders %s (not the markdown pane)", async (name, testId) => {
+    setup();
+    await waitFor(() => expect(screen.getByTestId("smart-viewer-markdown")).toBeTruthy());
+    fireEvent.click(screen.getByRole("link", { name }));
+    await waitFor(() => expect(screen.getByTestId(testId)).toBeTruthy());
+    expect(screen.queryByTestId("smart-viewer-markdown")).toBeNull();
+  });
+
+  // @covers FR-01.02
+  it("md → sibling-folder md fetches the resolved path; a root link stays put", async () => {
+    const urls = setup();
+    await waitFor(() => expect(screen.getByTestId("smart-viewer-markdown")).toBeTruthy());
+    fireEvent.click(screen.getByRole("link", { name: "root" }));
+    expect(urls.filter((u) => u.includes("one.md")).length).toBe(1);
+    fireEvent.click(screen.getByRole("link", { name: "sib" }));
+    await waitFor(() => expect(urls.some((u) => decodeURIComponent(u).includes("docs/b/two.md"))).toBe(true));
+  });
+});
+
 describe("SmartViewer — pop-out modal (popOut prop)", () => {
   function mockMarkdown(body = "# hello world") {
     globalThis.fetch = vi.fn(

@@ -33,13 +33,10 @@ import { ImageRenderer } from "./SmartViewer/ImageRenderer";
 import { VideoRenderer } from "./SmartViewer/VideoRenderer";
 import { HtmlRenderer } from "./SmartViewer/HtmlRenderer";
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
-import { useDocNavigation } from "./SmartViewer/useDocNavigation";
+import { useDocNavigation, type DocNavigation } from "./SmartViewer/useDocNavigation";
 import { OutsideProjectHeader } from "./SmartViewer/OutsideProjectHeader";
 import { TooLargeNotice } from "./SmartViewer/TooLargeNotice";
 import { fetchSessionFileText } from "../../lib/sessionFileApi";
-
-/** Outside files have no project to navigate: swallow relative-link clicks (no full page load). */
-const NO_DOC_NAV = () => undefined;
 
 export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "video" | "mermaid" | "html" | "unknown";
 
@@ -84,21 +81,26 @@ interface Props {
   focusKey?: number;
 }
 
-export function SmartViewer({ projectId, path, popOut = true, sessionTaskId, line, focusKey }: Props) {
+export function SmartViewer({ projectId, path: selectedPath, popOut = true, sessionTaskId, line, focusKey }: Props) {
+  // Cross-file navigation lives HERE, above the renderer dispatch: following a link changes the
+  // file, so the renderer kind (markdown / code / image / unsupported) and the outside-file header
+  // must follow the navigated path, not the one the parent selected.
+  const nav = useDocNavigation(selectedPath ?? "");
+  const path = selectedPath ? nav.effectivePath : null;
   if (path && sessionTaskId) {
     return (
       <div className="flex h-full flex-col">
         <OutsideProjectHeader path={path} />
         <div className="min-h-0 flex-1">
-          <SmartViewerBody projectId={projectId} path={path} popOut={popOut} sessionTaskId={sessionTaskId} line={line} focusKey={focusKey} />
+          <SmartViewerBody projectId={projectId} path={path} nav={nav} popOut={popOut} sessionTaskId={sessionTaskId} line={line} focusKey={focusKey} />
         </div>
       </div>
     );
   }
-  return <SmartViewerBody projectId={projectId} path={path} popOut={popOut} line={line} focusKey={focusKey} />;
+  return <SmartViewerBody projectId={projectId} path={path} nav={nav} popOut={popOut} line={line} focusKey={focusKey} />;
 }
 
-function SmartViewerBody({ projectId, path, popOut = true, sessionTaskId, line, focusKey }: Props) {
+function SmartViewerBody({ projectId, path, nav, popOut = true, sessionTaskId, line, focusKey }: Props & { nav: DocNavigation }) {
   if (!path) {
     return (
       <div
@@ -152,10 +154,11 @@ function SmartViewerBody({ projectId, path, popOut = true, sessionTaskId, line, 
     );
   }
 
-  return <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} popOut={popOut} sessionTaskId={sessionTaskId} line={line} focusKey={focusKey} />;
+  return <TextFileViewer projectId={projectId} path={path} nav={nav} kind={kind} ext={ext} popOut={popOut} sessionTaskId={sessionTaskId} line={line} focusKey={focusKey} />;
 }
 
 interface TextProps {
+  nav: DocNavigation;
   sessionTaskId?: string;
   projectId: string;
   path: string;
@@ -166,9 +169,9 @@ interface TextProps {
   focusKey?: number;
 }
 
-function TextFileViewer({ projectId, path, kind, ext, popOut, sessionTaskId, line, focusKey }: TextProps) {
-  const nav = useDocNavigation(path); // AC8 in-pane cross-file navigation
-  // An outside file has no project root: no cross-file nav or edit; its sibling resources come via the session-file route.
+function TextFileViewer({ projectId, nav, kind, ext, popOut, sessionTaskId, line, focusKey }: TextProps) {
+  // An outside file has no project root: no edit. Relative links resolve against its absolute path and go through the
+  // session-file route, which stays the sole authority (an unevidenced sibling shows the "not part of this session" state).
   const scopedProjectId = sessionTaskId ? undefined : projectId;
   const [popoutOpen, setPopoutOpen] = useState(false);
   // Bumped after a successful in-app markdown edit so the preview re-fetches.
@@ -247,7 +250,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut, sessionTaskId, lin
         </div>
       );
     }
-    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={sessionTaskId ? NO_DOC_NAV : nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={scopedProjectId} path={nav.effectivePath} onSaved={() => setReloadNonce((n) => n + 1)} />;
+    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={scopedProjectId} path={nav.effectivePath} onSaved={() => setReloadNonce((n) => n + 1)} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} line={line} focusKey={focusKey} />;
     if (kind === "html") return <HtmlRenderer text={state.text} projectId={scopedProjectId} sessionTaskId={sessionTaskId} path={nav.effectivePath} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
