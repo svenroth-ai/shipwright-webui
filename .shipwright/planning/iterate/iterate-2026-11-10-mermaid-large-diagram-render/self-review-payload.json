@@ -1,0 +1,8 @@
+{"items":[
+{"name":"AC met: dark theme, natural size, fit toggle, narrower padding","verdict":"pass","note":"MermaidRenderer.tsx; verified by unit tests, not yet by real browser"},
+{"name":"Tests cover happy and error path","verdict":"pass","note":"initialize config + fit toggle tests; existing error/memo tests still pass"},
+{"name":"No scope creep","verdict":"pass","note":"Markdown parity excluded per operator"},
+{"name":"Type/lint clean","verdict":"pass","note":"tsc clean, oxlint no warnings in changed files, 1486 external tests pass"},
+{"name":"No security regression","verdict":"pass","note":"securityLevel strict unchanged"},
+{"name":"Reduced-motion / content visibility","verdict":"pass","note":"no animation added"},
+{"name":"Affected boundaries","verdict":"n/a","note":"no IO boundary touched"}]}

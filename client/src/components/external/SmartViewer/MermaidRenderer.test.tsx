@@ -146,6 +146,7 @@ describe("MermaidRenderer — StrictMode double-mount resilience (2026-04-23)", 
 });
 
 describe("MermaidRenderer — large diagram readability", () => {
+  // @covers FR-01.02
   it("initialises mermaid with natural-size (no max-width squeeze) for flowcharts", async () => {
     render(<MermaidRenderer text="flowchart LR; A-->B" />);
     await waitFor(() => expect(initSpy).toHaveBeenCalled());
@@ -154,6 +155,7 @@ describe("MermaidRenderer — large diagram readability", () => {
     expect(["dark", "default"]).toContain(cfg.theme);
   });
 
+  // @covers FR-01.02
   it("fit toggle switches the svg host between natural size and fit-to-width", async () => {
     render(<MermaidRenderer text="graph TD; A-->B" />);
     const btn = await screen.findByTestId("smart-viewer-mermaid-fit");

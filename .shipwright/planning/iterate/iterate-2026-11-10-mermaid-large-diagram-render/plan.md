@@ -1,0 +1,1 @@
+Goal: Large Mermaid diagrams in the Smart Viewer render readable: dark theme, natural size with scroll, fit toggle, tighter padding | Reason: Wide flowchart LR diagrams were drawn in the light default theme and squeezed to max-width:100%, leaving an unreadable speck | Reference: PR #592
