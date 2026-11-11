@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-11-10T22:29:13.549961+00:00
-Source-State: run=iterate-2026-11-10-mermaid-large-diagram-render base=054d05965f8b release=v0.32.1
-Consistency-audit: last run 2026-09-29 (42 days earlier) — PASS
+Generated: 2026-11-11T12:35:28.815389+00:00
+Source-State: run=iterate-2026-11-11-triage-card-dialog-polish base=7cf80dfa3c60 release=v0.33.0
+Consistency-audit: last run 2026-09-29 (43 days earlier) — PASS
 
 ## Summary
 

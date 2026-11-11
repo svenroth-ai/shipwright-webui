@@ -434,3 +434,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_decision_log_index.py 
 - [ADR-424 — Boolean default:true opens pre-checked; slash_command takes fixed plain flags](decision_log.md#adr-424-boolean-defaulttrue-opens-pre-checked-slash_command-takes-fixed-plain-flags)
 - [ADR-425 — SmartViewer follows every relative file link in-pane](decision_log.md#adr-425-smartviewer-follows-every-relative-file-link-in-pane)
 - [ADR-426 — Mermaid renders at natural size with page-matched theme](decision_log.md#adr-426-mermaid-renders-at-natural-size-with-page-matched-theme)
+- [ADR-427 — Triage card and detail dialog adopt the New Task sheet look; equal-height cards](decision_log.md#adr-427-triage-card-and-detail-dialog-adopt-the-new-task-sheet-look-equal-height-cards)

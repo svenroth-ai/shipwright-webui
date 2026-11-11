@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-11-11
+
+### Changed
+
+- Triage cards and the detail dialog now use the same grey sheet with white fields as the New Task dialog; cards share one height with a clearer gap, and long texts wrap inside the card.
+- Triage card edit chip shows just priority and domain (no more 'Suggested'), and a card lists at most three audit checks with a '+N more' line.
+- The collapsed 'Details' section of the Triage detail dialog is now called 'Metadata' so it no longer looks like the 'Detail' section.
+
+### Fixed
+
+- Triage card buttons no longer break onto separate lines because of the long 'Suggested' label, and long audit-check titles no longer run past the card edge.
+
 ## [0.32.1] - 2026-11-11
 
 ### Fixed

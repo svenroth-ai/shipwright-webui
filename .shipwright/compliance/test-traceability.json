@@ -1,9 +1,9 @@
 {
   "schema_version": 4,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-11-10T22:29:13.549961+00:00",
-  "source_commit": "054d05965f8b719e2423e1e04d8ed0d9daef241d",
-  "spec_hash": "sha256:10d36d9ab87541363c1ce903878f4d2ca630035a2d6d22e239dffbcb8bbf416e",
+  "generated_at": "2026-11-11T12:35:28.815389+00:00",
+  "source_commit": "7cf80dfa3c6018bec486f9ab1032e72171e78ab0",
+  "spec_hash": "sha256:5f98668b90fd28e4319862b3df8332400ce945a8ca67f5a1c173f1c671029e21",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
@@ -22262,8 +22262,8 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageDetailMeta.test.tsx::keeps the secondary fields in a collapsed Details section",
-            "path": "client/src/components/triage/TriageDetailMeta.test.tsx::keeps the secondary fields in a collapsed Details section",
+            "id": "client/src/components/triage/TriageDetailMeta.test.tsx::keeps the secondary fields in a collapsed Metadata section",
+            "path": "client/src/components/triage/TriageDetailMeta.test.tsx::keeps the secondary fields in a collapsed Metadata section",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -22526,8 +22526,40 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::renders on the white --color-surface with a resting shadow (not beige-on-beige)",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::renders on the white --color-surface with a resting shadow (not beige-on-beige)",
+            "id": "client/src/components/triage/TriageItemCard.layout.test.tsx::fills its grid cell (equal-height cards) and wraps long unbroken text inside itself",
+            "path": "client/src/components/triage/TriageItemCard.layout.test.tsx::fills its grid cell (equal-height cards) and wraps long unbroken text inside itself",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.layout.test.tsx::findings sit in one minmax(0,1fr) column so a long check title cannot widen the card, and extra checks collapse to +N more",
+            "path": "client/src/components/triage/TriageItemCard.layout.test.tsx::findings sit in one minmax(0,1fr) column so a long check title cannot widen the card, and extra checks collapse to +N more",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.layout.test.tsx::never uses the --body / --muted tokens inside the card (.on-photo flips them to near-white there)",
+            "path": "client/src/components/triage/TriageItemCard.layout.test.tsx::never uses the --body / --muted tokens inside the card (.on-photo flips them to near-white there)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.layout.test.tsx::the edit chip shows priority and domain without the word 'Suggested'",
+            "path": "client/src/components/triage/TriageItemCard.layout.test.tsx::the edit chip shows priority and domain without the word 'Suggested'",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemCard.test.tsx::renders on the grey --surface-form sheet (like the New Task dialog) with a resting shadow",
+            "path": "client/src/components/triage/TriageItemCard.test.tsx::renders on the grey --surface-form sheet (like the New Task dialog) with a resting shadow",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -23808,8 +23840,16 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/e2e/flows/triage-polish-r3.spec.ts::detail dialog: explained findings first, Details collapsed, Edit at the bottom",
-            "path": "client/e2e/flows/triage-polish-r3.spec.ts::detail dialog: explained findings first, Details collapsed, Edit at the bottom",
+            "id": "client/e2e/flows/triage-polish-r3.spec.ts::cards are equal height, clearly spaced, and nothing spills out of a card",
+            "path": "client/e2e/flows/triage-polish-r3.spec.ts::cards are equal height, clearly spaced, and nothing spills out of a card",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-polish-r3.spec.ts::detail dialog: explained findings first, Metadata collapsed, Edit at the bottom",
+            "path": "client/e2e/flows/triage-polish-r3.spec.ts::detail dialog: explained findings first, Metadata collapsed, Edit at the bottom",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
