@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-10-mermaid-large-diagram-render",
+  "date": "2026-11-10",
+  "section": "Iterate — bug: large Mermaid diagram render",
+  "title": "Mermaid renders at natural size with page-matched theme",
+  "context": "MermaidRenderer initialised mermaid with defaults: light theme and max-width:100%, so wide flowchart LR diagrams shrank to an unreadable speck on the dark page.",
+  "decision": "Initialise mermaid with theme derived from the page background and useMaxWidth:false for all diagram types; scroll in the pane; add a Fit-to-width toggle; reduce pane padding p-4 to p-1.",
+  "consequences": "Wide diagrams scroll horizontally by default instead of shrinking; users can opt into fit. Theme is chosen once per mount from the body background.",
+  "rationale": "Restores the specified behaviour (spec FR-01.02: wide diagrams get a horizontal scrollbar) with the smallest change inside the single renderer.",
+  "rejected": "Auto-fit only (still unreadable for wide graphs); pan/zoom library (new dependency, CLAUDE.md rule 2 spirit).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

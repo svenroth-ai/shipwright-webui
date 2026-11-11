@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-10-mermaid-large-diagram-render",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-10T22:23:54.409142+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-10T22:23:54.532249+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/SmartViewer/MermaidRenderer.tsx",
+          "line": 112,
+          "finding": "useMaxWidth:false is configured only for flowchart, sequence, gantt, er, state, class; other diagram types keep mermaid's max-width:100% squeeze.",
+          "suggestion": "Override with CSS [&_svg]:!max-w-none in natural mode so coverage does not depend on a per-type list.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/SmartViewer/MermaidRenderer.tsx",
+          "line": 85,
+          "finding": "Theme is picked at render time and memoised on the content hash; a live light/dark toggle keeps the stale theme.",
+          "suggestion": "Accept as known limitation or add the resolved theme to the memo key.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/SmartViewer/MermaidRenderer.tsx",
+          "line": 175,
+          "finding": "Fit button has aria-pressed AND a flipping label (contradictory announcement) and renders during loading/error.",
+          "suggestion": "Static label with aria-pressed only, and render only when an svg is present.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/e2e/flows/mermaid-large-diagram-natural-size.spec.ts",
+          "line": 55,
+          "finding": "APP_CONFIG is a hand-copied mirror of the component's options and already incomplete.",
+          "suggestion": "Share a MERMAID_INIT_CONFIG constant or accept drift risk.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx",
+          "line": 162,
+          "finding": "Theme test leaks the wrapper node on assertion failure and relies on jsdom not resolving var(--color-surface).",
+          "suggestion": "Clean up in try/finally or afterEach.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-10T22:54:55.246585+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-10T22:23:55.115553+00:00",
+      "disposition": "small UI-only diff, no risk flags; cascade conditional per iteration-reviews.md",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "diff-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-10T22:23:55.232988+00:00",
+      "disposition": "small UI-only diff, no risk flags; cascade conditional per iteration-reviews.md",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "diff-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-10T22:56:50.923054+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-10T22:23:54.647434+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-10T22:23:54.758834+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

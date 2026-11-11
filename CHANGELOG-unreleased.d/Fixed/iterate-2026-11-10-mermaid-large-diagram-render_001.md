@@ -1,0 +1,1 @@
+Smart Viewer: large Mermaid diagrams (e.g. wide flowchart LR with many subgraphs) now render in the dark theme at natural size with scroll and a Fit-to-width toggle, with narrower padding, instead of a light-theme speck.

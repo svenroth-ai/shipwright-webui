@@ -144,3 +144,41 @@ describe("MermaidRenderer — StrictMode double-mount resilience (2026-04-23)", 
     expect(svgAfter).toBe(svgBefore);
   });
 });
+
+describe("MermaidRenderer — large diagram readability", () => {
+  // @covers FR-01.02
+  it("initialises mermaid with natural-size (no max-width squeeze) for flowcharts", async () => {
+    render(<MermaidRenderer text="flowchart LR; A-->B" />);
+    await waitFor(() => expect(initSpy).toHaveBeenCalled());
+    const cfg = initSpy.mock.calls[0][0];
+    expect(cfg.flowchart.useMaxWidth).toBe(false);
+    expect(["dark", "default"]).toContain(cfg.theme);
+  });
+
+  // @covers FR-01.02
+  it.each([
+    ["rgb(17, 24, 39)", "dark"],
+    ["rgb(255, 255, 255)", "default"],
+  ])("picks the mermaid theme from the surface colour (%s -> %s)", async (bg, theme) => {
+    const wrap = document.createElement("div");
+    wrap.style.background = bg;
+    document.body.appendChild(wrap);
+    try {
+      render(<MermaidRenderer text="graph TD; A-->B" />, { container: wrap });
+      await waitFor(() => expect(initSpy).toHaveBeenCalled());
+      expect(initSpy.mock.calls[0][0].theme).toBe(theme);
+    } finally {
+      wrap.remove();
+    }
+  });
+
+  // @covers FR-01.02
+  it("fit toggle switches the svg host between natural size and fit-to-width", async () => {
+    render(<MermaidRenderer text="graph TD; A-->B" />);
+    const btn = await screen.findByTestId("smart-viewer-mermaid-fit");
+    const host = screen.getByTestId("smart-viewer-mermaid-svg");
+    expect(host.className).toContain("max-w-none");
+    act(() => btn.click());
+    expect(host.className).toContain("max-w-full");
+  });
+});
