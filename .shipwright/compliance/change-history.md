@@ -1,21 +1,21 @@
 # Commit Change Log
 
-Generated: 2026-11-10T22:29:13.549961+00:00
-Source-State: run=iterate-2026-11-10-mermaid-large-diagram-render base=054d05965f8b release=v0.32.1
-Consistency-audit: last run 2026-09-29 (42 days earlier) — PASS
-Total commits: 1011
+Generated: 2026-11-11T12:35:28.815389+00:00
+Source-State: run=iterate-2026-11-11-triage-card-dialog-polish base=7cf80dfa3c60 release=v0.33.0
+Consistency-audit: last run 2026-09-29 (43 days earlier) — PASS
+Total commits: 1013
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 398
-    "feat" : 267
+    "feat" : 268
     "chore" : 169
     "docs" : 79
     "refactor" : 37
     "test" : 34
-    "other" : 12
+    "other" : 13
     "ci" : 8
     "perf" : 5
     "build" : 2
@@ -426,10 +426,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 267 commits
+### Features (feat) — 268 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-11 | triage | card + detail dialog use the New Task sheet look; equal-height cards (#594) | 7cf80dfa3c60 |
 | 2026-11-10 | actions | pre-checked boolean params + fixed flags in slash_command (#589) | ed44d09bcaa7 |
 | 2026-11-09 | triage | polish round 3 — distinct help texts, shared pills, multi-column cards, calmer detail dialog (#588) | 8e08030337c1 |
 | 2026-11-09 | triage | Fix now remembers its task; Dismiss asks for a reason (#587) | fc21e31cd5ee |
@@ -1037,10 +1038,11 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
-### Other (other) — 12 commits
+### Other (other) — 13 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-11 | — | Release v0.32.1 (#593) | 4aea7f2279a6 |
 | 2026-11-10 | — | Release v0.32.0 (#590) | e9ad0aff64ac |
 | 2026-11-04 | — | Release v0.29.0 (#573) | ff8c56e43e14 |
 | 2026-10-09 | — | Release v0.28.0 (#519) | 676fe5c80824 |
@@ -1088,7 +1090,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 1011 |
+| Total commits | 1013 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 1011 |
+| Human-authored commits | 1013 |
 

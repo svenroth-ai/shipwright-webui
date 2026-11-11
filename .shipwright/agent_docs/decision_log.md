@@ -6063,3 +6063,16 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Restores the specified behaviour (spec FR-01.02: wide diagrams get a horizontal scrollbar) with the smallest change inside the single renderer.
 - **Consequences:** Wide diagrams scroll horizontally by default instead of shrinking; users can opt into fit. Theme is chosen once per mount from the body background.
 - **Rejected:** Auto-fit only (still unreadable for wide graphs); pan/zoom library (new dependency, CLAUDE.md rule 2 spirit).
+
+---
+
+### ADR-427: Triage card and detail dialog adopt the New Task sheet look; equal-height cards
+- **Date:** 2026-11-11
+- **Section:** Iterate — change: Triage card + detail dialog polish
+- **Run-ID:** iterate-2026-11-11-triage-card-dialog-polish
+- **Context:** Triage cards sat 6px apart, uneven in height, the edit chip said 'Suggested P1 · engineering' and made buttons wrap, check titles ran past the card edge, and the detail dialog had two similar sections 'Detail' and 'Details'.
+- **Decision:** Cards and the detail dialog use the grey --surface-form sheet with white fields (as the New Task dialog); the grid uses auto-rows-fr with a 12px gap; the findings list is one minmax(0,1fr) column capped at 3 checks plus '+N more'; 'Suggested' is dropped; 'Details' becomes 'Metadata'.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Equal size is the operator's explicit requirement; capping checks keeps it achievable. The code review caught the on-photo token flip before merge.
+- **Consequences:** A row is as tall as its tallest card, so a card with a task box or error banner enlarges its row. Card secondary text must use --color-text, never --body/--muted, because .on-photo flips those to near-white (guarded by a unit test and an E2E colour check).
+- **Rejected:** Fixed pixel card heights (break with long titles and large fonts); letting the check list grow unbounded; overflow-hidden on the card (clips focus rings and hides overflow bugs).
