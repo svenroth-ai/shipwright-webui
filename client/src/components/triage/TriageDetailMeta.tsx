@@ -46,11 +46,12 @@ export function TriageDetailMeta({
   const findings =
     item.source === "compliance" || item.source === "phaseQuality" ? parseFindings(item.detail) : [];
 
-  const FIELD = "text-[var(--color-muted)]";
+  const FIELD = "text-[11px] font-semibold uppercase tracking-wide text-[var(--body,#44403c)]";
+  const BOX = "rounded-[var(--radius-button,8px)] border border-[var(--surface-form-divider,#c3b8ae)] bg-white px-3 py-2.5";
   return (
     <>
       {editMode ? (
-        <div className="border-t border-[var(--color-border)] pt-4">
+        <div className="border-t border-[var(--surface-form-divider,#c3b8ae)] pt-4">
           <TriageAmendForm
             projectId={projectId}
             item={item}
@@ -68,9 +69,9 @@ export function TriageDetailMeta({
               {findings.map((f, i) => {
                 const h = checkHelp(f.code, f.title);
                 return (
-                  <li key={`${f.code}-${i}`} className="rounded-md bg-[var(--color-muted-bg)] px-3 py-2 text-sm text-[var(--color-text)]">
+                  <li key={`${f.code}-${i}`} className={`${BOX} text-sm text-[var(--color-text)]`}>
                     <div className="flex items-center gap-2 font-medium">
-                      <code className="shrink-0 rounded bg-[var(--color-surface)] px-1.5 py-px text-xs">{f.code}</code>
+                      <code className="shrink-0 rounded bg-[var(--surface-form,#edeae7)] px-1.5 py-px text-xs">{f.code}</code>
                       <span className="min-w-0 flex-1">{f.title}</span>
                     </div>
                     <p className="mt-1 text-[13px] leading-snug">{h.what}</p>
@@ -84,7 +85,7 @@ export function TriageDetailMeta({
               })}
             </ul>
           )}
-          <details className="mb-4" open={findings.length === 0} data-testid="triage-detail-raw">
+          <details className={`mb-4 ${BOX}`} open={findings.length === 0} data-testid="triage-detail-raw">
             <summary className="cursor-pointer text-sm font-semibold text-[var(--color-text)]">
               {findings.length > 0 ? "Raw detail" : "Detail"}
             </summary>
@@ -93,7 +94,7 @@ export function TriageDetailMeta({
             </p>
           </details>
           {item.evidencePath && (
-            <p className="mb-4 break-all text-sm text-[var(--color-text)]" data-testid="triage-detail-evidence">
+            <p className={`mb-4 break-all text-sm text-[var(--color-text)] ${BOX}`} data-testid="triage-detail-evidence">
               <span className="font-semibold">Evidence: </span>
               {existingPaths?.has(item.evidencePath) ? (
                 <FileLink path={item.evidencePath} onOpen={onOpenFile} />
@@ -102,15 +103,15 @@ export function TriageDetailMeta({
               )}
             </p>
           )}
-          <details className="mb-2" data-testid="triage-detail-more">
-            <summary className="cursor-pointer text-sm font-semibold text-[var(--color-text)]">Details</summary>
-            <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-[var(--color-text)]">
+          <details className={`mb-2 ${BOX}`} data-testid="triage-detail-more">
+            <summary className="cursor-pointer text-sm font-semibold text-[var(--color-text)]">Metadata</summary>
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm text-[var(--color-text)]">
               <div>
-                <dt className={FIELD}>Suggested priority <span className="font-normal">(follows severity)</span></dt>
+                <dt className={FIELD}>Priority <span className="font-normal normal-case tracking-normal">(follows severity)</span></dt>
                 <dd className="font-mono">{item.suggestedPriority}</dd>
               </div>
               <div>
-                <dt className={FIELD}>Suggested domain</dt>
+                <dt className={FIELD}>Domain</dt>
                 <dd>{item.suggestedDomain}</dd>
               </div>
               <div>

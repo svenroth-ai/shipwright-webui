@@ -129,9 +129,9 @@ describe("TriageDetailModal styling", () => {
       </Wrapper>,
     );
     const content = screen.getByTestId("triage-detail-modal");
-    expect(content).toHaveClass("bg-[var(--color-surface)]");
+    expect(content).toHaveClass("bg-[var(--surface-form,#edeae7)]");
     expect(content).toHaveClass("rounded-[var(--radius-card)]");
-    expect(content).toHaveClass("shadow-[var(--shadow-card)]");
+    expect(content).toHaveClass("shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]");
   });
 });
 
@@ -342,7 +342,7 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
     // Fix-now demoted: no emerald fill, carries the outline border token.
     const fixNow = screen.getByTestId("triage-fix-now");
     expect(fixNow.className).not.toContain("bg-[var(--color-primary)]");
-    expect(fixNow.className).toContain("border-[var(--color-border)]");
+    expect(fixNow.className).toContain("bg-white");
   });
 
   // @covers FR-01.30

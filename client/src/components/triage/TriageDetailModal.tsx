@@ -158,7 +158,7 @@ export function TriageDetailModal({
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-[4px] z-40" />
           <Dialog.Content
-            className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex overflow-hidden bg-[var(--color-surface)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] ${
+            className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 kbd-dialog z-50 flex overflow-hidden bg-[var(--surface-form,#edeae7)] rounded-[var(--radius-card)] shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))] ${
               openFilePath ? "h-[85vh] w-[1440px] max-w-[95vw]" : "max-h-[85vh] w-[640px] max-w-[90vw]"
             }`}
             data-testid="triage-detail-modal"
@@ -198,7 +198,7 @@ export function TriageDetailModal({
               )}
 
               {displayItem.status === "triage" && !editMode && (
-                <div className="border-t border-[var(--color-border)] pt-4 mt-4">
+                <div className="mt-4 border-t border-[var(--surface-form-divider,#c3b8ae)] pt-4">
                   {writeDisabled && (
                     <div
                       className="mb-3 p-2 text-xs text-warn bg-warn-tint border border-[var(--warn-line)] rounded"
@@ -215,7 +215,7 @@ export function TriageDetailModal({
                       type="text"
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      className="mt-1 w-full px-2 py-1.5 text-sm border border-[var(--color-border)] rounded"
+                      className="mt-1 w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--surface-form-line,#8e847e)] bg-white px-2.5 py-1.5 text-sm text-[var(--color-text)]"
                       placeholder="out of scope this sprint"
                       data-testid="triage-action-reason"
                     />

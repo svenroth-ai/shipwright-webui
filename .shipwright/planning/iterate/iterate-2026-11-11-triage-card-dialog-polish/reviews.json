@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-11-triage-card-dialog-polish",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-11T12:26:14.424019+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-11T12:31:01.996940+00:00",
+      "disposition": "small CSS-only UI polish: no migrations/async/concurrency/irreversible ops (doubt), external/plan/architecture reviews apply at medium+",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/src/components/triage/TriageItemCard.tsx",
+          "line": 86,
+          "finding": "--body resolves to near-white inside the card under .on-photo (the article is not on the reset whitelist): id/timestamp and the '+N more' line are unreadable.",
+          "suggestion": "Use a literal dark colour. [FIXED: literal #44403c + header note + unit guard + E2E computed-colour check]",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": "client/src/components/triage/triageGrid.ts",
+          "line": 9,
+          "finding": "auto-rows-fr makes every row as tall as the tallest card (per group); a card with a task box or error banner inflates the others.",
+          "suggestion": "Cap optional content or accept. [ACCEPTED: equal size is the operator's explicit requirement]",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/triage/TriageItemCard.tsx",
+          "line": 76,
+          "finding": "overflow-hidden on the article clips focus rings/shadows and masks overflow bugs.",
+          "suggestion": "Remove it. [FIXED: removed; findings column is minmax(0,1fr)]",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": "client/src/components/triage/TriageItemCard.tsx",
+          "line": 108,
+          "finding": "Cap of 3 findings with '+N more' was not requested.",
+          "suggestion": "Justify or drop. [KEPT: an unbounded check list breaks the equal-size requirement; rest is in the modal; stated in the PR]",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/triage/TriageItemCard.tsx",
+          "line": 127,
+          "finding": "min-h-[4.1em] ignores padding/border so it does not reserve 3 lines.",
+          "suggestion": "calc(3*1.375em+14px). [FIXED]",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/triage/TriageCardActions.tsx",
+          "line": 37,
+          "finding": "Action group wrapper not re-indented and lacks flex-wrap.",
+          "suggestion": "Re-indent, add flex-wrap. [FIXED]",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/triage/TriageQuickEdit.tsx",
+          "line": 152,
+          "finding": "After dropping 'Suggested' the chip's accessible name is only its truncated text.",
+          "suggestion": "Add aria-label with the value. [FIXED]",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-11T12:30:56.186594+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-11T12:31:01.996940+00:00",
+      "disposition": "small CSS-only UI polish: no migrations/async/concurrency/irreversible ops (doubt), external/plan/architecture reviews apply at medium+",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-11T12:31:01.996940+00:00",
+      "disposition": "small CSS-only UI polish: no migrations/async/concurrency/irreversible ops (doubt), external/plan/architecture reviews apply at medium+",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-11T12:27:45.175093+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-11T12:31:01.996940+00:00",
+      "disposition": "small CSS-only UI polish: no migrations/async/concurrency/irreversible ops (doubt), external/plan/architecture reviews apply at medium+",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-11T12:31:01.996940+00:00",
+      "disposition": "small CSS-only UI polish: no migrations/async/concurrency/irreversible ops (doubt), external/plan/architecture reviews apply at medium+",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

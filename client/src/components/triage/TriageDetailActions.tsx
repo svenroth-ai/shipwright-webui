@@ -31,7 +31,7 @@ interface Props {
 const BASE =
   "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5";
 const PRIMARY = `${BASE} bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] disabled:cursor-not-allowed`;
-const SECONDARY = `${BASE} border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)]`;
+const SECONDARY = `${BASE} border-[1.5px] border-[var(--surface-form-line,#8e847e)] bg-white text-[var(--color-text)] hover:bg-[var(--surface-form-sunken-strong,#d9d3cc)]`;
 
 export function TriageDetailActions({
   projectId,

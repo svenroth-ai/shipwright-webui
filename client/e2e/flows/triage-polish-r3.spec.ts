@@ -105,7 +105,30 @@ test.describe("Triage polish round 3", () => {
   });
 
   // @covers FR-01.30
-  test("detail dialog: explained findings first, Details collapsed, Edit at the bottom", async ({ page }) => {
+  test("cards are equal height, clearly spaced, and nothing spills out of a card", async ({ page }) => {
+    const ids = ["trg-b2000001", "trg-b2000002", "trg-b2000003"];
+    await page.setViewportSize({ width: 1800, height: 900 });
+    await page.goto("/triage");
+    await expect(page.getByTestId(`triage-item-${ids[0]}`)).toBeVisible({ timeout: 35_000 });
+    const boxes = [];
+    for (const id of ids) boxes.push((await page.getByTestId(`triage-item-${id}`).boundingBox())!);
+    expect(new Set(boxes.map((b) => Math.round(b.height))).size, "equal heights").toBe(1);
+    expect(boxes[1].x - (boxes[0].x + boxes[0].width), "gap between cards").toBeGreaterThanOrEqual(10);
+    for (const id of ids) {
+      const card = page.getByTestId(`triage-item-${id}`);
+      const spills = await card.evaluate((el) =>
+        [...el.querySelectorAll("*")].some((c) => c.getBoundingClientRect().right > el.getBoundingClientRect().right + 1),
+      );
+      expect(spills, `${id}: content stays inside the card`).toBe(false);
+      const idColour = await card.locator("span.font-mono").first().evaluate((el) => getComputedStyle(el).color);
+      const [r, g, b] = idColour.match(/\d+/g)!.map(Number);
+      expect(Math.max(r, g, b), `${id}: id/timestamp text is dark, not on-photo white`).toBeLessThan(140);
+      await expect(card.getByTestId(`triage-quick-edit-trigger-${id}`)).not.toContainText(/suggested/i);
+    }
+  });
+
+  // @covers FR-01.30
+  test("detail dialog: explained findings first, Metadata collapsed, Edit at the bottom", async ({ page }) => {
     await page.goto("/triage");
     await page.getByTestId("triage-item-trg-b2000001-title").click({ timeout: 35_000 });
     const modal = page.getByTestId("triage-detail-modal");
