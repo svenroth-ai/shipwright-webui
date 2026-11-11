@@ -145,13 +145,14 @@ export function TriageQuickEdit({ projectId, item }: Props) {
       <Popover.Trigger asChild>
         <button
           type="button"
-          aria-label="Edit title and severity"
+          aria-label={`Edit title and severity (currently ${item.suggestedPriority} · ${item.suggestedDomain})`}
           title="Edit title and severity"
           onClick={(e) => e.stopPropagation()}
           data-testid={`triage-quick-edit-trigger-${item.id}`}
-          className="inline-flex items-center gap-1 rounded px-1 text-xs text-[var(--color-text)] hover:text-[var(--color-text)]"
+          className="inline-flex max-w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-medium text-[var(--color-text)] hover:bg-[var(--surface-form-sunken,#e4dfda)]"
         >
-          <Pencil size={11} /> Suggested {item.suggestedPriority} · {item.suggestedDomain}
+          <Pencil size={11} className="shrink-0" />
+          <span className="truncate">{item.suggestedPriority} · {item.suggestedDomain}</span>
         </button>
       </Popover.Trigger>
       <Popover.Portal>

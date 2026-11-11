@@ -61,7 +61,7 @@ describe("TriageDetailMeta (dialog)", () => {
     expect(screen.getByTestId("triage-detail-body")).toHaveTextContent("hint: fix");
   });
 
-  it("keeps the secondary fields in a collapsed Details section", () => {
+  it("keeps the secondary fields in a collapsed Metadata section", () => {
     mount();
     const more = screen.getByTestId("triage-detail-more");
     expect(more.tagName).toBe("DETAILS");

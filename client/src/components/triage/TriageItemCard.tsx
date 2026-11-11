@@ -10,9 +10,11 @@
  *
  * All triage fields render as plain text — no MarkdownText, no
  * dangerouslySetInnerHTML (XSS mirror of MasterTaskCard's domain chip,
- * ADR-100). The surface is the opaque `--color-surface` token on purpose:
+ * ADR-100). The surface is the opaque `--surface-form` token (same grey as the New Task dialog) on purpose:
  * a translucent card turns white-on-white under `.on-photo` (recurring
- * defect), so it stays solid.
+ * defect), so it stays solid. Because the article is NOT on the on-photo reset
+ * whitelist, `--body` / `--muted` resolve to near-white inside it. Use the legacy
+ * `--color-text` (never flipped) for secondary text here, never those tokens.
  */
 
 import { memo } from "react";
@@ -51,6 +53,9 @@ function formatRelative(iso: string): string {
   return `${Math.floor(deltaSec / 86_400)}d ago`;
 }
 
+/** A card shows at most this many audit checks; the rest are one click away in the detail dialog. */
+const MAX_CARD_FINDINGS = 3;
+
 function TriageItemCardImpl({
   projectId,
   item,
@@ -70,7 +75,7 @@ function TriageItemCardImpl({
   return (
     <>
     <article
-      className="flex min-w-0 flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-[var(--shadow-sm)] transition-shadow hover:shadow-[var(--shadow-card-hover)] max-md:px-3"
+      className="flex h-full min-w-0 flex-col gap-2.5 rounded-[var(--radius-card)] border border-[var(--surface-form-divider,#c3b8ae)] bg-[var(--surface-form,#edeae7)] px-4 py-3.5 shadow-[var(--shadow-sm)] transition-shadow hover:shadow-[var(--shadow-card-hover)] max-md:px-3"
       data-testid={`triage-item-${item.id}`}
       aria-label={item.title}
       onClick={(e) => {
@@ -80,7 +85,7 @@ function TriageItemCardImpl({
     >
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <TriagePills item={item} projectId={projectId} projectLabel={projectLabel} />
-        <span className="flex items-center gap-2 text-xs text-[var(--color-muted)]">
+        <span className="flex items-center gap-2 text-xs text-[var(--color-text)]">
           <span className="font-mono">{item.id}</span>
           <span title={item.originalTs} data-testid={`triage-item-${item.id}-relative-ts`}>
             {formatRelative(item.originalTs)}
@@ -88,7 +93,7 @@ function TriageItemCardImpl({
         </span>
       </div>
 
-      <h3 className="break-words text-[15px] font-semibold leading-snug text-[var(--color-text)]">
+      <h3 className="line-clamp-2 min-h-[2.75em] text-[15px] font-semibold leading-snug text-[var(--color-text)] [overflow-wrap:anywhere]">
         <button
           type="button"
           onClick={onOpen}
@@ -101,22 +106,27 @@ function TriageItemCardImpl({
       </h3>
 
       {findings.length > 0 ? (
-        <ul className="m-0 grid list-none gap-1 p-0" data-testid={`triage-item-${item.id}-findings`}>
-          {findings.map((f, i) => (
+        <ul className="m-0 grid list-none grid-cols-[minmax(0,1fr)] gap-1 p-0" data-testid={`triage-item-${item.id}-findings`}>
+          {findings.slice(0, MAX_CARD_FINDINGS).map((f, i) => (
             <li
               key={`${f.code}-${i}`}
-              className="flex items-center gap-2 rounded-md bg-[var(--color-muted-bg)] px-2 py-1 text-[13px] text-[var(--color-text)]"
+              className="flex items-center gap-2 rounded-md border border-[var(--surface-form-divider,#c3b8ae)] bg-white px-2 py-1 text-[13px] text-[var(--color-text)]"
             >
-              <code className="shrink-0 rounded bg-[var(--color-surface)] px-1.5 py-px text-xs">{f.code}</code>
+              <code className="shrink-0 rounded bg-[var(--surface-form,#edeae7)] px-1.5 py-px text-xs">{f.code}</code>
               <span className="min-w-0 flex-1 truncate" title={f.detail ? `${f.title} — ${f.detail}` : f.title}>
                 {f.title}
               </span>
               <TriageHelp help={checkHelp(f.code, f.title)} subject={`check-${f.code}`} />
             </li>
           ))}
+          {findings.length > MAX_CARD_FINDINGS && (
+            <li className="px-1 text-xs text-[var(--color-text)]" data-testid={`triage-item-${item.id}-findings-more`}>
+              +{findings.length - MAX_CARD_FINDINGS} more — open the card for all checks
+            </li>
+          )}
         </ul>
       ) : (
-        <p className="line-clamp-2 whitespace-pre-wrap break-words text-[13px] leading-snug text-[var(--color-text)]">
+        <p className="line-clamp-3 min-h-[calc(3*1.375em+14px)] rounded-md border border-[var(--surface-form-divider,#c3b8ae)] bg-white px-2.5 py-1.5 text-[13px] leading-snug text-[var(--color-text)] [overflow-wrap:anywhere]">
           {item.detail}
         </p>
       )}
@@ -127,7 +137,7 @@ function TriageItemCardImpl({
         <TriageCardActions projectId={projectId} item={item} a={a} snoozing={snoozing} task={task} />
       ) : (
         <p
-          className="text-xs text-[var(--color-text)]"
+          className="mt-auto text-xs text-[var(--color-text)]"
           data-testid={`triage-deferred-item-${item.id}-revisit`}
         >
           {item.revisitAt ? `Parked — returns on ${item.revisitAt}` : "Parked — no revisit date set"}

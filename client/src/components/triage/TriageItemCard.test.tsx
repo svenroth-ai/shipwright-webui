@@ -90,12 +90,12 @@ function mount(over: Partial<TriageItem> = {}, handlers: Partial<Record<"onOpen"
 
 // @covers FR-01.30
 describe("TriageItemCard styling", () => {
-  it("renders on the white --color-surface with a resting shadow (not beige-on-beige)", () => {
+  it("renders on the grey --surface-form sheet (like the New Task dialog) with a resting shadow", () => {
     mount();
     const card = screen.getByTestId(`triage-item-${item.id}`);
-    expect(card).toHaveClass("bg-[var(--color-surface)]");
+    expect(card).toHaveClass("bg-[var(--surface-form,#edeae7)]");
     expect(card).toHaveClass("shadow-[var(--shadow-sm)]");
-    expect(card).toHaveClass("border-[var(--color-border)]");
+    expect(card).toHaveClass("border-[var(--surface-form-divider,#c3b8ae)]");
     expect(card).toHaveClass("hover:shadow-[var(--shadow-card-hover)]");
   });
 });

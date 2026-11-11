@@ -34,96 +34,98 @@ export function TriageCardActions({ projectId, item, a, snoozing, task }: Props)
   const blocked = a.writeDisabled || a.dismissing || snoozing;
   const blockedTitle = a.writeDisabled ? a.writeDisabledReason : undefined;
   return (
-    <div className="flex flex-wrap items-center gap-2 pt-1">
-      <span className="mr-auto">
+    <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-2 pt-1">
+      <span className="min-w-0 flex-1 basis-28">
         <TriageQuickEdit projectId={projectId} item={item} />
       </span>
-      {task ? (
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        {task ? (
+          <TriageDismissPopover
+            itemId={item.id}
+            label="Resolve"
+            defaultReason={`Resolved via task: ${task.title}`.slice(0, 500)}
+            pending={a.dismissing}
+            onConfirm={a.dismiss}
+            trigger={
+              <button
+                type="button"
+                disabled={blocked}
+                title={blockedTitle}
+                className={SECONDARY_BTN}
+                data-testid={`triage-card-resolve-${item.id}`}
+              >
+                Resolve
+              </button>
+            }
+          />
+        ) : (
+          <>
+            {a.showCampaignCta && a.campaignStatus === "active" ? (
+              <button type="button" onClick={a.goToBoard} className={PRIMARY_BTN} data-testid={`triage-card-go-to-board-${item.id}`}>
+                Go to board →
+              </button>
+            ) : a.showCampaignCta ? (
+              <button
+                type="button"
+                onClick={() => void a.startCampaign()}
+                disabled={a.startingCampaign || a.writeDisabled}
+                title={blockedTitle}
+                className={PRIMARY_BTN}
+                data-testid={`triage-card-start-campaign-${item.id}`}
+              >
+                {a.startingCampaign && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Start campaign
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={a.fixNow}
+                disabled={a.fixNowLoading}
+                className={PRIMARY_BTN}
+                data-testid={`triage-card-fix-now-${item.id}`}
+              >
+                {a.fixNowLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Fix now
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => a.setPromoteOpen(true)}
+              disabled={a.writeDisabled}
+              title={blockedTitle}
+              className={SECONDARY_BTN}
+              data-testid={`triage-card-promote-${item.id}`}
+            >
+              Promote
+            </button>
+            <TriageSnoozeMenu
+              projectId={projectId}
+              itemId={item.id}
+              disabled={a.writeDisabled || a.dismissing}
+              disabledReason={a.writeDisabledReason}
+              buttonClassName={SECONDARY_BTN}
+            />
+          </>
+        )}
         <TriageDismissPopover
           itemId={item.id}
-          label="Resolve"
-          defaultReason={`Resolved via task: ${task.title}`.slice(0, 500)}
+          label="Dismiss"
           pending={a.dismissing}
           onConfirm={a.dismiss}
           trigger={
             <button
               type="button"
               disabled={blocked}
-              title={blockedTitle}
-              className={SECONDARY_BTN}
-              data-testid={`triage-card-resolve-${item.id}`}
+              title={a.writeDisabled ? a.writeDisabledReason : "Dismiss"}
+              aria-label="Dismiss"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] disabled:opacity-50"
+              data-testid={`triage-card-dismiss-${item.id}`}
             >
-              Resolve
+              {a.dismissing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X size={15} />}
             </button>
           }
         />
-      ) : (
-        <>
-          {a.showCampaignCta && a.campaignStatus === "active" ? (
-            <button type="button" onClick={a.goToBoard} className={PRIMARY_BTN} data-testid={`triage-card-go-to-board-${item.id}`}>
-              Go to board →
-            </button>
-          ) : a.showCampaignCta ? (
-            <button
-              type="button"
-              onClick={() => void a.startCampaign()}
-              disabled={a.startingCampaign || a.writeDisabled}
-              title={blockedTitle}
-              className={PRIMARY_BTN}
-              data-testid={`triage-card-start-campaign-${item.id}`}
-            >
-              {a.startingCampaign && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Start campaign
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={a.fixNow}
-              disabled={a.fixNowLoading}
-              className={PRIMARY_BTN}
-              data-testid={`triage-card-fix-now-${item.id}`}
-            >
-              {a.fixNowLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Fix now
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => a.setPromoteOpen(true)}
-            disabled={a.writeDisabled}
-            title={blockedTitle}
-            className={SECONDARY_BTN}
-            data-testid={`triage-card-promote-${item.id}`}
-          >
-            Promote
-          </button>
-          <TriageSnoozeMenu
-            projectId={projectId}
-            itemId={item.id}
-            disabled={a.writeDisabled || a.dismissing}
-            disabledReason={a.writeDisabledReason}
-            buttonClassName={SECONDARY_BTN}
-          />
-        </>
-      )}
-      <TriageDismissPopover
-        itemId={item.id}
-        label="Dismiss"
-        pending={a.dismissing}
-        onConfirm={a.dismiss}
-        trigger={
-          <button
-            type="button"
-            disabled={blocked}
-            title={a.writeDisabled ? a.writeDisabledReason : "Dismiss"}
-            aria-label="Dismiss"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] disabled:opacity-50"
-            data-testid={`triage-card-dismiss-${item.id}`}
-          >
-            {a.dismissing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X size={15} />}
-          </button>
-        }
-      />
+      </div>
     </div>
   );
 }
