@@ -1,21 +1,21 @@
 # Commit Change Log
 
-Generated: 2026-11-10T11:06:10.715331+00:00
-Source-State: run=iterate-2026-11-10-screenshots-with-description base=ed44d09bcaa7 release=v0.32.0
+Generated: 2026-11-10T22:29:13.549961+00:00
+Source-State: run=iterate-2026-11-10-mermaid-large-diagram-render base=054d05965f8b release=v0.32.1
 Consistency-audit: last run 2026-09-29 (42 days earlier) — PASS
-Total commits: 1008
+Total commits: 1011
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 396
+    "fix" : 398
     "feat" : 267
     "chore" : 169
     "docs" : 79
     "refactor" : 37
     "test" : 34
-    "other" : 11
+    "other" : 12
     "ci" : 8
     "perf" : 5
     "build" : 2
@@ -23,10 +23,12 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 396 commits
+### Fixes (fix) — 398 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-11 | smartviewer | readable large Mermaid diagrams (#592) | 054d05965f8b |
+| 2026-11-10 | smartviewer | follow relative links between files in-pane, across folders (#591) | 57564ba05595 |
 | 2026-11-08 | codex-watcher | stop self-check reminder re-arming from its own echo (#583) (#584) | 6a60d504873e |
 | 2026-11-04 | ui | list load-error state readable on the photo backdrop (#572) | 1ebffeb1554b |
 | 2026-11-04 | wizard | readable empty state + calmer readiness banner (#571) | 6d0f80444fe1 |
@@ -1035,10 +1037,11 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
-### Other (other) — 11 commits
+### Other (other) — 12 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-10 | — | Release v0.32.0 (#590) | e9ad0aff64ac |
 | 2026-11-04 | — | Release v0.29.0 (#573) | ff8c56e43e14 |
 | 2026-10-09 | — | Release v0.28.0 (#519) | 676fe5c80824 |
 | 2026-09-07 | — | iterate(w4): tag-backfill — 1196 tests, 15.75%->31.97% coverage (#437) | 1a5c3df339a5 |
@@ -1085,7 +1088,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 1008 |
+| Total commits | 1011 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 1008 |
+| Human-authored commits | 1011 |
 

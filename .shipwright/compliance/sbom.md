@@ -1,7 +1,7 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-11-10T11:06:10.715331+00:00
-Source-State: run=iterate-2026-11-10-screenshots-with-description base=ed44d09bcaa7 release=v0.32.0
+Generated: 2026-11-10T22:29:13.549961+00:00
+Source-State: run=iterate-2026-11-10-mermaid-large-diagram-render base=054d05965f8b release=v0.32.1
 Consistency-audit: last run 2026-09-29 (42 days earlier) — PASS
 
 ## Summary

@@ -6037,3 +6037,29 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Smallest change that makes both requested variants work without a second field; the allowlist keeps the existing q()-escaped prompt path safe.
 - **Consequences:** Authors can ship a default-on option and fixed flags. A fixed flag equal to a parameter cli_flag is emitted twice (documented as unconditional). The regex stays a strict allowlist (no quotes, ;, $, |).
 - **Rejected:** A separate slash_args field (extra schema surface); auto-applying defaults server-side (would break opt-in semantics for optional params).
+
+---
+
+### ADR-425: SmartViewer follows every relative file link in-pane
+- **Date:** 2026-11-10
+- **Section:** Iterate — bug: SmartViewer relative links across folders
+- **Run-ID:** iterate-2026-11-10-md-relative-links
+- **Context:** Relative links in viewed markdown resolved via the browser to localhost:<port> for non-md files, did nothing for files outside the project, and double-encoded %20 paths.
+- **Decision:** Resolve links segment-wise against the current file (project or absolute outside path) and follow every relative link in the viewer; navigation state lives in SmartViewer so the renderer follows the target file type.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Matches VS Code behaviour; no server change, so no new read surface.
+- **Consequences:** Host-independent (localhost and Tailscale behave the same); outside files stay gated by the server session-file evidence rule; handler-less hosts leave root-relative app links to the browser.
+- **Rejected:** Rewriting hrefs to a server file URL (leaks host/port, bypasses the viewer); widening session-file evidence for sibling markdown (security design change).
+
+---
+
+### ADR-426: Mermaid renders at natural size with page-matched theme
+- **Date:** 2026-11-10
+- **Section:** Iterate — bug: large Mermaid diagram render
+- **Run-ID:** iterate-2026-11-10-mermaid-large-diagram-render
+- **Context:** MermaidRenderer initialised mermaid with defaults: light theme and max-width:100%, so wide flowchart LR diagrams shrank to an unreadable speck on the dark page.
+- **Decision:** Initialise mermaid with theme derived from the page background and useMaxWidth:false for all diagram types; scroll in the pane; add a Fit-to-width toggle; reduce pane padding p-4 to p-1.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Restores the specified behaviour (spec FR-01.02: wide diagrams get a horizontal scrollbar) with the smallest change inside the single renderer.
+- **Consequences:** Wide diagrams scroll horizontally by default instead of shrinking; users can opt into fit. Theme is chosen once per mount from the body background.
+- **Rejected:** Auto-fit only (still unreadable for wide graphs); pan/zoom library (new dependency, CLAUDE.md rule 2 spirit).

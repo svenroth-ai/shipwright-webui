@@ -432,3 +432,5 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_decision_log_index.py 
 - [ADR-422 — Fix-now task link lives on the task, not in triage.jsonl](decision_log.md#adr-422-fix-now-task-link-lives-on-the-task-not-in-triagejsonl)
 - [ADR-423 — Triage help is framework-only and honest about Fix now](decision_log.md#adr-423-triage-help-is-framework-only-and-honest-about-fix-now)
 - [ADR-424 — Boolean default:true opens pre-checked; slash_command takes fixed plain flags](decision_log.md#adr-424-boolean-defaulttrue-opens-pre-checked-slash_command-takes-fixed-plain-flags)
+- [ADR-425 — SmartViewer follows every relative file link in-pane](decision_log.md#adr-425-smartviewer-follows-every-relative-file-link-in-pane)
+- [ADR-426 — Mermaid renders at natural size with page-matched theme](decision_log.md#adr-426-mermaid-renders-at-natural-size-with-page-matched-theme)
