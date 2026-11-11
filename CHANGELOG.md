@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.32.1] - 2026-11-11
+
+### Fixed
+
+- File viewer: relative links between files (also across sibling folders, with spaces in names, any file type, and files opened from outside the project) now open the linked file in the viewer instead of a localhost address.
+- Smart Viewer: large Mermaid diagrams (e.g. wide flowchart LR with many subgraphs) now render in the dark theme at natural size with scroll and a Fit-to-width toggle, with narrower padding, instead of a light-theme speck.
+
 ## [0.32.0] - 2026-11-10
 
 ### Added

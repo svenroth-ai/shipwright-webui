@@ -1,9 +1,9 @@
 {
   "schema_version": 4,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-11-10T11:06:10.715331+00:00",
-  "source_commit": "ed44d09bcaa77124db13385ee66fc05665331586",
-  "spec_hash": "sha256:9abb9a1d8603d6575dc6cbd1262a290fe997cd9aecc7f9dde0f8b5a2225a5475",
+  "generated_at": "2026-11-10T22:29:13.549961+00:00",
+  "source_commit": "054d05965f8b719e2423e1e04d8ed0d9daef241d",
+  "spec_hash": "sha256:10d36d9ab87541363c1ce903878f4d2ca630035a2d6d22e239dffbcb8bbf416e",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
@@ -1846,7 +1846,7 @@
     "01::FR-01.02": {
       "id": "FR-01.02",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, diagrams, and sandboxed HTML pages (an HTML page is shown with its own relative stylesheets and images applied (also for pages outside the project once the session has mentioned them; fonts load for those pages only) and nothing else read on its behalf; a Pop out button opens a larger view). Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. On small screens, the same workspace becomes four direct one-pane-at-a-time destinations so the live work area stays large. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout and a compact mobile work mode; the file preview pane's wide-table horizontal scroll now actually engages for a table with a long free-text column (previously crushed into wrapped lines instead), and the pane gained accessibility fixes (screen-reader-friendly table headers, a focusable labelled region, a keyboard-reachable tab close button); code and plain-text files in the file viewer now wrap long lines by default (continuation rows are indented slightly under the start of the line, and in text files the line number appears on the first row only) behind one \"Wrap lines\" toggle remembered per browser, both shown at 13px with 1.6 line spacing (code was 14px, plain text 12px).",
+      "title": "The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, diagrams, and sandboxed HTML pages (an HTML page is shown with its own relative stylesheets and images applied (also for pages outside the project once the session has mentioned them; fonts load for those pages only) and nothing else read on its behalf; a Pop out button opens a larger view). Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. On small screens, the same workspace becomes four direct one-pane-at-a-time destinations so the live work area stays large. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout and a compact mobile work mode; the file preview pane's wide-table horizontal scroll now actually engages for a table with a long free-text column (previously crushed into wrapped lines instead), and the pane gained accessibility fixes (screen-reader-friendly table headers, a focusable labelled region, a keyboard-reachable tab close button); code and plain-text files in the file viewer now wrap long lines by default (continuation rows are indented slightly under the start of the line, and in text files the line number appears on the first row only) behind one \"Wrap lines\" toggle remembered per browser, both shown at 13px with 1.6 line spacing (code was 14px, plain text 12px); a relative link between files (including links across sibling folders, `%20` in names, and links in files opened from outside the project) now opens the linked file in the viewer itself, whatever its type, instead of a `localhost:<port>` address in the browser.",
       "priority": "Must",
       "status": "active",
       "required_layers": [],
@@ -1928,6 +1928,22 @@
           {
             "id": "client/src/components/external/mission/MissionMetaLine.test.tsx::renders the trailing node on the same row as the meta line",
             "path": "client/src/components/external/mission/MissionMetaLine.test.tsx::renders the trailing node on the same row as the meta line",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::matches every relative file link (any extension, sibling/sub/parent folder), not #frag/scheme/protocol-relative",
+            "path": "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::matches every relative file link (any extension, sibling/sub/parent folder), not #frag/scheme/protocol-relative",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::a relative link to a non-markdown file is followed in-pane, not opened in a new tab",
+            "path": "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::a relative link to a non-markdown file is followed in-pane, not opened in a new tab",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -2398,6 +2414,86 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::initialises mermaid with natural-size (no max-width squeeze) for flowcharts",
+            "path": "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::initialises mermaid with natural-size (no max-width squeeze) for flowcharts",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::picks the mermaid theme from the surface colour (%s -> %s)",
+            "path": "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::picks the mermaid theme from the surface colour (%s -> %s)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::fit toggle switches the svg host between natural size and fit-to-width",
+            "path": "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::fit toggle switches the svg host between natural size and fit-to-width",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/useDocNavigation.test.ts::hops between sibling sub-folders and handles ./ (the VS Code-style case)",
+            "path": "client/src/components/external/SmartViewer/useDocNavigation.test.ts::hops between sibling sub-folders and handles ./ (the VS Code-style case)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/useDocNavigation.test.ts::decodes %20 once (no double-encoding) and tolerates a malformed escape",
+            "path": "client/src/components/external/SmartViewer/useDocNavigation.test.ts::decodes %20 once (no double-encoding) and tolerates a malformed escape",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/useDocNavigation.test.ts::ignores a ?query and resolves a leading / against the project root",
+            "path": "client/src/components/external/SmartViewer/useDocNavigation.test.ts::ignores a ?query and resolves a leading / against the project root",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/useDocNavigation.test.ts::resolves non-markdown targets and fragment-only links",
+            "path": "client/src/components/external/SmartViewer/useDocNavigation.test.ts::resolves non-markdown targets and fragment-only links",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/useDocNavigation.test.ts::resolves against an OUTSIDE absolute path (drive / posix / UNC) and clamps at its root",
+            "path": "client/src/components/external/SmartViewer/useDocNavigation.test.ts::resolves against an OUTSIDE absolute path (drive / posix / UNC) and clamps at its root",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer.test.tsx::md → %s renders %s (not the markdown pane)",
+            "path": "client/src/components/external/SmartViewer.test.tsx::md → %s renders %s (not the markdown pane)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer.test.tsx::md → sibling-folder md fetches the resolved path; a root link stays put",
+            "path": "client/src/components/external/SmartViewer.test.tsx::md → sibling-folder md fetches the resolved path; a root link stays put",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/components/external/SmartViewer.wrap.test.tsx::wraps by default and the toggle flips + persists aria-pressed",
             "path": "client/src/components/external/SmartViewer.wrap.test.tsx::wraps by default and the toggle flips + persists aria-pressed",
             "layer": "unit",
@@ -2688,6 +2784,14 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/e2e/flows/mermaid-large-diagram-natural-size.spec.ts::flowchart LR with five subgraphs is not squeezed to max-width:100%",
+            "path": "client/e2e/flows/mermaid-large-diagram-natural-size.spec.ts::flowchart LR with five subgraphs is not squeezed to max-width:100%",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "native_tag"
+          },
+          {
             "id": "client/e2e/flows/smartviewer-code-wrap.spec.ts::wraps by default, toggles to raw scroll, remembers choice, 13px/1.6",
             "path": "client/e2e/flows/smartviewer-code-wrap.spec.ts::wraps by default, toggles to raw scroll, remembers choice, 13px/1.6",
             "layer": "e2e",
@@ -2698,6 +2802,14 @@
           {
             "id": "client/e2e/flows/smartviewer-code-wrap.spec.ts::plain text: wraps by default with the same shared toggle, number on the first row only, hanging indent",
             "path": "client/e2e/flows/smartviewer-code-wrap.spec.ts::plain text: wraps by default with the same shared toggle, number on the first row only, hanging indent",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/smartviewer-crossfile-nav.spec.ts::clicks hop between sibling folders in-pane (md, %20 path, json) and never leave /preview",
+            "path": "client/e2e/flows/smartviewer-crossfile-nav.spec.ts::clicks hop between sibling folders in-pane (md, %20 path, json) and never leave /preview",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -30964,7 +31076,6 @@
     "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::AC8 — clicking a #fragment link is intercepted (preventDefault) once its target resolves",
     "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::AC8 — rehype-slug stamps (unprefixed) heading ids — anchor-nav targets",
     "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::does NOT treat a leading thematic break as frontmatter",
-    "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::matches relative *.md links (with/without fragment), not #frag/http/non-md",
     "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::resolves both an unprefixed slug id and a user-content-prefixed raw-HTML id",
     "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::returns text unchanged for an unterminated leading fence",
     "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::returns text unchanged when there is no leading frontmatter",
