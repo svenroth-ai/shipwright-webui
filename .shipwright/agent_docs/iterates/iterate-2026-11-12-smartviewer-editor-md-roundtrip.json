@@ -65,7 +65,7 @@
   },
   "surface_verification": {
     "surface": "web",
-    "runner": "node client/e2e/isolated-stack.mjs --project=chromium --reporter=list,json client/e2e/flows/md-editor-elements.spec.ts",
+    "runner": "cd client && npm run test:e2e:chromium -- --reporter=list,json e2e/flows/md-editor-elements.spec.ts",
     "exit_code": 0,
     "tests_run": 1,
     "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\smartviewer-editor-md-roundtrip\\.shipwright\\runs\\iterate-2026-11-12-smartviewer-editor-md-roundtrip\\surface_verification.log",
