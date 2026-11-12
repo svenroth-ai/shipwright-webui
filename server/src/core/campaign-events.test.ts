@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
@@ -242,5 +242,30 @@ describe("campaign-events: readCampaignEvents", () => {
     const proj = readCampaignEvents(dir);
     expect(proj.get("x")!.size).toBe(2);
     expect(proj.get("x")!.get("C2")!.commit).toBe("bbb");
+  });
+
+  it("sees work_completed events that live only in shipwright_events.d/ drops", () => {
+    mkdirSync(path.join(dir, "shipwright_events.d"));
+    writeFileSync(
+      path.join(dir, "shipwright_events.d", "run-1--aaaaaaaa--bbbbbbbb.jsonl"),
+      JSON.stringify({ id: "e1", type: "work_completed", ts: "2026-11-01T10:00:00Z", campaign: "x", sub_iterate_id: "C1", commit: "ccc" }) + "\n",
+      "utf-8",
+    );
+    expect(readCampaignEvents(dir).get("x")!.get("C1")!.commit).toBe("ccc");
+  });
+
+  it("applies an event_amended drop record onto the event it amends (attach-commit)", () => {
+    writeFileSync(
+      path.join(dir, "shipwright_events.jsonl"),
+      JSON.stringify({ id: "e1", type: "work_completed", ts: "2026-11-01T10:00:00Z", campaign: "x", sub_iterate_id: "C1", commit: "" }) + "\n",
+      "utf-8",
+    );
+    mkdirSync(path.join(dir, "shipwright_events.d"));
+    writeFileSync(
+      path.join(dir, "shipwright_events.d", "run-1--aaaaaaaa--bbbbbbbb.jsonl"),
+      JSON.stringify({ id: "a1", type: "event_amended", ts: "2026-11-02T10:00:00Z", amends: "e1", fields: { commit: "ddd" } }) + "\n",
+      "utf-8",
+    );
+    expect(readCampaignEvents(dir).get("x")!.get("C1")!.commit).toBe("ddd");
   });
 });

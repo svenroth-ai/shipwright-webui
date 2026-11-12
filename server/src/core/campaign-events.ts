@@ -106,16 +106,19 @@ export function projectCampaignEvents(
 
 /**
  * File-loading wrapper: the tree's ASSEMBLED event log (legacy file, then
- * archive + drop records — `event-log-files.ts`, parity with Python
- * `events_read.event_lines_at`) projected RAW: campaign status applies no
- * `event_amended` overlay, exactly like `campaign_status.py`. Missing /
+ * archive + drop records — `event-log-files.ts`) with the
+ * `event_amended` records from archive/drop files overlaid (`effectiveLines`),
+ * so a drops-layout attach-commit reaches the board. Missing /
  * unreadable log → empty projection (the board falls back to the dir-sourced
  * campaigns, or shows nothing — never an error).
  */
 export function readCampaignEvents(projectRoot: string): CampaignEventsProjection {
   const log = readAssembledEventLog(projectRoot);
   if (!log || log.absent) return new Map();
-  return projectCampaignEvents(log.lines);
+  // `effectiveLines`: the drops layout records attach-commit as an `event_amended`
+  // record in a drop file, so the amendment must be overlaid or the board keeps
+  // the older (empty) commit. Raw `lines` would never see it.
+  return projectCampaignEvents(log.effectiveLines);
 }
 
 function recomputeProgress(c: Campaign): void {
