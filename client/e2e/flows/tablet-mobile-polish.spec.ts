@@ -241,6 +241,7 @@ test.describe("Tablet / mobile polish", () => {
     ["tablet", TABLET_LANDSCAPE],
     ["phone", PHONE],
   ] as const) {
+    // @covers FR-01.30
     test(`triage card keeps its meta row together at ${label} width`, async ({ browser, request }) => {
       const ctx = await browser.newContext({ viewport: vp, hasTouch: true });
       const page = await ctx.newPage();
