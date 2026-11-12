@@ -1,0 +1,57 @@
+{
+  "run_id": "iterate-2026-11-13-triage-rows-polish",
+  "date": "2026-11-12T23:46:37.939277Z",
+  "event_at": "2026-11-12T10:56:22.850520+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/triage-rows-polish",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-13-triage-rows-polish",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 3,
+      "tested": 3,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 0,
+      "covered_acs": 0
+    },
+    "behaviors": [
+      {
+        "behavior": "Action strip appears on hover at the right of a wide row and never covers the title",
+        "disposition": "tested",
+        "evidence": "e2e triage-lanes-rows PASSED"
+      },
+      {
+        "behavior": "Lanes are 36px (24px phone) apart and rows stay flush inside a lane",
+        "disposition": "tested",
+        "evidence": "e2e mobile-triage-spacing-filters PASSED"
+      },
+      {
+        "behavior": "Row, task box and banner render with dark styling and keep their test ids",
+        "disposition": "tested",
+        "evidence": "vitest triage components + no-hardcoded-colors + on-photo fences PASSED"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "npm.cmd --prefix client run test:e2e:chromium -- client/e2e/flows/triage-lanes-rows.spec.ts client/e2e/flows/triage-fixnow-task.spec.ts client/e2e/flows/triage-deferred-envelope.spec.ts client/e2e/flows/triage-card-block-display.spec.ts client/e2e/flows/mobile-triage-spacing-filters.spec.ts client/e2e/flows/triage-amend.spec.ts --reporter=json",
+    "exit_code": 0,
+    "tests_run": 14,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-rows-polish\\.shipwright\\runs\\iterate-2026-11-13-triage-rows-polish\\surface_verification.log",
+    "timestamp": "2026-11-12T23:45:50.259Z",
+    "attempts": 1
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

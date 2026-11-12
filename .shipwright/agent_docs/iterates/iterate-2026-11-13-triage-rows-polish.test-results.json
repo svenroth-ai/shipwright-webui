@@ -1,0 +1,84 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-13-triage-rows-polish",
+    "date": "2026-11-13",
+    "unit": {
+      "status": "passed",
+      "passed": 5119,
+      "total": 5119,
+      "skipped": 0
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 14,
+      "total": 14,
+      "skipped": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 3,
+        "tested": 3,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 0,
+        "covered_acs": 0
+      },
+      "behaviors": [
+        {
+          "behavior": "Action strip appears on hover at the right of a wide row and never covers the title",
+          "disposition": "tested",
+          "evidence": "e2e triage-lanes-rows PASSED"
+        },
+        {
+          "behavior": "Lanes are 36px (24px phone) apart and rows stay flush inside a lane",
+          "disposition": "tested",
+          "evidence": "e2e mobile-triage-spacing-filters PASSED"
+        },
+        {
+          "behavior": "Row, task box and banner render with dark styling and keep their test ids",
+          "disposition": "tested",
+          "evidence": "vitest triage components + no-hardcoded-colors + on-photo fences PASSED"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "npm.cmd --prefix client run test:e2e:chromium -- client/e2e/flows/triage-lanes-rows.spec.ts client/e2e/flows/triage-fixnow-task.spec.ts client/e2e/flows/triage-deferred-envelope.spec.ts client/e2e/flows/triage-card-block-display.spec.ts client/e2e/flows/mobile-triage-spacing-filters.spec.ts client/e2e/flows/triage-amend.spec.ts --reporter=json",
+      "exit_code": 0,
+      "tests_run": 14,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-rows-polish\\.shipwright\\runs\\iterate-2026-11-13-triage-rows-polish\\surface_verification.log",
+      "timestamp": "2026-11-12T23:45:50.259Z",
+      "attempts": 1
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-13-triage-rows-polish",
+    "commit": "affdad8cc745b6b4ed25e6120602ad463dda8d0d",
+    "dirty": false,
+    "base": null,
+    "release": null
+  }
+}

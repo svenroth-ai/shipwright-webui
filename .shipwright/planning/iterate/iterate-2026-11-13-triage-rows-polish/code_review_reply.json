@@ -1,0 +1,29 @@
+{
+ "verdict": "APPROVE_WITH_FIXES",
+ "review": [
+  {
+   "severity": "high",
+   "finding": "min-height rule inside a container query on the container itself never matches -> accepted-and-fixed (moved to the hover media block)"
+  },
+  {
+   "severity": "high",
+   "finding": "hover-only gate hides the strip on hybrid touch+hover devices -> accepted tradeoff (operator asked for hover-only; every action stays in the detail dialog)"
+  },
+  {
+   "severity": "med",
+   "finding": "hardcoded title padding vs overlay width -> accepted-and-fixed (32rem for the widest set, threshold 62rem)"
+  },
+  {
+   "severity": "med",
+   "finding": "exported dark-only button constants could be misused on light surfaces -> accepted-and-fixed (unexported, commented)"
+  },
+  {
+   "severity": "med",
+   "finding": "duplicated lane colour literal -> accepted-and-fixed (--triage-lane-solid token)"
+  },
+  {
+   "severity": "low",
+   "finding": "redundant aria-label, no busy state -> accepted-and-fixed (aria-busy)"
+  }
+ ]
+}

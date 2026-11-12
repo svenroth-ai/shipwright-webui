@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-13-triage-rows-polish",
+  "date": "2026-11-13",
+  "section": "Iterate — bug: Triage rows polish",
+  "title": "Triage lanes: solid background, spacing, hover strip on the right",
+  "context": "After the lanes-and-rows release the operator found lanes too transparent, crowded, Parked unreadable, and action buttons shown below the title instead of on hover at the right.",
+  "decision": "Opaque lane colour (one token), 36px lane gap, taller rows, strip shown on hover whenever the primary input can hover, longer dark buttons, dark task box and banner.",
+  "consequences": "Hybrid touch+hover devices hide the strip until hover; every action stays in the detail dialog. Strip needs rows at least 62rem wide, else buttons are inline.",
+  "rationale": "The earlier any-pointer:coarse gate wrongly hid hover behaviour on touch laptops.",
+  "rejected": "Keeping the coarse-pointer opt-out (shows buttons below the title on touch laptops, which the operator rejected).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

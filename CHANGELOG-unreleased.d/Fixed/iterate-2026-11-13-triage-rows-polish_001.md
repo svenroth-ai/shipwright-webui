@@ -1,0 +1,1 @@
+Triage: lanes are opaque and further apart, Parked is readable, the row buttons appear on the right on hover with longer labels, and the In-progress box and the behind-origin notice match the dark lane look.
