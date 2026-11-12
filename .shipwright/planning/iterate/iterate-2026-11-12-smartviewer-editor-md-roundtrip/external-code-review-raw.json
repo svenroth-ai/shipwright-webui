@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n**1. Category: bug \u2014 Severity: medium**\nFile: `client/src/lib/markdownTiptap.ts` (new `fence-info` rule, `test: (t) => /^[ \\t]*(?:```|~~~)[ \\t]*\\S+[ \\t]+\\S/m`)\nThe other `LOSSY_RULES` (footnote, ref-link) run against `stripCode(t)` so that matches inside fenced/indented code don't count. The new fence-attribute rule tests the raw text. Consequence: a document whose *content* contains a line like `` ```js highlight `` inside a longer fence (e.g. a markdown tutorial, which is exactly the nested-fence case this iterate cares about) produces a spurious \"code fence attributes\" lossy warning, and AC6's \"detected constructs\" net becomes noisy/false. Same class of bug the probe already documented for the old table rule.\nSuggestion: run the test against `stripCode(t)` like the sibling rules.\n\n**2. Category: edge-case \u2014 Severity: medium**\nFile: `client/src/lib/markdownEditorNodes.ts` (`setColumnAlign`, `index !== column` check)\nColumn identity is computed as the cell index within the row. For a table with `colspan`/`rowspan` (parseable from HTML tables \u2014 `isGfmRepresentable` explicitly handles spans by falling back to HTML, so spanned tables exist in the doc), the caret's `$from.index(cellDepth-1)` is the cell index, not the visual column, so the wrong cells get realigned (or a table whose header spans two columns realigns only half). Editing-created tables never have spans, so this only bites HTML-fallback tables, but those are exactly the ones where a wrong align attribute silently migrates into the serialized HTML.\nSuggestion: compute the visual column by summing `colspan` of preceding cells, and skip realignment of cells whose span crosses the column rather than starting at it.\n\n**3. Category: test \u2014 Severity: low**\nFile: `client/e2e/flows/md-editor-elements.spec.ts` (`expect(saved.endsWith(after.replace(/^\\n/, \"\\n\")))`)\nThe `replace` is an identity no-op \u2014 dead code that suggests an intended leading-newline strip that never happened. Harmless today (the serializer emits the same leading `\\n`), but the assertion silently documents nothing.\nSuggestion: drop the `replace` or make it `replace(/^\\n/, \"\")` with a matching expectation.\n\n**4. Category: edge-case \u2014 Severity: low**\nFile: `client/src/lib/markdownEditorNodes.ts` (`isGfmRepresentable`)\nThe check validates per-cell block structure but not row width consistency: a body row with more cells than the header row (constructible via a colspans table collapsing? no \u2014 actually only via malformed parsed HTML or `insertTable`/column ops in weird states) would still serialize as pipes and lose the extra cells on reparse. Low likelihood given TipTap table invariants, but a row-length guard would be cheap.\nSuggestion: also require every row's cell count to equal the header's (ignoring colspan arithmetic) before choosing the GFM branch.\n\n**5. Category: test \u2014 Severity: low**\nFile: `client/src/lib/markdownEditorElements.test.ts` (`\"a literal backslash before a pipe...\"`)\nThe assertion computes `delimiters` from a regex on the *output* only; it never verifies the reparse actually yields 3 cells with the intended content \u2014 a serializer that emitted the wrong escape count could still pass depending on the regex. The idempotence check partially compensates, but the semantic claim (\"the data pipe is escaped\") is only tested indirectly.\nSuggestion: additionally assert via a second `makeEditor(once)` that the third line parses to a table whose first cell text is `C:\\\\|`.\n\n## What's solid\n\n- All seven ACs are implemented and each has a real test: GFM table with alignment (parse via `align` attribute, custom serializer, delimiter mapping), task lists with tight-list fix, images incl. titles/`data:`/spaces, fence-length math (`longestBacktickRun` + tilde fallback for backtick in info string), mermaid node view with debounce, lossy-rule updates, and a broad idempotence suite.\n- The unconditional-pipe escaping is actually correct (literal `\\` serializes as `\\\\`, so `\\\\` + `\\|` reparse losslessly); the tests cover the adversarial backslash cases.\n- `buildEditorExtensions` grew an optional param with a default \u2014 no caller breakage.\n- Security posture is unchanged: mermaid `securityLevel: \"strict\"` pinned, image `src` reasoning documented and correct (`javascript:` in `<img>` is inert; `data:image/svg+xml` in `<img>` doesn't execute scripts).\n\n## Overall assessment\n\nThe change faithfully implements the spec with unusually thorough round-trip tests; the only must-fix before ship is the `stripCode` omission in the new fence-info lossy rule (finding 1), since it re-introduces exactly the class of false-positive warning this iterate was meant to eliminate. Ship-with-fixes.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: high\n- File: client/src/lib/markdownEditorNodes.ts:148\n- Finding: `ensureNewLine()` removes a trailing blank line from fenced code. For example, a block containing `x` followed by a blank line parses to `x\\n`; this serializer places the closing fence immediately after that newline, so reparsing produces `x`. Repeated round trips can remove additional trailing blank lines.\n- Suggestion: Write an unconditional newline between the code content and closing fence. Add round-trip and idempotence tests for code ending in one or multiple newlines.\n\n- Category: spec\n- Severity: medium\n- File: client/src/lib/markdownEditorNodes.ts:141\n- Finding: AC4 requires preserving the info string, but serialization retains only `node.attrs.language`. An input such as `` ```js title=example `` loses `title=example`; the new warning acknowledges the loss but does not satisfy the preservation requirement.\n- Suggestion: Capture the complete fence info string during parsing and serialize it from a dedicated attribute. Test preservation through both loading and code editing.\n\n- Category: bug\n- Severity: medium\n- File: client/src/lib/markdownEditorNodes.ts:194\n- Finding: Image titles escape quotes but leave literal backslashes unescaped. A valid title containing a backslash before Markdown punctuation changes on reparse: two source backslashes before `*` become one in the parsed title, then serialize as one, which Markdown consumes on the next load. This violates AC3 and serializer idempotence.\n- Suggestion: Escape backslashes before escaping double quotes in titles. Add a round-trip test with literal backslashes before punctuation and quotes.\n\nShip-with-fixes: the change addresses the main missing editor elements, but code-block and image serialization still damage valid content, and complete fence info preservation remains unimplemented.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-12-smartviewer-editor-md-roundtrip",
+    "at": "2026-11-12T07:51:44.447295+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}
