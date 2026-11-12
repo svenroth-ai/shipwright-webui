@@ -1,0 +1,38 @@
+{
+  "last_updated": "2026-11-13",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-13-compliance-findings-reconcile",
+    "date": "2026-11-13",
+    "unit": { "status": "passed", "passed": 10149, "skipped": 16, "total": 10165 },
+    "integration": { "status": "not_run", "passed": 0, "total": 0 },
+    "pgtap": { "status": "not_run", "passed": 0, "total": 0 },
+    "e2e": { "status": "passed", "passed": 24, "skipped": 0, "total": 24 },
+    "design_fidelity": { "status": "not_run", "passed": 0, "total": 0 },
+    "smoke": { "status": "not_run" },
+    "degraded": [
+      "server vitest: 3 files (triage-cli-routes, pty-replay-attach-detach, symlink-lock-unification) failed once under full-suite parallel load and passed 23/23 when re-run alone"
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Fix-now task-box tests keep running after the TriageItemRow test split",
+          "disposition": "tested",
+          "evidence": "TriageItemRow.fixnow.test.tsx 3 tests + TriageItemRow.test.tsx 21 tests PASSED (24/24)"
+        },
+        {
+          "behavior": "TriageItemRow.test.tsx is under the 300-line cap and bloat baseline matches disk (H1/H2)",
+          "disposition": "tested",
+          "evidence": "run_audit.py H1 pass, H2 pass after the change"
+        },
+        {
+          "behavior": "Required-layer executed-passing evidence exists for the explicit-layer FRs (D1/D-layer)",
+          "disposition": "tested",
+          "evidence": "full client+server vitest and 24 targeted Playwright specs staged via evidence_drop; run_audit.py D1 pass, D-layer pass"
+        }
+      ],
+      "counts": { "testable": 3, "tested": 3, "untestable": 0, "untested_testable": 0 },
+      "enumeration_basis": { "acs": 3, "covered_acs": 3 }
+    }
+  }
+}

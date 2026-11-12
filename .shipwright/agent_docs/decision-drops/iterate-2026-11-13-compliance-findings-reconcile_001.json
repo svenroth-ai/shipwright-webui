@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-13-compliance-findings-reconcile",
+  "date": "2026-11-13",
+  "section": "Iterate — change: reconcile 4 compliance findings",
+  "title": "Reconcile D-layer, D1, H1, H2 compliance findings",
+  "context": "The audit reported 15 required-layer gaps (D-layer), 12 uncovered FRs (D1), an oversize test file (H1) and a stale bloat baseline (H2).",
+  "decision": "Split the Fix-now tests out of TriageItemRow.test.tsx into TriageItemRow.fixnow.test.tsx, tighten the TriagePage baseline to 261, and clear D1/D-layer by staging real executed vitest + Playwright evidence.",
+  "consequences": "Both triage test files are under 300 lines. D1 and D-layer were evidence gaps, not missing tests: the tagged tests existed but no executed report was staged.",
+  "rationale": "Splitting fixes the cause of H1; baselining an avoidable crossing would have hidden it. No tests were added for D findings because the tests already existed.",
+  "rejected": "Adding the oversize file to the bloat baseline; writing new tests for FRs that already had tagged tests.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
