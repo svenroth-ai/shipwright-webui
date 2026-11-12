@@ -6076,3 +6076,16 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Equal size is the operator's explicit requirement; capping checks keeps it achievable. The code review caught the on-photo token flip before merge.
 - **Consequences:** A row is as tall as its tallest card, so a card with a task box or error banner enlarges its row. Card secondary text must use --color-text, never --body/--muted, because .on-photo flips those to near-white (guarded by a unit test and an E2E colour check).
 - **Rejected:** Fixed pixel card heights (break with long titles and large fonts); letting the check list grow unbounded; overflow-hidden on the card (clips focus rings and hides overflow bugs).
+
+---
+
+### ADR-428: Markdown editor loads real table/task/image/code-fence nodes with GFM-safe serializers
+- **Date:** 2026-11-12
+- **Section:** Iterate - bug: SmartViewer markdown editor keeps tables, task lists, images, fences; renders mermaid
+- **Run-ID:** iterate-2026-11-12-smartviewer-editor-md-roundtrip
+- **Context:** The TipTap editor never loaded table, task-list or image nodes, so saving flattened tables to cell text, dropped images and escaped task checkboxes. Fences shortened when code held backticks. Mermaid blocks were plain text.
+- **Decision:** Load Table, TaskList/TaskItem, Image and a collision-proof CodeBlock in markdownEditorNodes.ts with custom serializers: GFM tables keep column alignment, tables GFM cannot express fall back to HTML. Mermaid blocks get a debounced live preview node view; a table toolbar is added.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Fixing the data loss at the node layer keeps the saved Markdown canonical and the pre-save diff honest; no image src allowlist because the editor shows the user's own file.
+- **Consequences:** Tables, task lists, images and nested fences round-trip byte-identical and idempotent. Footnotes stay unsupported (warned in the diff banner). Loose task lists become tight; image paths are percent-encoded by markdown-it.
+- **Rejected:** Warning only (status quo, still destroys content); a raw-Markdown fallback editor for tables (poor editing UX); a custom Markdown parser instead of markdown-it.

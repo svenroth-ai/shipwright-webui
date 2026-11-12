@@ -1,8 +1,8 @@
 {
   "schema_version": 4,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-11-11T12:35:28.815389+00:00",
-  "source_commit": "7cf80dfa3c6018bec486f9ab1032e72171e78ab0",
+  "generated_at": "2026-11-12T07:47:40.192514+00:00",
+  "source_commit": "d70179b02bc5737c4963c768917b9412198c82b3",
   "spec_hash": "sha256:5f98668b90fd28e4319862b3df8332400ce945a8ca67f5a1c173f1c671029e21",
   "requirements": {
     "01::FR-01.01": {
@@ -3185,6 +3185,22 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/components/external/SmartViewer/MermaidCodeBlockView.test.tsx::renders the diagram below a mermaid block and keeps the Markdown unchanged",
+            "path": "client/src/components/external/SmartViewer/MermaidCodeBlockView.test.tsx::renders the diagram below a mermaid block and keeps the Markdown unchanged",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/MermaidCodeBlockView.test.tsx::renders NO diagram for an ordinary code block",
+            "path": "client/src/components/external/SmartViewer/MermaidCodeBlockView.test.tsx::renders NO diagram for an ordinary code block",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/components/external/SmartViewer.test.tsx::null path → empty state",
             "path": "client/src/components/external/SmartViewer.test.tsx::null path → empty state",
             "layer": "unit",
@@ -3267,6 +3283,190 @@
           {
             "id": "client/src/components/external/SmartViewer.test.tsx::image path renders an <img> with the file-URL and no fetch()",
             "path": "client/src/components/external/SmartViewer.test.tsx::image path renders an <img> with the file-URL and no fetch()",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::${name}: identical + idempotent",
+            "path": "client/src/lib/markdownEditorElements.test.ts::${name}: identical + idempotent",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a document with ALL elements survives intact",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a document with ALL elements survives intact",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a pipe inside a cell stays inside the cell",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a pipe inside a cell stays inside the cell",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a table the GFM syntax cannot express is kept as HTML, never flattened",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a table the GFM syntax cannot express is kept as HTML, never flattened",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::editing a table (add row/column, align) keeps it a valid GFM table",
+            "path": "client/src/lib/markdownEditorElements.test.ts::editing a table (add row/column, align) keeps it a valid GFM table",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::insertTable produces a header row + body that serializes as GFM",
+            "path": "client/src/lib/markdownEditorElements.test.ts::insertTable produces a header row + body that serializes as GFM",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::longestBacktickRun counts consecutive backticks",
+            "path": "client/src/lib/markdownEditorElements.test.ts::longestBacktickRun counts consecutive backticks",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::the fence is always longer than any backtick run inside the block",
+            "path": "client/src/lib/markdownEditorElements.test.ts::the fence is always longer than any backtick run inside the block",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::editing the code of a mermaid block keeps fence and language",
+            "path": "client/src/lib/markdownEditorElements.test.ts::editing the code of a mermaid block keeps fence and language",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::toggling a checkbox flips [ ] / [x] in the Markdown",
+            "path": "client/src/lib/markdownEditorElements.test.ts::toggling a checkbox flips [ ] / [x] in the Markdown",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::an image-only table cell keeps its image",
+            "path": "client/src/lib/markdownEditorElements.test.ts::an image-only table cell keeps its image",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a badge link in a cell survives",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a badge link in a cell survives",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a cell with a hard break falls back to HTML and stays one table",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a cell with a hard break falls back to HTML and stays one table",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a literal backslash before a pipe stays inside its cell",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a literal backslash before a pipe stays inside its cell",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a data: URI image is kept",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a data: URI image is kept",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::an image path with a space is written as a valid destination",
+            "path": "client/src/lib/markdownEditorElements.test.ts::an image path with a space is written as a valid destination",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::quotes and backslashes in an image title survive",
+            "path": "client/src/lib/markdownEditorElements.test.ts::quotes and backslashes in an image title survive",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a fence language with a backtick uses a tilde fence",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a fence language with a backtick uses a tilde fence",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a loose task list is normalised to tight (documented), never merged",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a loose task list is normalised to tight (documented), never merged",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a task item with a nested bullet keeps it",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a task item with a nested bullet keeps it",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a mixed task/plain list keeps both items (only blank-line spacing changes)",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a mixed task/plain list keeps both items (only blank-line spacing changes)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a task item keeps a second paragraph and a code block",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a task item keeps a second paragraph and a code block",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownEditorElements.test.ts::a table inside a list item and inside a blockquote stays a table",
+            "path": "client/src/lib/markdownEditorElements.test.ts::a table inside a list item and inside a blockquote stays a table",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -3601,8 +3801,16 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/lib/markdownTiptap.test.ts::flags GFM tables and task lists",
-            "path": "client/src/lib/markdownTiptap.test.ts::flags GFM tables and task lists",
+            "id": "client/src/lib/markdownTiptap.test.ts::no longer flags GFM tables / task lists (the editor represents them)",
+            "path": "client/src/lib/markdownTiptap.test.ts::no longer flags GFM tables / task lists (the editor represents them)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownTiptap.test.ts::flags fence attributes that cannot survive (```js {1,3})",
+            "path": "client/src/lib/markdownTiptap.test.ts::flags fence attributes that cannot survive (```js {1,3})",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -3673,6 +3881,22 @@
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/md-editor-elements.spec.ts::renders table + diagram, round-trips with NO changes, and a table edit saves as a table",
+            "path": "client/e2e/flows/md-editor-elements.spec.ts::renders table + diagram, round-trips with NO changes, and a table edit saves as a table",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/md-editor-elements.spec.ts::renders table + diagram, round-trips with NO changes, and a table edit saves as a table",
+            "path": "client/e2e/flows/md-editor-elements.spec.ts::renders table + diagram, round-trips with NO changes, and a table edit saves as a table",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "native_tag"
           }
         ]
       },
@@ -3705,126 +3929,6 @@
           {
             "id": "server/src/core/campaign-provenance.test.ts::treats a JSON array or scalar as unreadable, not absent",
             "path": "server/src/core/campaign-provenance.test.ts::treats a JSON array or scalar as unreadable, not absent",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::reports status_json when the live file supplied a status",
-            "path": "server/src/core/campaign-provenance.test.ts::reports status_json when the live file supplied a status",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::reports campaign_md, NOT degraded, when status.json is merely absent",
-            "path": "server/src/core/campaign-provenance.test.ts::reports campaign_md, NOT degraded, when status.json is merely absent",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::reports DEGRADED when status.json is there and torn",
-            "path": "server/src/core/campaign-provenance.test.ts::reports DEGRADED when status.json is there and torn",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::double degradation: an unparseable table AND a torn status file",
-            "path": "server/src/core/campaign-provenance.test.ts::double degradation: an unparseable table AND a torn status file",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::a healthy read carries NO disclosure — the common case stays clean",
-            "path": "server/src/core/campaign-provenance.test.ts::a healthy read carries NO disclosure — the common case stays clean",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::a DEGRADED read qualifies 'is running now' instead of asserting it",
-            "path": "server/src/core/campaign-provenance.test.ts::a DEGRADED read qualifies 'is running now' instead of asserting it",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::a merely-absent status file gets a different, non-alarming sentence",
-            "path": "server/src/core/campaign-provenance.test.ts::a merely-absent status file gets a different, non-alarming sentence",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::names campaign.md — NOT the status file — when campaign.md is what failed",
-            "path": "server/src/core/campaign-provenance.test.ts::names campaign.md — NOT the status file — when campaign.md is what failed",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::says the live file does not RECORD this unit, rather than that it is absent",
-            "path": "server/src/core/campaign-provenance.test.ts::says the live file does not RECORD this unit, rather than that it is absent",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::zero units + a degraded read is UNAVAILABLE, not 'no units recorded yet'",
-            "path": "server/src/core/campaign-provenance.test.ts::zero units + a degraded read is UNAVAILABLE, not 'no units recorded yet'",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::zero units + a CLEAN read keeps the honest empty phrasing",
-            "path": "server/src/core/campaign-provenance.test.ts::zero units + a CLEAN read keeps the honest empty phrasing",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::qualifies a unit whose OWN status the live file never mentioned",
-            "path": "server/src/core/campaign-provenance.test.ts::qualifies a unit whose OWN status the live file never mentioned",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::does NOT qualify a unit the live file DID name, in the same campaign",
-            "path": "server/src/core/campaign-provenance.test.ts::does NOT qualify a unit the live file DID name, in the same campaign",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::says an unrecorded unit's state is an assumption, not a report",
-            "path": "server/src/core/campaign-provenance.test.ts::says an unrecorded unit's state is an assumption, not a report",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/campaign-provenance.test.ts::an events-reconstructed campaign says its records are not in this copy",
-            "path": "server/src/core/campaign-provenance.test.ts::an events-reconstructed campaign says its records are not in this copy",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -4497,22 +4601,6 @@
           {
             "id": "server/src/core/mission-context/decision-drops.test.ts::never surfaces the content of a drop that symlinks out of the project root",
             "path": "server/src/core/mission-context/decision-drops.test.ts::never surfaces the content of a drop that symlinks out of the project root",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/decision-drops.test.ts::lists this run's drop files and no other run's",
-            "path": "server/src/core/mission-context/decision-drops.test.ts::lists this run's drop files and no other run's",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/decision-drops.test.ts::returns [] — not a throw — when the drops directory does not exist",
-            "path": "server/src/core/mission-context/decision-drops.test.ts::returns [] — not a throw — when the drops directory does not exist",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -5711,30 +5799,6 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "server/src/core/mission-context/review-state.precedence.test.ts::keeps the artifact 'not yet created' when every type is still pending",
-            "path": "server/src/core/mission-context/review-state.precedence.test.ts::keeps the artifact 'not yet created' when every type is still pending",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/review-state.precedence.test.ts::never says 'raised no issues' for a review that could not be itemized",
-            "path": "server/src/core/mission-context/review-state.precedence.test.ts::never says 'raised no issues' for a review that could not be itemized",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/review-state.precedence.test.ts::does not claim a record exists for a run it never probed",
-            "path": "server/src/core/mission-context/review-state.precedence.test.ts::does not claim a record exists for a run it never probed",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
             "id": "server/src/core/mission-context/review-state.test.ts::ALWAYS returns the five contract types, in order (AC4)",
             "path": "server/src/core/mission-context/review-state.test.ts::ALWAYS returns the five contract types, in order (AC4)",
             "layer": "unit",
@@ -5815,22 +5879,6 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "server/src/core/mission-context/review-state.test.ts::lists the record AND both markers so a later write invalidates the cache",
-            "path": "server/src/core/mission-context/review-state.test.ts::lists the record AND both markers so a later write invalidates the cache",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/review-state.test.ts::lists nothing for an unsafe run id",
-            "path": "server/src/core/mission-context/review-state.test.ts::lists nothing for an unsafe run id",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
             "id": "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::does not drop anything when the transcript is not actually truncated",
             "path": "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::does not drop anything when the transcript is not actually truncated",
             "layer": "unit",
@@ -5881,22 +5929,6 @@
           {
             "id": "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::keeps a line that fails to parse as JSON (truncated/malformed) rather than guessing it away",
             "path": "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::keeps a line that fails to parse as JSON (truncated/malformed) rather than guessing it away",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::does not adopt a footer left dangling in a tool_result fragment whose own \\",
-            "path": "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::does not adopt a footer left dangling in a tool_result fragment whose own \\",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::still finds a real footer on a later, COMPLETE line after the truncated leading fragment is dropped",
-            "path": "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::still finds a real footer on a later, COMPLETE line after the truncated leading fragment is dropped",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -6001,6 +6033,14 @@
           {
             "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::threads startedMidFile through to findRunIdFooter, changing whether a corroborated fragment is adopted",
             "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::threads startedMidFile through to findRunIdFooter, changing whether a corroborated fragment is adopted",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::does not let a startedMidFile: true negative scan poison a later startedMidFile: false scan of the same text and session",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::does not let a startedMidFile: true negative scan poison a later startedMidFile: false scan of the same text and session",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -7727,6 +7767,14 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "server/src/external/mission-context/routes.recovery.midfile.test.ts::declines the same fragment once the reader reports a mid-file start",
+            "path": "server/src/external/mission-context/routes.recovery.midfile.test.ts::declines the same fragment once the reader reports a mid-file start",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "server/src/external/mission-context/routes.recovery.test.ts::resolves the ITERATE from the transcript footer after the pointer is pruned",
             "path": "server/src/external/mission-context/routes.recovery.test.ts::resolves the ITERATE from the transcript footer after the pointer is pruned",
             "layer": "unit",
@@ -7817,62 +7865,6 @@
           {
             "id": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::SHOWS the tab for a malformed actions file",
             "path": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::SHOWS the tab for a malformed actions file",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a truly ABSENT run-config still hides — the one state that is evidence",
-            "path": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a truly ABSENT run-config still hides — the one state that is evidence",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::CORRUPT JSON keeps the tab",
-            "path": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::CORRUPT JSON keeps the tab",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a V1-LEGACY config keeps the tab",
-            "path": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a V1-LEGACY config keeps the tab",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::an UNSUPPORTED schemaVersion keeps the tab",
-            "path": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::an UNSUPPORTED schemaVersion keeps the tab",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::valid JSON of the wrong SHAPE keeps the tab",
-            "path": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::valid JSON of the wrong SHAPE keeps the tab",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a run-config that is a DIRECTORY keeps the tab",
-            "path": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a run-config that is a DIRECTORY keeps the tab",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a READ THAT THROWS keeps the tab — an I/O fault must not delete a surface",
-            "path": "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a READ THAT THROWS keeps the tab — an I/O fault must not delete a surface",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -13401,38 +13393,6 @@
           {
             "id": "client/src/lib/stage-derivation.test.ts::an unparseable / empty transcript is an honest '—', NEVER a default Analyze",
             "path": "client/src/lib/stage-derivation.test.ts::an unparseable / empty transcript is an honest '—', NEVER a default Analyze",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/lib/stage-derivation.test.ts::reads the CURRENT sub-iterate's stage, not the previous one's Merge",
-            "path": "client/src/lib/stage-derivation.test.ts::reads the CURRENT sub-iterate's stage, not the previous one's Merge",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/lib/stage-derivation.test.ts::does NOT walk backwards to Analyze when housekeeping follows the PR",
-            "path": "client/src/lib/stage-derivation.test.ts::does NOT walk backwards to Analyze when housekeeping follows the PR",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/lib/stage-derivation.test.ts::but REAL work after the PR does start the next unit",
-            "path": "client/src/lib/stage-derivation.test.ts::but REAL work after the PR does start the next unit",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/lib/stage-derivation.test.ts::a campaign whose current sub-iterate is still scouting reads Analyze, not the prior Merge",
-            "path": "client/src/lib/stage-derivation.test.ts::a campaign whose current sub-iterate is still scouting reads Analyze, not the prior Merge",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -24774,46 +24734,6 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "server/src/core/event-log-files.test.ts::a damaged drop of the RUN's key → unavailable; another run's → absent",
-            "path": "server/src/core/event-log-files.test.ts::a damaged drop of the RUN's key → unavailable; another run's → absent",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/event-log-files.test.ts::a damaged ARCHIVE file blocks every run's absence (a folded run lives only there)",
-            "path": "server/src/core/event-log-files.test.ts::a damaged ARCHIVE file blocks every run's absence (a folded run lives only there)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/event-log-files.test.ts::an EMPTY own drop blocks absence too (kill criterion 8)",
-            "path": "server/src/core/event-log-files.test.ts::an EMPTY own drop blocks absence too (kill criterion 8)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/event-log-files.test.ts::the cached index, fingerprint and sourceRev paths move when a drop is ADDED or APPENDED",
-            "path": "server/src/core/event-log-files.test.ts::the cached index, fingerprint and sourceRev paths move when a drop is ADDED or APPENDED",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/event-log-files.test.ts::no event file at all → absent with mtime 0 (unchanged)",
-            "path": "server/src/core/event-log-files.test.ts::no event file at all → absent with mtime 0 (unchanged)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
             "id": "server/src/core/event-log-reader.test.ts::projects the full work_completed record",
             "path": "server/src/core/event-log-reader.test.ts::projects the full work_completed record",
             "layer": "unit",
@@ -30331,7 +30251,368 @@
     }
   },
   "orphans": [],
-  "invalid_tags": [],
+  "invalid_tags": [
+    {
+      "test": "",
+      "raw": "server/src/core/mission-context/merge-check.squash.test.ts:55: // @covers FR-01.66",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/mission-context/merge-check.squash.test.ts:143: // @covers FR-01.66",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/mission-context/ref-event-log.test.ts:102: // @covers FR-01.66",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/readiness-probe-codex.test.ts:70: // @covers FR-01.51 — codex, like the other toolchain checks, gets an",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/readiness-probe-codex.test.ts:81: // @covers FR-01.51 — production wiring (iterate-2026-09-16-codex-probe-",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/readiness-probe-path.test.ts:74: // @covers FR-01.51 — the fix's core: a bin present only in ~/.local/bin resolves",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/readiness-probe-run.test.ts:62: // @covers FR-01.51 — the bug fix: a tool present ONLY in ~/.local/bin (off the",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/readiness-probe-run.test.ts:87: // @covers FR-01.51 — the WINDOWS arm of the same fix. On win32 defaultRun does",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/readiness-probe-run.test.ts:121: // @covers FR-01.51 — win32-branch coverage that holds on EVERY host (CI runs",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/readiness-probe-run.test.ts:139: // @covers FR-01.51 — win32-branch coverage for the execFile call itself",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/readiness-probe-run.test.ts:172: // @covers FR-01.51 — the codex_cli_not_found bug: defaultRun cannot spawn a",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/readiness-probe-run.test.ts:203: // @covers FR-01.51 — a genuine .exe on PATH still resolves and runs directly",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/readiness-probe-run.test.ts:210: // @covers FR-01.51 — a name absent from PATH entirely reports not-found",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/readiness-probe-run.test.ts:221: // @covers FR-01.51 — POSIX has no .cmd/.bat shim concept: defaultRunShim is",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/session-file/access.unit.test.ts:108: // @covers FR-01.66",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/session-file/access.unit.test.ts:121: // @covers FR-01.66",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/session-file/access.unit.test.ts:187: // @covers FR-01.66",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/session-file/access.unit.test.ts:201: // @covers FR-01.66",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/core/session-file/access.unit.test.ts:210: // @covers FR-01.66",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/external/launch/runtime-chokepoint.probe.test.ts:20: // @covers FR-01.51 — the `it.skipIf(win32)` test below never runs on CI",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/external/launch/runtime-chokepoint.probe.test.ts:45: // @covers FR-01.51 — regression proof for the codex_cli_not_found Windows",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/external/session-file/routes.test.ts:206: // @covers FR-01.66",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/external/session-file/routes.test.ts:212: // @covers FR-01.66",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/test/central-data-default.extra.test.ts:1: // @covers FR-01.03",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/test/central-data-default.test.ts:1: // @covers FR-01.03",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "server/src/test/project-data-dir-invariant.test.ts:1: // @covers FR-01.03",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/common/SceneBackdrop.test.tsx:56: // @covers FR-01.51 — First Contact's own hero plate: the lighthouse (exempt from",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/external/EditableTaskTitle.mobile.test.tsx:66: // @covers iterate-2026-09-06-tablet-ipad-ux-pass — the same tap-to-expand",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/external/mission/VerdictBanner.test.tsx:37: // @covers FR-01.66",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/external/NewIssueModal/ModalShell.test.tsx:104: // @covers FR-01.38",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/external/PipelineLaneCard.test.tsx:76: // @covers FR-01.01 — trg-0f040744 finding 2: the absent-read fallback is",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/external/ProjectCreateCascade.test.tsx:197: // @covers FR-01.51 — the All-Projects trigger stays ENABLED at zero projects:",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/external/ProjectCreatePhoneMenu.test.tsx:62: // @covers FR-01.51 — the phone trigger stays ENABLED at zero projects too: the",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/external/SmartViewer.test.tsx:236: // @covers iterate-2026-08-31-shipslog-documents-panel — Edit is decoupled",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/triage/TriageDetailHeader.test.tsx:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/triage/TriageDetailMeta.test.tsx:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/triage/TriageGroupList.test.tsx:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/triage/TriagePills.test.tsx:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx:85: // @covers FR-01.51 — the doors DEEP-LINK into the wizard flow (Rule 1: navigate only).",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx:107: // @covers FR-01.51 — the readiness GATE is reused, not rebuilt. When a check",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx:130: // @covers FR-01.51 — under prefers-reduced-motion the hero is COMPLETE + opaque:",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx:69: // @covers FR-01.51 — the register-manually line is the permanent escape hatch;",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx:93: // @covers FR-01.51 — a missing TOOL shows its own install command; the npx",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx:59: // @covers FR-01.51 — /wizard/new lands on the first question, NOT the picker",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/components/wizard/ProjectWizard.shared.test.tsx:1: // @covers FR-01.03",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/hooks/useTriageViewState.test.ts:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/lib/triageBoardModel.test.ts:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/lib/triageFilterSort.test.ts:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/lib/triageFindings.test.ts:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/lib/triageGrouping.test.ts:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/lib/triageHelpDoc.test.ts:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/lib/triageHelpText.test.ts:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/lib/triageSnooze.test.ts:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/lib/triageTaskLinks.test.ts:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/lib/triageViewStorage.test.ts:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/pages/RootRoute.test.tsx:74: // @covers FR-01.51 — the doubt-review case: zero REGISTERED projects, but the",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/pages/RootRoute.test.tsx:88: // @covers FR-01.51 — only the synthesized Unassigned bucket AND no tasks → First",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/pages/RootRoute.test.tsx:99: // @covers FR-01.51 — while the registry is loading, \"/\" renders the board (its",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/pages/RootRoute.test.tsx:109: // @covers FR-01.51 — a transient fetch error (undefined data) falls back to the",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/pages/ShipsLogPage.test.tsx:151: // @covers FR-01.51 — the guided front door + register-manually escape hatch",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/pages/ShipsLogPage.test.tsx:192: // @covers FR-01.01 — trg-0f040744 finding 1: a failed projects load must",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/pages/TaskBoardPage.test.tsx:51: // @covers FR-01.51 — the empty board's \"New task\" opens the New Task dialog",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/pages/TaskBoardPage.test.tsx:89: // @covers FR-01.01 — trg-0f040744 finding 1: \"broken\" and \"nothing here\"",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/pages/TaskBoardPage.test.tsx:122: // @covers FR-01.01 — external plan review finding",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/pages/TriagePage.test.tsx:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/e2e/flows/106-terminal-file-links.spec.ts:170: // @covers FR-01.28",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/e2e/flows/107-custom-stack-profiles.spec.ts:20: // @covers FR-01.75",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/e2e/flows/107-custom-stack-profiles.spec.ts:23: // @covers FR-01.75",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/e2e/flows/107-custom-stack-profiles.spec.ts:32: // @covers FR-01.75",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/e2e/flows/108-custom-profile-preview-and-adopt.spec.ts:43: // @covers FR-01.75",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/e2e/flows/108-custom-profile-preview-and-adopt.spec.ts:46: // @covers FR-01.75",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/e2e/flows/tablet-mobile-polish.spec.ts:239: // @covers FR-01.38",
+      "reason": "unbound-covers-comment"
+    }
+  ],
   "invalid_layers": [],
   "untagged_tests": [
     "client/e2e/flows/01-board-navigation.spec.ts::create-task split-button is visible",
@@ -33198,6 +33479,10 @@
     "client/src/lib/sortDeferred.test.ts::orders dated entries before undated ones",
     "client/src/lib/sortDeferred.test.ts::orders dated entries by soonest date first",
     "client/src/lib/sortDeferred.test.ts::rejects a malformed revisitAt as if undated",
+    "client/src/lib/stage-derivation.test.ts::a campaign whose current sub-iterate is still scouting reads Analyze, not the prior Merge",
+    "client/src/lib/stage-derivation.test.ts::but REAL work after the PR does start the next unit",
+    "client/src/lib/stage-derivation.test.ts::does NOT walk backwards to Analyze when housekeeping follows the PR",
+    "client/src/lib/stage-derivation.test.ts::reads the CURRENT sub-iterate's stage, not the previous one's Merge",
     "client/src/lib/tableAutoFit.test.ts::floors a free-text column at MIN_FLEX_PX when the pane is too narrow to satisfy it — this is expected to overflow the container and trigger horizontal scroll rather than crush the column further",
     "client/src/lib/tableAutoFit.test.ts::keeps short columns at their natural width and gives the one free-text column the remaining space",
     "client/src/lib/tableAutoFit.test.ts::returns null (no intervention) when every column already fits comfortably",
@@ -33515,6 +33800,21 @@
     "server/src/core/campaign-parse.test.ts::strips inline emphasis/code from slug + title cells",
     "server/src/core/campaign-parse.test.ts::tolerates alignment colons in the separator row",
     "server/src/core/campaign-parse.test.ts::treats plan_first:false / absent as not plan-first",
+    "server/src/core/campaign-provenance.test.ts::a DEGRADED read qualifies 'is running now' instead of asserting it",
+    "server/src/core/campaign-provenance.test.ts::a healthy read carries NO disclosure — the common case stays clean",
+    "server/src/core/campaign-provenance.test.ts::a merely-absent status file gets a different, non-alarming sentence",
+    "server/src/core/campaign-provenance.test.ts::an events-reconstructed campaign says its records are not in this copy",
+    "server/src/core/campaign-provenance.test.ts::does NOT qualify a unit the live file DID name, in the same campaign",
+    "server/src/core/campaign-provenance.test.ts::double degradation: an unparseable table AND a torn status file",
+    "server/src/core/campaign-provenance.test.ts::names campaign.md — NOT the status file — when campaign.md is what failed",
+    "server/src/core/campaign-provenance.test.ts::qualifies a unit whose OWN status the live file never mentioned",
+    "server/src/core/campaign-provenance.test.ts::reports DEGRADED when status.json is there and torn",
+    "server/src/core/campaign-provenance.test.ts::reports campaign_md, NOT degraded, when status.json is merely absent",
+    "server/src/core/campaign-provenance.test.ts::reports status_json when the live file supplied a status",
+    "server/src/core/campaign-provenance.test.ts::says an unrecorded unit's state is an assumption, not a report",
+    "server/src/core/campaign-provenance.test.ts::says the live file does not RECORD this unit, rather than that it is absent",
+    "server/src/core/campaign-provenance.test.ts::zero units + a CLEAN read keeps the honest empty phrasing",
+    "server/src/core/campaign-provenance.test.ts::zero units + a degraded read is UNAVAILABLE, not 'no units recorded yet'",
     "server/src/core/campaign-readiness-schema.test.ts::READINESS_REASONS equals the contract's closed reason vocabulary, both directions",
     "server/src/core/campaign-readiness-schema.test.ts::accepts a contract-shaped report",
     "server/src/core/campaign-readiness-schema.test.ts::accepts a null loop_id / base_branch / blocker id (campaign-level gate)",
@@ -33936,6 +34236,8 @@
     "server/src/core/mission-context/artifacts-tests.test.ts::propagates truncation so a capped list never implies completeness",
     "server/src/core/mission-context/artifacts-tests.test.ts::reads an ADDED or MODIFIED file absent from an otherwise-OK manifest as UNKNOWN, not as 'covers nothing'",
     "server/src/core/mission-context/artifacts-tests.test.ts::treats a PARTIAL manifest index as unavailable links, not as fine",
+    "server/src/core/mission-context/decision-drops.test.ts::lists this run's drop files and no other run's",
+    "server/src/core/mission-context/decision-drops.test.ts::returns [] — not a throw — when the drops directory does not exist",
     "server/src/core/mission-context/fold-map.test.ts::collapses two folded ids that share one parent (no repeated capability)",
     "server/src/core/mission-context/fold-map.test.ts::drops non-FR junk but keeps valid unknown ids",
     "server/src/core/mission-context/fold-map.test.ts::echoes an UNKNOWN id raw rather than blanking it (§3.1 honesty rule)",
@@ -34006,11 +34308,17 @@
     "server/src/core/mission-context/review-record.validation.test.ts::reports absent when there is no record, so the markers can answer",
     "server/src/core/mission-context/review-record.validation.test.ts::reports invalid for a JSON document that is not an object",
     "server/src/core/mission-context/review-record.validation.test.ts::reports invalid — never absent — for unparseable JSON",
+    "server/src/core/mission-context/review-state.precedence.test.ts::does not claim a record exists for a run it never probed",
+    "server/src/core/mission-context/review-state.precedence.test.ts::keeps the artifact 'not yet created' when every type is still pending",
+    "server/src/core/mission-context/review-state.precedence.test.ts::never says 'raised no issues' for a review that could not be itemized",
+    "server/src/core/mission-context/review-state.test.ts::lists nothing for an unsafe run id",
+    "server/src/core/mission-context/review-state.test.ts::lists the record AND both markers so a later write invalidates the cache",
+    "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::does not adopt a footer left dangling in a tool_result fragment whose own \\",
     "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::drops a byte-cut leading tool_result fragment even though the string itself is short",
     "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::drops a proven mid-file fragment even when it is the transcript's ONLY line (no newline at all)",
     "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::keeps the leading fragment's marker when startedMidFile is false (default) — same short string, opposite answer",
     "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::startedMidFile has no effect once the string itself also exceeds MAX_SCAN_CHARS — both paths already drop the leading line",
-    "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::does not let a startedMidFile: true negative scan poison a later startedMidFile: false scan of the same text and session",
+    "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::still finds a real footer on a later, COMPLETE line after the truncated leading fragment is dropped",
     "server/src/core/mission-context/spec-candidates.test.ts::ACCEPTS a campaign sub-iterate spec (the 19-run gap the probe found)",
     "server/src/core/mission-context/spec-candidates.test.ts::REJECTS an over-long hint (bounded input)",
     "server/src/core/mission-context/spec-candidates.test.ts::REJECTS every escape attempt, even though the caller also path-guards",
@@ -35016,7 +35324,13 @@
     "server/src/external/mission-context/routes.integrity.test.ts::renders PLANNED PROSE when the spec names no FR id (the silent-failure case)",
     "server/src/external/mission-context/routes.integrity.test.ts::still writes exactly once when a concurrent burst follows a failed persist",
     "server/src/external/mission-context/routes.integrity.test.ts::writes EXACTLY ONCE when five polls are in flight simultaneously",
-    "server/src/external/mission-context/routes.recovery.midfile.test.ts::declines the same fragment once the reader reports a mid-file start",
+    "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::CORRUPT JSON keeps the tab",
+    "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a READ THAT THROWS keeps the tab — an I/O fault must not delete a surface",
+    "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a V1-LEGACY config keeps the tab",
+    "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a run-config that is a DIRECTORY keeps the tab",
+    "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::a truly ABSENT run-config still hides — the one state that is evidence",
+    "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::an UNSUPPORTED schemaVersion keeps the tab",
+    "server/src/external/mission-context/routes.slice3-tab-hide.test.ts::valid JSON of the wrong SHAPE keeps the tab",
     "server/src/external/mission-context/routes.test.ts::404s a task whose project does not resolve (generic, not an oracle)",
     "server/src/external/mission-context/routes.test.ts::404s an unknown task",
     "server/src/external/mission-context/routes.test.ts::REJECTS a pointer bound to another session (AC5) and does not persist",

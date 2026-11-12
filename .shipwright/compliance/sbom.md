@@ -1,25 +1,25 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-11-11T12:35:28.815389+00:00
-Source-State: run=iterate-2026-11-11-triage-card-dialog-polish base=7cf80dfa3c60 release=v0.33.0
-Consistency-audit: last run 2026-09-29 (43 days earlier) — PASS
+Generated: 2026-11-12T07:47:40.192514+00:00
+Source-State: run=iterate-2026-11-12-smartviewer-editor-md-roundtrip base=d70179b02bc5 release=v0.33.1
+Consistency-audit: last run 2026-09-29 (44 days earlier) — PASS
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Runtime dependencies | 47 (deduplicated) |
+| Runtime dependencies | 51 (deduplicated) |
 | Dev dependencies | 26 |
-| Total packages | 73 |
-| Licenses resolved | 73 / 73 |
+| Total packages | 77 |
+| Licenses resolved | 77 / 77 |
 | Unique licenses | 5 (Apache-2.0, BSD-3-Clause, ISC, MIT, OFL-1.1) |
 | Copyleft licenses | 0 |
 
 ## License Distribution
 
 ```mermaid
-pie title License Distribution (all 73 packages)
-    "MIT" : 66
+pie title License Distribution (all 77 packages)
+    "MIT" : 70
     "Apache-2.0" : 3
     "OFL-1.1" : 2
     "BSD-3-Clause" : 1
@@ -44,7 +44,11 @@ pie title License Distribution (all 73 packages)
 | @radix-ui/react-tooltip | ^1.1.0 | MIT |
 | @tanstack/react-query | ^5.0.0 | MIT |
 | @tanstack/react-virtual | ^3.13.24 | MIT |
+| @tiptap/extension-code-block | 3.32.0 | MIT |
+| @tiptap/extension-image | 3.32.0 | MIT |
 | @tiptap/extension-link | 3.32.0 | MIT |
+| @tiptap/extension-list | 3.32.0 | MIT |
+| @tiptap/extension-table | 3.32.0 | MIT |
 | @tiptap/pm | 3.32.0 | MIT |
 | @tiptap/react | 3.32.0 | MIT |
 | @tiptap/starter-kit | 3.32.0 | MIT |
@@ -111,5 +115,5 @@ pie title License Distribution (all 73 packages)
 
 ## License Compliance
 
-No license concerns: all 73 packages resolved (0 unknown, 0 copyleft).
+No license concerns: all 77 packages resolved (0 unknown, 0 copyleft).
 

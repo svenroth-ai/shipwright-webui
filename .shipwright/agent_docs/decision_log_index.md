@@ -435,3 +435,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_decision_log_index.py 
 - [ADR-425 — SmartViewer follows every relative file link in-pane](decision_log.md#adr-425-smartviewer-follows-every-relative-file-link-in-pane)
 - [ADR-426 — Mermaid renders at natural size with page-matched theme](decision_log.md#adr-426-mermaid-renders-at-natural-size-with-page-matched-theme)
 - [ADR-427 — Triage card and detail dialog adopt the New Task sheet look; equal-height cards](decision_log.md#adr-427-triage-card-and-detail-dialog-adopt-the-new-task-sheet-look-equal-height-cards)
+- [ADR-428 — Markdown editor loads real table/task/image/code-fence nodes with GFM-safe serializers](decision_log.md#adr-428-markdown-editor-loads-real-tabletaskimagecode-fence-nodes-with-gfm-safe-serializers)
