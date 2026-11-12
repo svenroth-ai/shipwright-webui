@@ -1,7 +1,7 @@
 # Iterate: smartviewer-editor-md-roundtrip
 
 Run-ID: iterate-2026-11-12-smartviewer-editor-md-roundtrip
-Intent: bug (restores specified behavior, FR-01.34 "Rich editing, Markdown saved")
+Intent: bug (restores specified behavior, FR-01.35 "Rich editing, Markdown saved")
 
 ## Goal
 The SmartViewer markdown editor (TipTap) must show every common Markdown element as an editable element and must not damage the document on save. Today a GFM table is DESTROYED on save (cells concatenated: `| A | B |` becomes `AB12`), an image `![alt](src)` is DROPPED, task lists `- [x]` are escaped to `\[x\]`, a 4-backtick fence around a 3-backtick fence is shortened (corrupting the block), and a fenced `mermaid` block is only a plain code box with no diagram.
@@ -23,7 +23,7 @@ Round trip of a fixture through `buildEditorExtensions()` + `serializeEditorMark
 - AC7: A round-trip test suite covers every element (heading, paragraph, bold/italic/strike/code, bullet, ordered, nested, task list, table, link, image, quote, code, mermaid, hr, raw HTML block) and asserts: unchanged documents stay byte-identical except documented cosmetic normalisation, and the serializer is idempotent.
 
 ## Spec Impact
-NONE (`restores-specified-behavior`); affected FR-01.34.
+NONE (`restores-specified-behavior`); affected FR-01.35.
 
 ## Out of Scope
 Markdown parity with GitHub in the read-only preview (already separate). Footnote editing. Reference-style link syntax preservation (resolved to inline links, equivalent). Collaborative editing.
@@ -44,4 +44,4 @@ Markdown text <-> ProseMirror document (parse + serialize); file written back th
 - **Confidence-pattern check:** depth = idempotence on every element; breadth = all elements in one fixture.
 
 ## Verification (medium+)
-Vitest round-trip suite, toolbar/node-view unit tests, Playwright spec `md-editor-elements.spec.ts` (@smoke, @FR-01.34) against the isolated stack.
+Vitest round-trip suite, toolbar/node-view unit tests, Playwright spec `md-editor-elements.spec.ts` (@smoke, @FR-01.35) against the isolated stack.

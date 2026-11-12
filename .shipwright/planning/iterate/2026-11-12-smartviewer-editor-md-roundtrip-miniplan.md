@@ -8,4 +8,4 @@
 6. **Lossy detection** (`markdownTiptap.ts`): drop table + task-list rules (now represented); keep footnotes; ref-links stay.
 7. **Tests:** round-trip suite per element (idempotence + documented normalisation), serializer unit tests (fence length, alignment), toolbar tests, node-view test, Playwright `md-editor-elements.spec.ts` editing a table and a mermaid block through the real modal.
 
-**Alternative rejected:** switching the editor to a source (CodeMirror) mode — loses the "Rich editing" promise (FR-01.34) and the user asked for rendered elements. **Alternative rejected:** a third-party table markdown plugin — tiptap-markdown already ships the serializer; only alignment needs a small replacement.
+**Alternative rejected:** switching the editor to a source (CodeMirror) mode — loses the "Rich editing" promise (FR-01.35) and the user asked for rendered elements. **Alternative rejected:** a third-party table markdown plugin — tiptap-markdown already ships the serializer; only alignment needs a small replacement.

@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-12-smartviewer-editor-md-roundtrip",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-12T07:36:56.200367+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 83,
+          "finding": "serializeTable renders a cell only when textContent.trim() is non-empty; an image-only cell (| ![x](a.png) |) or hard-break-only cell is written empty, silently dropping the image.",
+          "suggestion": "Test content.childCount > 0 instead; add round-trip case with an image in a cell.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 54,
+          "finding": "isGfmRepresentable ignores a hardBreak inside a cell paragraph (renderInline emits a newline that splits the row) and a non-paragraph single child (list).",
+          "suggestion": "Require firstChild paragraph and no hardBreak descendants, else HTML fallback; add tests.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 87,
+          "finding": "Pipe escaping uses a negative lookbehind for a single backslash; when the text already holds a literal backslash before a pipe (escaped as two backslashes) the pipe stays unescaped and the cell splits.",
+          "suggestion": "Escape when the preceding backslash run length is even; add a test with a backslash before a pipe.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 207,
+          "finding": "Image.configure({allowBase64:false}) makes TipTap's parseHTML drop img[src^=data:], so a data: URI image vanishes on save.",
+          "suggestion": "Set allowBase64 true; add a test.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 207,
+          "finding": "Image src not validated; opening a file fetches any remote image (tracking beacon), inconsistent with the link allowlist.",
+          "suggestion": "Document the decision or add an image-src allowlist.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 22,
+          "finding": "lib imports from components (MermaidCodeBlockView) while components import back from lib: reversed dependency direction.",
+          "suggestion": "Inject the node view as a parameter or move the nodes file next to the components.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/components/external/SmartViewer/MermaidCodeBlockView.tsx",
+          "line": 23,
+          "finding": "Debounce timer + setState run for every code block on every keystroke, not only mermaid.",
+          "suggestion": "Only mount the debounce in a child component for mermaid blocks.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 77,
+          "finding": "state.inTable never reset if renderInline throws; loose task list silently rewritten tight without a test.",
+          "suggestion": "try/finally; add a test documenting loose->tight.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 171,
+          "finding": "setColumnAlign position math is correct; column lookup by index is wrong for colspan/rowspan tables (HTML fallback).",
+          "suggestion": "Optional: disable align buttons for non-GFM tables.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/markdownEditorElements.test.ts",
+          "line": 598,
+          "finding": "Coverage gaps: image-only cell, hardBreak in cell, backslash before pipe, data: image, loose task list, debounce proof.",
+          "suggestion": "Add the cases.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-12T07:38:20.999422+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "client/src/lib/markdownEditorNodes.ts:207",
+          "line": null,
+          "finding": "Claim under doubt: Images and tables round-trip losslessly — Image.configure allowBase64:false drops a data: URI image on load; no lossy warning.",
+          "suggestion": "allowBase64 true plus a data-URI round-trip test.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "client/src/lib/markdownEditorNodes.ts:82-86",
+          "line": null,
+          "finding": "Claim under doubt: A GFM table cell serializes everything it contains — serializeTable writes a cell only when textContent.trim() is non-empty; an image-only or hard-break-only cell is emptied.",
+          "suggestion": "Use childCount for emptiness; test image-only and badge-link cells.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/lib/markdownEditorNodes.ts:87",
+          "line": null,
+          "finding": "Claim under doubt: Pipes in table cells are always escaped correctly — The lookbehind skips a pipe preceded by a backslash, but a literal backslash is itself escaped to two backslashes so the pipe stays bare and splits the cell.",
+          "suggestion": "Escape every pipe in cell output unconditionally; add tests for a backslash next to a pipe and a pipe in a code span.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "round-trip stability",
+          "file": "client/src/lib/markdownEditorNodes.ts:122-138",
+          "line": null,
+          "finding": "Claim under doubt: Forcing tight lists for task lists is harmless — Tight forcing may collapse multi-paragraph task items; a mixed task/plain list may drop or rewrite an item.",
+          "suggestion": "Round-trip tests for multi-paragraph item, nested bullet, code block in item, loose list, mixed list.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "reversibility",
+          "file": "client/src/lib/markdownEditorNodes.ts:71-76",
+          "line": null,
+          "finding": "Claim under doubt: Non-GFM tables fall back to lossless HTML — outerHTML is written with raw newlines: inside a list/quote later lines lose the container prefix, and a blank line ends the HTML block early.",
+          "suggestion": "Collapse newlines to character references; tests for table in list/quote and code block in a cell.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/lib/markdownEditorNodes.ts:207",
+          "line": null,
+          "finding": "Claim under doubt: Inline images serialize as valid Markdown — A src with a space is written unwrapped and is invalid on re-read; markdown-it percent-encodes destinations.",
+          "suggestion": "Wrap the destination in angle brackets when it has whitespace or parens; document percent-encoding.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/lib/markdownEditorNodes.ts:110-117",
+          "line": null,
+          "finding": "Claim under doubt: A code block round-trips and the info string is safe — Only the first word of the info string survives; a tilde fence with a backtick in the language becomes an invalid backtick fence.",
+          "suggestion": "Lossy-warning rule for extra info-string words; tilde fence when the language contains a backtick.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency",
+          "file": "MermaidCodeBlockView.tsx and MermaidRenderer.tsx:101",
+          "line": null,
+          "finding": "Claim under doubt: The mermaid preview is isolated and leak-free — No script path found; render id collides for identical blocks mounted in the same millisecond; orphan error svgs; eager rendering of many diagrams.",
+          "suggestion": "Unique render id; lazy rendering optional.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "client/src/lib/markdownEditorNodes.ts:77-100",
+          "line": null,
+          "finding": "Claim under doubt: CRLF, size and mixed-EOL are handled — state.inTable is not reset when renderInline throws.",
+          "suggestion": "try/finally.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-12T07:39:37.834327+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-12T07:37:36.301142+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
