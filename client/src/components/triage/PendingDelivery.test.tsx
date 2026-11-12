@@ -4,11 +4,11 @@
  *
  * An outbox-only item (`pendingDelivery: true` from the GET-route
  * enrichment mirroring `triage_cli.py list --json`) must be visibly
- * distinguishable in the list card and the detail modal, and the existing
+ * distinguishable in the list row and the detail modal, and the existing
  * Fix-now CTA must keep working on it unchanged (residence never gates the
  * intent — fixNowIntent.ts builds from item fields only).
  *
- * Lives in its own file (not TriageItemCard.test.tsx / TriageDetailModal
+ * Lives in its own file (not TriageItemRow.test.tsx / TriageDetailModal
  * .test.tsx) so the modal test file stays inside its bloat-baseline budget.
  */
 import { describe, it, expect, vi } from "vitest";
@@ -17,7 +17,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 import { PendingDeliveryBadge } from "./TriageBadgeUI";
-import { TriageItemCard } from "./TriageItemCard";
+import { TriageItemRow } from "./TriageItemRow";
 import { TriageDetailModal } from "./TriageDetailModal";
 import type { FixNowIntent } from "./fixNowIntent";
 import type { TriageItem } from "../../lib/triageApi";
@@ -53,7 +53,7 @@ function makeWrapper() {
   };
 }
 
-const CARD_PROPS = {
+const ROW_PROPS = {
   projectId: "proj-a",
   onOpen: vi.fn(),
   onFixNow: vi.fn(),
@@ -96,10 +96,10 @@ describe("PendingDeliveryBadge", () => {
 });
 
 // @covers FR-01.30
-describe("TriageItemCard pending-delivery (AC3)", () => {
+describe("TriageItemRow pending-delivery (AC3)", () => {
   it("shows the badge for an outbox-only item", () => {
     render(
-      <TriageItemCard item={{ ...baseItem, pendingDelivery: true }} {...CARD_PROPS} />,
+      <ul><TriageItemRow item={{ ...baseItem, pendingDelivery: true }} {...ROW_PROPS} /></ul>,
       { wrapper: makeWrapper() },
     );
     expect(screen.getByTestId("triage-pending-delivery")).toBeInTheDocument();
@@ -107,12 +107,12 @@ describe("TriageItemCard pending-delivery (AC3)", () => {
 
   it("shows NO badge for a tracked item (false) nor for a legacy un-enriched item (absent)", () => {
     const { rerender } = render(
-      <TriageItemCard item={{ ...baseItem, pendingDelivery: false }} {...CARD_PROPS} />,
+      <ul><TriageItemRow item={{ ...baseItem, pendingDelivery: false }} {...ROW_PROPS} /></ul>,
       { wrapper: makeWrapper() },
     );
     expect(screen.queryByTestId("triage-pending-delivery")).toBeNull();
     // External review Gem3: absent (undefined) must degrade to "not pending".
-    rerender(<TriageItemCard item={baseItem} {...CARD_PROPS} />);
+    rerender(<ul><TriageItemRow item={baseItem} {...ROW_PROPS} /></ul>);
     expect(screen.queryByTestId("triage-pending-delivery")).toBeNull();
   });
 });

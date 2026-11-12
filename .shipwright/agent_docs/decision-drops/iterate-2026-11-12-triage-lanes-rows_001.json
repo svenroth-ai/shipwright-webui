@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-12-triage-lanes-rows",
+  "date": "2026-11-12",
+  "section": "Iterate — change: Triage lanes with rows",
+  "title": "Triage page: dark project lanes of rows instead of cards",
+  "context": "Triage cards were crowded and showed explanations plus a priority/domain line; user asked for rows, per-project dark lanes, reorderable projects, copyable IDs.",
+  "decision": "Each project is a dark glass lane (Task Board recipe) of one-line rows: severity, selectable ID with copy button, title. Actions appear on hover. Lanes reorder by drag handle or arrow keys; order saved additively in the saved Triage view.",
+  "consequences": "TriageItemCard and the card grid are removed. Row actions are a hover overlay only on wide rows with a fine pointer; touch and narrow rows show them always.",
+  "rationale": "Rows give the title full width and cut clutter; explanations stay in the detail dialog. Reusing the Board lane look keeps one visual language.",
+  "rejected": "Keeping cards with a moved edit button (still crowded); a sortable library (dnd-kit core already covers it).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

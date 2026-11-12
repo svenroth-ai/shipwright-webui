@@ -1,0 +1,38 @@
+{
+ "verdict": "APPROVE_WITH_FIXES",
+ "review": [
+  {
+   "severity": "med",
+   "finding": "Keyboard reorder ArrowDown can drop focus (moved DOM node) -> accepted-and-fixed"
+  },
+  {
+   "severity": "med",
+   "finding": "dnd-kit aria-describedby announces Space-key instructions that do not exist -> accepted-and-fixed"
+  },
+  {
+   "severity": "med",
+   "finding": "Parked lane has a dead collapse toggle -> accepted-and-fixed"
+  },
+  {
+   "severity": "low",
+   "finding": "Default rectIntersection uses the small handle rect; drop ignored unless handle overlaps lane -> accepted-and-fixed (pointerWithin)"
+  },
+  {
+   "severity": "low",
+   "finding": "Overlay centred on whole li, sits over task box/error on tall rows -> accepted-and-fixed (anchored to first line)"
+  },
+  {
+   "severity": "low",
+   "finding": "aria-label on li duplicates the title button -> accepted-and-fixed"
+  },
+  {
+   "severity": "low",
+   "finding": "Selection guard should only count a selection inside the row -> accepted-and-fixed"
+  },
+  {
+   "severity": "low",
+   "finding": "Dismiss icon colour relies on on-photo flip, legibility on dark overlay -> accepted-and-fixed (white tint)"
+  }
+ ],
+ "section": "triage-lanes-rows"
+}

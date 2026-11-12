@@ -7,7 +7,7 @@
  * TriagePage owns the NewIssueModal mount (so it survives TriageDetailModal
  * unmount on `onOpenChange(false)`); TriageDetailModal builds the intent
  * and hands it up via `onFixNow`. Centralising the resolver here means a
- * future call site (e.g. a Fix-now CTA on the TriageItemCard hover) gets
+ * future call site (e.g. a Fix-now CTA on the TriageItemRow hover) gets
  * the same routing for free.
  */
 

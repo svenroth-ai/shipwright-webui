@@ -41,6 +41,9 @@ export interface TriageViewState {
   setSecondarySort: (level: SortLevel) => void;
   setGroupBy: (value: GroupBy) => void;
   toggleCollapsed: (key: string) => void;
+  /** The user's own project-lane order (project ids); empty = natural order. */
+  projectOrder: readonly string[];
+  setProjectOrder: (order: string[]) => void;
   /** Back to the defaults for everything. */
   resetView: () => void;
 }
@@ -111,6 +114,10 @@ export function useTriageViewState(): TriageViewState {
     }));
   }, []);
 
+  const setProjectOrder = useCallback((order: string[]) => {
+    setView((prev) => ({ ...prev, projectOrder: order }));
+  }, []);
+
   const resetView = useCallback(() => setView(defaultView()), []);
 
   const collapsed = useMemo(() => new Set(view.collapsed.keys), [view.collapsed]);
@@ -128,9 +135,13 @@ export function useTriageViewState(): TriageViewState {
       setSecondarySort,
       setGroupBy,
       toggleCollapsed,
+      projectOrder: view.projectOrder,
+      setProjectOrder,
       resetView,
     }),
     [
+      view.projectOrder,
+      setProjectOrder,
       view.filters,
       view.sort,
       view.groupBy,

@@ -15,6 +15,7 @@
 @import "./styles/files-terminal.css"; /* Files & Terminal three-card row — glass · beige · glass (A18) */
 @import "./styles/folder-tree.css";    /* shared FileTree rows + context menu + touch sheet (V5) */
 @import "./styles/command-center.css"; /* command palette (glass) + keyboard nav ring + density (A21) */
+@import "./styles/triage-rows.css";    /* Triage row hover-action overlay (2026-11-12) */
 @import "./styles/buttons.css";        /* the ONE canonical .btn-primary standard (2026-07-17) */
 @import "./styles/keyboard-fit.css";   /* soft-keyboard fit — shell follows the visual viewport (touch only) */
 @import "./styles/smart-viewer-code.css"; /* Smart Viewer code: wrap toggle + 13px/1.6 (V7) */

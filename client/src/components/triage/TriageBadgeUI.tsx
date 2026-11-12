@@ -1,6 +1,6 @@
 /*
  * TriageBadgeUI.tsx — small severity / source / status pill primitives,
- * used by TriageItemCard + TriageDetailModal.
+ * used by TriageItemRow + TriageDetailModal.
  *
  * Severity colors mirror MasterTaskCard's priority badges (lead-foundation,
  * ADR-100) for consistency: red/orange/yellow/slate/stone palette.

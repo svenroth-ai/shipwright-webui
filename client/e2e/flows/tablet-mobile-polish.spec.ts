@@ -241,6 +241,7 @@ test.describe("Tablet / mobile polish", () => {
     ["tablet", TABLET_LANDSCAPE],
     ["phone", PHONE],
   ] as const) {
+    // @covers FR-01.30
     test(`triage card keeps its meta row together at ${label} width`, async ({ browser, request }) => {
       const ctx = await browser.newContext({ viewport: vp, hasTouch: true });
       const page = await ctx.newPage();
@@ -260,10 +261,7 @@ test.describe("Tablet / mobile polish", () => {
       await expect(card).toBeVisible({ timeout: 35_000 });
       const cardBox = (await card.boundingBox())!;
       const ts = (await page.getByTestId("triage-item-trg-tp000001-relative-ts").boundingBox())!;
-      if (label === "tablet") {
-        // Not flung to the far right edge of a ~900px card.
-        expect(ts.x + ts.width).toBeLessThan(cardBox.x + cardBox.width * 0.75);
-      }
+      // Rows keep the timestamp at the right edge by design; it must just stay inside the row.
       expect(ts.x + ts.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 1);
       await ctx.close();
     });

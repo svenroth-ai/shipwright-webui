@@ -93,5 +93,6 @@ describe("real router wiring", () => {
     expect(guarded("triage")).toBe(true);
     expect(guarded("projects/:projectId/log")).toBe(true);
     expect(STANDALONE_HIDDEN_DESTINATION_IDS).toContain("triage");
-  });
+    // Imports the whole router (every page) cold, which takes ~5s and hit the default 5s timeout under load.
+  }, 30_000);
 });

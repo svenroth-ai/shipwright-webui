@@ -37,9 +37,9 @@ test.afterEach(async ({ request }) => {
 });
 
 // @covers FR-01.38
-test("triage cards are block-level and stack with only the list gap between them", async ({ page }) => {
+test("triage rows are block-level and stack flush inside their lane", async ({ page }) => {
   await page.goto("/triage");
-  const cards = page.locator('[data-testid="triage-open-items"] article[data-testid^="triage-item-trg-blk"]');
+  const cards = page.locator('[data-testid="triage-open-items"] li[data-testid^="triage-item-trg-blk"]');
   await expect(cards).toHaveCount(4, { timeout: 35_000 });
   const rows = await cards.evaluateAll((els) =>
     els.map((e) => ({ display: getComputedStyle(e).display, top: e.getBoundingClientRect().top, h: e.getBoundingClientRect().height })),
@@ -49,8 +49,8 @@ test("triage cards are block-level and stack with only the list gap between them
     const gap = rows[i].top - (rows[i - 1].top + rows[i - 1].h);
     expect(gap, `gap before card ${i + 1}`).toBeLessThanOrEqual(12);
   }
-  // Parked cards share the same <article> markup (dateless parks show by default).
-  const parked = page.locator('[data-testid="triage-parked-section"] article[data-testid^="triage-item-trg-blk"]');
+  // Parked rows share the same <li> markup (dateless parks show by default).
+  const parked = page.locator('[data-testid="triage-parked-section"] li[data-testid^="triage-item-trg-blk"]');
   await expect(parked).toHaveCount(2);
   const pr = await parked.evaluateAll((els) =>
     els.map((e) => ({ display: getComputedStyle(e).display, top: e.getBoundingClientRect().top, h: e.getBoundingClientRect().height })),

@@ -16,7 +16,7 @@
  * so it cannot measure real bounding boxes, real flex-height allocation, or
  * a real `max-md:` media-query breakpoint taking effect. The unit-level
  * class-fence tests in TriageDetailModal.test.tsx / TriagePage.test.tsx /
- * TriageItemCard.test.tsx pin the
+ * TriageItemRow.test.tsx pin the
  * classes exist; this spec is what proves the actual rendered geometry.
  */
 
@@ -153,31 +153,34 @@ test.describe("Mobile Triage / detail panel & spacing", () => {
     });
 
     // @covers FR-01.38
-    test("phone (<768px): group/list margins resolve to the tightened max-md values", async ({ page }) => {
+    test("phone (<768px): lanes sit 12px apart and rows are flush inside a lane", async ({ page }) => {
       await page.setViewportSize(PHONE_VIEWPORT);
       await page.goto("/triage");
       const section = page.getByTestId(`triage-group-project:${project.projectId}`);
       await expect(section).toBeVisible({ timeout: 35_000 });
-      const marginBottom = await section.evaluate((el) => parseFloat(getComputedStyle(el).marginBottom));
-      // mb-4 max-md:mb-3 -> 12px at <768px (not 16px, the desktop value).
-      expect(marginBottom).toBeCloseTo(12, 0);
-      // Card-to-card gap: space-y-1.5 max-md:space-y-1 -> 4px on a phone.
-      const cards = section.locator("article");
-      const firstBox = await cards.nth(0).boundingBox();
-      const secondBox = await cards.nth(1).boundingBox();
+      // gap-3.5 max-md:gap-3 on the lane list -> 12px at <768px.
+      const gap = await page
+        .getByTestId("triage-open-items")
+        .evaluate((el) => parseFloat(getComputedStyle(el).rowGap));
+      expect(gap).toBeCloseTo(12, 0);
+      // Rows are a divided list inside the lane: no gap between them.
+      const rows = section.locator("li");
+      const firstBox = await rows.nth(0).boundingBox();
+      const secondBox = await rows.nth(1).boundingBox();
       expect(firstBox).not.toBeNull();
       expect(secondBox).not.toBeNull();
-      expect(secondBox!.y - (firstBox!.y + firstBox!.height)).toBeCloseTo(4, 0);
+      expect(secondBox!.y - (firstBox!.y + firstBox!.height)).toBeCloseTo(0, 0);
     });
 
     // @covers FR-01.38
-    test("desktop (>=768px): group margin stays at the original 16px value", async ({ page }) => {
+    test("desktop (>=768px): lanes sit 14px apart", async ({ page }) => {
       await page.setViewportSize(DESKTOP_VIEWPORT);
       await page.goto("/triage");
-      const section = page.getByTestId(`triage-group-project:${project.projectId}`);
-      await expect(section).toBeVisible({ timeout: 35_000 });
-      const marginBottom = await section.evaluate((el) => parseFloat(getComputedStyle(el).marginBottom));
-      expect(marginBottom).toBeCloseTo(16, 0);
+      await expect(page.getByTestId(`triage-group-project:${project.projectId}`)).toBeVisible({ timeout: 35_000 });
+      const gap = await page
+        .getByTestId("triage-open-items")
+        .evaluate((el) => parseFloat(getComputedStyle(el).rowGap));
+      expect(gap).toBeCloseTo(14, 0);
     });
   });
 

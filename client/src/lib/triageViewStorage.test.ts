@@ -33,6 +33,7 @@ describe("saved Triage view", () => {
       },
       groupBy: "severity",
       collapsed: { groupBy: "severity", keys: ["severity:low"] },
+      projectOrder: ["p2", "p1"],
     } as never;
     expect(parseView(serializeView(view))).toEqual(view);
   });

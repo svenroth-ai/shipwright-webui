@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-12-triage-lanes-rows",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-12T10:44:05.555506+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-12T10:47:29.563377+00:00",
+      "disposition": "No separate plan review was run: the operator reviewed and approved the HTML design proposal as the plan ('Machen die Zeilen genauso') before the build; the build was then covered by the spec/code/doubt/external cascade. Gap reported in F12 summary.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "user-opt-out"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Keyboard reorder ArrowDown can drop focus (moved DOM node) -> accepted-and-fixed",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "dnd-kit aria-describedby announces Space-key instructions that do not exist -> accepted-and-fixed",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Parked lane has a dead collapse toggle -> accepted-and-fixed",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Default rectIntersection uses the small handle rect; drop ignored unless handle overlaps lane -> accepted-and-fixed (pointerWithin)",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Overlay centred on whole li, sits over task box/error on tall rows -> accepted-and-fixed (anchored to first line)",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "aria-label on li duplicates the title button -> accepted-and-fixed",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Selection guard should only count a selection inside the row -> accepted-and-fixed",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Dismiss icon colour relies on on-photo flip, legibility on dark overlay -> accepted-and-fixed (white tint)",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-12T10:47:21.501081+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "reviewed_commit": "21968c96d0a2a16a20cc7cd1b3a69d38d290d5c0"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Actions stay reachable while a portaled popover is open — visibility:hidden strip vanishes when focus/hover moves into a Radix popover portal; focus return to the hidden trigger is a no-op",
+          "suggestion": "keep strip visible via :has([data-state=open])",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Title never squeezed by overlay padding — viewport-gated 21.5rem padding collapses the title in rows at 1100-1250px",
+          "suggestion": "container query on the row width",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Actions always visible on touch — touch laptops report hover:hover",
+          "suggestion": "exclude any-pointer:coarse",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Overlay never lands a click on the wrong row — overlay overflows the row bottom; padding clicks bubble to the li",
+          "suggestion": "min-height, z-index, data-no-open on wrapper",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Reorder handles vanished project ids — moveProject no-ops when an id is absent from the saved order",
+          "suggestion": "insert missing ids",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: No stale references to deleted card files — docs and comments still name them",
+          "suggestion": "update inventory rows and comments",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-12T10:51:16.851316+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "reviewed_commit": "21968c96d0a2a16a20cc7cd1b3a69d38d290d5c0"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/styles/triage-rows.css:20-28 (`position: absolute; top: 50%`)",
+          "line": null,
+          "finding": "The hover action overlay is vertically centered on the whole row. A row that carries a Fix-now `TriageTaskBox`, a parked footer line, or an error banner is several lines tall; the centered overlay will sit on top of the task box / error text rather than over the (now hidden) timestamp area.",
+          "suggestion": "Anchor the overlay to the first line (e.g. `top` matching the row's first-line padding, or `top: 0.5rem`) instead of `50%`, or restrict the overlay to rows without the task box.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/styles/triage-rows.css:29-33",
+          "line": null,
+          "finding": "The timestamp is hidden via `visibility: hidden` on `:focus-within` as well as hover. A keyboard user tabbing through row buttons (Fix now → Promote → Snooze → pencil) loses the timestamp the whole time focus is inside the row, even for rows whose focus target is on the left (copy button, id).",
+          "suggestion": "Hide the timestamp only when the actions are actually revealed for the hovered row, and accept it for focus — or keep the timestamp and instead shrink the title (`padding-right`) when the overlay is visible.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": "client/src/pages/TriagePage.tsx (parked `TriageLane`, `onToggle={() => undefined}`)",
+          "line": null,
+          "finding": "The Parked lane renders the header as a toggle button (`triage-group-toggle-parked`) that does nothing when clicked. It looks collapsible but isn't, which is a small affordance lie rather than an AC violation (Parked was never collapsible before either).",
+          "suggestion": "Pass a non-button header for the parked lane (or a `collapsible` flag on `TriageLane` that renders plain text when false).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/triage/TriageItemRow.test.tsx (\"select-all\" assertion)",
+          "line": null,
+          "finding": "The \"one-click selectable\" unit test only asserts the `select-all` class name, not behavior; the real selection behavior is only covered by the e2e dblclick. Acceptable given the e2e probe exists, but the unit test alone would pass with a broken selection.",
+          "suggestion": "No change needed if the e2e stays; otherwise use `getSelection` after a real click in jsdom is not possible, so this is fine as-is.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/styles/triage-rows.css",
+          "line": 16,
+          "finding": "The absolutely positioned action panel covers the title when a desktop row is hovered or focused. The title occupies the available row width without reserving space for the panel, so long titles become partially unreadable precisely when interacting with the row. This violates AC1’s full-title readability requirement.",
+          "suggestion": "Reserve space for the actions, or place them in a separate area that cannot overlap the title. Add a browser test with a long title at a narrow desktop width that verifies the actions do not obscure it.  Overall assessment: ship-with-fixes. The diff otherwise appears to implement the requested selection, copying, and persisted project ordering, but the action overlay needs adjustment before shipping.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-12T10:47:02.876108+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: edge-case\n  Severity: low\n  File: client/src/styles/triage-rows.css:20-28 (`position: absolute; top: 50%`)\n  Finding: The hover action overlay is vertically centered on the whole row. A row that carries a Fix-now `TriageTaskBox`, a parked footer line, or an error banner is several lines tall; the centered overlay will sit on top of the task box / error text rather than over the (now hidden) timestamp area.\n  Suggestion: Anchor the overlay to the first line (e.g. `top` matching the row's first-line padding, or `top: 0.5rem`) instead of `50%`, or restrict the overlay to rows without the task box.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/styles/triage-rows.css:29-33\n  Finding: The timestamp is hidden via `visibility: hidden` on `:focus-within` as well as hover. A keyboard user tabbing through row buttons (Fix now → Promote → Snooze → pencil) loses the timestamp the whole time focus is inside the row, even for rows whose focus target is on the left (copy button, id).\n  Suggestion: Hide the timestamp only when the actions are actually revealed for the hovered row, and accept it for focus — or keep the timestamp and instead shrink the title (`padding-right`) when the overlay is visible.\n\n- Category: spec\n  Severity: low\n  File: client/src/pages/TriagePage.tsx (parked `TriageLane`, `onToggle={() => undefined}`)\n  Finding: The Parked lane renders the header as a toggle button (`triage-group-toggle-parked`) that does nothing when clicked. It looks collapsible but isn't, which is a small affordance lie rather than an AC violation (Parked was never collapsible before either).\n  Suggestion: Pass a non-button header for the parked lane (or a `collapsible` flag on `TriageLane` that renders plain text when false).\n\n- Category: test\n  Severity: low\n  File: client/src/components/triage/TriageItemRow.test.tsx (\"select-all\" assertion)\n  Finding: The \"one-click selectable\" unit test only asserts the `select-all` class name, not beh […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/styles/triage-rows.css:16\n- Finding: The absolutely positioned action panel covers the title when a desktop row is hovered or focused. The title occupies the available row width without reserving space for the panel, so long titles become partially unreadable precisely when interacting with the row. This violates AC1’s full-title readability requirement.\n- Suggestion: Reserve space for the actions, or place them in a separate area that cannot overlap the title. Add a browser test with a long title at a narrow desktop width that verifies the actions do not obscure it.\n\nOverall assessment: ship-with-fixes. The diff otherwise appears to implement the requested selection, copying, and persisted project ordering, but the action overlay needs adjustment before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-12T10:44:05.694180+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-12T10:47:33.777372+00:00",
+      "disposition": "No separate plan review was run: the operator reviewed and approved the HTML design proposal as the plan ('Machen die Zeilen genauso') before the build; the build was covered by the spec/code/doubt/external cascade. Gap reported in F12 summary.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "user-opt-out"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-12T10:47:33.930452+00:00",
+      "disposition": "No separate plan review was run: the operator reviewed and approved the HTML design proposal as the plan ('Machen die Zeilen genauso') before the build; the build was covered by the spec/code/doubt/external cascade. Gap reported in F12 summary.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "user-opt-out"
+    }
+  }
+}

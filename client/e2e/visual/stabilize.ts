@@ -6,7 +6,7 @@
  * drift that would otherwise force people to run `--update-snapshots` reflexively
  * — which hands back exactly the property the gate is supposed to buy.
  *
- * 1. RELATIVE TIMESTAMPS. TaskCard/TaskList/TriageItemCard render
+ * 1. RELATIVE TIMESTAMPS. TaskCard/TaskList/TriageItemRow render
  *    `relative(Date.now() - createdAt)` (client/src/lib/formatTime.ts). Seeded
  *    fixtures are created seconds before the shot, so the label would wobble
  *    between "just now" and "1m ago" run to run. We pin the CLIENT clock to a

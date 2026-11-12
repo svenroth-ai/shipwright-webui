@@ -1,10 +1,11 @@
 /*
- * TriageCardActions — the action row of an OPEN triage card
+ * TriageCardActions — the action buttons of an OPEN triage row
  * (iterate-2026-11-08-triage-page-redesign, extended by
- * iterate-2026-11-09-triage-fixnow-task). Without a linked task: pencil,
- * main action (Fix now / Start campaign / Go to board), Promote, Snooze and
- * a Dismiss cross that asks for an optional reason first. With a linked
- * Fix-now task: pencil and Resolve (same reason popup) plus the cross.
+ * iterate-2026-11-09-triage-fixnow-task; shown in a Triage row since
+ * iterate-2026-11-12-triage-lanes-rows). Without a linked task: main action
+ * (Fix now / Start campaign / Go to board), Promote, Snooze, a Dismiss cross
+ * that asks for an optional reason first, and the edit pencil last. With a
+ * linked Fix-now task: Resolve (same reason popup), the cross and the pencil.
  */
 
 import { Loader2, X } from "lucide-react";
@@ -34,11 +35,8 @@ export function TriageCardActions({ projectId, item, a, snoozing, task }: Props)
   const blocked = a.writeDisabled || a.dismissing || snoozing;
   const blockedTitle = a.writeDisabled ? a.writeDisabledReason : undefined;
   return (
-    <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-2 pt-1">
-      <span className="min-w-0 flex-1 basis-28">
-        <TriageQuickEdit projectId={projectId} item={item} />
-      </span>
-      <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         {task ? (
           <TriageDismissPopover
             itemId={item.id}
@@ -118,13 +116,14 @@ export function TriageCardActions({ projectId, item, a, snoozing, task }: Props)
               disabled={blocked}
               title={a.writeDisabled ? a.writeDisabledReason : "Dismiss"}
               aria-label="Dismiss"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] disabled:opacity-50"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] text-white/70 hover:bg-white/15 hover:text-white disabled:opacity-50"
               data-testid={`triage-card-dismiss-${item.id}`}
             >
               {a.dismissing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X size={15} />}
             </button>
           }
         />
+        <TriageQuickEdit projectId={projectId} item={item} iconOnly />
       </div>
     </div>
   );
