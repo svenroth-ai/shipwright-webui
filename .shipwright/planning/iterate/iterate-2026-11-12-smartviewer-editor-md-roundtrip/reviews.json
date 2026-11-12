@@ -16,15 +16,16 @@
     },
     "plan": {
       "review_type": "plan",
-      "status": "pending",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-11-12T07:50:04.880610+00:00",
+      "disposition": "closed by reason_code unavailable",
+      "recorded_by": "close-missing",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "reason_code": "unavailable"
     },
     "code": {
       "review_type": "code",
@@ -227,15 +228,16 @@
     },
     "external_code": {
       "review_type": "external_code",
-      "status": "pending",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-11-12T07:50:04.880610+00:00",
+      "disposition": "closed by reason_code unavailable",
+      "recorded_by": "close-missing",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "reason_code": "unavailable"
     },
     "spec": {
       "review_type": "spec",
@@ -252,27 +254,29 @@
     },
     "plan_internal": {
       "review_type": "plan_internal",
-      "status": "pending",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-11-12T07:50:04.880610+00:00",
+      "disposition": "closed by reason_code unavailable",
+      "recorded_by": "close-missing",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "reason_code": "unavailable"
     },
     "architecture_internal": {
       "review_type": "architecture_internal",
-      "status": "pending",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-11-12T07:50:04.880610+00:00",
+      "disposition": "closed by reason_code unavailable",
+      "recorded_by": "close-missing",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "reason_code": "unavailable"
     }
   }
 }
