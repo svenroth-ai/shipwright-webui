@@ -5,9 +5,9 @@
     "date": "2026-11-12",
     "unit": {
       "status": "passed",
-      "passed": 5107,
+      "passed": 5108,
       "skipped": 0,
-      "total": 5107
+      "total": 5108
     },
     "integration": {
       "status": "not_run",

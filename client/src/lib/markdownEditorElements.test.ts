@@ -239,6 +239,12 @@ describe("review findings (code + doubt review)", () => {
   });
 
   // @covers FR-01.35
+  it("quotes and backslashes in an image title survive", () => {
+    const md = String.raw`![a](p.png "x \"q\" \\ y")`;
+    expect(roundTrip(md)).toBe(md);
+  });
+
+  // @covers FR-01.35
   it("a fence language with a backtick uses a tilde fence", () => {
     const md = doc("~~~a`b", "x", "~~~");
     expect(roundTrip(md)).toBe(md);

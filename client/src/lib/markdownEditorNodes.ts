@@ -83,7 +83,7 @@ function isGfmRepresentable(table: PMNode): boolean {
  *  `\|` itself (a literal backslash is written as two), so escaping unconditionally
  *  is exact; a lookbehind for "already escaped" mis-handled a backslash before a pipe. */
 export function escapeTablePipes(text: string): string {
-  return text.replace(/\|/g, "\\|");
+  return text.replace(/[\\|]/g, (c) => (c === "|" ? "\\|" : c));
 }
 
 function serializeTable(state: MdState, node: PMNode): void {
@@ -194,8 +194,8 @@ const AlignedCell = TableCell.extend({
  *  wrapped in `<...>` (the default serializer wrote an invalid, space-broken link). */
 function serializeImage(state: MdState & { esc(s: string): string }, node: PMNode): void {
   const src = String(node.attrs.src ?? "");
-  const title = node.attrs.title ? ` "${String(node.attrs.title).replace(/"/g, '\\"')}"` : "";
-  const dest = /[\s<>]/.test(src) ? `<${src.replace(/</g, "%3C").replace(/>/g, "%3E")}>` : src.replace(/[()]/g, "\\$&");
+  const title = node.attrs.title ? ` "${String(node.attrs.title).replace(/[\\"]/g, "\\$&")}"` : "";
+  const dest = /[\s<>]/.test(src) ? `<${src.replace(/[\\<>]/g, (c) => (c === "\\" ? "\\\\" : c === "<" ? "%3C" : "%3E"))}>` : src.replace(/[()\\]/g, "\\$&");
   state.write(`![${state.esc(String(node.attrs.alt ?? ""))}](${dest}${title})`);
 }
 
