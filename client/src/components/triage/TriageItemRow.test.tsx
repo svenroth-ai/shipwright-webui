@@ -1,8 +1,8 @@
 /*
- * TriageItemCard.test.tsx — the solid card (styling guard from
- * iterate-20260515-triage-card-styling) plus the actions it now carries
- * (iterate-2026-11-08-triage-page-redesign): primary CTA, Promote, Snooze,
- * Dismiss, quick edit, per-check help and the read-only parked footer.
+ * TriageItemRow.test.tsx — the Triage row (iterate-2026-11-12-triage-lanes-rows;
+ * successor of the card tests): severity + copyable id before the title, the
+ * actions it carries (primary CTA, Promote, Snooze, Dismiss, pencil), the
+ * Fix-now task box and the read-only parked line.
  */
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 
-import { TriageItemCard } from "./TriageItemCard";
+import { TriageItemRow } from "./TriageItemRow";
 import type { TriageItem } from "../../lib/triageApi";
 
 const dismissMutate = vi.fn(async (_a: { triageId: string; reason: string | null }) => ({ ok: true }));
@@ -84,24 +84,80 @@ function mount(over: Partial<TriageItem> = {}, handlers: Partial<Record<"onOpen"
     onNavigateToBoard: vi.fn(),
     ...handlers,
   };
-  render(<TriageItemCard {...props} />, { wrapper: wrap });
+  render(<ul><TriageItemRow {...props} /></ul>, { wrapper: wrap });
   return props;
 }
 
 // @covers FR-01.30
-describe("TriageItemCard styling", () => {
-  it("renders on the grey --surface-form sheet (like the New Task dialog) with a resting shadow", () => {
+describe("TriageItemRow — layout (iterate-2026-11-12-triage-lanes-rows)", () => {
+  it("puts severity and the id BEFORE the title, and wraps long titles inside the row", () => {
     mount();
-    const card = screen.getByTestId(`triage-item-${item.id}`);
-    expect(card).toHaveClass("bg-[var(--surface-form,#edeae7)]");
-    expect(card).toHaveClass("shadow-[var(--shadow-sm)]");
-    expect(card).toHaveClass("border-[var(--surface-form-divider,#c3b8ae)]");
-    expect(card).toHaveClass("hover:shadow-[var(--shadow-card-hover)]");
+    const sev = screen.getByTestId("triage-severity-medium");
+    const id = screen.getByTestId(`triage-item-${item.id}-id`);
+    const title = screen.getByTestId(`triage-item-${item.id}-title`);
+    expect(sev.compareDocumentPosition(id) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(id.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(title.parentElement?.className).toContain("[overflow-wrap:anywhere]");
+  });
+
+  it("shows no priority/domain pill, no coloured severity dot and no detail text on the row", () => {
+    mount();
+    const row = screen.getByTestId(`triage-item-${item.id}`);
+    expect(row).not.toHaveTextContent("engineering");
+    expect(row).not.toHaveTextContent(item.detail);
+  });
+
+  it("never uses the --body / --muted tokens inside the row (.on-photo flips them to near-white there)", () => {
+    mount();
+    const html = screen.getByTestId(`triage-item-${item.id}`).outerHTML;
+    expect(html).not.toContain("var(--body");
+    expect(html).not.toContain("var(--muted");
+  });
+
+  it("the pencil is an icon button beside the other actions, not a chip", () => {
+    mount();
+    const pencil = screen.getByTestId(`triage-quick-edit-trigger-${item.id}`);
+    expect(pencil.textContent ?? "").toBe("");
+    expect(screen.getByTestId(`triage-row-actions-${item.id}`)).toContainElement(pencil);
   });
 });
 
 // @covers FR-01.30
-describe("TriageItemCard — Returned badge (AC8, iterate-2026-08-08-triage-filters-sort-parked)", () => {
+describe("TriageItemRow — copyable id", () => {
+  it("the id is one-click selectable text (select-all) and clicking it does not open the detail", () => {
+    const p = mount();
+    const id = screen.getByTestId(`triage-item-${item.id}-id`);
+    expect(id).toHaveTextContent(item.id);
+    expect(id.className).toContain("select-all");
+    fireEvent.click(id);
+    fireEvent.doubleClick(id);
+    expect(p.onOpen).not.toHaveBeenCalled();
+  });
+
+  it("the copy button writes exactly the id to the clipboard and does not open the detail", async () => {
+    const writeText = vi.fn(async (_t: string) => undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const p = mount();
+    fireEvent.click(screen.getByTestId(`triage-item-${item.id}-copy`));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(item.id));
+    expect(await screen.findByRole("button", { name: `Copied ${item.id}` })).toBeInTheDocument();
+    expect(p.onOpen).not.toHaveBeenCalled();
+  });
+
+  it("a refused clipboard falls back to selecting the id so Ctrl+C works", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: vi.fn(async () => { throw new Error("denied"); }) },
+      configurable: true,
+    });
+    mount();
+    fireEvent.click(screen.getByTestId(`triage-item-${item.id}-copy`));
+    await waitFor(() => expect(window.getSelection()?.toString()).toBe(item.id));
+    expect(screen.getByRole("button", { name: `Copy ${item.id}` })).toBeInTheDocument();
+  });
+});
+
+// @covers FR-01.30
+describe("TriageItemRow — Returned badge (AC8, iterate-2026-08-08-triage-filters-sort-parked)", () => {
   it("shows no Returned badge for an ordinary item", () => {
     mount();
     expect(screen.queryByTestId("triage-returned-badge")).not.toBeInTheDocument();
@@ -114,7 +170,7 @@ describe("TriageItemCard — Returned badge (AC8, iterate-2026-08-08-triage-filt
 });
 
 // @covers FR-01.30
-describe("TriageItemCard — actions (iterate-2026-11-08-triage-page-redesign)", () => {
+describe("TriageItemRow — actions (iterate-2026-11-08-triage-page-redesign)", () => {
   it("clicking the title opens the detail", () => {
     const p = mount();
     fireEvent.click(screen.getByRole("button", { name: item.title }));
@@ -193,21 +249,6 @@ describe("TriageItemCard — actions (iterate-2026-11-08-triage-page-redesign)",
     expect(p.onNavigateToBoard).toHaveBeenCalledWith("proj-a");
   });
 
-  it("lists each audit check of a compliance bundle on its own line with a help button", () => {
-    mount({
-      detail: "Compliance: 2 open finding(s)\n- B/B7: Orphan FR — detail | hint: fix it\n- C/C1: Design manifest — x",
-    });
-    const list = screen.getByTestId(`triage-item-${item.id}-findings`);
-    expect(list.querySelectorAll("li")).toHaveLength(2);
-    expect(list).toHaveTextContent("B/B7");
-    expect(list).toHaveTextContent("C/C1");
-  });
-
-  it("explains the severity with a help marker", () => {
-    mount();
-    expect(screen.queryByTestId("triage-help-severity-medium")).not.toBeInTheDocument();
-  });
-
   it("shows the project label only when given", () => {
     const props = {
       projectId: "proj-a",
@@ -217,7 +258,7 @@ describe("TriageItemCard — actions (iterate-2026-11-08-triage-page-redesign)",
       onFixNow: vi.fn(),
       onNavigateToBoard: vi.fn(),
     };
-    render(<TriageItemCard {...props} />, { wrapper: wrap });
+    render(<ul><TriageItemRow {...props} /></ul>, { wrapper: wrap });
     expect(screen.getByTestId(`triage-item-${item.id}-project`)).toHaveTextContent("alpha");
   });
 
@@ -229,7 +270,7 @@ describe("TriageItemCard — actions (iterate-2026-11-08-triage-page-redesign)",
 });
 
 // @covers FR-01.30
-describe("TriageItemCard — Fix-now task (iterate-2026-11-09-triage-fixnow-task)", () => {
+describe("TriageItemRow — Fix-now task (iterate-2026-11-09-triage-fixnow-task)", () => {
   const linkedTask = { taskId: "task-1", title: "Fix drift", state: "active", projectId: "proj-a" };
 
   it("shows the In progress box and Resolve instead of Fix now, Promote and Snooze", () => {

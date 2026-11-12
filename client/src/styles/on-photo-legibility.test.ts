@@ -45,6 +45,8 @@ const TOUCHED = [
   "pages/InboxPage.tsx",
   "pages/TriagePage.tsx",
   "components/triage/TriageGroupList.tsx",
+  "components/triage/TriageLane.tsx",
+  "components/triage/TriageItemRow.tsx",
   "components/triage/TriageProjectStatus.tsx",
 ];
 
@@ -65,20 +67,20 @@ describe("on-photo legibility — AC1 flipping-token fence", () => {
     expect(src).not.toContain('color: "var(--color-muted)"');
   });
 
-  it("triage group headers (bare on the photo) use --ink / --muted, not the legacy text aliases", () => {
-    // iterate-2026-11-08-triage-page-redesign: the per-project sections were
-    // replaced by TriageGroupList (collapsible groups); its headers and the
-    // Parked heading in TriagePage ride bare on the photo.
-    const src = read("components/triage/TriageGroupList.tsx");
-    expect(src).toMatch(/text-\[var\(--ink\)\]/);
-    expect(src).toMatch(/text-\[var\(--muted\)\]/);
-    expect(src).not.toMatch(/text-\[var\(--color-text\)\]/);
-    expect(src).not.toMatch(/text-\[var\(--color-muted\)\]/);
+  it("triage lanes are dark glass: header + rows use explicit white tints, never a token that flips or the legacy aliases", () => {
+    // iterate-2026-11-12-triage-lanes-rows: the headers moved INTO a dark glass
+    // lane (same recipe as the board columns), so they no longer ride bare on
+    // the photo. White tints are stable under `.on-photo`; any theme token here
+    // would either flip or stay dark on the dark glass.
+    for (const rel of ["components/triage/TriageLane.tsx", "components/triage/TriageItemRow.tsx"]) {
+      const src = read(rel);
+      expect(src, rel).toMatch(/text-white\//);
+      expect(src, rel).not.toMatch(/text-\[var\(--(color-text|color-muted|ink|muted|body)\)\]/);
+    }
   });
 
-  it("the Parked heading and its hidden-parked hint (bare on-photo) use the flipping tokens", () => {
+  it("the Parked lane's hidden-parked hint (bare on-photo) uses the flipping tokens", () => {
     const src = read("pages/TriagePage.tsx");
-    expect(src).toMatch(/<h2 className="mb-2 text-base font-semibold text-\[var\(--ink\)\]">/);
     const hint = src.match(/<p className="([^"]*)" data-testid="triage-parked-hidden-hint"/);
     expect(hint).not.toBeNull();
     expect(hint?.[1]).toMatch(/--muted/);

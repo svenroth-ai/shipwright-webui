@@ -138,7 +138,13 @@ function Body({ projectId, item, onDone }: Props & { onDone: () => void }) {
   );
 }
 
-export function TriageQuickEdit({ projectId, item }: Props) {
+const ICON_TRIGGER =
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] transition-colors hover:border-[var(--color-primary)]";
+const PILL_TRIGGER =
+  "inline-flex max-w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-medium text-[var(--color-text)] hover:bg-[var(--surface-form-sunken,#e4dfda)]";
+
+/** `iconOnly` = the pencil as a square button (the Triage rows put it beside the action buttons). */
+export function TriageQuickEdit({ projectId, item, iconOnly = false }: Props & { iconOnly?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
@@ -149,10 +155,10 @@ export function TriageQuickEdit({ projectId, item }: Props) {
           title="Edit title and severity"
           onClick={(e) => e.stopPropagation()}
           data-testid={`triage-quick-edit-trigger-${item.id}`}
-          className="inline-flex max-w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-medium text-[var(--color-text)] hover:bg-[var(--surface-form-sunken,#e4dfda)]"
+          className={iconOnly ? ICON_TRIGGER : PILL_TRIGGER}
         >
-          <Pencil size={11} className="shrink-0" />
-          <span className="truncate">{item.suggestedPriority} · {item.suggestedDomain}</span>
+          <Pencil size={iconOnly ? 14 : 11} className="shrink-0" />
+          {!iconOnly && <span className="truncate">{item.suggestedPriority} · {item.suggestedDomain}</span>}
         </button>
       </Popover.Trigger>
       <Popover.Portal>

@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: client/src/styles/triage-rows.css:16\n- Finding: The absolutely positioned action panel covers the title when a desktop row is hovered or focused. The title occupies the available row width without reserving space for the panel, so long titles become partially unreadable precisely when interacting with the row. This violates AC1\u2019s full-title readability requirement.\n- Suggestion: Reserve space for the actions, or place them in a separate area that cannot overlap the title. Add a browser test with a long title at a narrow desktop width that verifies the actions do not obscure it.\n\nOverall assessment: ship-with-fixes. The diff otherwise appears to implement the requested selection, copying, and persisted project ordering, but the action overlay needs adjustment before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n- Category: edge-case\n  Severity: low\n  File: client/src/styles/triage-rows.css:20-28 (`position: absolute; top: 50%`)\n  Finding: The hover action overlay is vertically centered on the whole row. A row that carries a Fix-now `TriageTaskBox`, a parked footer line, or an error banner is several lines tall; the centered overlay will sit on top of the task box / error text rather than over the (now hidden) timestamp area.\n  Suggestion: Anchor the overlay to the first line (e.g. `top` matching the row's first-line padding, or `top: 0.5rem`) instead of `50%`, or restrict the overlay to rows without the task box.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/styles/triage-rows.css:29-33\n  Finding: The timestamp is hidden via `visibility: hidden` on `:focus-within` as well as hover. A keyboard user tabbing through row buttons (Fix now \u2192 Promote \u2192 Snooze \u2192 pencil) loses the timestamp the whole time focus is inside the row, even for rows whose focus target is on the left (copy button, id).\n  Suggestion: Hide the timestamp only when the actions are actually revealed for the hovered row, and accept it for focus \u2014 or keep the timestamp and instead shrink the title (`padding-right`) when the overlay is visible.\n\n- Category: spec\n  Severity: low\n  File: client/src/pages/TriagePage.tsx (parked `TriageLane`, `onToggle={() => undefined}`)\n  Finding: The Parked lane renders the header as a toggle button (`triage-group-toggle-parked`) that does nothing when clicked. It looks collapsible but isn't, which is a small affordance lie rather than an AC violation (Parked was never collapsible before either).\n  Suggestion: Pass a non-button header for the parked lane (or a `collapsible` flag on `TriageLane` that renders plain text when false).\n\n- Category: test\n  Severity: low\n  File: client/src/components/triage/TriageItemRow.test.tsx (\"select-all\" assertion)\n  Finding: The \"one-click selectable\" unit test only asserts the `select-all` class name, not behavior; the real selection behavior is only covered by the e2e dblclick. Acceptable given the e2e probe exists, but the unit test alone would pass with a broken selection.\n  Suggestion: No change needed if the e2e stays; otherwise use `getSelection` after a real click in jsdom is not possible, so this is fine as-is.\n\n## Notes on things I checked and found sound\n\n- `moveProject` splice semantics are correct for both directions (verified against the included tests: `[\"a\",\"b\",\"c\"], \"a\"\u2192\"c\"` gives `[\"b\",\"c\",\"a\"]`).\n- `parseView` projectOrder handling matches the boundary spec: non-strings/empties dropped, deduped, capped.\n- Full-order reorder with a project filter active: `onReorderProject` is fed the full `groupProjects` id list, so hidden projects keep their place \u2014 matches the stated asymptote.\n- The row's `NO_OPEN` guard plus `window.getSelection()` check correctly prevents the detail dialog from opening on id clicks and drag-selection; the copy/id span carries `data-no-open`.\n- Clipboard failure path falls back to text selection and is covered by a test; `navigator.clipboard` being undefined in insecure contexts throws inside the `try` and is caught.\n- dnd-kit hooks used in the parked lane (rendered outside `DndContext`) are no-ops, not crashes \u2014 reorder is `undefined` there, so this is benign.\n- The pencil is inside `TriageCardActions` and therefore inside the hover overlay, per AC3.\n\nOverall the change is a faithful, well-tested implementation of the spec; the findings above are refinements, none blocking.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-12-triage-lanes-rows",
+    "at": "2026-11-12T10:44:26.100138+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

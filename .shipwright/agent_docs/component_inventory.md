@@ -220,7 +220,7 @@ The `client/src/components/terminal/` folder also houses colocated hooks / helpe
 
 ### `triage/` (ADR-101)
 
-Triage page redesign (iterate-2026-11-08-triage-page-redesign, FR-01.30): the page is one aggregated `{projectId, item}` list. `TriagePage` composes `TriageFilterMenu` / `TriageGroupMenu` / `TriageSortMenu` (Board-style header toolbar), `TriageTiles`, `TriageActiveFilters`, `TriageGroupList` (collapsible groups of `TriageItemCard`s) and a read-only Parked section; the saved view lives in `hooks/useTriageViewState.ts` + `lib/triageViewStorage.ts`, the pipeline in `lib/triageBoardModel.ts`. The per-project sections and the old filter/sort bar were removed. Follow-up (iterate-2026-11-09-triage-fixnow-task): a Fix-now task is linked to its item via `ExternalTask.fixNowForTriageId` (set by the public create route, read via `hooks/useTriageTaskLinks.ts` + `lib/triageTaskLinks.ts`); the card shows `TriageTaskBox` and `TriageCardActions` (Resolve), the Dismiss cross and Resolve open `TriageDismissPopover` for an optional reason, and `TriageTiles` gained an In progress tile.
+Triage page redesign (iterate-2026-11-08-triage-page-redesign, FR-01.30): the page is one aggregated `{projectId, item}` list. `TriagePage` composes `TriageFilterMenu` / `TriageGroupMenu` / `TriageSortMenu` (Board-style header toolbar), `TriageTiles`, `TriageActiveFilters`, `TriageGroupList` (dark lanes of `TriageItemRow`s via `TriageLane`; since iterate-2026-11-12-triage-lanes-rows the cards and `TRIAGE_GRID` are gone, project lanes carry a drag handle and the user's order is saved as `projectOrder` in the view; each row shows severity + a selectable, copyable id before the title) and a read-only Parked lane; the saved view lives in `hooks/useTriageViewState.ts` + `lib/triageViewStorage.ts`, the pipeline in `lib/triageBoardModel.ts`. The per-project sections and the old filter/sort bar were removed. Follow-up (iterate-2026-11-09-triage-fixnow-task): a Fix-now task is linked to its item via `ExternalTask.fixNowForTriageId` (set by the public create route, read via `hooks/useTriageTaskLinks.ts` + `lib/triageTaskLinks.ts`); the card shows `TriageTaskBox` and `TriageCardActions` (Resolve), the Dismiss cross and Resolve open `TriageDismissPopover` for an optional reason, and `TriageTiles` gained an In progress tile.
 
 Compliance file viewer (iterate-2026-08-29-compliance-file-viewer, FR-01 file
 references): `TriageDetailMeta` (extracted from `TriageDetailModal` to hold
@@ -238,7 +238,10 @@ Dialog) that nests the existing `external/SmartViewer` inside
 | `TriageFilePanel` | `triage/TriageFilePanel.tsx` | 49 | 1 |
 | `FileMentionText` | `triage/FileMentionText.tsx` | 37 | 1 |
 | `FileLink` | `triage/FileLink.tsx` | 30 | 2 |
-| `TriageItemCard` | `triage/TriageItemCard.tsx` | 234 | 2 |
+| `TriageItemRow` | `triage/TriageItemRow.tsx` | 153 | 2 |
+| `TriageLane` | `triage/TriageLane.tsx` | 147 | 2 |
+| `TriageIdCopy` | `triage/TriageIdCopy.tsx` | 69 | 1 |
+| `triageProjectOrder` | `lib/triageProjectOrder.ts` | 37 | 2 |
 | `LaunchPayloadBlock` | `triage/LaunchPayloadBlock.tsx` | 73 | 4 |
 | `TriageBadgeUI` | `triage/TriageBadgeUI.tsx` | 63 | 4 |
 | `PromoteModal` | `triage/PromoteModal.tsx` | 262 | 3 |
@@ -249,7 +252,6 @@ Dialog) that nests the existing `external/SmartViewer` inside
 | `TriageTiles` | `triage/TriageTiles.tsx` | 45 | 1 |
 | `TriageHelp` | `triage/TriageHelp.tsx` | 60 | 2 |
 | `TriagePills` | `triage/TriagePills.tsx` | 46 | 2 |
-| `TRIAGE_GRID` | `triage/triageGrid.ts` | 9 | 2 |
 | `triageCheckHelp` | `lib/triageCheckHelp.ts` | 174 | 1 |
 | `TriageSnoozeMenu` | `triage/TriageSnoozeMenu.tsx` | 144 | 2 |
 | `TriageQuickEdit` | `triage/TriageQuickEdit.tsx` | 163 | 1 |

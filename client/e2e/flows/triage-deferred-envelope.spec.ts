@@ -119,12 +119,13 @@ test.describe("Triage Deferred section", () => {
     // (nodate004) stays visible via its own exception.
     const parked = page.getByTestId("triage-parked-section");
     await expect(parked).toBeVisible();
-    await expect(parked).toContainText("Parked (1)");
+    await expect(parked).toContainText("Parked");
+    await expect(parked.locator("li[data-testid^=\"triage-item-\"]")).toHaveCount(1);
     await expect(page.getByTestId("triage-item-trg-future003")).toHaveCount(0);
     await page.getByTestId("triage-filter-menu-trigger").click();
     await page.getByTestId("triage-filter-show-parked").click();
     await page.keyboard.press("Escape");
-    await expect(parked).toContainText("Parked (2)");
+    await expect(parked.locator("li[data-testid^=\"triage-item-\"]")).toHaveCount(2);
 
     const futureCard = page.getByTestId("triage-item-trg-future003");
     await expect(futureCard).toBeVisible();

@@ -2,8 +2,8 @@
  * TriagePage — one aggregated list of `<project>/.shipwright/triage.jsonl`
  * items (iterate-2026-11-08-triage-page-redesign, FR-01.30). Board-style
  * header toolbar (project filter, filter funnel, group, sort), three summary
- * tiles, active-filter chips, collapsible groups of solid cards and a
- * read-only Parked section. The whole view (filters, sort, grouping, which
+ * tiles, active-filter chips, collapsible dark lanes of rows (project lanes
+ * can be put in the user's own order) and a read-only Parked lane. The whole view (filters, sort, grouping, which
  * groups are folded) is saved in the browser; only the project choice is
  * shared with the Board.
  *
@@ -28,18 +28,18 @@ import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropd
 import { PageHead } from "../components/common/PageHead";
 import { DensityToggle } from "../components/command/DensityToggle";
 import { TriageActiveFilters } from "../components/triage/TriageActiveFilters";
-import { TRIAGE_GRID } from "../components/triage/triageGrid";
 import { TriageDetailModal } from "../components/triage/TriageDetailModal";
 import { TriageFilterMenu } from "../components/triage/TriageFilterMenu";
 import { TriageGroupList } from "../components/triage/TriageGroupList";
-import { TriageItemCard } from "../components/triage/TriageItemCard";
+import { TriageLane } from "../components/triage/TriageLane";
 import { TriageListStates } from "../components/triage/TriageListStates";
 import { TriageProjectStatus } from "../components/triage/TriageProjectStatus";
 import { SEARCH_MIN_ITEMS, TriageSearch } from "../components/triage/TriageSearch";
 import { TriageTiles, type TriageTile } from "../components/triage/TriageTiles";
 import { TriageGroupMenu, TriageSortMenu } from "../components/triage/TriageViewMenus";
 import type { FixNowIntent } from "../components/triage/fixNowIntent";
-import { entryKey, type TriageEntry } from "../lib/triageFilterSort";
+import type { TriageEntry } from "../lib/triageFilterSort";
+import { applyProjectOrder, moveProject } from "../lib/triageProjectOrder";
 import { buildBoardModel, type TriageTileFilter } from "../lib/triageBoardModel";
 import { getProjectColor } from "../lib/projectColor";
 
@@ -83,15 +83,22 @@ export default function TriagePage() {
     [statuses, scopeId],
   );
 
+  // The lanes follow the user's own project order (drag handle on a lane).
   const groupProjects = useMemo(
     () =>
-      realProjects.map((p) => ({
-        id: p.id,
-        name: p.name,
-        color: getProjectColor(p.id, p.settings?.color).hsl,
-      })),
-    [realProjects],
+      applyProjectOrder(
+        realProjects.map((p) => ({
+          id: p.id,
+          name: p.name,
+          color: getProjectColor(p.id, p.settings?.color).hsl,
+        })),
+        view.projectOrder,
+      ),
+    [realProjects, view.projectOrder],
   );
+  const onReorderProject = (movedId: string, overId: string): void => {
+    view.setProjectOrder(moveProject(groupProjects.map((p) => p.id), movedId, overId));
+  };
   const nameOf = useMemo(() => {
     const m = new Map(realProjects.map((p) => [p.id, p.name] as const));
     return (id: string) => m.get(id) ?? id;
@@ -184,26 +191,22 @@ export default function TriagePage() {
                 onOpen={setSelected}
                 onFixNow={onFixNow}
                 onNavigateToBoard={onNavigateToBoard}
+                onReorderProject={onReorderProject}
               />
               {model.visibleParked.length > 0 && (
-                <section className="mt-6" data-testid="triage-parked-section">
-                  <h2 className="mb-2 text-base font-semibold text-[var(--ink)]">
-                    Parked <span className="text-xs font-normal text-[var(--muted)]">({model.visibleParked.length})</span>
-                  </h2>
-                  <div className={TRIAGE_GRID}>
-                    {model.visibleParked.map((e) => (
-                      <TriageItemCard
-                        key={entryKey(e)}
-                        projectId={e.projectId}
-                        item={e.item}
-                        projectLabel={projectLabel(e.projectId)}
-                        onOpen={() => setSelected(e)}
-                        onFixNow={onFixNow}
-                        onNavigateToBoard={onNavigateToBoard}
-                      />
-                    ))}
-                  </div>
-                </section>
+                <div className="mt-6" data-testid="triage-parked-section">
+                  <TriageLane
+                    group={{ key: "parked", label: "Parked", entries: model.visibleParked }}
+                    showHeader
+                    isCollapsed={false}
+                    collapsible={false}
+                    onToggle={() => undefined}
+                    projectLabel={projectLabel}
+                    onOpen={setSelected}
+                    onFixNow={onFixNow}
+                    onNavigateToBoard={onNavigateToBoard}
+                  />
+                </div>
               )}
               {model.hiddenParked > 0 && !view.filters.showParked && (
                 <p className="mt-3 text-xs text-[var(--muted)]" data-testid="triage-parked-hidden-hint">

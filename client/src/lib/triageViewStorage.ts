@@ -41,6 +41,8 @@ export interface TriageViewSnapshot {
   sort: TriageSortState;
   groupBy: GroupBy;
   collapsed: CollapsedState;
+  /** The user's own order of the project lanes (project ids). Additive field. */
+  projectOrder: string[];
 }
 
 export const DEFAULT_GROUP_BY: GroupBy = "project";
@@ -51,6 +53,7 @@ export function defaultView(): TriageViewSnapshot {
     sort: DEFAULT_SORT_STATE,
     groupBy: DEFAULT_GROUP_BY,
     collapsed: { groupBy: DEFAULT_GROUP_BY, keys: [] },
+    projectOrder: [],
   };
 }
 
@@ -119,7 +122,18 @@ export function parseView(raw: string | null): TriageViewSnapshot {
       ? { groupBy, keys: [...pickStrings(c.keys)] }
       : { groupBy, keys: [] };
 
-  return { filters, sort, groupBy, collapsed };
+  // Order matters here, so keep the array (deduped) instead of a Set.
+  const projectOrder = Array.isArray(data.projectOrder)
+    ? [
+        ...new Set(
+          data.projectOrder.filter(
+            (v): v is string => typeof v === "string" && v.length > 0 && v.length <= MAX_STRING_LEN,
+          ),
+        ),
+      ].slice(0, MAX_STRINGS)
+    : [];
+
+  return { filters, sort, groupBy, collapsed, projectOrder };
 }
 
 export function serializeView(view: TriageViewSnapshot): string {
@@ -137,6 +151,7 @@ export function serializeView(view: TriageViewSnapshot): string {
     sort: view.sort,
     groupBy: view.groupBy,
     collapsed: view.collapsed,
+    projectOrder: view.projectOrder,
   });
 }
 

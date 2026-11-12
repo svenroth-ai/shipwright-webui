@@ -1,0 +1,90 @@
+{
+  "run_id": "iterate-2026-11-12-triage-lanes-rows",
+  "date": "2026-11-12T10:56:22.667913Z",
+  "event_at": "2026-11-12T07:47:40.192514+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/triage-lanes-rows",
+  "spec": ".shipwright/planning/iterate/2026-11-12-triage-lanes-rows.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-12-triage-lanes-rows",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Each project is a dark lane of rows with the full title readable, no cards",
+        "disposition": "tested",
+        "evidence": "TriageGroupList.test + e2e triage-card-block-display (rows flush) PASSED; screenshot reviewed"
+      },
+      {
+        "behavior": "Severity then id before the title; id select-all; copy button writes exactly the id; neither opens the dialog",
+        "disposition": "tested",
+        "evidence": "TriageItemRow.test (3 copy tests) + e2e triage-lanes-rows hover/copy/dblclick PASSED"
+      },
+      {
+        "behavior": "Row actions incl. pencil appear on hover/focus and stay while a popover is open; overlay never covers the title",
+        "disposition": "tested",
+        "evidence": "e2e triage-lanes-rows (overlay bbox, popover keeps strip, Esc) + triage-fixnow-task PASSED"
+      },
+      {
+        "behavior": "Project lanes reorder by handle drag and arrow keys, keep focus, persist across reload",
+        "disposition": "tested",
+        "evidence": "TriageGroupList.test (arrow keys) + e2e triage-lanes-rows (keyboard, mouse drag, reload) PASSED"
+      },
+      {
+        "behavior": "projectOrder additive in saved view: round trip, legacy view loads empty, junk dropped, vanished ids movable",
+        "disposition": "tested",
+        "evidence": "triageProjectOrder.test + triageViewStorage.test PASSED"
+      },
+      {
+        "behavior": "Parked lane renders rows read-only without a collapse toggle",
+        "disposition": "tested",
+        "evidence": "e2e triage-deferred-envelope PASSED"
+      },
+      {
+        "behavior": "Touch laptop (any-pointer:coarse) always shows the action buttons",
+        "disposition": "untestable",
+        "reason_code": "requires-physical-device",
+        "reason": "needs a real touch-plus-mouse device; the media-query gate is covered by reading the CSS only"
+      }
+    ],
+    "counts": {
+      "testable": 6,
+      "tested": 6,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 4,
+      "covered_acs": 4
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs client/e2e/flows/triage-lanes-rows.spec.ts client/e2e/flows/triage-fixnow-task.spec.ts client/e2e/flows/triage-deferred-envelope.spec.ts client/e2e/flows/triage-card-block-display.spec.ts client/e2e/flows/mobile-triage-spacing-filters.spec.ts client/e2e/flows/triage-amend.spec.ts --project=chromium --reporter=json",
+    "exit_code": 0,
+    "tests_run": 14,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-lanes-rows\\.shipwright\\runs\\iterate-2026-11-12-triage-lanes-rows\\surface_verification.log",
+    "timestamp": "2026-11-12T10:54:39.484Z"
+  },
+  "declared_removals": [
+    {
+      "path": "client/src/components/triage/TriageItemCard.tsx",
+      "reason": "replaced by TriageItemRow (rows in lanes)"
+    },
+    {
+      "path": "client/src/components/triage/triageGrid.ts",
+      "reason": "card grid no longer exists"
+    },
+    {
+      "path": "client/src/components/triage/TriageItemCard.layout.test.tsx",
+      "reason": "card layout test retired with the card"
+    }
+  ],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

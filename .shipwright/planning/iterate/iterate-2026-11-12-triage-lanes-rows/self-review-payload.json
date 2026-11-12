@@ -1,0 +1,9 @@
+{"items":[
+{"name":"spec-match","verdict":"pass","note":"4 ACs implemented and proven in real-browser e2e"},
+{"name":"tests","verdict":"pass","note":"client vitest 5116 green after fixes; e2e triage specs green"},
+{"name":"error-handling","verdict":"pass","note":"clipboard failure falls back to selecting the id; storage reads never throw"},
+{"name":"security","verdict":"pass","note":"plain-text rendering, no dangerouslySetInnerHTML"},
+{"name":"a11y","verdict":"pass","note":"handle has aria-label and arrow keys; actions reachable via focus-within; sr-only copied live region"},
+{"name":"regressions","verdict":"pass","note":"card tests ported; on-photo and type-scale fences updated"},
+{"name":"known-tradeoff","verdict":"pass","note":"hover overlay covers the right end of very long titles; full title in dialog"},
+{"name":"affected-boundaries","verdict":"pass","note":"saved view JSON gains optional projectOrder, additive"}]}

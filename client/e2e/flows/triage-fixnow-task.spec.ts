@@ -80,6 +80,10 @@ test.describe("Triage — Fix-now remembers its task, Dismiss asks for a reason"
     await expect(page.getByTestId("triage-item-trg-f1000001")).toBeVisible({ timeout: 35_000 });
     await expect(page.getByTestId("triage-tile-prog")).toContainText("0");
 
+    // Row actions appear on hover (iterate-2026-11-12-triage-lanes-rows).
+
+    await page.getByTestId("triage-item-trg-f1000001").hover();
+
     await page.getByTestId("triage-card-fix-now-trg-f1000001").click();
     await page.getByTestId("new-issue-save-btn").click();
 
@@ -91,8 +95,10 @@ test.describe("Triage — Fix-now remembers its task, Dismiss asks for a reason"
     await expect(page.getByTestId("triage-task-open-trg-f1000001")).toHaveAttribute("href", /\/tasks\/.+/);
     await expect(page.getByTestId("triage-card-fix-now-trg-f1000001")).toHaveCount(0);
     await expect(page.getByTestId("triage-card-promote-trg-f1000001")).toHaveCount(0);
+    await page.getByTestId("triage-item-trg-f1000001").hover();
     await expect(page.getByTestId("triage-card-resolve-trg-f1000001")).toBeVisible();
     // The other card is untouched.
+    await page.getByTestId("triage-item-trg-f1000002").hover();
     await expect(page.getByTestId("triage-card-fix-now-trg-f1000002")).toBeVisible();
 
     await expect(page.getByTestId("triage-tile-prog")).toContainText("1");
@@ -103,6 +109,10 @@ test.describe("Triage — Fix-now remembers its task, Dismiss asks for a reason"
     // The link survives a reload (it lives on the task, not in the page).
     await page.reload();
     await expect(page.getByTestId("triage-task-box-trg-f1000001")).toBeVisible({ timeout: 35_000 });
+
+    // Row actions appear on hover (iterate-2026-11-12-triage-lanes-rows).
+
+    await page.getByTestId("triage-item-trg-f1000001").hover();
 
     await page.getByTestId("triage-card-resolve-trg-f1000001").click();
     const reason = page.getByTestId("triage-dismiss-reason-trg-f1000001");
@@ -117,6 +127,10 @@ test.describe("Triage — Fix-now remembers its task, Dismiss asks for a reason"
     await page.goto("/triage");
     await expect(page.getByTestId("triage-item-trg-f1000002")).toBeVisible({ timeout: 35_000 });
 
+    // Row actions appear on hover (iterate-2026-11-12-triage-lanes-rows).
+
+    await page.getByTestId("triage-item-trg-f1000002").hover();
+
     await page.getByTestId("triage-card-dismiss-trg-f1000002").click();
     const popover = page.getByTestId("triage-dismiss-popover-trg-f1000002");
     await expect(popover).toBeVisible();
@@ -124,6 +138,10 @@ test.describe("Triage — Fix-now remembers its task, Dismiss asks for a reason"
     await expect(popover).toHaveCount(0);
     await expect(page.getByTestId("triage-item-trg-f1000002")).toBeVisible();
     expect(readFileSync(triageFile, "utf-8")).not.toContain('"dismissed"');
+
+    // Row actions appear on hover (iterate-2026-11-12-triage-lanes-rows).
+
+    await page.getByTestId("triage-item-trg-f1000002").hover();
 
     await page.getByTestId("triage-card-dismiss-trg-f1000002").click();
     await page.getByTestId("triage-dismiss-reason-trg-f1000002").fill("not worth it");
@@ -137,6 +155,8 @@ test.describe("Triage — Fix-now remembers its task, Dismiss asks for a reason"
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/triage");
     await expect(page.getByTestId("triage-item-trg-f1000002")).toBeVisible({ timeout: 35_000 });
+    // Row actions appear on hover (iterate-2026-11-12-triage-lanes-rows).
+    await page.getByTestId("triage-item-trg-f1000002").hover();
     await page.getByTestId("triage-card-dismiss-trg-f1000002").click();
     const box = await page.getByTestId("triage-dismiss-popover-trg-f1000002").boundingBox();
     expect(box).not.toBeNull();

@@ -1,0 +1,1 @@
+Triage: each project is now a dark lane of one-line rows instead of cards; the severity and the item ID sit left of the title, the ID is selectable and has a copy button, and the row buttons (with the edit pencil) appear on hover.
