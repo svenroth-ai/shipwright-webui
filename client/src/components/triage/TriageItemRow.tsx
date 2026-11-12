@@ -66,7 +66,7 @@ function TriageItemRowImpl({
   return (
     <>
       <li
-        className="triage-row relative flex flex-col gap-1.5 border-t border-white/10 px-3.5 py-2.5 text-white/95 first:border-t-0 hover:bg-white/[0.06] focus-within:bg-white/[0.06]"
+        className="triage-row relative flex flex-col gap-1.5 border-t border-white/[0.14] px-4 py-3.5 text-white/95 first:border-t-0 hover:bg-white/[0.06] focus-within:bg-white/[0.06]"
         data-testid={`triage-item-${item.id}`}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest(NO_OPEN)) return;

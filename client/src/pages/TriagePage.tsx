@@ -194,7 +194,7 @@ export default function TriagePage() {
                 onReorderProject={onReorderProject}
               />
               {model.visibleParked.length > 0 && (
-                <div className="mt-6" data-testid="triage-parked-section">
+                <div className="mt-9" data-testid="triage-parked-section">
                   <TriageLane
                     group={{ key: "parked", label: "Parked", entries: model.visibleParked }}
                     showHeader

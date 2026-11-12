@@ -153,16 +153,16 @@ test.describe("Mobile Triage / detail panel & spacing", () => {
     });
 
     // @covers FR-01.38
-    test("phone (<768px): lanes sit 12px apart and rows are flush inside a lane", async ({ page }) => {
+    test("phone (<768px): lanes sit 24px apart and rows are flush inside a lane", async ({ page }) => {
       await page.setViewportSize(PHONE_VIEWPORT);
       await page.goto("/triage");
       const section = page.getByTestId(`triage-group-project:${project.projectId}`);
       await expect(section).toBeVisible({ timeout: 35_000 });
-      // gap-3.5 max-md:gap-3 on the lane list -> 12px at <768px.
+      // gap-9 max-md:gap-6 on the lane list -> 24px at <768px.
       const gap = await page
         .getByTestId("triage-open-items")
         .evaluate((el) => parseFloat(getComputedStyle(el).rowGap));
-      expect(gap).toBeCloseTo(12, 0);
+      expect(gap).toBeCloseTo(24, 0);
       // Rows are a divided list inside the lane: no gap between them.
       const rows = section.locator("li");
       const firstBox = await rows.nth(0).boundingBox();
@@ -173,14 +173,14 @@ test.describe("Mobile Triage / detail panel & spacing", () => {
     });
 
     // @covers FR-01.38
-    test("desktop (>=768px): lanes sit 14px apart", async ({ page }) => {
+    test("desktop (>=768px): lanes sit 36px apart", async ({ page }) => {
       await page.setViewportSize(DESKTOP_VIEWPORT);
       await page.goto("/triage");
       await expect(page.getByTestId(`triage-group-project:${project.projectId}`)).toBeVisible({ timeout: 35_000 });
       const gap = await page
         .getByTestId("triage-open-items")
         .evaluate((el) => parseFloat(getComputedStyle(el).rowGap));
-      expect(gap).toBeCloseTo(14, 0);
+      expect(gap).toBeCloseTo(36, 0);
     });
   });
 

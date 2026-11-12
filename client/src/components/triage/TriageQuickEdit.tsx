@@ -139,7 +139,7 @@ function Body({ projectId, item, onDone }: Props & { onDone: () => void }) {
 }
 
 const ICON_TRIGGER =
-  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] transition-colors hover:border-[var(--color-primary)]";
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-button)] bg-white/[0.13] text-white transition-colors hover:bg-white/[0.24]";
 const PILL_TRIGGER =
   "inline-flex max-w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-medium text-[var(--color-text)] hover:bg-[var(--surface-form-sunken,#e4dfda)]";
 

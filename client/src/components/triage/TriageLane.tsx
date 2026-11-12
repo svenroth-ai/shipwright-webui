@@ -16,7 +16,7 @@ import { entryKey, type TriageEntry } from "../../lib/triageFilterSort";
 import { TriageItemRow } from "./TriageItemRow";
 import type { FixNowIntent } from "./fixNowIntent";
 
-const DARK_GLASS = "rgba(35, 31, 24, 0.82)";
+const DARK_GLASS = "var(--triage-lane-solid)"; /* solid (triage-rows.css): rows must stay readable over the photo */
 const GLASS_EDGE = "rgba(255, 255, 255, 0.18)";
 
 interface Props {
@@ -69,7 +69,7 @@ export function TriageLane({
       ref={drop.setNodeRef}
       className="overflow-hidden rounded-[var(--radius-card)]"
       style={{
-        background: `color-mix(in srgb, ${accent} 14%, ${DARK_GLASS})`,
+        background: `color-mix(in srgb, ${accent} 12%, ${DARK_GLASS})`,
         border: `1px solid color-mix(in srgb, ${accent} 32%, ${GLASS_EDGE})`,
         boxShadow: "var(--sh-photo)",
         opacity: drag.isDragging ? 0.55 : 1,

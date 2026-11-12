@@ -8,7 +8,7 @@
  * linked Fix-now task: Resolve (same reason popup), the cross and the pencil.
  */
 
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import type { ExternalTask } from "../../lib/externalApi";
 import type { TriageItem } from "../../lib/triageApi";
@@ -17,10 +17,11 @@ import { TriageQuickEdit } from "./TriageQuickEdit";
 import { TriageSnoozeMenu } from "./TriageSnoozeMenu";
 import type { useTriageCardActions } from "./useTriageCardActions";
 
-export const PRIMARY_BTN =
-  "inline-flex h-8 items-center justify-center gap-1.5 rounded-[var(--radius-button)] bg-[var(--color-primary)] px-3 text-[13px] font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed";
-export const SECONDARY_BTN =
-  "inline-flex h-8 items-center justify-center gap-1 rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-text)] transition-colors hover:border-[var(--color-primary)] disabled:opacity-50 disabled:cursor-not-allowed";
+/* Dark-surface only (the Triage lanes): white text, never place these on a light surface. */
+const PRIMARY_BTN =
+  "inline-flex h-8 items-center justify-center gap-1.5 rounded-[var(--radius-button)] bg-[var(--color-primary)] px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed";
+const SECONDARY_BTN =
+  "inline-flex h-8 items-center justify-center gap-1 rounded-[var(--radius-button)] bg-white/[0.13] px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-white/[0.24] disabled:opacity-50 disabled:cursor-not-allowed";
 
 interface Props {
   projectId: string;
@@ -94,7 +95,7 @@ export function TriageCardActions({ projectId, item, a, snoozing, task }: Props)
               className={SECONDARY_BTN}
               data-testid={`triage-card-promote-${item.id}`}
             >
-              Promote
+              Promote to task
             </button>
             <TriageSnoozeMenu
               projectId={projectId}
@@ -115,11 +116,12 @@ export function TriageCardActions({ projectId, item, a, snoozing, task }: Props)
               type="button"
               disabled={blocked}
               title={a.writeDisabled ? a.writeDisabledReason : "Dismiss"}
-              aria-label="Dismiss"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] text-white/70 hover:bg-white/15 hover:text-white disabled:opacity-50"
+              aria-busy={a.dismissing}
+              className={SECONDARY_BTN}
               data-testid={`triage-card-dismiss-${item.id}`}
             >
-              {a.dismissing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X size={15} />}
+              {a.dismissing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Dismiss
             </button>
           }
         />

@@ -1,14 +1,19 @@
 /*
  * triage-rows.css — the hover action overlay of a Triage row
- * (iterate-2026-11-12-triage-lanes-rows). When the row itself is wide (>= 56rem,
- * a container query on the row, not the viewport) and the device has a fine
- * pointer and no touch input, the buttons are hidden and appear over the row's
+ * (iterate-2026-11-12-triage-lanes-rows). When the row itself is wide (>= 62rem,
+ * a container query on the row, not the viewport) and the primary input can hover
+ * (a touch laptop with a trackpad can), the buttons are hidden and appear over the row's
  * right edge on hover / keyboard focus / while one of their popovers is open;
  * the title then gets matching right padding so the overlay covers none of it.
  * Everywhere else (touch, phone, narrow rows) the buttons are a normal block
  * under the title and always visible. Plain CSS (not utilities) so the hidden /
  * shown states cannot be reordered by the utility sorter.
  */
+:root {
+  /* One solid lane colour shared by the lane, the banner and the hover strip. */
+  --triage-lane-solid: rgb(34, 30, 24);
+}
+
 .triage-row {
   container: triage-row / inline-size;
 }
@@ -18,21 +23,22 @@
   justify-content: flex-start;
 }
 
-@media (hover: hover) and (pointer: fine) and (not (any-pointer: coarse)) {
-  @container triage-row (min-width: 56rem) {
+@media (hover: hover) {
+  .triage-row {
+    min-height: 3.75rem; /* the centred strip (about 44px) never spills into the next row */
+  }
+  @container triage-row (min-width: 62rem) {
     .triage-row-actions {
       position: absolute;
       z-index: 1;
       right: 0.75rem;
-      top: 0.4rem; /* aligned with the first line (title row), not the row middle */
+      top: 50%;
+      transform: translateY(-50%);
       padding: 0.375rem;
       border-radius: 0.5rem;
-      background: #2a2722;
+      background: color-mix(in srgb, white 7%, var(--triage-lane-solid));
       box-shadow: 0 6px 18px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.15);
       visibility: hidden;
-    }
-    .triage-row-title {
-      min-height: 2.75rem; /* the overlay never spills into the next row */
     }
     .triage-row:hover .triage-row-actions,
     .triage-row:focus-within .triage-row-actions,
@@ -44,7 +50,7 @@
     .triage-row:hover .triage-row-title,
     .triage-row:focus-within .triage-row-title,
     .triage-row:has([data-state="open"]) .triage-row-title {
-      padding-right: 21.5rem;
+      padding-right: 32rem; /* widest button set (Start campaign + Snooze + Dismiss + pencil) */
     }
     /* The timestamp sits under the overlay while it is shown. */
     .triage-row:hover .triage-row-ts,
