@@ -1,7 +1,7 @@
 /*
  * markdownEditorNodes.ts — the editor nodes the SmartViewer markdown editor adds
  * on top of StarterKit (iterate-2026-11-12-smartviewer-editor-md-roundtrip,
- * FR-01.34): GFM tables (with column alignment), task lists, images, and a code
+ * FR-01.35): GFM tables (with column alignment), task lists, images, and a code
  * block whose fence can never be shorter than a backtick run inside it.
  *
  * Why this file exists: `tiptap-markdown` ships serializers for table / task /

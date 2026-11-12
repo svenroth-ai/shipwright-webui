@@ -1,6 +1,6 @@
 /*
  * markdownEditorElements.test — every Markdown element through the SmartViewer
- * editor round trip (iterate-2026-11-12-smartviewer-editor-md-roundtrip, FR-01.34).
+ * editor round trip (iterate-2026-11-12-smartviewer-editor-md-roundtrip, FR-01.35).
  *
  * Contract: a document written in the editor's canonical Markdown form comes
  * back BYTE-IDENTICAL (modulo the trailing newline the envelope re-attaches),
@@ -70,7 +70,7 @@ const CANONICAL: Record<string, string> = {
 
 describe("every element round-trips unchanged", () => {
   for (const [name, md] of Object.entries(CANONICAL)) {
-    // @covers FR-01.34
+    // @covers FR-01.35
     it(`${name}: identical + idempotent`, () => {
       const once = roundTrip(md);
       expect(once).toBe(md);
@@ -78,7 +78,7 @@ describe("every element round-trips unchanged", () => {
     });
   }
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a document with ALL elements survives intact", () => {
     const all = Object.values(CANONICAL).join(NL + NL);
     expect(roundTrip(all)).toBe(all);
@@ -86,13 +86,13 @@ describe("every element round-trips unchanged", () => {
 });
 
 describe("tables", () => {
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a pipe inside a cell stays inside the cell", () => {
     const md = doc("| A | B |", "| --- | --- |", String.raw`| a \| b | c |`);
     expect(roundTrip(md)).toBe(md);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a table the GFM syntax cannot express is kept as HTML, never flattened", () => {
     const md = doc(
       "<table>",
@@ -107,7 +107,7 @@ describe("tables", () => {
     expect(roundTrip(out)).toBe(out);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("editing a table (add row/column, align) keeps it a valid GFM table", () => {
     const ed = makeEditor(CANONICAL.table);
     try {
@@ -130,7 +130,7 @@ describe("tables", () => {
     }
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("insertTable produces a header row + body that serializes as GFM", () => {
     const ed = makeEditor("");
     try {
@@ -146,19 +146,19 @@ describe("tables", () => {
 });
 
 describe("code fences", () => {
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("longestBacktickRun counts consecutive backticks", () => {
     expect(longestBacktickRun("none")).toBe(0);
     expect(longestBacktickRun("a ` b ``` c ``")).toBe(3);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("the fence is always longer than any backtick run inside the block", () => {
     const md = doc("`````", "````", "x", "````", "`````");
     expect(roundTrip(md)).toBe(md);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("editing the code of a mermaid block keeps fence and language", () => {
     const ed = makeEditor(CANONICAL.mermaid);
     try {
@@ -175,7 +175,7 @@ describe("code fences", () => {
 });
 
 describe("task lists", () => {
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("toggling a checkbox flips [ ] / [x] in the Markdown", () => {
     const ed = makeEditor(CANONICAL.taskList);
     try {
@@ -189,19 +189,19 @@ describe("task lists", () => {
 });
 
 describe("review findings (code + doubt review)", () => {
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("an image-only table cell keeps its image", () => {
     const md = doc("| Icon | Name |", "| --- | --- |", "| ![logo](a.png) | x |");
     expect(roundTrip(md)).toBe(md);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a badge link in a cell survives", () => {
     const md = doc("| Build |", "| --- |", "| [![ci](b.svg)](https://ci.example) |");
     expect(roundTrip(md)).toBe(md);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a cell with a hard break falls back to HTML and stays one table", () => {
     const md = doc("<table>", "<tr><th>A</th></tr>", "<tr><td>one<br>two</td></tr>", "</table>");
     const out = roundTrip(md);
@@ -210,7 +210,7 @@ describe("review findings (code + doubt review)", () => {
     expect(roundTrip(out)).toBe(out);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a literal backslash before a pipe stays inside its cell", () => {
     const BS = String.fromCharCode(92);
     const md = doc("| A | B |", "| --- | --- |", `| C:${BS}${BS}${BS}| | x |`);
@@ -222,13 +222,13 @@ describe("review findings (code + doubt review)", () => {
     expect(roundTrip(once)).toBe(once);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a data: URI image is kept", () => {
     const md = doc("![d](data:image/png;base64,iVBORw0KGgo=)");
     expect(roundTrip(md)).toBe(md);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("an image path with a space is written as a valid destination", () => {
     // markdown-it percent-encodes a bracketed destination (equivalent, documented).
     const encoded = roundTrip(doc("![p](<my pic.png>)"));
@@ -238,19 +238,19 @@ describe("review findings (code + doubt review)", () => {
     expect(roundTrip('a <img src="my pic.png" alt="p"> b')).toBe("a ![p](<my pic.png>) b");
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a fence language with a backtick uses a tilde fence", () => {
     const md = doc("~~~a`b", "x", "~~~");
     expect(roundTrip(md)).toBe(md);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a loose task list is normalised to tight (documented), never merged", () => {
     const out = roundTrip(doc("- [ ] a", "", "- [x] b"));
     expect(out).toBe(doc("- [ ] a", "- [x] b"));
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a task item with a nested bullet keeps it", () => {
     const md = doc("- [ ] parent", "  - child");
     expect(roundTrip(md)).toBe(md);
@@ -258,14 +258,14 @@ describe("review findings (code + doubt review)", () => {
 });
 
 describe("containers and mixed lists (doubt review)", () => {
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a mixed task/plain list keeps both items (only blank-line spacing changes)", () => {
     const out = roundTrip(doc("- [ ] a", "- b"));
     expect(out).toContain("- [ ] a");
     expect(out).toMatch(/^- b$/m);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a task item keeps a second paragraph and a code block", () => {
     const para = doc("- [ ] a", "", "  more");
     const code = doc("- [ ] a", "", "  ```js", "  x", "  ```");
@@ -273,7 +273,7 @@ describe("containers and mixed lists (doubt review)", () => {
     expect(roundTrip(code)).toBe(code);
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("a table inside a list item and inside a blockquote stays a table", () => {
     const inList = doc("- item", "", "  | A | B |", "  | --- | --- |", "  | 1 | 2 |");
     const inQuote = doc("> | A | B |", "> | --- | --- |", "> | 1 | 2 |");

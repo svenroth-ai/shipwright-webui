@@ -1,6 +1,6 @@
 /*
  * Spec — SmartViewer markdown editor shows and edits EVERY element without
- * damaging the file (iterate-2026-11-12-smartviewer-editor-md-roundtrip, FR-01.34).
+ * damaging the file (iterate-2026-11-12-smartviewer-editor-md-roundtrip, FR-01.35).
  *
  * Reported bug: opening a document with a table in the editor and saving
  * flattened the table to its cell text; the table was not editable as a table.
@@ -73,9 +73,9 @@ async function mockDoc(page: Page): Promise<{ putBody: string | null }> {
   return captured;
 }
 
-test.describe("@smoke markdown editor elements (FR-01.34)", () => {
-  // @covers FR-01.34
-  test("renders table + diagram, round-trips with NO changes, and a table edit saves as a table", { tag: ["@FR-01.34"] }, async ({ page }, testInfo) => {
+test.describe("@smoke markdown editor elements (FR-01.35)", () => {
+  // @covers FR-01.35
+  test("renders table + diagram, round-trips with NO changes, and a table edit saves as a table", { tag: ["@FR-01.35"] }, async ({ page }, testInfo) => {
     const captured = await mockDoc(page);
     await page.goto("/preview?projectId=proj-x&path=elements.md");
     await page.getByTestId("smart-viewer-edit").click();

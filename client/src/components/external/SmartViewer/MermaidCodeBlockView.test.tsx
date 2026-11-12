@@ -1,7 +1,7 @@
 /*
  * MermaidCodeBlockView.test — the editor's code block renders a live diagram
  * under ```mermaid blocks only, and the Markdown stays byte-identical
- * (iterate-2026-11-12-smartviewer-editor-md-roundtrip, FR-01.34).
+ * (iterate-2026-11-12-smartviewer-editor-md-roundtrip, FR-01.35).
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -23,7 +23,7 @@ function mount(md: string) {
 }
 
 describe("MermaidCodeBlockView", () => {
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("renders the diagram below a mermaid block and keeps the Markdown unchanged", async () => {
     const md = ["```mermaid", "graph TD", "  A-->B", "```"].join(NL);
     const editor = mount(md);
@@ -34,7 +34,7 @@ describe("MermaidCodeBlockView", () => {
     editor.destroy();
   });
 
-  // @covers FR-01.34
+  // @covers FR-01.35
   it("renders NO diagram for an ordinary code block", async () => {
     const editor = mount(["```ts", "const x = 1;", "```"].join(NL));
     await new Promise((r) => setTimeout(r, 600)); // past the debounce

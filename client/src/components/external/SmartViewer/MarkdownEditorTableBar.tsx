@@ -1,7 +1,7 @@
 /*
  * MarkdownEditorTableBar — contextual row/column/alignment controls for the
  * markdown editor, shown only while the caret is inside a table
- * (iterate-2026-11-12-smartviewer-editor-md-roundtrip, FR-01.34). Every command
+ * (iterate-2026-11-12-smartviewer-editor-md-roundtrip, FR-01.35). Every command
  * here is a TipTap table command whose result serializes to a GFM pipe table
  * (markdownEditorNodes.ts), so editing never leaves the Markdown representable.
  */

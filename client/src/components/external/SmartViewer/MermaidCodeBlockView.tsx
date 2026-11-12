@@ -1,6 +1,6 @@
 /*
  * MermaidCodeBlockView — node view for the editor's code block
- * (iterate-2026-11-12-smartviewer-editor-md-roundtrip, FR-01.34).
+ * (iterate-2026-11-12-smartviewer-editor-md-roundtrip, FR-01.35).
  *
  * The code stays a normal, editable ProseMirror code block, so the Markdown
  * (fence + source) round-trips untouched. For a ```mermaid block a live diagram
