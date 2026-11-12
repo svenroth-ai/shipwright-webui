@@ -15,8 +15,9 @@
  * render cadence.
  */
 
-import { useEffect, useState } from "react";
 import { type Editor } from "@tiptap/react";
+import { MarkdownEditorTableBar } from "./MarkdownEditorTableBar";
+import { useEditorTick } from "./useEditorTick";
 import {
   Bold,
   Italic,
@@ -28,6 +29,9 @@ import {
   Heading3,
   List,
   ListOrdered,
+  ListChecks,
+  Table as TableIcon,
+  Image as ImageIcon,
   Quote,
   Minus,
   Link as LinkIcon,
@@ -35,20 +39,6 @@ import {
   Redo2,
   type LucideIcon,
 } from "lucide-react";
-
-/** Re-render on every editor transaction so button active/enabled state tracks
- *  the live selection regardless of the parent's render cadence. */
-function useEditorTick(editor: Editor | null): void {
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    if (!editor) return;
-    const handler = () => setTick((n) => n + 1);
-    editor.on("transaction", handler);
-    return () => {
-      editor.off("transaction", handler);
-    };
-  }, [editor]);
-}
 
 interface Btn {
   id: string;
@@ -77,6 +67,13 @@ function promptForLink(editor: Editor): void {
   editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run();
 }
 
+/** Insert an image by URL/path (`![alt](src)`). Empty input or cancel does nothing. */
+function promptForImage(editor: Editor): void {
+  const src = typeof window === "undefined" ? null : window.prompt("Bild-URL oder Pfad:", "");
+  if (src === null || src.trim() === "") return;
+  editor.chain().focus().setImage({ src: src.trim() }).run();
+}
+
 // Groups are rendered left-to-right with a thin divider between them. StarterKit
 // `toggleHeading` collapses a heading back to a paragraph when toggled off.
 const GROUPS: Btn[][] = [
@@ -98,8 +95,11 @@ const GROUPS: Btn[][] = [
   [
     { id: "bullet-list", label: "Aufzählung", Icon: List, run: (e) => e.chain().focus().toggleBulletList().run(), active: (e) => e.isActive("bulletList") },
     { id: "ordered-list", label: "Nummerierte Liste", Icon: ListOrdered, run: (e) => e.chain().focus().toggleOrderedList().run(), active: (e) => e.isActive("orderedList") },
+    { id: "task-list", label: "Aufgabenliste", Icon: ListChecks, run: (e) => e.chain().focus().toggleTaskList().run(), active: (e) => e.isActive("taskList") },
   ],
   [
+    { id: "table", label: "Tabelle einfügen", Icon: TableIcon, run: (e) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), enabled: (e) => !e.isActive("table") },
+    { id: "image", label: "Bild einfügen", Icon: ImageIcon, run: (e) => promptForImage(e) },
     { id: "blockquote", label: "Zitat", Icon: Quote, run: (e) => e.chain().focus().toggleBlockquote().run(), active: (e) => e.isActive("blockquote") },
     { id: "code-block", label: "Codeblock", Icon: Code2, run: (e) => e.chain().focus().toggleCodeBlock().run(), active: (e) => e.isActive("codeBlock") },
     { id: "hr", label: "Trennlinie", Icon: Minus, run: (e) => e.chain().focus().setHorizontalRule().run() },
@@ -120,6 +120,7 @@ export function MarkdownEditorToolbar({ editor }: { editor: Editor | null }) {
   if (!editor) return null;
 
   return (
+    <>
     <div
       className="flex flex-wrap items-center gap-0.5 border-b border-[var(--color-border,#e0dbd4)] px-3 py-1.5"
       data-testid="md-editor-toolbar"
@@ -150,7 +151,9 @@ export function MarkdownEditorToolbar({ editor }: { editor: Editor | null }) {
           })}
         </div>
       ))}
-    </div>
+      </div>
+      <MarkdownEditorTableBar editor={editor} />
+    </>
   );
 }
 

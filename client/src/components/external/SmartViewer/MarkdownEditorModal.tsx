@@ -33,6 +33,7 @@ import {
   MarkdownConflictError,
 } from "../../../lib/markdownFileApi";
 import { ApiError } from "../../../lib/externalApi";
+import { MermaidCodeBlockView } from "./MermaidCodeBlockView";
 import { MarkdownDiffView } from "./MarkdownDiffView";
 import { MarkdownEditorToolbar } from "./MarkdownEditorToolbar";
 import { MarkdownEditorBanners } from "./MarkdownEditorBanners";
@@ -75,8 +76,7 @@ export function MarkdownEditorModal({
   const [hasFrontmatter, setHasFrontmatter] = useState(false);
   const original = useRef<string>("");
   const fingerprint = useRef<string>("");
-  // The non-prose envelope the editor must NOT touch (preserved verbatim around
-  // the serialized body). Rationale: see markdownTiptap.ts envelope section.
+  // Non-prose envelope the editor must NOT touch (see markdownTiptap.ts).
   const envelopeRef = useRef<MarkdownEnvelope | null>(null);
   // Monotonic load token — discards a stale/superseded async load result
   // (modal reopened for another path, closed mid-flight, or reload-on-conflict).
@@ -84,12 +84,12 @@ export function MarkdownEditorModal({
   const [edited, setEdited] = useState<string>("");
 
   const editor = useEditor({
-    extensions: buildEditorExtensions(),
+    extensions: buildEditorExtensions({ codeBlockView: MermaidCodeBlockView }),
     content: "",
     immediatelyRender: true,
     editorProps: {
       attributes: {
-        class: "markdown-body focus:outline-none min-h-full",
+        class: "markdown-body md-editor-surface focus:outline-none min-h-full",
         "data-testid": "md-editor-surface",
       },
     },

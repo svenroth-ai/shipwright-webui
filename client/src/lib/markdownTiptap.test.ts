@@ -188,11 +188,19 @@ describe("detectLossyConstructs", () => {
     expect(detectLossyConstructs("text[^1]\n\n[^1]: note\n")).toContain("footnotes");
   });
 
-  // @covers FR-01.35
-  it("flags GFM tables and task lists", () => {
-    const table = "| a | b |\n| --- | --- |\n| 1 | 2 |\n";
-    expect(detectLossyConstructs(table)).toContain("GFM tables");
-    expect(detectLossyConstructs("- [ ] todo\n- [x] done\n")).toContain("task lists");
+  // @covers FR-01.34
+  it("no longer flags GFM tables / task lists (the editor represents them)", () => {
+    const NL = String.fromCharCode(10);
+    const table = ["| a | b |", "| --- | --- |", "| 1 | 2 |", ""].join(NL);
+    expect(detectLossyConstructs(table)).not.toContain("GFM tables");
+    expect(detectLossyConstructs(["- [ ] todo", "- [x] done", ""].join(NL))).not.toContain("task lists");
+  });
+
+  // @covers FR-01.34
+  it("flags fence attributes that cannot survive (```js {1,3})", () => {
+    const NL = String.fromCharCode(10);
+    expect(detectLossyConstructs(["```js {1,3} title=x", "a", "```"].join(NL))).toContain("code fence attributes");
+    expect(detectLossyConstructs(["```js", "a", "```"].join(NL))).not.toContain("code fence attributes");
   });
 
   // @covers FR-01.35
