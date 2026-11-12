@@ -30,6 +30,7 @@ import type { Extensions } from "@tiptap/react";
 import MarkdownIt from "markdown-it";
 
 import { RawHtmlBlock, RawHtmlBlockDocument, MARKDOWN_IT_OPTIONS } from "./markdownRawHtmlBlock";
+import { buildMarkdownElementExtensions, type MarkdownElementOptions } from "./markdownEditorNodes";
 
 export {
   type MarkdownEnvelope,
@@ -50,13 +51,15 @@ export const SAFE_LINK_PROTOCOLS = ["http", "https", "mailto"];
  * `javascript:`-scheme anchor on the way in. HTML with no schema node is
  * normalised away and remains flagged by {@link detectLossyConstructs}.
  */
-export function buildEditorExtensions(): Extensions {
+export function buildEditorExtensions(opts: MarkdownElementOptions = {}): Extensions {
   return [
     // tiptap 3's StarterKit bundles Link, Underline and a TrailingNode (an
     // empty paragraph forced after a trailing non-text block). We configure
     // Link ourselves below, and the other two would change what the editor
     // serializes (`<u>`, a stray empty paragraph after a raw-HTML block).
-    StarterKit.configure({ link: false, underline: false, trailingNode: false }),
+    StarterKit.configure({ link: false, underline: false, trailingNode: false, codeBlock: false }),
+    // Tables, task lists, images, mermaid-aware code block (markdownEditorNodes.ts).
+    ...buildMarkdownElementExtensions(opts),
     Link.configure({
       openOnClick: false,
       autolink: false,
@@ -108,6 +111,10 @@ interface LossyRule {
   test: (text: string) => boolean;
 }
 
+// NOTE: GFM tables and task lists are deliberately NOT in this list any more:
+// the editor now loads real table / task-list nodes (markdownEditorNodes.ts), so
+// they round-trip as tables / task lists instead of being flattened.
+//
 // NOTE: YAML frontmatter is deliberately NOT in this list. It used to be
 // flagged as lossy, but `splitMarkdownEnvelope` now preserves it verbatim
 // (the editor never sees it), so it round-trips cleanly. The modal surfaces a
@@ -132,15 +139,10 @@ const LOSSY_RULES: LossyRule[] = [
     test: (t) => /\[\^[^\]]+\]/.test(stripCode(t)),
   },
   {
-    id: "table",
-    label: "GFM tables",
-    // A delimiter row: `|---|:--:|` style.
-    test: (t) => /^\s*\|?[ \t]*:?-{3,}:?[ \t]*\|/m.test(t),
-  },
-  {
-    id: "task-list",
-    label: "task lists",
-    test: (t) => /^\s*[-*+]\s+\[[ xX]\]\s/m.test(t),
+    id: "fence-info",
+    label: "code fence attributes",
+    // ```js {1,3} title="x": only the first word (the language) survives.
+    test: (t) => /^[ \t]*(?:```|~~~)[ \t]*\S+[ \t]+\S/m.test(t),
   },
   {
     id: "ref-link",

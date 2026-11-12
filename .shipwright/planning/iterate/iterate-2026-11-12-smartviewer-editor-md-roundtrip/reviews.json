@@ -1,0 +1,389 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-12-smartviewer-editor-md-roundtrip",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-12T07:36:56.200367+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Removing table loss warnings wholesale assumes every editable table remains representable as GFM. Rich cell content, merged cells, or multiple paragraphs can exceed pipe-table capabilities. The proposed replacement serializer could silently flatten that content, while the existing serializer would fall back to HTML.",
+          "suggestion": "Define the supported cell structure and restrict table commands accordingly, or retain a lossless HTML fallback. Remove warnings only for representable tables, and test rich cell content plus escaped pipes and inline code.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "A longer fence prevents nested-fence corruption, but does not establish preservation of the complete info string. A code-block node that stores only `language` can lose additional text such as `python title=\"example.py\"`, violating AC4 even when serialization is idempotent afterward.",
+          "suggestion": "Explicitly preserve the full info string during parsing and serialization, deriving the language separately for rendering. Test additional info text, embedded backtick runs, and empty code blocks against the original input.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "“Image (no base64)” leaves an input class that can still disappear on save. Existing Markdown containing a data-URI image would conflict with AC3’s image-preservation guarantee unless it remains represented or triggers the loss warning.",
+          "suggestion": "Preserve these images without rendering them if necessary, or explicitly detect them as unsupported and retain the warning/diff protection. Add round-trip tests for image title and alt text escaping, as well as unsupported image sources.  The approach is sound and appropriately scoped, but its preservation guarantees need these specific safeguards before implementation is considered complete. In particular, idempotence must accompany original-input comparisons because a serializer can become stable after its first destructive conversion.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-12T07:53:42.917680+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] **Findings**\n\n- **dependency / medium** — The plan pins new extensions at \"3.32.0 family\" but doesn't confirm the existing TipTap core/starter-kit and tiptap-markdown versions in `client/package.json` are compatible. tiptap-markdown 0.9's table serializer was written against a specific table extension schema; if the app's core is older than 3.32.0 you get a version matrix problem. Verify the existing pins first; if core must be upgraded, that's a change to an \"Affected Boundaries: none beyond editor\" claim and should be listed.\n\n- **approach / medium** — The `align` plan covers serialization but the parse side is under-specified: markdown-it emits `style=\"text-align:...\"` on `th`/`td`, so the custom Table nodes need `parseHTML` rules that read that style into the `align` attribute. If only the serializer is replaced, alignment round-trips once and then is lost on reload. Spell out the parse rule explicitly (and a test that alignment survives a *second* round trip, not just one).\n\n- **edge-case / medium** — Fence-length fix: the *closing* fence must also be longer than the longest internal backtick run, and the serializer must count backtick runs in the *rendered content*, including runs formed across the info-string/content boundary. Also decide behavior for an empty code block (a single ``` fence is fine) and a block whose content is only backticks. The AC4 test should include the exact 4-around-3 fixture from the probe plus a pathological all-backticks block.\n\n- **edge-case / low** — Task item serialization: GFM accepts `- [x]` and `- [X]`; assert the serializer always emits lowercase and that a checkbox *toggle* in the editor serializes correctly (the probe only covered untouched round trip). Also TaskItem's nested content (children, not just paragraph) must serialize as nested task items per AC2.\n\n- **edge-case / low** — Mermaid node view: define what happens on rapid typing (debounce dispose of stale render), and confirm the error path (AC5) doesn' […truncated]\n\n[openai] 1. **Category:** edge-case · **Severity:** high  \n   **Finding:** Removing table loss warnings wholesale assumes every editable table remains representable as GFM. Rich cell content, merged cells, or multiple paragraphs can exceed pipe-table capabilities. The proposed replacement serializer could silently flatten that content, while the existing serializer would fall back to HTML.  \n   **Suggestion:** Define the supported cell structure and restrict table commands accordingly, or retain a lossless HTML fallback. Remove warnings only for representable tables, and test rich cell content plus escaped pipes and inline code.\n\n2. **Category:** approach · **Severity:** medium  \n   **Finding:** A longer fence prevents nested-fence corruption, but does not establish preservation of the complete info string. A code-block node that stores only `language` can lose additional text such as `python title=\"example.py\"`, violating AC4 even when serialization is idempotent afterward.  \n   **Suggestion:** Explicitly preserve the full info string during parsing and serialization, deriving the language separately for rendering. Test additional info text, embedded backtick runs, and empty code blocks against the original input.\n\n3. **Category:** risk · **Severity:** medium  \n   **Finding:** “Image (no base64)” leaves an input class that can still disappear on save. Existing Markdown containing a data-URI image would conflict with AC3’s image-preservation guarantee unless it remains represented or triggers the loss warning.  \n   **Suggestion:** Preserve these images without rendering them if necessary, or explicitly detect them as unsupported and retain the warning/diff protection. Add round-trip tests for image title and alt text escaping, as well as unsupported image sources.\n\nThe approach is sound and appropriately scoped, but its preservation guarantees need these specific safeguards before implementation is considered complete. In particular, idempotence must accompany o […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 83,
+          "finding": "serializeTable renders a cell only when textContent.trim() is non-empty; an image-only cell (| ![x](a.png) |) or hard-break-only cell is written empty, silently dropping the image.",
+          "suggestion": "Test content.childCount > 0 instead; add round-trip case with an image in a cell.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 54,
+          "finding": "isGfmRepresentable ignores a hardBreak inside a cell paragraph (renderInline emits a newline that splits the row) and a non-paragraph single child (list).",
+          "suggestion": "Require firstChild paragraph and no hardBreak descendants, else HTML fallback; add tests.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 87,
+          "finding": "Pipe escaping uses a negative lookbehind for a single backslash; when the text already holds a literal backslash before a pipe (escaped as two backslashes) the pipe stays unescaped and the cell splits.",
+          "suggestion": "Escape when the preceding backslash run length is even; add a test with a backslash before a pipe.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 207,
+          "finding": "Image.configure({allowBase64:false}) makes TipTap's parseHTML drop img[src^=data:], so a data: URI image vanishes on save.",
+          "suggestion": "Set allowBase64 true; add a test.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 207,
+          "finding": "Image src not validated; opening a file fetches any remote image (tracking beacon), inconsistent with the link allowlist.",
+          "suggestion": "Document the decision or add an image-src allowlist.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 22,
+          "finding": "lib imports from components (MermaidCodeBlockView) while components import back from lib: reversed dependency direction.",
+          "suggestion": "Inject the node view as a parameter or move the nodes file next to the components.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/components/external/SmartViewer/MermaidCodeBlockView.tsx",
+          "line": 23,
+          "finding": "Debounce timer + setState run for every code block on every keystroke, not only mermaid.",
+          "suggestion": "Only mount the debounce in a child component for mermaid blocks.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 77,
+          "finding": "state.inTable never reset if renderInline throws; loose task list silently rewritten tight without a test.",
+          "suggestion": "try/finally; add a test documenting loose->tight.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 171,
+          "finding": "setColumnAlign position math is correct; column lookup by index is wrong for colspan/rowspan tables (HTML fallback).",
+          "suggestion": "Optional: disable align buttons for non-GFM tables.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/markdownEditorElements.test.ts",
+          "line": 598,
+          "finding": "Coverage gaps: image-only cell, hardBreak in cell, backslash before pipe, data: image, loose task list, debounce proof.",
+          "suggestion": "Add the cases.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-12T07:38:20.999422+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "client/src/lib/markdownEditorNodes.ts:207",
+          "line": null,
+          "finding": "Claim under doubt: Images and tables round-trip losslessly — Image.configure allowBase64:false drops a data: URI image on load; no lossy warning.",
+          "suggestion": "allowBase64 true plus a data-URI round-trip test.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "client/src/lib/markdownEditorNodes.ts:82-86",
+          "line": null,
+          "finding": "Claim under doubt: A GFM table cell serializes everything it contains — serializeTable writes a cell only when textContent.trim() is non-empty; an image-only or hard-break-only cell is emptied.",
+          "suggestion": "Use childCount for emptiness; test image-only and badge-link cells.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/lib/markdownEditorNodes.ts:87",
+          "line": null,
+          "finding": "Claim under doubt: Pipes in table cells are always escaped correctly — The lookbehind skips a pipe preceded by a backslash, but a literal backslash is itself escaped to two backslashes so the pipe stays bare and splits the cell.",
+          "suggestion": "Escape every pipe in cell output unconditionally; add tests for a backslash next to a pipe and a pipe in a code span.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "round-trip stability",
+          "file": "client/src/lib/markdownEditorNodes.ts:122-138",
+          "line": null,
+          "finding": "Claim under doubt: Forcing tight lists for task lists is harmless — Tight forcing may collapse multi-paragraph task items; a mixed task/plain list may drop or rewrite an item.",
+          "suggestion": "Round-trip tests for multi-paragraph item, nested bullet, code block in item, loose list, mixed list.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "reversibility",
+          "file": "client/src/lib/markdownEditorNodes.ts:71-76",
+          "line": null,
+          "finding": "Claim under doubt: Non-GFM tables fall back to lossless HTML — outerHTML is written with raw newlines: inside a list/quote later lines lose the container prefix, and a blank line ends the HTML block early.",
+          "suggestion": "Collapse newlines to character references; tests for table in list/quote and code block in a cell.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/lib/markdownEditorNodes.ts:207",
+          "line": null,
+          "finding": "Claim under doubt: Inline images serialize as valid Markdown — A src with a space is written unwrapped and is invalid on re-read; markdown-it percent-encodes destinations.",
+          "suggestion": "Wrap the destination in angle brackets when it has whitespace or parens; document percent-encoding.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/lib/markdownEditorNodes.ts:110-117",
+          "line": null,
+          "finding": "Claim under doubt: A code block round-trips and the info string is safe — Only the first word of the info string survives; a tilde fence with a backtick in the language becomes an invalid backtick fence.",
+          "suggestion": "Lossy-warning rule for extra info-string words; tilde fence when the language contains a backtick.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency",
+          "file": "MermaidCodeBlockView.tsx and MermaidRenderer.tsx:101",
+          "line": null,
+          "finding": "Claim under doubt: The mermaid preview is isolated and leak-free — No script path found; render id collides for identical blocks mounted in the same millisecond; orphan error svgs; eager rendering of many diagrams.",
+          "suggestion": "Unique render id; lazy rendering optional.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "client/src/lib/markdownEditorNodes.ts:77-100",
+          "line": null,
+          "finding": "Claim under doubt: CRLF, size and mixed-EOL are handled — state.inTable is not reset when renderInline throws.",
+          "suggestion": "try/finally.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-12T07:39:37.834327+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/lib/markdownTiptap.ts` (new `fence-info` rule, `test: (t) => /^[ \\t](?:```|~~~)[ \\t]\\S+[ \\t]+\\S/m`) The other `LOSSY_RULES` (footnote, ref-link) run against `stripCode(t)` so that matches inside fenced/indented code don't count. The new fence-attribute rule tests the raw text. Consequence: a document whose content contains a line like `` ```js highlight `` inside a longer f […truncated]",
+          "line": null,
+          "finding": "run the test against `stripCode(t)` like the sibling rules.  2. Category: edge-case — Severity: medium",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/lib/markdownEditorNodes.ts` (`setColumnAlign`, `index !== column` check) Column identity is computed as the cell index within the row. For a table with `colspan`/`rowspan` (parseable from HTML tables — `isGfmRepresentable` explicitly handles spans by falling back to HTML, so spanned tables exist in the doc), the caret's `$from.index(cellDepth-1)` is the cell index, not the  […truncated]",
+          "line": null,
+          "finding": "compute the visual column by summing `colspan` of preceding cells, and skip realignment of cells whose span crosses the column rather than starting at it.  3. Category: test — Severity: low",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/e2e/flows/md-editor-elements.spec.ts` (`expect(saved.endsWith(after.replace(/^\\n/, \"\\n\")))`) The `replace` is an identity no-op — dead code that suggests an intended leading-newline strip that never happened. Harmless today (the serializer emits the same leading `\\n`), but the assertion silently documents nothing.",
+          "line": null,
+          "finding": "drop the `replace` or make it `replace(/^\\n/, \"\")` with a matching expectation.  4. Category: edge-case — Severity: low",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/lib/markdownEditorNodes.ts` (`isGfmRepresentable`) The check validates per-cell block structure but not row width consistency: a body row with more cells than the header row (constructible via a colspans table collapsing? no — actually only via malformed parsed HTML or `insertTable`/column ops in weird states) would still serialize as pipes and lose the extra cells on repar […truncated]",
+          "line": null,
+          "finding": "also require every row's cell count to equal the header's (ignoring colspan arithmetic) before choosing the GFM branch.  5. Category: test — Severity: low",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/lib/markdownEditorElements.test.ts` (`\"a literal backslash before a pipe...\"`) The assertion computes `delimiters` from a regex on the output only; it never verifies the reparse actually yields 3 cells with the intended content — a serializer that emitted the wrong escape count could still pass depending on the regex. The idempotence check partially compensates, but the sem […truncated]",
+          "line": null,
+          "finding": "additionally assert via a second `makeEditor(once)` that the third line parses to a table whose first cell text is `C:\\\\|`.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "bug",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 148,
+          "finding": "ensureNewLine()` removes a trailing blank line from fenced code. For example, a block containing `x` followed by a blank line parses to `x\\n`; this serializer places the closing fence immediately after that newline, so reparsing produces `x`. Repeated round trips can remove additional trailing blank lines.",
+          "suggestion": "Write an unconditional newline between the code content and closing fence. Add round-trip and idempotence tests for code ending in one or multiple newlines.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 141,
+          "finding": "AC4 requires preserving the info string, but serialization retains only `node.attrs.language`. An input such as `` ```js title=example `` loses `title=example`; the new warning acknowledges the loss but does not satisfy the preservation requirement.",
+          "suggestion": "Capture the complete fence info string during parsing and serialize it from a dedicated attribute. Test preservation through both loading and code editing.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/lib/markdownEditorNodes.ts",
+          "line": 194,
+          "finding": "Image titles escape quotes but leave literal backslashes unescaped. A valid title containing a backslash before Markdown punctuation changes on reparse: two source backslashes before `` become one in the parsed title, then serialize as one, which Markdown consumes on the next load. This violates AC3 and serializer idempotence.",
+          "suggestion": "Escape backslashes before escaping double quotes in titles. Add a round-trip test with literal backslashes before punctuation and quotes.  Ship-with-fixes: the change addresses the main missing editor elements, but code-block and image serialization still damage valid content, and complete fence info preservation remains unimplemented.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-12T07:53:43.062886+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Category: bug — Severity: medium**\nFile: `client/src/lib/markdownTiptap.ts` (new `fence-info` rule, `test: (t) => /^[ \\t]*(?:```|~~~)[ \\t]*\\S+[ \\t]+\\S/m`)\nThe other `LOSSY_RULES` (footnote, ref-link) run against `stripCode(t)` so that matches inside fenced/indented code don't count. The new fence-attribute rule tests the raw text. Consequence: a document whose *content* contains a line like `` ```js highlight `` inside a longer fence (e.g. a markdown tutorial, which is exactly the nested-fence case this iterate cares about) produces a spurious \"code fence attributes\" lossy warning, and AC6's \"detected constructs\" net becomes noisy/false. Same class of bug the probe already documented for the old table rule.\nSuggestion: run the test against `stripCode(t)` like the sibling rules.\n\n**2. Category: edge-case — Severity: medium**\nFile: `client/src/lib/markdownEditorNodes.ts` (`setColumnAlign`, `index !== column` check)\nColumn identity is computed as the cell index within the row. For a table with `colspan`/`rowspan` (parseable from HTML tables — `isGfmRepresentable` explicitly handles spans by falling back to HTML, so spanned tables exist in the doc), the caret's `$from.index(cellDepth-1)` is the cell index, not the visual column, so the wrong cells get realigned (or a table whose header spans two columns realigns only half). Editing-created tables never have spans, so this only bites HTML-fallback tables, but those are exactly the ones where a wrong align attribute silently migrates into the serialized HTML.\nSuggestion: compute the visual column by summing `colspan` of preceding cells, and skip realignment of cells whose span crosses the column rather than starting at it.\n\n**3. Category: test — Severity: low**\nFile: `client/e2e/flows/md-editor-elements.spec.ts` (`expect(saved.endsWith(after.replace(/^\\n/, \"\\n\")))`)\nThe `replace` is an identity no-op — dead code that suggests an intended leading-newline strip that never happened. Harmless to […truncated]\n\n[openai] - Category: bug\n- Severity: high\n- File: client/src/lib/markdownEditorNodes.ts:148\n- Finding: `ensureNewLine()` removes a trailing blank line from fenced code. For example, a block containing `x` followed by a blank line parses to `x\\n`; this serializer places the closing fence immediately after that newline, so reparsing produces `x`. Repeated round trips can remove additional trailing blank lines.\n- Suggestion: Write an unconditional newline between the code content and closing fence. Add round-trip and idempotence tests for code ending in one or multiple newlines.\n\n- Category: spec\n- Severity: medium\n- File: client/src/lib/markdownEditorNodes.ts:141\n- Finding: AC4 requires preserving the info string, but serialization retains only `node.attrs.language`. An input such as `` ```js title=example `` loses `title=example`; the new warning acknowledges the loss but does not satisfy the preservation requirement.\n- Suggestion: Capture the complete fence info string during parsing and serialize it from a dedicated attribute. Test preservation through both loading and code editing.\n\n- Category: bug\n- Severity: medium\n- File: client/src/lib/markdownEditorNodes.ts:194\n- Finding: Image titles escape quotes but leave literal backslashes unescaped. A valid title containing a backslash before Markdown punctuation changes on reparse: two source backslashes before `*` become one in the parsed title, then serialize as one, which Markdown consumes on the next load. This violates AC3 and serializer idempotence.\n- Suggestion: Escape backslashes before escaping double quotes in titles. Add a round-trip test with literal backslashes before punctuation and quotes.\n\nShip-with-fixes: the change addresses the main missing editor elements, but code-block and image serialization still damage valid content, and complete fence info preservation remains unimplemented.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-12T07:37:36.301142+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-12T07:50:04.880610+00:00",
+      "disposition": "closed by reason_code unavailable",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "unavailable"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-12T07:50:04.880610+00:00",
+      "disposition": "closed by reason_code unavailable",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "unavailable"
+    }
+  }
+}

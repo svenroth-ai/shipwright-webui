@@ -4,6 +4,7 @@
 @import "./styles/motion.css";       /* motion tokens + reduced-motion floor + earned keyframes (A20) */
 @import "./styles/on-photo.css";     /* glass surfaces + .on-photo flip/reset (A03) */
 @import "./styles/type-scale.css";   /* 6-step type scale + PageHead/.mc-top chrome (A05) */
+@import "./styles/md-editor.css";    /* SmartViewer markdown editor elements: table / task list / mermaid (FR-01.35) */
 @import "./styles/mission-record.css"; /* Mission Record rail + artifact + instruments (A11) */
 @import "./styles/mission-sidebar.css"; /* Mission right info sidebar (M3) */
 @import "./styles/mission-agents.css"; /* Mission Agents bar + window (M4) */

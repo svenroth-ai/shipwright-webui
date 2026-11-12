@@ -1,0 +1,69 @@
+/* SmartViewer markdown EDITOR element styling
+ * (iterate-2026-11-12-smartviewer-editor-md-roundtrip, FR-01.35).
+ * Scoped to the TipTap surface (`.md-editor-surface`); the read-only preview is
+ * unaffected. Colours come from tokens so light/dark both work. */
+
+/* Tables: a real, bordered grid you can click into. The generic
+ * `.markdown-body table` rules already give borders + header tint. */
+.markdown-body.md-editor-surface table {
+  display: table;
+  width: 100%;
+  table-layout: auto;
+  overflow: visible;
+}
+.md-editor-surface th,
+.md-editor-surface td {
+  position: relative;
+  min-width: 3rem;
+  vertical-align: top;
+}
+.md-editor-surface th > p,
+.md-editor-surface td > p {
+  margin: 0;
+}
+.md-editor-surface .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--color-accent, #857568) 22%, transparent);
+}
+
+/* Task lists: checkbox + text on one line, no bullet. */
+.md-editor-surface ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.25rem;
+}
+.md-editor-surface ul[data-type="taskList"] > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.md-editor-surface ul[data-type="taskList"] > li > label {
+  flex: none;
+  margin-top: 0.2rem;
+}
+.md-editor-surface ul[data-type="taskList"] > li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Images keep their natural size but never overflow the surface. */
+.md-editor-surface img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Mermaid code block: code on top, live diagram framed underneath. */
+.md-editor-surface .md-codeblock > pre {
+  margin-bottom: 0;
+}
+.md-editor-surface .md-mermaid-preview {
+  margin: 0 0 14px;
+  padding: 8px;
+  overflow: auto;
+  border: 1px solid var(--color-border, #e0dbd4);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  background: var(--color-surface, #ffffff);
+}

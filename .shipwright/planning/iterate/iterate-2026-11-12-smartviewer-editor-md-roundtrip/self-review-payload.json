@@ -1,0 +1,8 @@
+{"items":[
+{"name":"AC met: table, task list, image, safe fence, mermaid preview, lossy list, per-element tests","verdict":"pass","note":"markdownEditorNodes.ts + MermaidCodeBlockView + toolbar/table bar; 30 round-trip tests + node-view tests + real-browser spec (falsified against old editor)"},
+{"name":"Tests cover happy and error path","verdict":"pass","note":"identity + idempotence per element, pipe-in-cell, HTML-table fallback, add row/col/align edits, 4/5-backtick fences, non-mermaid block has no preview"},
+{"name":"No scope creep","verdict":"pass","note":"footnote editing and ref-link syntax preservation stay out of scope and are documented"},
+{"name":"Type/lint clean","verdict":"pass","note":"tsc clean, oxlint no warnings in changed files, full client vitest 5094/5094"},
+{"name":"No security regression","verdict":"pass","note":"Link protocols unchanged; images disallow base64; mermaid securityLevel strict unchanged; raw HTML path unchanged"},
+{"name":"Reduced-motion / content visibility","verdict":"pass","note":"no animation added; preview is static content"},
+{"name":"Affected boundaries","verdict":"pass","note":"markdown<->ProseMirror boundary covered by round-trip suite; file save path unchanged"}]}

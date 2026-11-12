@@ -63,6 +63,10 @@ export function prefersDarkSurface(el: Element | null = null): boolean {
   }
 }
 
+// Distinct per call: two identical diagrams mounted in the same millisecond (the editor
+// shows every mermaid block at once) must not share the id mermaid.render uses for its temp node.
+let renderSeq = 0;
+
 function MermaidRendererImpl({ text, contentHash }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   // Wide diagrams (e.g. `flowchart LR` with many subgraphs) render at natural
@@ -98,7 +102,7 @@ function MermaidRendererImpl({ text, contentHash }: Props) {
     if (!loading) setLoading(true);
     if (error) setError(null);
 
-    const renderId = `mermaid-${hash}-${Date.now().toString(36)}`;
+    const renderId = `mermaid-${hash}-${Date.now().toString(36)}-${++renderSeq}`;
     void import("mermaid")
       .then(async (mod) => {
         if (disposed) return;

@@ -1,0 +1,82 @@
+{
+  "run_id": "iterate-2026-11-12-smartviewer-editor-md-roundtrip",
+  "date": "2026-11-12T07:47:40.017077Z",
+  "event_at": "2026-11-11T13:09:04.655282+00:00",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/smartviewer-editor-md-roundtrip",
+  "spec": ".shipwright/planning/iterate/2026-11-12-smartviewer-editor-md-roundtrip.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-12-smartviewer-editor-md-roundtrip",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "AC1 tables keep header, rows and alignment through the editor round trip",
+        "disposition": "tested",
+        "evidence": "markdownEditorElements.test.ts::every element round-trips unchanged (table, tableAlign, tableInline) PASSED"
+      },
+      {
+        "behavior": "AC1 tables GFM cannot express are kept as HTML, never flattened",
+        "disposition": "tested",
+        "evidence": "markdownEditorElements.test.ts::a table the GFM syntax cannot express is kept as HTML PASSED"
+      },
+      {
+        "behavior": "AC2 task lists, images and long/nested fences survive",
+        "disposition": "tested",
+        "evidence": "markdownEditorElements.test.ts::taskList/image/nestedFence + review findings PASSED"
+      },
+      {
+        "behavior": "AC3 every other element (lists, quote, link, code, hr, raw html) is identical and idempotent",
+        "disposition": "tested",
+        "evidence": "markdownEditorElements.test.ts::a document with ALL elements survives intact PASSED"
+      },
+      {
+        "behavior": "AC4 table editing (add row/col, align, insert) yields valid GFM",
+        "disposition": "tested",
+        "evidence": "markdownEditorElements.test.ts::tables: editing a table / insertTable PASSED"
+      },
+      {
+        "behavior": "AC5 mermaid block renders a live preview and the Markdown stays unchanged",
+        "disposition": "tested",
+        "evidence": "MermaidCodeBlockView.test.tsx + e2e/flows/md-editor-elements.spec.ts PASSED (falsified against old editor)"
+      },
+      {
+        "behavior": "AC6 lossy-construct warning no longer flags tables/task lists but flags fence attributes",
+        "disposition": "tested",
+        "evidence": "markdownTiptap.test.ts::fence-attributes + negative table assertion PASSED"
+      },
+      {
+        "behavior": "AC7 real browser: table renders as table, edit via table bar, saved PUT body is GFM",
+        "disposition": "tested",
+        "evidence": "e2e/flows/md-editor-elements.spec.ts PASSED (falsified against old editor)"
+      }
+    ],
+    "counts": {
+      "testable": 8,
+      "tested": 8,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 7,
+      "covered_acs": 7
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "cd client && npm run test:e2e:chromium -- --reporter=list,json e2e/flows/md-editor-elements.spec.ts",
+    "exit_code": 0,
+    "tests_run": 1,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\smartviewer-editor-md-roundtrip\\.shipwright\\runs\\iterate-2026-11-12-smartviewer-editor-md-roundtrip\\surface_verification.log",
+    "timestamp": "2026-11-12T07:43:51.370Z",
+    "attempts": 1
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": [
+    "touches_build"
+  ]
+}
