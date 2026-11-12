@@ -334,7 +334,7 @@
     {
       "path": "client/src/pages/TriagePage.tsx",
       "limit": 300,
-      "current": 266,
+      "current": 261,
       "state": "grandfathered",
       "adr": "iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile"
     },
