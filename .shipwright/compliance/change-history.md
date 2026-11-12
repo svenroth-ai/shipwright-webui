@@ -1,21 +1,21 @@
 # Commit Change Log
 
-Generated: 2026-11-11T12:35:28.815389+00:00
-Source-State: run=iterate-2026-11-11-triage-card-dialog-polish base=7cf80dfa3c60 release=v0.33.0
-Consistency-audit: last run 2026-09-29 (43 days earlier) — PASS
-Total commits: 1013
+Generated: 2026-11-12T07:47:40.192514+00:00
+Source-State: run=iterate-2026-11-12-smartviewer-editor-md-roundtrip base=d70179b02bc5 release=v0.33.1
+Consistency-audit: last run 2026-09-29 (44 days earlier) — PASS
+Total commits: 1015
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 398
+    "fix" : 399
     "feat" : 268
     "chore" : 169
     "docs" : 79
     "refactor" : 37
     "test" : 34
-    "other" : 13
+    "other" : 14
     "ci" : 8
     "perf" : 5
     "build" : 2
@@ -23,10 +23,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 398 commits
+### Fixes (fix) — 399 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-12 | smartviewer | markdown editor keeps tables, task lists, images and fences intact; renders mermaid (#596) | d70179b02bc5 |
 | 2026-11-11 | smartviewer | readable large Mermaid diagrams (#592) | 054d05965f8b |
 | 2026-11-10 | smartviewer | follow relative links between files in-pane, across folders (#591) | 57564ba05595 |
 | 2026-11-08 | codex-watcher | stop self-check reminder re-arming from its own echo (#583) (#584) | 6a60d504873e |
@@ -1038,10 +1039,11 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
-### Other (other) — 13 commits
+### Other (other) — 14 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-11 | — | Release v0.33.0 (#595) | 189de954ee3f |
 | 2026-11-11 | — | Release v0.32.1 (#593) | 4aea7f2279a6 |
 | 2026-11-10 | — | Release v0.32.0 (#590) | e9ad0aff64ac |
 | 2026-11-04 | — | Release v0.29.0 (#573) | ff8c56e43e14 |
@@ -1090,7 +1092,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 1013 |
+| Total commits | 1015 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 1013 |
+| Human-authored commits | 1015 |
 

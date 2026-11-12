@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-11-12
+
+### Added
+
+- SmartViewer markdown editor renders embedded Mermaid diagrams live below their code block without changing the Markdown.
+
+### Fixed
+
+- SmartViewer markdown editor no longer destroys tables, task lists, images or long code fences on save; tables are editable with a table toolbar.
+
 ## [0.33.0] - 2026-11-11
 
 ### Changed
