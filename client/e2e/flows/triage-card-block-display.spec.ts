@@ -37,7 +37,7 @@ test.afterEach(async ({ request }) => {
 });
 
 // @covers FR-01.38
-test("triage rows are block-level and stack flush inside their lane", async ({ page }) => {
+test("triage rows are block-level and stack as separate bars (6px apart) inside their lane", async ({ page }) => {
   await page.goto("/triage");
   const cards = page.locator('[data-testid="triage-open-items"] li[data-testid^="triage-item-trg-blk"]');
   await expect(cards).toHaveCount(4, { timeout: 35_000 });

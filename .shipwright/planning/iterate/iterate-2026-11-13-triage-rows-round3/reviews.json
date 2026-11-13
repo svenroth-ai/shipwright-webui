@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-13-triage-rows-round3",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T09:25:29.538741+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T09:29:43.920684+00:00",
+      "disposition": "small UI polish: plan, doubt and external reviews are not required below medium complexity",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Phone/narrow-row layout squeezes the title: meta cluster (nowrap, ~240px) sits beside the title in the base grid, leaving ~25-40px for the title at 375px. -> accepted-and-fixed: single-column base layout (meta under the title), two columns from 40rem, three columns only for wide hover rows; phone e2e added",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "28rem action zone is tight for the widest set (Start campaign + Promote + Snooze + Dismiss + pencil ~424px); a wrap would reflow the row on hover. -> accepted-and-fixed: zone widened to 29rem and the wide threshold raised to 68rem so the title keeps room",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "SeverityLegend omits Info (5). -> accepted-and-fixed: Info added to the key",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "CSS fence test only regex-checks the source; the no-reflow claim rests on the e2e. -> accepted: repo class-fence convention, e2e was run and asserts title and id bounding boxes are unchanged on hover",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-13T09:26:33.945607+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T09:29:43.920684+00:00",
+      "disposition": "small UI polish: plan, doubt and external reviews are not required below medium complexity",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T09:29:43.920684+00:00",
+      "disposition": "small UI polish: plan, doubt and external reviews are not required below medium complexity",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T09:25:46.927441+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T09:29:43.920684+00:00",
+      "disposition": "small UI polish: plan, doubt and external reviews are not required below medium complexity",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T09:29:43.920684+00:00",
+      "disposition": "small UI polish: plan, doubt and external reviews are not required below medium complexity",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

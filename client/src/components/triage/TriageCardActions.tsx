@@ -95,7 +95,7 @@ export function TriageCardActions({ projectId, item, a, snoozing, task }: Props)
               className={SECONDARY_BTN}
               data-testid={`triage-card-promote-${item.id}`}
             >
-              Promote to task
+              Promote
             </button>
             <TriageSnoozeMenu
               projectId={projectId}

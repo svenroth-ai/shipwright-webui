@@ -90,14 +90,26 @@ function mount(over: Partial<TriageItem> = {}, handlers: Partial<Record<"onOpen"
 
 // @covers FR-01.30
 describe("TriageItemRow — layout (iterate-2026-11-12-triage-lanes-rows)", () => {
-  it("puts severity and the id BEFORE the title, and wraps long titles inside the row", () => {
+  it("puts the title first, then a ROUND numbered severity right before the id, and wraps long titles inside the row", () => {
     mount();
     const sev = screen.getByTestId("triage-severity-medium");
     const id = screen.getByTestId(`triage-item-${item.id}-id`);
     const title = screen.getByTestId(`triage-item-${item.id}-title`);
+    expect(title.compareDocumentPosition(sev) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(sev.compareDocumentPosition(id) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(id.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(title.parentElement?.className).toContain("[overflow-wrap:anywhere]");
+    // medium = 3, shown as a number in a circle; the word is the tooltip / accessible name
+    expect(sev.textContent).toBe("3");
+    expect(sev.className).toContain("rounded-full");
+    expect(sev.getAttribute("aria-label")).toBe("Severity: Medium");
+  });
+
+  it("maps every severity to its number (critical 1 … info 5)", () => {
+    for (const [sev, n] of [["critical", "1"], ["high", "2"], ["low", "4"], ["info", "5"]] as const) {
+      const { unmount } = render(<ul><TriageItemRow projectId="proj-a" item={{ ...item, severity: sev }} onOpen={vi.fn()} onFixNow={vi.fn()} onNavigateToBoard={vi.fn()} /></ul>, { wrapper: wrap });
+      expect(screen.getByTestId(`triage-severity-${sev}`).textContent).toBe(n);
+      unmount();
+    }
   });
 
   it("shows no priority/domain pill, no coloured severity dot and no detail text on the row", () => {

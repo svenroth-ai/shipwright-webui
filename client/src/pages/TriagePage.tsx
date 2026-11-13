@@ -1,11 +1,10 @@
 /*
  * TriagePage — one aggregated list of `<project>/.shipwright/triage.jsonl`
  * items (iterate-2026-11-08-triage-page-redesign, FR-01.30). Board-style
- * header toolbar (project filter, filter funnel, group, sort), three summary
- * tiles, active-filter chips, collapsible dark lanes of rows (project lanes
- * can be put in the user's own order) and a read-only Parked lane. The whole view (filters, sort, grouping, which
- * groups are folded) is saved in the browser; only the project choice is
- * shared with the Board.
+ * header toolbar (project filter, filter funnel, group, sort), summary pills,
+ * active-filter chips, collapsible dark lanes of rows (project lanes can be put
+ * in the user's own order) and a read-only Parked lane. The whole view is saved
+ * in the browser; only the project choice is shared with the Board.
  *
  * Every entry is a `{projectId, item}` pair — triage ids can repeat across
  * projects — and every action is bound to the entry's own project.
@@ -161,7 +160,6 @@ export default function TriagePage() {
             </p>
           ) : (
             <>
-              <TriageProjectStatus statuses={scopedStatuses} nameOf={nameOf} named={several} />
               <TriageTiles
                 open={model.openAll.length}
                 attention={model.attention}
@@ -170,7 +168,9 @@ export default function TriagePage() {
                 selected={tile}
                 showParked={view.filters.showParked}
                 onSelect={onTile}
-              />
+              >
+                <TriageProjectStatus statuses={scopedStatuses} nameOf={nameOf} named={several} />
+              </TriageTiles>
               {searchVisible && <TriageSearch value={search} onChange={setSearch} />}
               <TriageActiveFilters
                 view={view}

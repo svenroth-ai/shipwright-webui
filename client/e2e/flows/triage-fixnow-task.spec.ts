@@ -90,7 +90,9 @@ test.describe("Triage — Fix-now remembers its task, Dismiss asks for a reason"
     const box = page.getByTestId("triage-task-box-trg-f1000001");
     await expect(box).toBeVisible({ timeout: 15_000 });
     await expect(box).toContainText("In progress");
-    await expect(box).toContainText("Fix for Fix target");
+    // the task title is the tooltip, not repeated inside the box
+    await expect(box).toHaveAttribute("title", /Fix for Fix target/);
+    await expect(box).not.toContainText("Fix for Fix target");
     await expect(page.getByTestId("triage-task-state-trg-f1000001")).toHaveText(/draft/i);
     await expect(page.getByTestId("triage-task-open-trg-f1000001")).toHaveAttribute("href", /\/tasks\/.+/);
     await expect(page.getByTestId("triage-card-fix-now-trg-f1000001")).toHaveCount(0);

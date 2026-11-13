@@ -96,13 +96,13 @@ describe("PendingDeliveryBadge", () => {
 });
 
 // @covers FR-01.30
-describe("TriageItemRow pending-delivery (AC3)", () => {
-  it("shows the badge for an outbox-only item", () => {
+describe("TriageItemRow pending-delivery (AC3, row badge removed in iterate-2026-11-13-triage-rows-round3)", () => {
+  it("shows NO badge on the row, not even for an outbox-only item (it lives in the detail dialog)", () => {
     render(
       <ul><TriageItemRow item={{ ...baseItem, pendingDelivery: true }} {...ROW_PROPS} /></ul>,
       { wrapper: makeWrapper() },
     );
-    expect(screen.getByTestId("triage-pending-delivery")).toBeInTheDocument();
+    expect(screen.queryByTestId("triage-pending-delivery")).toBeNull();
   });
 
   it("shows NO badge for a tracked item (false) nor for a legacy un-enriched item (absent)", () => {

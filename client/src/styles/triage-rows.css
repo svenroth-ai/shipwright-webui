@@ -1,16 +1,18 @@
 /*
- * triage-rows.css — the hover action overlay of a Triage row
- * (iterate-2026-11-12-triage-lanes-rows). When the row itself is wide (>= 62rem,
- * a container query on the row, not the viewport) and the primary input can hover
- * (a touch laptop with a trackpad can), the buttons are hidden and appear over the row's
- * right edge on hover / keyboard focus / while one of their popovers is open;
- * the title then gets matching right padding so the overlay covers none of it.
+ * triage-rows.css — layout of a Triage row
+ * (iterate-2026-11-12-triage-lanes-rows, reworked by
+ * iterate-2026-11-13-triage-rows-round3). Three cells: the title (main), the
+ * action buttons and the meta cluster (severity number, id, age). When the
+ * row itself is wide (>= 68rem, a container query on the row, not the
+ * viewport) and the primary input can hover, the buttons get a FIXED empty
+ * zone between title and meta and only become visible on hover / keyboard
+ * focus / while one of their popovers is open — the title never reflows.
  * Everywhere else (touch, phone, narrow rows) the buttons are a normal block
  * under the title and always visible. Plain CSS (not utilities) so the hidden /
  * shown states cannot be reordered by the utility sorter.
  */
 :root {
-  /* One solid lane colour shared by the lane, the banner and the hover strip. */
+  /* One solid lane colour shared by the lane, the status chip and the summary pills. */
   --triage-lane-solid: rgb(34, 30, 24);
 }
 
@@ -18,45 +20,86 @@
   container: triage-row / inline-size;
 }
 
+/* Phone / very narrow row: one column — title, then the meta cluster, then the buttons. */
+.triage-row-in {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "main"
+    "meta"
+    "actions";
+  column-gap: 0.875rem;
+  row-gap: 0.625rem;
+  align-items: center;
+  padding: 0.75rem 1.5rem 0.75rem 1rem;
+}
+
+.triage-row-main {
+  grid-area: main;
+}
+
+.triage-row-meta {
+  grid-area: meta;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+/* a little more air between the severity number and the id */
+.triage-row-meta > :first-child {
+  margin-right: 0.625rem;
+}
+
+.triage-row-actions,
+.triage-row-note {
+  grid-area: actions;
+}
+
 .triage-row-actions {
   display: flex;
   justify-content: flex-start;
 }
 
-@media (hover: hover) {
-  .triage-row {
-    min-height: 3.75rem; /* the centred strip (about 44px) never spills into the next row */
+/* the in-progress task box and an error line span the whole row */
+.triage-row-wide {
+  grid-column: 1 / -1;
+}
+
+/* Room for the meta cluster beside the title (touch tablets, narrow windows). */
+@container triage-row (min-width: 40rem) {
+  .triage-row-in {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "main meta"
+      "actions actions";
   }
-  @container triage-row (min-width: 62rem) {
+  .triage-row-meta {
+    justify-content: flex-end;
+  }
+}
+
+@media (hover: hover) {
+  @container triage-row (min-width: 68rem) {
+    .triage-row-in {
+      grid-template-columns: minmax(0, 1fr) 29rem 16.5rem; /* 29rem = widest button set (Start campaign + Promote + Snooze + Dismiss + pencil, about 26.5rem) plus margin */
+      grid-template-areas: "main actions meta";
+      min-height: 3.75rem;
+      padding-block: 0.6875rem;
+    }
     .triage-row-actions {
-      position: absolute;
-      z-index: 1;
-      right: 0.75rem;
-      top: 50%;
-      transform: translateY(-50%);
-      padding: 0.375rem;
-      border-radius: 0.5rem;
-      background: color-mix(in srgb, white 7%, var(--triage-lane-solid));
-      box-shadow: 0 6px 18px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.15);
+      justify-content: flex-end;
       visibility: hidden;
+    }
+    .triage-row-note {
+      text-align: right;
     }
     .triage-row:hover .triage-row-actions,
     .triage-row:focus-within .triage-row-actions,
     /* A Radix popover is portaled out of the row: keep the strip (and so its trigger) while it is open. */
     .triage-row-actions:has([data-state="open"]) {
       visibility: visible;
-    }
-    /* Make room for the overlay: the title re-wraps instead of being covered. */
-    .triage-row:hover .triage-row-title,
-    .triage-row:focus-within .triage-row-title,
-    .triage-row:has([data-state="open"]) .triage-row-title {
-      padding-right: 32rem; /* widest button set (Start campaign + Snooze + Dismiss + pencil) */
-    }
-    /* The timestamp sits under the overlay while it is shown. */
-    .triage-row:hover .triage-row-ts,
-    .triage-row:focus-within .triage-row-ts,
-    .triage-row:has([data-state="open"]) .triage-row-ts {
-      visibility: hidden;
     }
   }
 }

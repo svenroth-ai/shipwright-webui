@@ -163,6 +163,20 @@ describe("TriagePage", () => {
     expect(screen.getByTestId("triage-tile-parked")).toHaveTextContent("1");
   });
 
+  it("lines the pills, the behind-origin chip and the plain-text severity legend up in ONE summary row", async () => {
+    setItems([mockItem("trg-aaaa1111")], { behind: 2 });
+    renderPage();
+    const summary = await screen.findByTestId("triage-summary");
+    expect(summary).toContainElement(screen.getByTestId("triage-tile-open"));
+    const chip = screen.getByTestId("triage-stale-banner-proj-a");
+    expect(summary).toContainElement(chip);
+    // a notice, not a filter: not a button, and square-ish where the pills are fully round
+    expect(chip.tagName).not.toBe("BUTTON");
+    expect(chip.className).not.toContain("rounded-full");
+    expect(screen.getByTestId("triage-tile-open").className).toContain("rounded-full");
+    expect(summary).toContainElement(screen.getByTestId("triage-severity-legend"));
+  });
+
   it("hides the empty state when there are zero open items but a dateless park exists", async () => {
     setItems([mockItem("trg-parked01", "snoozed")]);
     renderPage();

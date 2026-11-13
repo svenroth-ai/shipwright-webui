@@ -153,7 +153,7 @@ test.describe("Mobile Triage / detail panel & spacing", () => {
     });
 
     // @covers FR-01.38
-    test("phone (<768px): lanes sit 24px apart and rows are flush inside a lane", async ({ page }) => {
+    test("phone (<768px): lanes sit 24px apart and rows are separate bars 6px apart inside a lane", async ({ page }) => {
       await page.setViewportSize(PHONE_VIEWPORT);
       await page.goto("/triage");
       const section = page.getByTestId(`triage-group-project:${project.projectId}`);
@@ -163,13 +163,13 @@ test.describe("Mobile Triage / detail panel & spacing", () => {
         .getByTestId("triage-open-items")
         .evaluate((el) => parseFloat(getComputedStyle(el).rowGap));
       expect(gap).toBeCloseTo(24, 0);
-      // Rows are a divided list inside the lane: no gap between them.
+      // Rows are separate bars inside the lane: 6px between them (gap-1.5).
       const rows = section.locator("li");
       const firstBox = await rows.nth(0).boundingBox();
       const secondBox = await rows.nth(1).boundingBox();
       expect(firstBox).not.toBeNull();
       expect(secondBox).not.toBeNull();
-      expect(secondBox!.y - (firstBox!.y + firstBox!.height)).toBeCloseTo(0, 0);
+      expect(secondBox!.y - (firstBox!.y + firstBox!.height)).toBeCloseTo(6, 0);
     });
 
     // @covers FR-01.38
