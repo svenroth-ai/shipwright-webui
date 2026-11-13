@@ -46,11 +46,11 @@ describe("parseCatFileBatch", () => {
 describe("readAssembledEventLogAtRef (fake git)", () => {
   const listing = [
     `100644 blob ${"1".repeat(40)}\tshipwright_events.jsonl`,
-    `100644 blob ${"2".repeat(40)}\tshipwright_events.d/iterate-b--0a1b2c3d--11111111.jsonl`,
-    `120000 blob ${"3".repeat(40)}\tshipwright_events.d/link--0a1b2c3d--11111111.jsonl`,
-    `100644 blob ${"4".repeat(40)}\tshipwright_events.d/nested/x--0a1b2c3d--11111111.jsonl`,
-    `100644 blob ${"5".repeat(40)}\tshipwright_events.archive/fold-aaaaaaaaaaaa.jsonl`,
-    `100644 blob ${"6".repeat(40)}\tshipwright_events.d/.keep`,
+    `100644 blob ${"2".repeat(40)}\t.shipwright/events/drops/iterate-b--0a1b2c3d--11111111.jsonl`,
+    `120000 blob ${"3".repeat(40)}\t.shipwright/events/drops/link--0a1b2c3d--11111111.jsonl`,
+    `100644 blob ${"4".repeat(40)}\t.shipwright/events/drops/nested/x--0a1b2c3d--11111111.jsonl`,
+    `100644 blob ${"5".repeat(40)}\t.shipwright/events/archive/fold-aaaaaaaaaaaa.jsonl`,
+    `100644 blob ${"6".repeat(40)}\t.shipwright/events/drops/.keep`,
   ].join("\0") + "\0";
   const contents = new Map<string, string>([
     ["1".repeat(40), `${wc("iterate-a")}\n`],
@@ -72,8 +72,8 @@ describe("readAssembledEventLogAtRef (fake git)", () => {
     expect(asked).toEqual([["1".repeat(40), "5".repeat(40), "2".repeat(40)]]);
     expect(log?.files.map((f) => f.path)).toEqual([
       "shipwright_events.jsonl",
-      "shipwright_events.archive/fold-aaaaaaaaaaaa.jsonl",
-      "shipwright_events.d/iterate-b--0a1b2c3d--11111111.jsonl",
+      ".shipwright/events/archive/fold-aaaaaaaaaaaa.jsonl",
+      ".shipwright/events/drops/iterate-b--0a1b2c3d--11111111.jsonl",
     ]);
   });
 
@@ -114,12 +114,12 @@ describe.runIf(hasGit())("real git repository", () => {
     g("config", "user.email", "t@example.invalid");
     g("config", "user.name", "t");
     g("config", "core.autocrlf", "false");
-    mkdirSync(path.join(repo, "shipwright_events.d"));
-    mkdirSync(path.join(repo, "shipwright_events.archive"));
+    mkdirSync(path.join(repo, ".shipwright/events/drops"), { recursive: true });
+    mkdirSync(path.join(repo, ".shipwright/events/archive"), { recursive: true });
     writeFileSync(path.join(repo, "shipwright_events.jsonl"), `${wc("iterate-legacy")}\n`);
-    writeFileSync(path.join(repo, "shipwright_events.d", "iterate-drop--0a1b2c3d--11111111.jsonl"),
+    writeFileSync(path.join(repo, ".shipwright/events/drops", "iterate-drop--0a1b2c3d--11111111.jsonl"),
       `${wc("iterate-drop", { summary: "Grüße — ✓ multi-byte" })}\n`);
-    writeFileSync(path.join(repo, "shipwright_events.archive", "fold-aaaaaaaaaaaa.jsonl"), `${wc("iterate-archived")}\n`);
+    writeFileSync(path.join(repo, ".shipwright/events/archive", "fold-aaaaaaaaaaaa.jsonl"), `${wc("iterate-archived")}\n`);
     g("add", "-A");
     g("commit", "-q", "-m", "events");
     const git: GitRunner = (args, cwd) => execFileSync("git", args, { cwd, encoding: "utf-8" });

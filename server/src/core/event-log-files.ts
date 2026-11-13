@@ -1,9 +1,9 @@
 /*
  * event-log-files.ts — the working-tree loader for `event-log-assemble.ts`.
  *
- * Lists the legacy `shipwright_events.jsonl`, then `shipwright_events.archive/*.jsonl`
- * and `shipwright_events.d/*.jsonl` (each by name; `shipwright_events.quarantine/`
- * is never read), reads each file with one bounded descriptor and hands them to
+ * Lists the legacy `shipwright_events.jsonl`, then `.shipwright/events/archive/*.jsonl`
+ * and `.shipwright/events/drops/*.jsonl` (each by name; `.shipwright/events/quarantine/`
+ * is never read; the pre-move root folders are read only while the new folder is absent), reads each file with one bounded descriptor and hands them to
  * the pure assembler. Same rules as Python `events_log.event_files`: regular files
  * only (no symlinks, no directories), `*.jsonl` names only (the writer's temp
  * files end in `.tmp`; a dot name is read, as Python's glob does),
@@ -24,6 +24,8 @@ import {
   dropKey,
   DROPS_DIR,
   EVENT_FILE,
+  LEGACY_ARCHIVE_DIR,
+  LEGACY_DROPS_DIR,
   type AssembledEventLog,
   type EventFileKind,
   type EventSource,
@@ -46,34 +48,41 @@ interface Listed {
  * an I/O error) comes back as `failed`, so the caller reports it instead of reading it
  * as "no files" — an unlistable drops folder must never let a run read as absent.
  */
-function listFolder(projectRoot: string, dir: string, kind: EventFileKind): { files: Listed[]; failed: boolean } {
+function listFolder(projectRoot: string, dir: string, kind: EventFileKind): { files: Listed[]; failed: boolean; dir: string; absent?: boolean } {
   const guard = pathGuard(projectRoot, dir);
-  if (!guard.ok) return { files: [], failed: false };
+  if (!guard.ok) return { files: [], failed: false, dir };
   try {
-    if (lstatSync(guard.absolute).isSymbolicLink()) return { files: [], failed: false };
+    if (lstatSync(guard.absolute).isSymbolicLink()) return { files: [], failed: false, dir };
     const files = readdirSync(guard.absolute, { withFileTypes: true })
       .filter((d) => d.isFile() && d.name.endsWith(".jsonl"))
       .map((d) => d.name)
       .sort()
       .map((name) => ({ rel: `${dir}/${name}`, absolute: path.join(guard.absolute, name), kind }));
-    return { files, failed: false };
+    return { files, failed: false, dir };
   } catch (err) {
     const code = (err as NodeJS.ErrnoException | null)?.code;
     // absent folder (the legacy layout) or a plain file in its place: nothing to read
-    return { files: [], failed: code !== "ENOENT" && code !== "ENOTDIR" };
+    const absent = code === "ENOENT" || code === "ENOTDIR";
+    return { files: [], failed: !absent, dir, absent };
   }
+}
+
+/** The new folder; the pre-move root folder only when the new one does not exist at all. */
+function listWithFallback(projectRoot: string, dir: string, legacyDir: string, kind: EventFileKind) {
+  const current = listFolder(projectRoot, dir, kind);
+  return current.absent ? listFolder(projectRoot, legacyDir, kind) : current;
 }
 
 /** Legacy (when present), then archive, then drops — the assembler's source order. */
 function listEventFiles(projectRoot: string): { legacy: Listed | null; extra: Listed[]; failedDirs: Listed[] } {
   const guard = pathGuard(projectRoot, EVENT_FILE);
-  const dropList = listFolder(projectRoot, DROPS_DIR, "drop"); // drops BEFORE the archive (fold race)
-  const archiveList = listFolder(projectRoot, ARCHIVE_DIR, "archive");
+  const dropList = listWithFallback(projectRoot, DROPS_DIR, LEGACY_DROPS_DIR, "drop"); // drops BEFORE the archive (fold race)
+  const archiveList = listWithFallback(projectRoot, ARCHIVE_DIR, LEGACY_ARCHIVE_DIR, "archive");
   const drops = dropList.files;
   const archive = archiveList.files;
   const failedDirs: Listed[] = [];
-  if (archiveList.failed) failedDirs.push({ rel: ARCHIVE_DIR, absolute: path.join(projectRoot, ARCHIVE_DIR), kind: "archive" });
-  if (dropList.failed) failedDirs.push({ rel: DROPS_DIR, absolute: path.join(projectRoot, DROPS_DIR), kind: "drop" });
+  if (archiveList.failed) failedDirs.push({ rel: archiveList.dir, absolute: path.join(projectRoot, archiveList.dir), kind: "archive" });
+  if (dropList.failed) failedDirs.push({ rel: dropList.dir, absolute: path.join(projectRoot, dropList.dir), kind: "drop" });
   let legacy: Listed | null = null;
   if (guard.ok) {
     try {
@@ -124,7 +133,7 @@ export function readAssembledEventLog(projectRoot: string): LoadedEventLog | nul
     // A file lost to a fold keeps its `unreadable` row, so its run's absence gate still fails closed.
     for (const rel of lost) {
       if (!assembled.files.some((s) => s.path === rel)) {
-        const drop = rel.startsWith(`${DROPS_DIR}/`);
+        const drop = rel.startsWith(`${DROPS_DIR}/`) || rel.startsWith(`${LEGACY_DROPS_DIR}/`);
         assembled.files.push({ path: rel, kind: drop ? "drop" : "archive",
           key: drop ? dropKey(path.posix.basename(rel)) : null, status: "unreadable", records: 0, fragments: 0 });
       }
@@ -167,6 +176,8 @@ export function eventLogRevPaths(projectRoot: string): string[] {
     path.join(projectRoot, EVENT_FILE),
     path.join(projectRoot, DROPS_DIR),
     path.join(projectRoot, ARCHIVE_DIR),
+    path.join(projectRoot, LEGACY_DROPS_DIR),
+    path.join(projectRoot, LEGACY_ARCHIVE_DIR),
     ...extra.map((f) => f.absolute),
   ];
 }

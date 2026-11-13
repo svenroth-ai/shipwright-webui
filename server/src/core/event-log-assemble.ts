@@ -4,7 +4,7 @@
  * TypeScript twin of the Shipwright reader `shared/scripts/lib/events_read.py`
  * (campaign `events-drop-files`, issue 978, units S1 + S5b). The plugin is moving
  * from one shared `shipwright_events.jsonl` to one file per run under
- * `shipwright_events.d/`, folded later into `shipwright_events.archive/`. Every
+ * `.shipwright/events/drops/`, folded later into `.shipwright/events/archive/`. Every
  * WebUI reader goes through this module so they cannot disagree:
  *
  *   1. the legacy file in FILE order (its raw lines, untouched), then
@@ -27,8 +27,12 @@
 import { splitRecords } from "./jsonl-records.js";
 
 export const EVENT_FILE = "shipwright_events.jsonl";
-export const DROPS_DIR = "shipwright_events.d";
-export const ARCHIVE_DIR = "shipwright_events.archive";
+export const DROPS_DIR = ".shipwright/events/drops";
+export const ARCHIVE_DIR = ".shipwright/events/archive";
+/** Where the folders lived before they moved under `.shipwright/events/`. Read only as a fallback
+ *  while the new folder is absent (a project not migrated yet); the plugin refuses such a project. */
+export const LEGACY_DROPS_DIR = "shipwright_events.d";
+export const LEGACY_ARCHIVE_DIR = "shipwright_events.archive";
 
 export type EventFileKind = "legacy" | "archive" | "drop";
 export type EventFileStatusCode = "ok" | "corrupt" | "empty" | "unreadable";

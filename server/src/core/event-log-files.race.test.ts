@@ -19,7 +19,7 @@ const hook: { onRead: ((absolute: string) => void) | null; failList: string | nu
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
   const readdirSync = ((p: Parameters<typeof actual.readdirSync>[0], o?: unknown) => {
-    if (hook.failList && String(p).endsWith(hook.failList)) {
+    if (hook.failList && String(p).replaceAll("\\", "/").endsWith(hook.failList)) {
       throw Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" });
     }
     return (actual.readdirSync as (a: unknown, b?: unknown) => unknown)(p, o);
@@ -53,8 +53,8 @@ afterEach(() => {
 describe("fold racing a read", () => {
   it("re-lists after a drop vanished and finds its event in the new archive file", () => {
     root = mkdtempSync(path.join(tmpdir(), "evrace-"));
-    const drops = path.join(root, "shipwright_events.d");
-    const archive = path.join(root, "shipwright_events.archive");
+    const drops = path.join(root, ".shipwright/events/drops");
+    const archive = path.join(root, ".shipwright/events/archive");
     mkdirSync(drops, { recursive: true });
     mkdirSync(archive, { recursive: true });
     const drop = path.join(drops, "iterate-x--0a1b2c3d--11111111.jsonl");
@@ -69,8 +69,8 @@ describe("fold racing a read", () => {
     const log = readAssembledEventLog(root)!;
     expect(log.lines.map((l) => JSON.parse(l).id)).toEqual(["e1"]);
     expect(log.files.map((f) => [f.path, f.status])).toEqual([
-      ["shipwright_events.archive/fold-aaaaaaaaaaaa.jsonl", "ok"],
-      ["shipwright_events.d/iterate-x--0a1b2c3d--11111111.jsonl", "unreadable"],
+      [".shipwright/events/archive/fold-aaaaaaaaaaaa.jsonl", "ok"],
+      [".shipwright/events/drops/iterate-x--0a1b2c3d--11111111.jsonl", "unreadable"],
     ]);
     expect(log.files[1]?.key).toBe("iterate-x"); // its run's absence gate still fails closed
   });
@@ -80,12 +80,12 @@ describe("fold racing a read", () => {
 describe("a folder that exists but cannot be listed", () => {
   it("is an unreadable row, never 'no files' — every run's absence verdict is blocked", () => {
     root = mkdtempSync(path.join(tmpdir(), "evrace-"));
-    mkdirSync(path.join(root, "shipwright_events.d"), { recursive: true });
+    mkdirSync(path.join(root, ".shipwright/events/drops"), { recursive: true });
     writeFileSync(path.join(root, "shipwright_events.jsonl"), "");
-    hook.failList = "shipwright_events.d";
+    hook.failList = ".shipwright/events/drops";
     const log = readAssembledEventLog(root)!;
     expect(log.absent).toBe(false);
-    expect(log.files.find((f) => f.path === "shipwright_events.d")).toMatchObject({ kind: "drop", key: null, status: "unreadable" });
+    expect(log.files.find((f) => f.path === ".shipwright/events/drops")).toMatchObject({ kind: "drop", key: null, status: "unreadable" });
     expect(findWorkCompleted(root, "iterate-2026-11-05-x").status).toBe("unavailable");
   });
 });
