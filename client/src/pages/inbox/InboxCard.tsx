@@ -10,58 +10,17 @@
  * Same DOM tree, same testids, same nav semantics as source (no wrapper
  * nodes added — external-plan-review MED #2).
  */
-import {
-  Hammer,
-  ListChecks,
-  Palette,
-  FlaskConical,
-  Rocket,
-  ShieldAlert,
-  ShieldCheck,
-  Workflow,
-} from "lucide-react";
-
 import type { ExternalTask, InboxItem } from "../../lib/externalApi";
+import { KNOWN_PHASES, PHASE_ICON } from "./phaseMeta";
 import { AskToolCard } from "./InboxCard.AskTool";
 import { WaitingReplyCard } from "./InboxCard.Waiting";
 import { LeadQuestionCard } from "./InboxCard.LeadQuestion";
 import { CodexNoticeCard } from "./InboxCard.CodexNotice";
 
-// Known phase ids (mirrors PIPELINE_PHASES but we intentionally don't couple
-// to Kanban phaseMapping, which uses a slightly different vocab). Used as the
-// classifyPhase allowlist to derive a best-effort phase tag for the context
-// pill from the task title.
-export const KNOWN_PHASES = [
-  "project",
-  "design",
-  "plan",
-  "build",
-  "test",
-  "security",
-  "compliance",
-  "changelog",
-  "deploy",
-] as const;
-
 /** Inbox card body preview height before the soft fade-out clip kicks in
  *  (iterate-2026-05-19-inbox-markdown-render). The whole card is
  *  click-through to TaskDetail for the full content. */
 export const MAX_BODY_PREVIEW_PX = 220;
-
-export const PHASE_ICON: Record<
-  string,
-  React.ComponentType<{ size?: number; className?: string }>
-> = {
-  build: Hammer,
-  design: Palette,
-  plan: ListChecks,
-  project: ListChecks,
-  test: FlaskConical,
-  deploy: Rocket,
-  compliance: ShieldCheck,
-  security: ShieldAlert,
-  changelog: Workflow,
-};
 
 /** Stable React key / testid base for an inbox item, kind-aware. */
 export function inboxItemKey(item: InboxItem): string {
@@ -167,3 +126,6 @@ export function InboxCard({
       return unhandledInboxItemKind(item);
   }
 }
+
+// Re-exported for existing importers; the data lives in the leaf module phaseMeta.ts.
+export { KNOWN_PHASES, PHASE_ICON };

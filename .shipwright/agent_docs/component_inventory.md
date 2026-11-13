@@ -339,8 +339,9 @@ transient `design-feedback-round{N}.md` write (gitignored scratch). Resume = the
 `InboxPage`'s split modules (ADR-124, Campaign C / C7) live under `client/src/pages/inbox/`:
 
 - `useInboxData.ts` (TanStack wrapper derivation hook)
-- `InboxProjectSection.tsx`
-- `InboxCard.tsx` + `InboxCard.AskTool.tsx` + `InboxCard.Waiting.tsx`
+- `InboxProjectSection.tsx` (foldable project group with a drag handle; iterate-2026-11-13-inbox-html-baseline, FR-01.04) + `InboxGroupList.tsx` (dnd-kit list)
+- `InboxCardShell.tsx` (shared dark-glass card chrome) + `phaseMeta.ts` (phase ids/icons, leaf module) + `styles/inbox-cards.css`; the saved view (folded groups + project order) lives in `hooks/useInboxViewState.ts` + `lib/inboxViewStorage.ts`
+- `InboxCard.tsx` + `InboxCard.AskTool.tsx` + `InboxCard.Waiting.tsx` + `InboxCard.LeadQuestion.tsx` + `InboxCard.CodexNotice.tsx`
 - `InboxResumeButton.tsx`
 - `types.ts`
 

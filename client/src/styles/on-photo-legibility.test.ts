@@ -42,6 +42,7 @@ const TOUCHED = [
   "components/external/BoardStatusFilter.tsx",
   "components/external/TaskBoardColumns.tsx",
   "pages/inbox/InboxProjectSection.tsx",
+  "pages/inbox/InboxCardShell.tsx",
   "pages/InboxPage.tsx",
   "pages/TriagePage.tsx",
   "components/triage/TriageGroupList.tsx",
@@ -59,12 +60,19 @@ describe("on-photo legibility — AC1 flipping-token fence", () => {
     expect(src).not.toMatch(/hover:text-\[var\(--color-text/);
   });
 
-  it("inbox project group header uses --ink / --muted, not --color-text / --color-muted", () => {
-    const src = read("pages/inbox/InboxProjectSection.tsx");
-    expect(src).toContain('color: "var(--ink)"');
-    expect(src).toContain('color: "var(--muted)"');
-    expect(src).not.toContain('color: "var(--color-text)"');
-    expect(src).not.toContain('color: "var(--color-muted)"');
+  it("inbox project groups + cards are dark glass: explicit white tints, never a token that flips or the legacy aliases (iterate-2026-11-13-inbox-triage-look)", () => {
+    // The group header is a SOLID pill and every card carries its own solid
+    // glass ground (inbox-cards.css), so none of it rides bare on the photo any
+    // more. White tints are stable under `.on-photo`; `--ink` / `--muted` would
+    // flip, the legacy `--color-*` aliases are re-pointed INSIDE a card by the
+    // `.inbox-card` scope only.
+    const section = read("pages/inbox/InboxProjectSection.tsx");
+    expect(section).toMatch(/text-white\//);
+    expect(section).not.toMatch(/color: "var\(--(ink|muted|color-text|color-muted)\)"/);
+    const css = strip(readFileSync(path.join(SRC, "styles/inbox-cards.css"), "utf8"));
+    expect(css).toMatch(/\.inbox-card\s*\{[^}]*--triage-lane-solid/);
+    expect(css).toMatch(/\.inbox-group-head\s*\{[^}]*background:\s*var\(--triage-lane-solid\)/);
+    expect(css).not.toMatch(/text-shadow/);
   });
 
   it("triage lanes are dark glass: header + rows use explicit white tints, never a token that flips or the legacy aliases", () => {

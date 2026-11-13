@@ -1,0 +1,5 @@
+Goal: Give the Inbox the Triage page's dark glass look, with foldable and reorderable project groups that are remembered.
+Reason: The Triage page was just restyled; the Inbox should look and behave the same so the app feels like one product.
+Reference: user request, no PR yet
+AC item: {"confirmed": false, "decided_by": "code", "files": ["client/src/pages/InboxPage.tsx", "client/src/pages/inbox/InboxProjectSection.tsx", "client/src/styles/inbox-cards.css"], "kind": "add", "new_text": "The Inbox looks like the Triage page: each question is a dark card with its project colour as a bar on top, projects are headed by a pill, and the content starts at the same left edge as Triage so it does not jump when switching pages. A project's cards can be folded away and projects can be put in your own order (mouse drag or arrow keys); both choices are remembered after a reload.", "owner_fr": "FR-01.04"}
+AC decisions: [{"ac": "FR-01.04.new", "mode": "auto", "answer": "auto", "kind": "add", "answered_via": "none", "decided_by": "code", "confirmed": false}]

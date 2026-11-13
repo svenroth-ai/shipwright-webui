@@ -17,24 +17,15 @@
  * component. FR-04.42's round mechanics stay server-side and unused here —
  * this card still sends exactly one answer.
  */
-import {
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type MouseEvent,
-} from "react";
-import { useNavigate } from "react-router-dom";
+import { useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 
 import { MarkdownText } from "../../components/external/MarkdownText";
 import { DESCRIPTION_MAX_LENGTH } from "../../components/external/NewIssueModal/SimpleFields";
-import { classifyPhase } from "../../lib/classifyPhase";
-import { formatRelativeTime } from "../../lib/formatTime";
 import { useAnswerLeadQuestion, useDismissInboxItem } from "../../hooks/useExternalInbox";
 import type { ExternalTask } from "../../lib/externalApi";
 import type { LeadQuestionInboxItem } from "../../lib/leadQuestionApi";
-import { inboxItemKey, KNOWN_PHASES, MAX_BODY_PREVIEW_PX, PHASE_ICON } from "./InboxCard";
+import { inboxItemKey, MAX_BODY_PREVIEW_PX } from "./InboxCard";
+import { InboxCardShell, InboxEyebrow } from "./InboxCardShell";
 import { LeadQuestionTerminalDiscussRow } from "./InboxCard.LeadQuestion.TerminalDiscuss";
 
 // The answer marker (`answerLeadQuestion`) appends ~40 chars to the typed
@@ -49,7 +40,6 @@ export function LeadQuestionCard({
   item: LeadQuestionInboxItem;
   task: ExternalTask | undefined;
 }) {
-  const navigate = useNavigate();
   const itemKey = inboxItemKey(item);
   const [answerText, setAnswerText] = useState("");
   const answerMutation = useAnswerLeadQuestion();
@@ -71,35 +61,6 @@ export function LeadQuestionCard({
     return () => ro.disconnect();
   }, [item.questionText]);
 
-  const phase = useMemo<string | null>(() => {
-    if (!task?.title) return null;
-    return classifyPhase(task.title, KNOWN_PHASES as unknown as string[]);
-  }, [task?.title]);
-
-  const timeAgo = useMemo<string | null>(() => {
-    const stamp = task?.launchedAt ?? task?.createdAt;
-    return stamp ? formatRelativeTime(stamp) : null;
-  }, [task?.launchedAt, task?.createdAt]);
-
-  const handleCardClick = () => {
-    if (!task) return;
-    navigate(`/tasks/${task.taskId}`);
-  };
-  const handleCardKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (!task) return;
-    // A keydown from a nested interactive element (Dismiss/Send/the new
-    // terminal-discuss buttons) bubbles here too — only the card's own
-    // Enter/Space should navigate. Reacting to the bubbled event and
-    // preventDefault()-ing it would cancel the button's native
-    // Enter-triggers-click activation, making it keyboard-unreachable
-    // (code-review finding, iterate-2026-09-08-lead-question-discuss-terminal).
-    if (e.target !== e.currentTarget) return;
-    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
-      e.preventDefault();
-      navigate(`/tasks/${task.taskId}`);
-    }
-  };
-
   const handleSend = (e: MouseEvent) => {
     e.stopPropagation();
     if (!answerText.trim() || answerMutation.isPending) return;
@@ -115,71 +76,15 @@ export function LeadQuestionCard({
     dismissMutation.mutate(itemKey);
   };
 
-  const PhaseIcon = phase ? PHASE_ICON[phase] : null;
-
   return (
-    <div
-      className="transition-opacity"
-      style={{
-        background: "var(--color-surface)",
-        border: "1px solid var(--color-border)",
-        borderLeft: "3px solid var(--color-warning)",
-        borderRadius: "var(--radius-button)",
-        padding: "12px 24px 20px",
-        boxShadow: "var(--shadow-sm)",
-        maxWidth: "720px",
-        cursor: task ? "pointer" : "default",
-      }}
-      role={task ? "button" : undefined}
-      tabIndex={task ? 0 : undefined}
-      aria-label={task ? `Open task ${task.title}` : undefined}
-      onClick={task ? handleCardClick : undefined}
-      onKeyDown={task ? handleCardKeyDown : undefined}
-      data-nav-item={task ? "" : undefined}
-      data-testid={`inbox-card-${itemKey}`}
+    <InboxCardShell
+      testId={`inbox-card-${itemKey}`}
+      itemKey={itemKey}
+      sessionUuid={item.sessionUuid}
+      task={task}
+      focusTerminal={false}
     >
-      <div className="mb-[6px] flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          {phase && PhaseIcon && task && (
-            <span
-              className="inline-flex items-center gap-[5px] rounded-[12px] font-semibold uppercase"
-              style={{
-                background: "var(--color-muted-bg)",
-                color: "var(--color-muted)",
-                fontSize: "11px",
-                padding: "3px 10px",
-                letterSpacing: "0.02em",
-              }}
-              data-testid={`inbox-task-context-pill-${itemKey}`}
-            >
-              <PhaseIcon size={12} />
-              <span className="truncate">
-                {phase} / {task.title}
-              </span>
-            </span>
-          )}
-        </div>
-        {timeAgo && (
-          <span
-            className="shrink-0 text-[12px] font-normal"
-            style={{ color: "var(--color-muted)" }}
-          >
-            {timeAgo}
-          </span>
-        )}
-      </div>
-
-      <div
-        className="font-semibold uppercase"
-        style={{
-          fontSize: "11px",
-          letterSpacing: "0.6px",
-          color: "var(--color-muted)",
-          marginBottom: "6px",
-        }}
-      >
-        Lead is asking
-      </div>
+      <InboxEyebrow>Lead is asking</InboxEyebrow>
 
       <div
         ref={bodyRef}
@@ -194,13 +99,14 @@ export function LeadQuestionCard({
         {overflowing && (
           <div
             aria-hidden="true"
+            data-testid={`inbox-question-fade-${itemKey}`}
             style={{
               position: "absolute",
               insetInline: 0,
               bottom: 0,
               height: "48px",
               background:
-                "linear-gradient(to bottom, transparent, var(--color-surface))",
+                "linear-gradient(to bottom, transparent, var(--inbox-card-bg))",
               pointerEvents: "none",
             }}
           />
@@ -291,6 +197,6 @@ export function LeadQuestionCard({
           {answerMutation.isPending ? "Sending…" : "Send answer"}
         </button>
       </div>
-    </div>
+    </InboxCardShell>
   );
 }

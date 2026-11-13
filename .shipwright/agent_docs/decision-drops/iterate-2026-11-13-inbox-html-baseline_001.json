@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-13-inbox-html-baseline",
+  "date": "2026-11-13",
+  "section": "Iterate — change: Inbox in the Triage look",
+  "title": "Inbox wears the Triage dark-glass look; project groups fold and reorder",
+  "context": "The Triage page was restyled (dark glass, project accent, drag-ordered lanes). The Inbox still used light cards in a white panel, so switching pages felt like two products, and its content did not share Triage's left edge.",
+  "decision": "Keep Inbox cards (no lanes) but render them as dark glass with a project-colour bar via a scoped .inbox-card style that re-points the legacy colour aliases. Each project gets a solid pill header that folds the group and carries a drag handle (dnd-kit + arrow keys). Fold state and project order persist in localStorage (inboxViewStorage). The page body uses the same scroller box as Triage.",
+  "consequences": "All Inbox cards share one chrome component (InboxCardShell); the card-variant files shrink. A folded group shows only a count, so a new item in a folded project does not auto-expand it. The visual-regression baseline for the populated Inbox changes and is regenerated on Linux.",
+  "rationale": "Reusing the Triage tokens keeps one visual language; scoping the colour flip to .inbox-card avoids rewriting every inner component; persisting like Triage keeps the view stable across reloads.",
+  "rejected": "Lanes for the Inbox (user wanted cards); summary pills (display-only, user removed them); rewriting inner components to dark-only colours (large blast radius).",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ""
+}

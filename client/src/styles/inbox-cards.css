@@ -1,0 +1,202 @@
+/*
+ * inbox-cards.css — the Inbox in the Triage look
+ * (iterate-2026-11-13-inbox-triage-look). Cards stay cards (no lanes): the same
+ * dark warm glass as a Triage lane (`--triage-lane-solid` tinted 12 % in the
+ * project colour, light edge, `--sh-photo`), the project colour as a 3px bar on
+ * top, white tints for text. The project header is a solid pill, not a lane.
+ *
+ * Inside a card the legacy `--color-*` aliases are re-pointed to dark-glass
+ * values (the same scoped flip `.chrome-dark-controls` does for the taupe bar),
+ * so every inner component that reads them — MarkdownText, the option chips,
+ * the answer textarea, the buttons — reads light-on-dark without a rewrite. The
+ * semantic warning / error families are deliberately NOT overridden.
+ * Plain CSS (not utilities) so the dark scope cannot be reordered by the sorter.
+ */
+
+.inbox-card {
+  --acc: rgba(255, 255, 255, .35);
+  --inbox-card-bg: color-mix(in srgb, var(--acc) 12%, var(--triage-lane-solid));
+  --color-surface: var(--inbox-card-bg);
+  --color-muted-bg: rgba(255, 255, 255, .08);
+  --color-border: rgba(255, 255, 255, .14);
+  --color-text: rgba(255, 255, 255, .95);
+  --color-muted: rgba(255, 255, 255, .68);
+  position: relative;
+  max-width: 720px;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  color: rgba(255, 255, 255, .95);
+  background: var(--inbox-card-bg);
+  border: 1px solid color-mix(in srgb, var(--acc) 32%, rgba(255, 255, 255, .18));
+  box-shadow: var(--sh-photo);
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.inbox-card[role="button"] {
+  cursor: pointer;
+}
+.inbox-card[role="button"]:hover {
+  border-color: rgba(255, 255, 255, .3);
+}
+.inbox-card:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, .85);
+  outline-offset: 2px;
+}
+.inbox-card.is-err {
+  --acc: var(--err-solid);
+  --color-danger: var(--err-solid);
+}
+.inbox-card-bar {
+  height: 3px;
+  width: 100%;
+  background: var(--acc);
+}
+.inbox-card-in {
+  padding: 12px 22px 18px;
+}
+.inbox-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 24px;
+  margin-bottom: 8px;
+}
+.inbox-card-pill {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .08);
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .8);
+}
+.inbox-card-meta {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+}
+.inbox-card-id {
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .1);
+  padding: 1px 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: rgba(255, 255, 255, .88);
+}
+.inbox-card-ago {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, .6);
+}
+.inbox-card-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .7);
+}
+.inbox-card-eyebrow::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--warn-solid);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn-solid) 20%, transparent);
+}
+.inbox-card-eyebrow.is-err {
+  color: var(--err-solid);
+}
+.inbox-card-eyebrow.is-err::before {
+  background: var(--err-solid);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--err-solid) 20%, transparent);
+}
+
+/* Markdown + code that ship light-surface classes (bg-inset, text-info) */
+.inbox-card .markdown-body {
+  font-size: 15px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, .92);
+}
+.inbox-card .markdown-body p {
+  margin-block: 0 14px;
+}
+.inbox-card .markdown-body p:last-child {
+  margin-bottom: 0;
+}
+.inbox-card .markdown-body strong {
+  color: #fff;
+}
+/* No border here: an inline-code border makes a short line overflow the body by 1-2px,
+   which switches the "long text" fade on over text that is not long. */
+.inbox-card .markdown-body :not(pre) > code {
+  background: rgba(255, 255, 255, .1);
+  color: #fff;
+}
+.inbox-card .markdown-body a {
+  color: #8ddcd0;
+}
+.inbox-card .markdown-body th,
+.inbox-card .markdown-body td {
+  border-color: rgba(255, 255, 255, .16);
+}
+
+/* Project header: a solid pill (like the Triage summary pills), no lane */
+.inbox-group {
+  --acc: rgba(255, 255, 255, .35);
+  border-radius: var(--radius-card);
+}
+.inbox-group-head {
+  display: inline-flex;
+  max-width: 100%;
+  height: 34px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 0 14px 0 6px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: var(--triage-lane-solid);
+  box-shadow: 0 1px 2px rgb(0 0 0 / .25);
+  color: rgba(255, 255, 255, .95);
+  font-size: 15px;
+  font-weight: 600;
+}
+.inbox-group-count {
+  display: inline-flex;
+  height: 20px;
+  min-width: 20px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .9);
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--g700);
+}
+.inbox-group-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Answer textarea + secondary buttons inside a card */
+.inbox-card textarea {
+  color: #fff;
+}
+.inbox-card textarea::placeholder {
+  color: rgba(255, 255, 255, .45);
+}
