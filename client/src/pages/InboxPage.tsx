@@ -20,20 +20,45 @@
  * Load-bearing testids (proven by InboxPage.test.tsx 16 cases):
  *   inbox-page, inbox-empty, inbox-session-<uuid>, inbox-item-<toolUseId>,
  *   inbox-task-context-pill-<toolUseId>, inbox-header-count,
- *   inbox-group-project-label-<sessionUuid>,
+ *   inbox-group-project-label-<sessionUuid>-<itemKey> (the session chip),
  *   inbox-project-group-<projectId>, inbox-project-group-toggle-<projectId>,
+ *   inbox-group-handle-<projectId>, inbox-group-count-<projectId>,
  *   inbox-group-color-<projectId>, inbox-card-<toolUseId>,
  *   inbox-resume-<toolUseId>.
+ *
+ * Triage look (iterate-2026-11-13-inbox-triage-look): dark-glass cards, project
+ * groups foldable + reorderable (remembered in localStorage), same body box as
+ * the Triage page.
  */
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { InboxProjectSection } from "./inbox/InboxProjectSection";
+import { InboxGroupList } from "./inbox/InboxGroupList";
 import { useInboxData } from "./inbox/useInboxData";
 import { PageHead } from "../components/common/PageHead";
+import { useInboxViewState } from "../hooks/useInboxViewState";
 import { glossaryLookup } from "../lib/glossary";
+import { applyProjectOrder, moveProject } from "../lib/triageProjectOrder";
 
 export default function InboxPage() {
   const { projectGroups, openCount, isLoading, tasksById } = useInboxData();
   const navigate = useNavigate();
+  const view = useInboxViewState();
+
+  // The groups follow the user's own project order (drag handle on a group).
+  const orderedGroups = useMemo(
+    () =>
+      applyProjectOrder(
+        projectGroups.map((g) => ({ ...g, id: g.projectId })),
+        view.projectOrder,
+      ),
+    [projectGroups, view.projectOrder],
+  );
+  const onReorderProject = (movedId: string, overId: string): void => {
+    // Move inside the FULL saved order (also projects with no open item today) so they keep their slot.
+    const visible = orderedGroups.map((g) => g.projectId);
+    const full = [...view.projectOrder, ...visible.filter((id) => !view.projectOrder.includes(id))];
+    view.setProjectOrder(moveProject(full, movedId, overId));
+  };
 
   return (
     <div
@@ -49,10 +74,12 @@ export default function InboxPage() {
         testId="inbox-header"
       />
 
-      {/* Body — wrapped in .page-container so Inbox aligns with Projects.
-          Top gap matches Projects' 24px (Sven 2026-07-17: equal top padding). */}
-      <div className="flex-1 overflow-y-auto" style={{ paddingBlock: "24px 40px" }}>
-        <div className="page-container">
+      {/* Body — the SAME box as the Triage page (same scroller padding, same
+          .page-container), so the content's left edge does not jump when the
+          operator switches between the two pages. The Inbox is simply narrower:
+          its cards cap at 720px and sit left-aligned. */}
+      <div className="flex-1 overflow-y-auto pt-4 pb-10 md:pt-6">
+        <div className="page-container density-surface">
           {isLoading && (
             // on-photo-legibility: rides bare on the photo → flipping `--muted`.
             <div className="text-sm" style={{ color: "var(--muted)" }}>
@@ -66,13 +93,7 @@ export default function InboxPage() {
             // one action (go to the board, where the running work lives). The
             // "approval gate" jargon carries its glossary explanation right here.
             <div
-              className="flex max-w-[600px] flex-col items-start p-6 text-left"
-              style={{
-                background: "var(--color-surface)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-card)",
-                boxShadow: "var(--shadow-sm)",
-              }}
+              className="inbox-card flex !max-w-[600px] flex-col items-start p-6 text-left"
               data-testid="inbox-empty"
             >
               <p
@@ -110,7 +131,7 @@ export default function InboxPage() {
                 style={{
                   border: "1px solid var(--color-border)",
                   color: "var(--color-text)",
-                  background: "var(--color-bg)",
+                  background: "var(--color-muted-bg)",
                 }}
               >
                 Go to the board
@@ -118,41 +139,16 @@ export default function InboxPage() {
             </div>
           )}
 
-          {/* §5.2 contrast fix (A03 ladder): the populated list sits on a SOLID
-              neutral sub-panel so body text is never over the bright photo. The
-              group headers + session sub-labels use the .on-photo flipping
-              --ink/--muted (white on the photo) — reset here to the non-flipping
-              stone ramp (the same swap on-photo.css rule 2 does for .card, done
-              inline because real components don't carry the .card class), so on
-              this white ground every label reads dark-on-white >=4.5:1. Rendered
-              ONLY when populated — the empty-state baseline stays untouched. */}
+          {/* Dark-glass cards (inbox-cards.css) — they carry their own solid
+              ground, so there is no neutral panel around the list any more. */}
           {projectGroups.length > 0 && (
-            <div
-              data-testid="inbox-list-panel"
-              className="flex flex-col"
-              style={{
-                gap: "24px",
-                background: "var(--card)",
-                border: "1px solid var(--line)",
-                borderRadius: "var(--radius-card)",
-                padding: "18px 18px 22px",
-                boxShadow: "var(--sh-sm)",
-                ["--ink" as string]: "var(--g900)",
-                ["--body" as string]: "var(--g700)",
-                ["--muted" as string]: "var(--g500)",
-                ["--faint" as string]: "var(--g400)",
-                ["--line" as string]: "var(--g200)",
-                ["--line-strong" as string]: "var(--g300)",
-              }}
-            >
-              {projectGroups.map((pg) => (
-                <InboxProjectSection
-                  key={pg.projectId}
-                  group={pg}
-                  tasksById={tasksById}
-                />
-              ))}
-            </div>
+            <InboxGroupList
+              groups={orderedGroups}
+              tasksById={tasksById}
+              collapsed={view.collapsed}
+              onToggle={view.toggleCollapsed}
+              onReorderProject={onReorderProject}
+            />
           )}
         </div>
       </div>

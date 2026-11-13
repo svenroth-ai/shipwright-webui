@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-13-inbox-html-baseline",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T14:58:42.533511+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T14:58:42.676534+00:00",
+      "disposition": "small iterate: external/plan reviews apply at medium+ only",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": "client/src/pages/inbox/InboxCard.AskTool.tsx",
+          "line": 56,
+          "finding": "Hardcoded colours (#fff, rgba) in inline styles in TSX.",
+          "suggestion": "Move to CSS classes or var(--color-text). Disposition: accepted, inline colours on the dark glass are not covered by the no-hardcoded-colors guard (passes); follow-up cleanup optional.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": "client/src/pages/inbox/InboxProjectSection.tsx",
+          "line": 23,
+          "finding": "NEUTRAL_ACCENT rgba literal duplicated in CSS.",
+          "suggestion": "Disposition: accepted, same value kept in one TS constant for the dot.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": "client/src/pages/inbox/InboxCardShell.tsx",
+          "line": 21,
+          "finding": "Circular import InboxCardShell <-> InboxCard via KNOWN_PHASES/PHASE_ICON.",
+          "suggestion": "Disposition: FIXED, constants moved to leaf module phaseMeta.ts, InboxCard re-exports.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/styles/inbox-cards.css",
+          "line": 32,
+          "finding": "Magic-number transition duration.",
+          "suggestion": "Disposition: FIXED, uses --motion-fast / --ease-standard.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/styles/inbox-cards.css",
+          "line": 37,
+          "finding": "Weak keyboard focus indicator; hover rule applied to non-interactive cards.",
+          "suggestion": "Disposition: FIXED, explicit :focus-visible outline, hover limited to [role=button].",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/pages/inbox/InboxProjectSection.tsx",
+          "line": 125,
+          "finding": "Missing aria-controls; nested unnamed section wrappers.",
+          "suggestion": "Disposition: FIXED, aria-controls added, session wrappers are divs. Auto-expand on count increase not done (out of scope).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/inboxViewStorage.ts",
+          "line": 35,
+          "finding": "Stale project ids never pruned; slice(0,100) cap.",
+          "suggestion": "Disposition: accepted, harmless.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-13T14:56:08.473840+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet",
+      "verdict": "pass",
+      "reviewed_commit": "bdadae85cdc494fd65cb4839f7b880dcddb8249a"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "hidden coupling & blast radius",
+          "file": "client/src/pages/inbox/InboxProjectSection.tsx:126",
+          "line": null,
+          "finding": "Claim under doubt: folding a group is a safe, purely visual preference — A persisted fold hides new urgent items behind only a changed count badge.",
+          "suggestion": "Disposition: REBUTTED/accepted. The user explicitly asked for fold; the count chip stays on the folded pill and the page header 'N open' counts every item incl. folded groups. Auto-expand left as possible follow-up.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/pages/InboxPage.tsx:56",
+          "line": null,
+          "finding": "Claim under doubt: stale ids in saved order handled — Reorder overwrote the saved order with only the visible groups.",
+          "suggestion": "Disposition: FIXED. Reorder now moves inside the full saved order plus visible ids; test added (project with no open item keeps its slot).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": "client/src/pages/inbox/InboxProjectSection.tsx:86",
+          "line": null,
+          "finding": "Claim under doubt: keyboard reorder keeps focus — rAF refocus could lose a second quick keypress.",
+          "suggestion": "Disposition: accepted; real-browser e2e already asserts the handle stays focused after a press.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling (CSS alias scope)",
+          "file": "client/src/styles/inbox-cards.css:19-23",
+          "line": null,
+          "finding": "Claim under doubt: alias re-pointing cannot leak — No portal found in inbox files; imported components not audited.",
+          "suggestion": "Disposition: accepted; custom properties only inherit down the DOM, portals render light as before; real-browser screenshot of the page checked earlier.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract (click/keyboard guards)",
+          "file": "client/src/pages/inbox/InboxCardShell.tsx:69",
+          "line": null,
+          "finding": "Claim under doubt: nested control press never also navigates — Guard was opt-in; a markdown link inside Waiting/AskTool cards would navigate.",
+          "suggestion": "Disposition: FIXED. Guard is now structural (target must be the card itself); test added.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract (dnd ids)",
+          "file": "client/src/pages/inbox/InboxProjectSection.tsx:50",
+          "line": null,
+          "finding": "Claim under doubt: no collision with Unassigned — Could not construct a collision.",
+          "suggestion": "None required.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-13T14:58:42.395936+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet",
+      "verdict": "pass",
+      "reviewed_commit": "bdadae85cdc494fd65cb4839f7b880dcddb8249a"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T14:58:42.821726+00:00",
+      "disposition": "small iterate: external/plan reviews apply at medium+ only",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T14:54:50.283418+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet",
+      "verdict": "pass",
+      "reviewed_commit": "bdadae85cdc494fd65cb4839f7b880dcddb8249a"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T14:58:42.954031+00:00",
+      "disposition": "small iterate: external/plan reviews apply at medium+ only",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-13T14:58:43.109532+00:00",
+      "disposition": "small iterate: external/plan reviews apply at medium+ only",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-13-inbox-html-baseline",
+    "date": "2026-11-13",
+    "unit": {
+      "status": "passed",
+      "passed": 5144,
+      "skipped": 0,
+      "total": 5144
+    },
+    "integration": {
+      "status": "not_run"
+    },
+    "pgtap": {
+      "status": "not_run"
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 5,
+      "skipped": 0,
+      "total": 5
+    },
+    "design_fidelity": {
+      "status": "skipped"
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Inbox cards render as dark glass with project-colour bar, light text, markdown intact",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/inbox-triage-look.spec.ts::cards are dark glass PASSED"
+        },
+        {
+          "behavior": "A project pill folds its group and the fold survives a reload",
+          "disposition": "tested",
+          "evidence": "inbox-triage-look.spec.ts::the project pill folds its group PASSED; InboxPage.view.test.tsx::folding a project group PASSED"
+        },
+        {
+          "behavior": "Projects can be reordered with the keyboard and keep focus; order is remembered",
+          "disposition": "tested",
+          "evidence": "inbox-triage-look.spec.ts::projects can be put in their own order PASSED; InboxPage.view.test.tsx::arrow keys PASSED"
+        },
+        {
+          "behavior": "A project with no open item keeps its saved slot when another group is moved",
+          "disposition": "tested",
+          "evidence": "InboxPage.view.test.tsx::keeps its saved slot PASSED"
+        },
+        {
+          "behavior": "Card click still opens the task; keys on nested controls never navigate",
+          "disposition": "tested",
+          "evidence": "inbox-triage-look.spec.ts::a click on a card PASSED; InboxCardShell.test.tsx PASSED"
+        },
+        {
+          "behavior": "Inbox and Triage start at the same left edge",
+          "disposition": "tested",
+          "evidence": "inbox-triage-look.spec.ts::same left edge PASSED; InboxPage.view.test.tsx::share ONE body box PASSED"
+        },
+        {
+          "behavior": "Saved view is read safely (bad/blocked storage falls back to defaults)",
+          "disposition": "tested",
+          "evidence": "inboxViewStorage.test.ts PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 7,
+        "tested": 7,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-13-inbox-html-baseline",
+    "commit": "bdadae85cdc494fd65cb4839f7b880dcddb8249a",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

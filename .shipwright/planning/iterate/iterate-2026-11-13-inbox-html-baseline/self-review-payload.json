@@ -1,0 +1,8 @@
+{"items":[
+{"name":"Acceptance: promise delivered (dark glass cards, pill heads, same left edge as Triage, fold + reorder remembered, no pills)","verdict":"pass","note":"verified in unit tests and real-browser e2e inbox-triage-look.spec.ts 5/5"},
+{"name":"Existing Inbox behaviour preserved","verdict":"pass","note":"9 existing inbox e2e specs pass; full vitest 5144 pass"},
+{"name":"Typecheck + lint","verdict":"pass","note":"tsc clean; only pre-existing lint warnings"},
+{"name":"File size under 300 lines","verdict":"pass","note":"all new/changed files under 300"},
+{"name":"No hardcoded colours guard","verdict":"pass","note":"guard test passes"},
+{"name":"Reduced motion","verdict":"pass","note":"no new animation; transition uses motion tokens"}
+]}

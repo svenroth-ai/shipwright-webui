@@ -10,7 +10,7 @@
  * branching are unit-tested directly.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 
@@ -90,7 +90,7 @@ describe("InboxProjectSection", () => {
     vi.clearAllMocks();
   });
 
-  it("renders project label + (N open) count + chevron-color chip", () => {
+  it("renders project label + open-count chip + colour dot", () => {
     const session: SessionGroup = {
       sessionUuid: "sess-A",
       taskId: "task-A",
@@ -108,11 +108,11 @@ describe("InboxProjectSection", () => {
 
     expect(screen.getByTestId("inbox-project-group-proj-a")).toBeInTheDocument();
     expect(screen.getByText("Project A")).toBeInTheDocument();
-    expect(screen.getByText("(2 open)")).toBeInTheDocument();
+    expect(screen.getByTestId("inbox-group-count-proj-a")).toHaveTextContent("2");
     expect(screen.getByTestId("inbox-group-color-proj-a")).toBeInTheDocument();
   });
 
-  it("Unassigned bucket uses the muted-token chip", () => {
+  it("Unassigned bucket uses the neutral white-tint accent (no project colour)", () => {
     const group: ProjectGroup = {
       projectId: UNASSIGNED_PROJECT_ID,
       projectName: "Unassigned",
@@ -131,8 +131,8 @@ describe("InboxProjectSection", () => {
 
     const chip = screen.getByTestId(`inbox-group-color-${UNASSIGNED_PROJECT_ID}`);
     expect(chip).toBeInTheDocument();
-    // Muted-token uses var(--color-muted) — same as source line 302-304.
-    expect(chip.getAttribute("style") ?? "").toContain("var(--color-muted)");
+    // No project means no deterministic colour: the neutral white tint an unowned Triage lane uses.
+    expect(chip.getAttribute("style") ?? "").toContain("rgba(255, 255, 255, 0.35)");
   });
 
   it("sessions render in input order (MED #3 — ordering preservation)", () => {
@@ -183,5 +183,79 @@ describe("InboxProjectSection", () => {
       sessions[1]!.compareDocumentPosition(sessions[2]!) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+});
+
+
+describe("InboxProjectSection — fold + reorder handle (iterate-2026-11-13-inbox-triage-look)", () => {
+  const SESS = "3f9a1c42-aaaa-bbbb-cccc-000000000000";
+
+  function oneGroup(): [ProjectGroup, Map<string, ExternalTask>] {
+    const group: ProjectGroup = {
+      projectId: "proj-a",
+      projectName: "Project A",
+      project: makeProject({ id: "proj-a", name: "Project A" }),
+      sessions: [
+        {
+          sessionUuid: SESS,
+          taskId: "task-A",
+          taskTitle: "task-A",
+          items: [makeAsk({ toolUseId: "tu-1", sessionUuid: SESS })],
+        },
+      ],
+      totalItems: 1,
+    };
+    return [group, new Map([["task-A", makeTask()]])];
+  }
+
+  function renderWith(props: Partial<React.ComponentProps<typeof InboxProjectSection>>) {
+    const [group, tasks] = oneGroup();
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <InboxProjectSection group={group} tasksById={tasks} {...props} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it("an expanded group shows its cards and each card carries its session chip", () => {
+    renderWith({ isCollapsed: false });
+    expect(screen.getByTestId("inbox-card-tu-1")).toBeInTheDocument();
+    expect(screen.getByTestId(`inbox-group-project-label-${SESS}-tu-1`)).toHaveTextContent("3f9a1c42");
+    expect(screen.getByTestId("inbox-project-group-toggle-proj-a")).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("a folded group keeps its header but renders no cards", () => {
+    renderWith({ isCollapsed: true });
+    expect(screen.getByTestId("inbox-project-group-proj-a")).toBeInTheDocument();
+    expect(screen.queryByTestId("inbox-card-tu-1")).not.toBeInTheDocument();
+    expect(screen.getByTestId("inbox-project-group-toggle-proj-a")).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("clicking the header pill folds via onToggle", () => {
+    const onToggle = vi.fn();
+    renderWith({ onToggle });
+    fireEvent.click(screen.getByTestId("inbox-project-group-toggle-proj-a"));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the move handle only when the group can be reordered", () => {
+    const { unmount } = renderWith({});
+    expect(screen.queryByTestId("inbox-group-handle-proj-a")).not.toBeInTheDocument();
+    unmount();
+    renderWith({ reorder: { onMove: vi.fn(), canUp: false, canDown: true } });
+    expect(screen.getByTestId("inbox-group-handle-proj-a")).toBeInTheDocument();
+  });
+
+  it("arrow keys on the handle move the group; a blocked direction does nothing", () => {
+    const onMove = vi.fn();
+    renderWith({ reorder: { onMove, canUp: false, canDown: true } });
+    const handle = screen.getByTestId("inbox-group-handle-proj-a");
+    fireEvent.keyDown(handle, { key: "ArrowUp" });
+    expect(onMove).not.toHaveBeenCalled();
+    fireEvent.keyDown(handle, { key: "ArrowDown" });
+    expect(onMove).toHaveBeenCalledWith(1);
   });
 });

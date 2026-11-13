@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inbox Ist-Stand (1:1 Basis)</title>
+<style>
+/* IST-STAND der Inbox-Seite, 1:1 aus dem Code abgeleitet (Stand origin/main 3972d95a):
+   client/src/pages/InboxPage.tsx, inbox/InboxProjectSection.tsx, inbox/InboxCard*.tsx, inbox/InboxResumeButton.tsx,
+   components/common/PageHead.tsx, styles/{weather-deck,type-scale,on-photo}.css, index.css (--color-* Alias-Layer).
+   Alle Werte unten sind die echten Token- und Pixelwerte. Nichts ist "in etwa". Aenderungen kommen spaeter als eigene Version. */
+:root{
+  --page:#FAFAF9; --card:#FFFFFF; --inset:#F5F5F4;
+  --g200:#E7E5E4; --g300:#D6D3D1; --g400:#A8A29E; --g500:#79716B; --g700:#44403C; --g900:#1C1917;
+  --accent:#0E7A6B; --accent-hover:#0B6355; --warn:#B54708; --err:#B42318;
+  --taupe:#23262c; --taupe-line:rgba(255,255,255,.08);
+  --radius-button:8px; --radius-card:12px;
+  --shadow-sm:0 2px 8px rgba(0,0,0,.06);            /* Karten (--shadow-sm in index.css) */
+  --sh-sm:0 1px 2px rgba(28,25,23,.06),0 1px 3px rgba(28,25,23,.10); /* Listen-Panel (--sh-sm in weather-deck.css) */
+  --sans:"Inter Variable",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  /* Alias-Layer (index.css) */
+  --color-surface:var(--card); --color-bg:var(--page); --color-muted-bg:var(--inset);
+  --color-text:#1C1917; --color-muted:#79716B; --color-border:#E7E5E4;
+  --color-primary:var(--accent); --color-primary-hover:var(--accent-hover); --color-warning:var(--warn);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--sans);font-size:14px;line-height:1.45;background:#d9d8d3;color:var(--color-text)}
+h1{margin:0}
+.note{max-width:1360px;margin:0 auto;padding:14px 32px;font-size:13px;color:#44403C}
+.note b{color:#1C1917}
+.frame-label{max-width:1360px;margin:18px auto 6px;padding:0 32px;font:600 11px/1 var(--mono);letter-spacing:1.4px;text-transform:uppercase;color:#44403C}
+
+/* ===== App-Rahmen: Seite auf dem Deck-Golden-Foto (.on-photo) ===== */
+.stage{max-width:1400px;margin:0 auto 28px;border:1px solid #bdbab3;overflow:hidden;
+  background:#b9b4a6 url("../../client/public/backdrops/deck-golden.jpg") center/cover no-repeat;
+  display:flex;flex-direction:column;min-height:640px;
+  /* .on-photo Token-Flip: nackte Flaechen auf dem Foto sind weiss */
+  --ink:#fff; --body:rgba(255,255,255,.9); --muted:rgba(255,255,255,.74); --faint:rgba(255,255,255,.52);
+  --line:rgba(255,255,255,.16); --line-strong:rgba(255,255,255,.28);
+}
+/* PageHead: 92px anthrazit, .inner 1360/32px */
+.page-head{background:var(--taupe);border-bottom:1px solid var(--taupe-line);flex-shrink:0;min-height:92px}
+.page-head .inner{max-width:1360px;margin:0 auto;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:92px}
+.page-title{font-size:20px;line-height:28px;font-weight:600;letter-spacing:-.01em;color:#fff}
+.page-title small{font-size:13px;font-weight:500;color:rgba(255,255,255,.74);margin-left:8px}
+.body{flex:1;padding:24px 0 40px}
+.page-container{max-width:1360px;margin:0 auto;padding-left:32px;padding-right:32px}
+
+/* Listen-Panel (inbox-list-panel): SOLIDE Flaeche, Tokens auf dunkel-auf-weiss zurueckgesetzt */
+.list-panel{display:flex;flex-direction:column;gap:24px;background:var(--card);border:1px solid var(--g200);border-radius:var(--radius-card);
+  padding:18px 18px 22px;box-shadow:var(--sh-sm);
+  --ink:var(--g900); --body:var(--g700); --muted:var(--g500); --faint:var(--g400); --line:var(--g200); --line-strong:var(--g300)}
+
+/* Projektgruppe (<details open>) */
+details.group{background:transparent;border-radius:var(--radius-card)}
+details.group>summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;padding:2px 4px 10px;color:var(--muted);outline:none}
+details.group>summary::-webkit-details-marker{display:none}
+.gdot{display:inline-block;flex-shrink:0;width:8px;height:8px;border-radius:9999px}
+.gname{font-size:12px;letter-spacing:.6px;font-weight:600;text-transform:uppercase;color:var(--ink)}
+.gcount{font-size:11px;font-weight:500;color:var(--muted)}
+.sessions{display:flex;flex-direction:column;gap:16px;padding-left:4px}
+.sess-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-left:4px}
+.sess-id{font-family:var(--mono);font-size:10px;color:var(--muted);opacity:.7}
+.cards{display:flex;flex-direction:column;gap:12px}
+
+/* Karte (alle Typen gleiches Chrome) */
+.card{background:var(--color-surface);border:1px solid var(--color-border);border-left:3px solid var(--color-warning);border-radius:var(--radius-button);
+  padding:12px 24px 20px;box-shadow:var(--shadow-sm);max-width:720px;cursor:pointer}
+.card.err{border-left-color:#c0392b}
+.card .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.card .top .l{display:flex;align-items:center;gap:8px;min-width:0}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:12px;font-weight:600;text-transform:uppercase;background:var(--color-muted-bg);color:var(--color-muted);font-size:11px;padding:3px 10px;letter-spacing:.02em}
+.pill svg{width:12px;height:12px;flex:none}
+.pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ago{flex-shrink:0;font-size:12px;font-weight:400;color:var(--color-muted)}
+.eyebrow{font-size:11px;letter-spacing:.6px;font-weight:600;text-transform:uppercase;color:var(--color-muted);margin-bottom:6px}
+.q{font-size:15px;font-weight:600;color:var(--color-text);line-height:1.45;margin-bottom:8px}
+.ctx{font-size:13px;color:var(--color-muted);line-height:1.5;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px}
+.chip{display:inline-flex;align-items:center;border-radius:var(--radius-button);font-weight:500;padding:6px 14px;border:1px solid var(--color-border);font-size:13px;color:var(--color-text);background:var(--color-muted-bg)}
+.cta-row{display:flex;align-items:center;justify-content:flex-end}
+.cta{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:var(--radius-button);font:600 13px var(--sans);color:#fff;background:var(--color-primary);padding:8px 16px;box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer}
+.cta:hover{background:var(--color-primary-hover)}
+.cta svg{width:14px;height:14px}
+.honesty{font-size:11.5px;color:var(--color-muted);line-height:1.5;margin:8px 0 0;text-align:right}
+.body-clip{position:relative;max-height:220px;overflow:hidden}
+.md p{margin:0 0 14px;font-size:15px;line-height:1.4;color:var(--color-text)}
+.md p:last-child{margin-bottom:0}
+.md code{font-family:var(--mono);font-size:.87em;background:var(--color-muted-bg);border:1px solid var(--color-border);padding:0 5px;border-radius:5px}
+.md ul{margin:0 0 14px;padding-left:20px;font-size:15px;line-height:1.4}
+.term{font-family:var(--mono);font-size:12.5px;color:var(--color-text);line-height:1.6;white-space:pre-wrap;background:var(--color-muted-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 13px}
+.notice-body{font-size:13px;color:var(--color-text);line-height:1.5;white-space:pre-wrap}
+.lead-btns{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
+.btn2{display:inline-flex;align-items:center;gap:6px;border-radius:var(--radius-button);font:500 13px var(--sans);padding:6px 14px}
+.btn2.sec{color:var(--color-text);background:var(--color-muted-bg);border:1px solid var(--color-border)}
+.btn2.ghost{color:var(--color-muted);background:transparent;border:1px solid var(--color-border)}
+.btn2.prim{color:#fff;background:var(--accent);border:0;opacity:.6}
+.caveat{margin:4px 0 0;font-size:11px;color:var(--color-muted)}
+textarea.ans{display:block;width:100%;margin-top:12px;padding:8px 10px;font:13px var(--sans);color:var(--color-text);background:var(--color-muted-bg);border:1px solid var(--color-border);border-radius:8px;resize:vertical}
+.lead-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px}
+
+
+/* Sidebar (anthrazit, ~216px) + Shell */
+.stage.withside{flex-direction:row;max-width:1880px;min-height:960px}
+.stage.withside .main{flex:1;min-width:0;display:flex;flex-direction:column}
+.sidebar{width:216px;flex-shrink:0;background:var(--taupe);color:#fff;display:flex;flex-direction:column;padding:12px 4px}
+.sidebar .logo{display:flex;align-items:center;gap:8px;padding:2px 8px 0;height:44px;font-size:19px;font-weight:700;letter-spacing:-.01em}
+.sidebar .logo .tg{margin-left:auto;opacity:.8}
+.sidebar nav{margin-top:28px;display:flex;flex-direction:column;gap:6px}
+.nav{position:relative;display:flex;align-items:center;gap:12px;height:36px;padding:0 12px;border-radius:8px;font-size:15px;font-weight:500;color:rgba(255,255,255,.85)}
+.nav svg{width:18px;height:18px;flex:none}
+.nav.active{background:rgba(53,184,164,.18);color:#fff}
+.nav.active::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:2px;background:#41c9b0}
+.nav .bd{margin-left:auto;min-width:19px;height:19px;border-radius:99px;font-size:11.5px;font-weight:600;display:flex;align-items:center;justify-content:center;color:#fff}
+.nav .bd.red{background:#e5392c}.nav .bd.amber{background:#f08c00}
+.sidebar .bottom{margin-top:auto;border-top:1px solid var(--taupe-line);padding-top:10px}
+.body-clip.fade::after{content:"";position:absolute;left:0;right:0;bottom:0;height:48px;pointer-events:none;background:linear-gradient(to bottom,transparent,var(--color-surface))}
+
+/* Leerer Zustand */
+.empty{display:flex;flex-direction:column;align-items:flex-start;max-width:600px;padding:24px;text-align:left;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-sm)}
+.empty .t{margin:0;font-size:18px;line-height:28px;font-weight:600;color:var(--color-text)}
+.empty .s{margin:8px 0 0;font-size:14px;line-height:1.55;color:var(--color-muted)}
+.empty .gl{text-decoration:underline dotted;cursor:help}
+.empty .go{margin-top:16px;display:inline-flex;align-items:center;gap:6px;border-radius:var(--radius-button);padding:8px 16px;font:600 13px var(--sans);border:1px solid var(--color-border);color:var(--color-text);background:var(--color-bg)}
+</style>
+</head>
+<body>
+
+<div class="note"><b>Inbox Ist-Stand, 1:1.</b> Gebaut aus dem echten Code und den echten Tokens (Stand <code>origin/main 3972d95a</code>), nicht aus einem Screenshot geschaetzt. Die Beispieldaten sind erfunden, zeigen aber fuenf der acht Kartentypen (Frage mit Optionen, Text-Frage, Terminal-Prompt, Lead-Frage, Codex-Hinweis). Phase-Gate und Codex-Approval teilen sich das Chrome der Text-Frage, Codex-Error das des Codex-Hinweises (nur roter Rand). Zustand 1 bildet deinen Screenshot nach (mit Sidebar), Zustand 2 zeigt die uebrigen Kartentypen ohne Sidebar. Das Hintergrundfoto wird aus <code>client/public/backdrops/deck-golden.jpg</code> geladen.</div>
+
+
+<!-- ===================== ZUSTAND 1: Nachbau deines Screenshots ===================== -->
+<div class="frame-label">Zustand 1 · Nachbau des Screenshots (echte Texte, mit Sidebar)</div>
+<div class="stage withside">
+  <aside class="sidebar">
+    <div class="logo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M19 5l-4 4M9 15l-4 4"/></svg>Shipwright<svg class="tg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 9l-3 3 3 3"/></svg></div>
+    <nav>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Task Board</div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>Projects</div>
+      <div class="nav active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>Inbox<span class="bd red">2</span></div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/></svg>Triage<span class="bd amber">6</span></div>
+      <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Diagnostics</div>
+    </nav>
+    <div class="bottom"><div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>Settings</div></div>
+  </aside>
+  <div class="main">
+  <header class="page-head"><div class="inner"><div style="min-width:0"><h1 class="page-title">Inbox<small>(2 open)</small></h1></div></div></header>
+  <div class="body"><div class="page-container">
+    <div class="list-panel">
+      <details class="group" open>
+        <summary><span class="gdot" style="background:#b8a898"></span><span class="gname">Shipwright</span><span class="gcount">(1 open)</span></summary>
+        <div class="sessions"><section>
+          <div class="sess-head"><span class="sess-id">session 2b6b109e</span></div>
+          <div class="cards">
+            <div class="card" role="button" tabindex="0">
+              <div class="top"><div class="l"></div><span class="ago">1d ago</span></div>
+              <div class="eyebrow">Awaiting your reply</div>
+              <div class="body-clip fade md">
+                <p>...iefert, wenn der Host nicht automatisch mergen kann oder darf." | Code: eigene Tests, nur <code>deliver_pr.py</code>, nichts geteilt mit dem Rest | | <b>Schnitt 2</b> (optional) | AC30, 31, 32, 33, 34, 37 (6) | "Die externe Zweitmeinung bleibt unabhängig vom Werkzeug, das die Änderung gemacht hat, und läuft bei Bedarf über Codex mit gewähltem Modell." | Nur meine Einschätzung des Inhalts. Der Code zeigt keine Verbindung. |</p>
+                <p>Die neue FR-Nummer wäre voraussichtlich <b>FR-01.22</b>. Der Trockenlauf prüft sie gegen <code>origin/main</code>.</p>
+                <p><b>Zu Schnitt 2:</b> Der Name braucht ein "und", und nach unserem eigenen Test heißt das zwei Fähigkeiten. Die Kriterien teilen keine Tests, <code>fr_split</code> würde den Schnitt also zulassen. Ich empfehle, ihn <b>nicht</b> jetzt zu machen. Wenn Sie ihn trotzdem wollen, sagen Sie es, dann schärfe ich die Kriterien.</p>
+              </div>
+              <div class="cta-row" style="margin-top:12px"><button class="cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>Answer in the terminal</button></div>
+              <p class="honesty">Claude is waiting for your answer. Type it in the task's terminal — the WebUI doesn't answer for you.</p>
+            </div>
+          </div>
+        </section></div>
+      </details>
+      <details class="group" open>
+        <summary><span class="gdot" style="background:#3fc84a"></span><span class="gname">Content Marketing</span><span class="gcount">(1 open)</span></summary>
+        <div class="sessions"><section>
+          <div class="sess-head"><span class="sess-id">session 71a2dab6</span></div>
+          <div class="cards">
+            <div class="card" role="button" tabindex="0">
+              <div class="top"><div class="l"></div><span class="ago">3w ago</span></div>
+              <div class="eyebrow">Awaiting your reply</div>
+              <div class="body-clip fade md">
+                <p>Handles sind gespeichert: Reddit und HN jeweils <code>svenrth</code>. Falls du dich vertippt hast und es <code>svenroth</code> heißen soll, sag es, dann ändere ich das mit einem Befehl.</p>
+                <p>Im echten Datenordner liegen schon zwei Entwürfe vom 20.10. (ein HN-Thread und ein Reddit-Kommentar in r/BetterOffline). Sie stammen aus einem früheren Lauf, bei dem ich offenbar gegen den echten Ordner gebaut hatte, statt gegen einen Testordner. Beide stehen als "open" im Board und sind noch nicht gepostet. Ich würde sie beim ersten echten Lauf neu bewerten oder verwerfen, statt sie zu posten. Der Reddit-Entwurf zeigt auf einen Kommentar in einem Off-Topic-Thread (r/BetterOffline).</p>
+                <p>Soll ich beide auf "skipped" setzen, damit dein Board sauber startet?</p>
+              </div>
+              <div class="cta-row" style="margin-top:12px"><button class="cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>Answer in the terminal</button></div>
+              <p class="honesty">Claude is waiting for your answer. Type it in the task's terminal — the WebUI doesn't answer for you.</p>
+            </div>
+          </div>
+        </section></div>
+      </details>
+    </div>
+  </div></div>
+  </div>
+</div>
+
+<!-- ===================== ZUSTAND 1: gefuellt ===================== -->
+<div class="frame-label">Zustand 2 · alle Kartentypen (erfundene Beispieldaten)</div>
+<div class="stage">
+  <header class="page-head"><div class="inner"><div style="min-width:0"><h1 class="page-title">Inbox<small>(5 open)</small></h1></div></div></header>
+  <div class="body"><div class="page-container">
+    <div class="list-panel">
+
+      <!-- Projekt A -->
+      <details class="group" open>
+        <summary><span class="gdot" style="background:hsl(172,55%,38%)"></span><span class="gname">shipwright-webui</span><span class="gcount">(3 open)</span></summary>
+        <div class="sessions">
+
+          <section>
+            <div class="sess-head"><span class="sess-id">session 3f9a1c42</span></div>
+            <div class="cards">
+
+              <!-- ask_tool -->
+              <div class="card" role="button" tabindex="0">
+                <div class="top">
+                  <div class="l"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 12-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9"/><path d="M17.64 15 22 10.64"/><path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.26 1.91"/></svg><span>build / Inbox-Seite optisch angleichen</span></span></div>
+                  <span class="ago">2h ago</span>
+                </div>
+                <div class="eyebrow">Priority</div>
+                <div class="q">Soll die Karte bei Klick direkt das Terminal fokussieren oder nur die Aufgabe oeffnen?</div>
+                <div class="ctx">Beide Wege existieren heute. Die Karte navigiert mit focusTerminal, der Button geht ueber den Deep-Link.</div>
+                <div class="chips"><span class="chip">Terminal fokussieren</span><span class="chip">Nur Aufgabe oeffnen</span></div>
+                <div class="cta-row"><button class="cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>Answer in the terminal</button></div>
+                <p class="honesty">Claude is waiting for your answer. Type it in the task's terminal — the WebUI doesn't answer for you.</p>
+              </div>
+
+              <!-- text_question -->
+              <div class="card" role="button" tabindex="0">
+                <div class="top">
+                  <div class="l"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 12-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9"/><path d="M17.64 15 22 10.64"/><path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.26 1.91"/></svg><span>build / Inbox-Seite optisch angleichen</span></span></div>
+                  <span class="ago">2h ago</span>
+                </div>
+                <div class="eyebrow">Awaiting your reply</div>
+                <div class="body-clip md">
+                  <p>Ich habe die Triage-Zeilen als Vorlage genommen. Zwei Wege fuer die Inbox:</p>
+                  <ul><li>Karten als Zeilen in Projekt-Lanes (wie Triage)</li><li>Karten bleiben gross, nur Chrome angleichen</li></ul>
+                  <p>Welchen Weg soll ich bauen? Beide nutzen <code>useInboxData</code> unveraendert.</p>
+                </div>
+                <div class="cta-row" style="margin-top:12px"><button class="cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>Answer in the terminal</button></div>
+                <p class="honesty">Claude is waiting for your answer. Type it in the task's terminal — the WebUI doesn't answer for you.</p>
+              </div>
+
+            </div>
+          </section>
+
+          <section>
+            <div class="sess-head"><span class="sess-id">session b81d07e5</span></div>
+            <div class="cards">
+
+              <!-- terminal_prompt -->
+              <div class="card" role="button" tabindex="0">
+                <div class="top">
+                  <div class="l"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4"/><path d="M10 2v6.5L4.5 19a1.5 1.5 0 0 0 1.3 2.2h12.4a1.5 1.5 0 0 0 1.3-2.2L14 8.5V2"/></svg><span>test / Migration pruefen</span></span></div>
+                  <span class="ago">14m ago</span>
+                </div>
+                <div class="eyebrow">Awaiting your reply</div>
+                <div class="body-clip"><div class="term">❯ Overwrite existing migration? (y/N)</div></div>
+                <div class="cta-row" style="margin-top:12px"><button class="cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>Answer in the terminal</button></div>
+                <p class="honesty">Claude is waiting for your answer. Type it in the task's terminal — the WebUI doesn't answer for you.</p>
+              </div>
+
+            </div>
+          </section>
+
+        </div>
+      </details>
+
+      <!-- Projekt B -->
+      <details class="group" open>
+        <summary><span class="gdot" style="background:hsl(28,70%,48%)"></span><span class="gname">kunden-portal</span><span class="gcount">(2 open)</span></summary>
+        <div class="sessions">
+          <section>
+            <div class="sess-head"><span class="sess-id">session 5c20e9a7</span></div>
+            <div class="cards">
+
+              <!-- lead_question -->
+              <div class="card" role="button" tabindex="0">
+                <div class="top">
+                  <div class="l"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>plan / Rollen und Rechte</span></span></div>
+                  <span class="ago">1d ago</span>
+                </div>
+                <div class="eyebrow">Lead is asking</div>
+                <div class="body-clip md"><p>Sollen Admins Rechnungen anderer Mandanten sehen duerfen, oder nur ihre eigenen?</p></div>
+                <div style="margin-top:10px">
+                  <div class="lead-btns">
+                    <span class="btn2 sec"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>Discuss in terminal</span>
+                    <span class="btn2 ghost">Take the outcome as the answer</span>
+                  </div>
+                  <p class="caveat">Opens a fresh Claude session for this task — it isn't the lead and won't see this question or thread.</p>
+                </div>
+                <textarea class="ans" rows="3" placeholder="Type your answer…"></textarea>
+                <div class="lead-foot"><span class="btn2 ghost">Dismiss</span><span class="btn2 prim">Send answer</span></div>
+              </div>
+
+              <!-- codex_watcher -->
+              <div class="card" role="button" tabindex="0">
+                <div class="top">
+                  <div class="l"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 12-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9"/><path d="M17.64 15 22 10.64"/><path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.26 1.91"/></svg><span>build / Export-Endpunkt</span></span></div>
+                  <span class="ago">6m ago</span>
+                </div>
+                <div class="eyebrow">Nudge sent</div>
+                <div class="notice-body">Sent a nudge — the completion oracle reports this run isn't done yet.</div>
+              </div>
+
+            </div>
+          </section>
+        </div>
+      </details>
+
+    </div>
+  </div></div>
+</div>
+
+<!-- ===================== ZUSTAND 2: leer ===================== -->
+<div class="frame-label">Zustand 3 · leer (keine offenen Fragen)</div>
+<div class="stage" style="min-height:420px">
+  <header class="page-head"><div class="inner"><div style="min-width:0"><h1 class="page-title">Inbox<small>(0 open)</small></h1></div></div></header>
+  <div class="body"><div class="page-container">
+    <div class="empty">
+      <p class="t">Your inbox is clear</p>
+      <p class="s">When Shipwright needs a decision from you mid-run — a question, or an <span class="gl">approval gate</span> — it lands here so you never have to watch the terminal. Nothing is waiting right now.</p>
+      <span class="go">Go to the board</span>
+    </div>
+  </div></div>
+</div>
+
+<div class="note"><b>Was ich bewusst nicht nachgebaut habe:</b> der Fade am unteren Rand langer Karten (erscheint nur, wenn der Text 220px uebersteigt), der Ladezustand ("Loading…") und die Hover-/Fokus-Zustaende. Die Markdown-Darstellung der Antworttexte (15px, Zeilenhoehe 21px, Absatzabstand 14px) ist am Screenshot gemessen, nicht aus dem Code der geteilten Komponente MarkdownText gelesen.</div>
+</body>
+</html>
