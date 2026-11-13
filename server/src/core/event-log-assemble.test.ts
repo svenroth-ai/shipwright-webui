@@ -18,8 +18,8 @@ import {
 
 const j = (o: Record<string, unknown>): string => JSON.stringify(o);
 const legacy = (text: string): EventSource => ({ path: "shipwright_events.jsonl", kind: "legacy", text });
-const drop = (name: string, text: string | null): EventSource => ({ path: `shipwright_events.d/${name}`, kind: "drop", text });
-const archive = (name: string, text: string): EventSource => ({ path: `shipwright_events.archive/${name}`, kind: "archive", text });
+const drop = (name: string, text: string | null): EventSource => ({ path: `.shipwright/events/drops/${name}`, kind: "drop", text });
+const archive = (name: string, text: string): EventSource => ({ path: `.shipwright/events/archive/${name}`, kind: "archive", text });
 
 // @covers FR-01.47
 describe("assembleEventLog — order", () => {
@@ -110,13 +110,13 @@ describe("assembleEventLog — per-file status", () => {
       archive("fold-x.jsonl", "{bad"),
     ]);
     expect(absenceBlockers(log.files, "iterate-a").map((f) => f.path)).toEqual([
-      "shipwright_events.d/iterate-a--00000000--00000000.jsonl",
-      "shipwright_events.d/notes.jsonl",
-      "shipwright_events.archive/fold-x.jsonl",
+      ".shipwright/events/drops/iterate-a--00000000--00000000.jsonl",
+      ".shipwright/events/drops/notes.jsonl",
+      ".shipwright/events/archive/fold-x.jsonl",
     ]);
     expect(absenceBlockers(log.files, "iterate-b").map((f) => f.path)).toEqual([
-      "shipwright_events.d/notes.jsonl",
-      "shipwright_events.archive/fold-x.jsonl",
+      ".shipwright/events/drops/notes.jsonl",
+      ".shipwright/events/archive/fold-x.jsonl",
     ]);
   });
 

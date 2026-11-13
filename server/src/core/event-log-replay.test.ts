@@ -78,11 +78,11 @@ describe("KC1 replay — unsplit vs split render byte-identically", () => {
     const text = readFileSync(path.join(FIXTURES, "unsplit.jsonl"), "utf-8");
     const out = tmp("evr-port-");
     const names = splitLog(text, out);
-    const committed = path.join(FIXTURES, "split", "shipwright_events.d");
+    const committed = path.join(FIXTURES, "split", ".shipwright/events/drops");
     expect(names).toEqual(readdirSync(committed).sort());
     for (const n of names) {
       const norm = (p: string) => readFileSync(p, "utf-8").replace(/\r\n/g, "\n");
-      expect(norm(path.join(out, "shipwright_events.d", n))).toBe(norm(path.join(committed, n)));
+      expect(norm(path.join(out, ".shipwright/events/drops", n))).toBe(norm(path.join(committed, n)));
     }
   });
 

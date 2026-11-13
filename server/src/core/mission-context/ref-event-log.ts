@@ -4,8 +4,8 @@
  * fallback in `merged-events.ts`.
  *
  * `git show <ref>:shipwright_events.jsonl` saw only the legacy file. The log is
- * now the legacy file plus `shipwright_events.archive/*.jsonl` and
- * `shipwright_events.d/*.jsonl`, so this lists the three paths with ONE
+ * now the legacy file plus `.shipwright/events/archive/*.jsonl` and
+ * `.shipwright/events/drops/*.jsonl` (and the pre-move root folders), so this lists the three paths with ONE
  * `git ls-tree -r -z` and reads every blob with ONE `git cat-file --batch`
  * (object ids on stdin, never paths, so no file name can break the protocol).
  * The batch output frames each blob by its size in BYTES, so it is parsed as a
@@ -20,6 +20,8 @@ import { spawn } from "node:child_process";
 
 import {
   ARCHIVE_DIR,
+  LEGACY_ARCHIVE_DIR,
+  LEGACY_DROPS_DIR,
   assembleEventLog,
   DROPS_DIR,
   EVENT_FILE,
@@ -101,7 +103,7 @@ function eligible(lsTree: string): TreeEntry[] {
     const p = rec.slice(tab + 1);
     if (type !== "blob" || mode === "120000" || !oid) continue; // symlinks are never read
     if (p === EVENT_FILE) out.push({ oid, path: p });
-    for (const dir of [ARCHIVE_DIR, DROPS_DIR]) {
+    for (const dir of [ARCHIVE_DIR, DROPS_DIR, LEGACY_ARCHIVE_DIR, LEGACY_DROPS_DIR]) {
       const name = p.startsWith(`${dir}/`) ? p.slice(dir.length + 1) : null;
       if (name && !name.includes("/") && name.endsWith(".jsonl")) out.push({ oid, path: p });
     }
@@ -109,7 +111,8 @@ function eligible(lsTree: string): TreeEntry[] {
   return out;
 }
 
-const rank = (p: string): number => (p === EVENT_FILE ? 0 : p.startsWith(`${ARCHIVE_DIR}/`) ? 1 : 2);
+const rank = (p: string): number =>
+  p === EVENT_FILE ? 0 : p.startsWith(`${ARCHIVE_DIR}/`) || p.startsWith(`${LEGACY_ARCHIVE_DIR}/`) ? 1 : 2;
 
 /**
  * The assembled log at `ref`, or `null` when the ref cannot be read or holds none
@@ -123,7 +126,7 @@ export async function readAssembledEventLogAtRef(
 ): Promise<AssembledEventLog | null> {
   try {
     const listing = await git(
-      ["ls-tree", "-r", "-z", ref, "--", EVENT_FILE, `${ARCHIVE_DIR}/`, `${DROPS_DIR}/`],
+      ["ls-tree", "-r", "-z", ref, "--", EVENT_FILE, `${ARCHIVE_DIR}/`, `${DROPS_DIR}/`, `${LEGACY_ARCHIVE_DIR}/`, `${LEGACY_DROPS_DIR}/`],
       projectRoot,
     );
     const entries = eligible(listing).sort((a, b) =>

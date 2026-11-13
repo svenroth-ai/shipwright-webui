@@ -2,7 +2,7 @@
  * E1 — the plugin's drop-files layout end to end (events-drop-files, issue 978,
  * units S1 + S5b). Real files on disk in the NEW layout only — no legacy
  * `shipwright_events.jsonl`, the run's `work_completed` lives in its own
- * `shipwright_events.d/<key>--<wt8>--<nonce8>.jsonl`, and its documentation
+ * `.shipwright/events/drops/<key>--<wt8>--<nonce8>.jsonl`, and its documentation
  * update is a bullet drop under `.shipwright/agent_docs/decision-drops/bullets/`.
  * Drives the real resolver, the real Mission rail and the real Documents panel.
  *
@@ -21,7 +21,7 @@ import {
 import { writeFiles } from "../helpers/temp-dir";
 
 const RUN_ID = "iterate-2026-11-07-drops-e2e";
-const DROP = `shipwright_events.d/${RUN_ID}--0a1b2c3d--11111111.jsonl`;
+const DROP = `.shipwright/events/drops/${RUN_ID}--0a1b2c3d--11111111.jsonl`;
 const BULLET = `.shipwright/agent_docs/decision-drops/bullets/architecture--${RUN_ID}--0a1b2c3d--22222222.md`;
 const BULLET_TEXT = `- **${RUN_ID}** (2026-11-07): Data-flow — the drop-files reader e2e line.`;
 

@@ -25,7 +25,7 @@ export function contentKey(event: Record<string, unknown>): string {
   return "_legacy";
 }
 
-/** Write `<outRoot>/shipwright_events.d/<key>--00000000--00000000.jsonl` files; returns their names. */
+/** Write `<outRoot>/.shipwright/events/drops/<key>--00000000--00000000.jsonl` files; returns their names. */
 export function splitLog(unsplitText: string, outRoot: string): string[] {
   const groups = new Map<string, string[]>();
   for (const raw of unsplitText.split(/\r\n|\n|\r/)) {
@@ -33,7 +33,7 @@ export function splitLog(unsplitText: string, outRoot: string): string[] {
     const key = contentKey(JSON.parse(raw) as Record<string, unknown>);
     groups.set(key, [...(groups.get(key) ?? []), raw]);
   }
-  const folder = path.join(outRoot, "shipwright_events.d");
+  const folder = path.join(outRoot, ".shipwright/events/drops");
   mkdirSync(folder, { recursive: true });
   const names: string[] = [];
   for (const key of [...groups.keys()].sort()) {

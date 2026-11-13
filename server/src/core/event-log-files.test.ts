@@ -37,7 +37,7 @@ function tree(files: Record<string, string>): string {
 
 const wc = (runId: string, extra: Record<string, unknown> = {}) =>
   `${JSON.stringify({ id: `id-${runId}`, type: "work_completed", adr_id: runId, ts: "2026-11-01T10:00:00Z", commit: "", ...extra })}\n`;
-const D = "shipwright_events.d";
+const D = ".shipwright/events/drops";
 
 // @covers FR-01.47
 describe("readers see a run that exists only as a drop file", () => {
@@ -45,7 +45,7 @@ describe("readers see a run that exists only as a drop file", () => {
     const root = tree({
       "shipwright_events.jsonl": wc("iterate-2026-10-01-old"),
       [`${D}/iterate-2026-11-01-new--0a1b2c3d--11111111.jsonl`]: wc("iterate-2026-11-01-new", { campaign: "2026-11-01-c", sub_iterate_id: "S1" }),
-      "shipwright_events.archive/fold-aaaaaaaaaaaa.jsonl": wc("iterate-2026-09-01-archived"),
+      ".shipwright/events/archive/fold-aaaaaaaaaaaa.jsonl": wc("iterate-2026-09-01-archived"),
     });
     expect(new Set(readEventLog(root).runs.map((r) => r.runId))).toEqual(
       new Set(["iterate-2026-11-01-new", "iterate-2026-10-01-old", "iterate-2026-09-01-archived"]));
@@ -63,7 +63,7 @@ describe("readers see a run that exists only as a drop file", () => {
 
   it("never reads quarantine, the writer's .tmp files, non-jsonl names or sub-folders", () => {
     const root = tree({
-      "shipwright_events.quarantine/x--0a1b2c3d--11111111.jsonl": wc("iterate-q"),
+      ".shipwright/events/quarantine/x--0a1b2c3d--11111111.jsonl": wc("iterate-q"),
       [`${D}/.r--0a1b2c3d--11111111.jsonl.tmp`]: wc("iterate-hidden"),
       [`${D}/notes.md`]: wc("iterate-md"),
       [`${D}/.keep`]: "",
@@ -93,7 +93,7 @@ describe("symlinks and unlistable folders", () => {
     const outside = tree({ "real.jsonl": wc("iterate-2026-11-04-linked"), "arch/a.jsonl": wc("iterate-2026-11-04-archlink") });
     const root = tree({ [`${D}/.keep`]: "" });
     symlinkSync(path.join(outside, "real.jsonl"), path.join(root, D, "iterate-2026-11-04-linked--0a1b2c3d--11111111.jsonl"));
-    symlinkSync(path.join(outside, "arch"), path.join(root, "shipwright_events.archive"), "dir");
+    symlinkSync(path.join(outside, "arch"), path.join(root, ".shipwright/events/archive"), "dir");
     expect(readAssembledEventLog(root)!.files).toEqual([]);
     expect(findWorkCompleted(root, "iterate-2026-11-04-linked").status).toBe("absent");
     expect(findWorkCompleted(root, "iterate-2026-11-04-archlink").status).toBe("absent");
@@ -156,7 +156,7 @@ describe("Mission lookup: absence vs unavailability, cache invalidation", () => 
   });
 
   it("a damaged ARCHIVE file blocks every run's absence (a folded run lives only there)", () => {
-    const root = tree({ "shipwright_events.archive/fold-aaaaaaaaaaaa.jsonl": `${wc("iterate-2026-11-01-ok").trim()}\n{torn` });
+    const root = tree({ ".shipwright/events/archive/fold-aaaaaaaaaaaa.jsonl": `${wc("iterate-2026-11-01-ok").trim()}\n{torn` });
     expect(findWorkCompleted(root, "iterate-2026-11-01-ok").status).toBe("found");
     expect(findWorkCompleted(root, "iterate-2026-11-02-gone").status).toBe("unavailable");
   });
@@ -182,5 +182,26 @@ describe("Mission lookup: absence vs unavailability, cache invalidation", () => 
 
   it("no event file at all → absent with mtime 0 (unchanged)", () => {
     expect(findWorkCompleted(tree({}), "iterate-z")).toEqual({ status: "absent", mtimeMs: 0 });
+  });
+});
+
+// @covers FR-01.47
+describe("a project not migrated to .shipwright/events/ yet", () => {
+  it("reads the pre-move root folders while the new folder is absent", () => {
+    const root = tree({
+      "shipwright_events.d/iterate-2026-11-05-old--0a1b2c3d--11111111.jsonl": wc("iterate-2026-11-05-old"),
+      "shipwright_events.archive/fold-aaaaaaaaaaaa.jsonl": wc("iterate-2026-09-05-oldarch"),
+    });
+    expect(findWorkCompleted(root, "iterate-2026-11-05-old").status).toBe("found");
+    expect(findWorkCompleted(root, "iterate-2026-09-05-oldarch").status).toBe("found");
+  });
+
+  it("prefers the new folder: the old one is not read once the new one exists", () => {
+    const root = tree({
+      [`${D}/iterate-2026-11-06-new--0a1b2c3d--11111111.jsonl`]: wc("iterate-2026-11-06-new"),
+      "shipwright_events.d/iterate-2026-11-06-stale--0a1b2c3d--22222222.jsonl": wc("iterate-2026-11-06-stale"),
+    });
+    expect(findWorkCompleted(root, "iterate-2026-11-06-new").status).toBe("found");
+    expect(findWorkCompleted(root, "iterate-2026-11-06-stale").status).toBe("absent");
   });
 });
