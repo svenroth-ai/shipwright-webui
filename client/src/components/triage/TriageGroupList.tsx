@@ -56,7 +56,7 @@ export function TriageGroupList({
 
   return (
     <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragEnd={onDragEnd}>
-      <div className="flex flex-col gap-3.5 max-md:gap-3" data-testid="triage-open-items">
+      <div className="flex flex-col gap-9 max-md:gap-6" data-testid="triage-open-items">
         {groups.map((g, i) => {
           // A group holding a returned park never stays folded: the bypass must
           // survive a collapse saved days ago.

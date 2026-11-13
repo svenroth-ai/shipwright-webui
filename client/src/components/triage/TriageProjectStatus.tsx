@@ -7,6 +7,8 @@
  * of silently contributing zero items.
  */
 
+import { ArrowDownToLine } from "lucide-react";
+
 import type { TriageProjectStatus as Status } from "../../hooks/useTriage";
 import { ListLoadErrorState } from "../common/ListLoadErrorState";
 
@@ -51,11 +53,15 @@ export function TriageProjectStatus({ statuses, nameOf, named }: Props) {
               key={s.projectId}
               role="status"
               data-testid={`triage-stale-banner-${s.projectId}`}
-              className="mb-3 rounded-md border border-[var(--warn-line)] bg-warn-tint px-3 py-2 text-xs text-warn"
+              className="mb-3 flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--warn-solid,var(--warn))] bg-[var(--triage-lane-solid)] px-4 py-2.5 text-sm text-white/90 shadow-[var(--sh-photo)]"
             >
-              {prefix}Local checkout is {s.behind} commit{s.behind === 1 ? "" : "s"} behind origin —{" "}
-              <code>git pull</code> to sync.
-              {s.originAvailable ? "" : " Origin is unavailable, so already-dismissed items may still appear here."}
+              <ArrowDownToLine size={16} aria-hidden="true" className="shrink-0 text-[var(--warn-solid,var(--warn))]" />
+              <span className="min-w-0">
+                {named && <b className="font-semibold text-white">{nameOf(s.projectId)}: </b>}
+                Local checkout is {s.behind} commit{s.behind === 1 ? "" : "s"} behind origin — run{" "}
+                <code className="rounded bg-white/15 px-1.5 py-0.5 text-[13px] text-white">git pull</code> to sync.
+                {s.originAvailable ? "" : " Origin is unavailable, so already-dismissed items may still appear here."}
+              </span>
             </div>
           );
         }

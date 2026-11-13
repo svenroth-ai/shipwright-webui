@@ -49,6 +49,7 @@ test("a row shows severity, the selectable id and a copy button before the title
   context,
 }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.setViewportSize({ width: 1500, height: 900 }); // wide enough for the hover strip
   await page.goto("/triage");
   const row = page.getByTestId("triage-item-trg-lane0001");
   await expect(row).toBeVisible({ timeout: 35_000 });
