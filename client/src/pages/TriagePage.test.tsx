@@ -163,15 +163,16 @@ describe("TriagePage", () => {
     expect(screen.getByTestId("triage-tile-parked")).toHaveTextContent("1");
   });
 
-  it("lines the pills, the behind-origin chip and the plain-text severity legend up in ONE summary row", async () => {
+  it("lines the pills, ONE behind-origin alert and the plain-text severity legend up in one summary row", async () => {
     setItems([mockItem("trg-aaaa1111")], { behind: 2 });
     renderPage();
     const summary = await screen.findByTestId("triage-summary");
     expect(summary).toContainElement(screen.getByTestId("triage-tile-open"));
-    const chip = screen.getByTestId("triage-stale-banner-proj-a");
+    const chip = screen.getByTestId("triage-behind-alert");
     expect(summary).toContainElement(chip);
-    // a notice, not a filter: not a button, and square-ish where the pills are fully round
-    expect(chip.tagName).not.toBe("BUTTON");
+    // a short notice that never wraps, square-ish where the pills are fully round
+    expect(chip).toHaveTextContent("A project behind origin");
+    expect(chip.className).toContain("whitespace-nowrap");
     expect(chip.className).not.toContain("rounded-full");
     expect(screen.getByTestId("triage-tile-open").className).toContain("rounded-full");
     expect(summary).toContainElement(screen.getByTestId("triage-severity-legend"));
@@ -203,34 +204,6 @@ describe("TriagePage", () => {
     await user.click(await screen.findByRole("button", { name: "Item trg-aaaa1111" }));
     expect(await screen.findByTestId("triage-detail-modal")).toBeInTheDocument();
     expect(screen.getByTestId("triage-detail-body")).toHaveTextContent("Detail for trg-aaaa1111");
-  });
-
-  it("shows the staleness banner when the local checkout is behind origin", async () => {
-    setItems([mockItem("trg-aaaa1111")], { behind: 3 });
-    renderPage();
-    expect(await screen.findByTestId("triage-stale-banner-proj-a")).toHaveTextContent(
-      "3 commits behind origin",
-    );
-  });
-
-  it("hides the staleness banner when in sync (behind 0) or when behind is unknown", async () => {
-    setItems([mockItem("trg-aaaa1111")], { behind: 0 });
-    const first = renderPage();
-    await screen.findByTestId("triage-item-trg-aaaa1111");
-    expect(screen.queryByTestId("triage-stale-banner-proj-a")).not.toBeInTheDocument();
-    first.unmount();
-    setItems([mockItem("trg-aaaa1111")], { behind: null, originAvailable: false });
-    renderPage();
-    await screen.findByTestId("triage-item-trg-aaaa1111");
-    expect(screen.queryByTestId("triage-stale-banner-proj-a")).not.toBeInTheDocument();
-  });
-
-  it("adds a ghost-risk note only when origin is unavailable (degraded)", async () => {
-    setItems([mockItem("trg-aaaa1111")], { behind: 2, originAvailable: false });
-    renderPage();
-    const banner = await screen.findByTestId("triage-stale-banner-proj-a");
-    expect(banner).toHaveTextContent("2 commits behind origin");
-    expect(banner).toHaveTextContent("already-dismissed items may still appear");
   });
 
   it("a failed load shows the error block with Retry, not an empty page", async () => {

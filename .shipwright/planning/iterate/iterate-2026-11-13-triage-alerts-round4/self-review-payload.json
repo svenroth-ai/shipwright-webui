@@ -1,0 +1,9 @@
+{"items":[
+{"name":"spec-match","verdict":"pass","note":"both requested changes implemented: darker legend; one orange behind-origin alert with hover/tap popover, in the same single summary row"},
+{"name":"tests","verdict":"pass","note":"vitest 5124 green (+3 new TriageProjectStatus tests); new real-browser e2e triage-behind-alert passes (single row, no wrap, hover popover); triage-lanes-rows e2e still green"},
+{"name":"error-handling","verdict":"pass","note":"load-error and loading blocks unchanged; alert hidden for behind 0/null"},
+{"name":"security","verdict":"pass","note":"plain text only, no HTML injection"},
+{"name":"a11y","verdict":"pass","note":"alert is a real button (keyboard/tap toggles the popover); keyboard use clears the mouse flag so Enter toggles"},
+{"name":"regressions","verdict":"pass","note":"TriagePage.test.tsx shrank to 284 lines (behind tests moved to TriageProjectStatus.test.tsx) so no bloat crossing"},
+{"name":"boundaries","verdict":"pass","note":"no IO boundary touched"}
+]}

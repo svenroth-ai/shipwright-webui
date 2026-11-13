@@ -62,7 +62,7 @@ export function SeverityLegend() {
   const keys: TriageSeverity[] = ["critical", "high", "medium", "low", "info"];
   return (
     <p
-      className="m-0 flex flex-wrap items-center gap-x-3.5 gap-y-1 rounded-lg bg-black/35 px-2.5 py-1 text-xs text-white/90"
+      className="m-0 flex flex-wrap items-center gap-x-3.5 gap-y-1 rounded-lg border border-white/15 bg-black/65 px-2.5 py-1 text-xs text-white"
       data-testid="triage-severity-legend"
     >
       {keys.map((k) => (

@@ -1,0 +1,10 @@
+{"verdict":"approve-with-fixes","review":[
+{"severity":"medium","finding":"BehindAlert close timer is never cleared on unmount / when the popover closes another way (Escape)."},
+{"severity":"medium","finding":"mouse-vs-touch gate is a ref set only on pointerenter and reset only on keydown; a click with no preceding pointerenter (assistive tech, hybrid devices) can be swallowed so the popover cannot open."},
+{"severity":"low","finding":"Accessibility: the old chip had role=status; the new alert has no announcement and the popover has no accessible name."},
+{"severity":"low","finding":"No hover-intent delay on open; acceptable."},
+{"severity":"low","finding":"Popover hardcodes white-on-triage-lane-solid and shadow-lg instead of the sibling popovers' shared tokens; fine only while --triage-lane-solid is always dark."},
+{"severity":"medium","finding":"Unit tests only cover click; missing touch tap open/close, keyboard toggle, hover-leave close delay and Escape."},
+{"severity":"low","finding":"Class-string assertions are brittle; the e2e is the real no-wrap proof."},
+{"severity":"low","finding":"e2e only at 1500px viewport and matches only the exact /api/triage/<id> path."}
+]}

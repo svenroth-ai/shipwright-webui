@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-13-triage-alerts-round4",
+  "date": "2026-11-13",
+  "section": "Iterate - change: Triage behind-origin alert",
+  "title": "Triage: one orange behind-origin alert with a popover, darker severity legend",
+  "context": "Round 3 showed one wide chip per project for 'checkout is N commits behind origin'; the chips wrapped and the severity legend was unreadable on the photo background.",
+  "decision": "A single compact orange alert (A project / Projects behind origin) shares the one summary row with the pills and the legend; hover with a mouse or tap on touch opens a popover listing each project and its commit count. The legend background is darker.",
+  "consequences": "The row stays on one line; the detail (project, commits, degraded-origin note) is one interaction away instead of always visible. Keyboard and touch use the normal button toggle.",
+  "rationale": "The operator asked for a subtle alert, not the full information; a popover keeps the detail without costing row width.",
+  "rejected": "Keeping per-project chips with truncation (still wide, still noisy); a tooltip only (not reachable on touch).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
