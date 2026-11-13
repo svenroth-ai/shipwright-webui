@@ -14,7 +14,7 @@ import {
   serializeInboxView,
 } from "./inboxViewStorage";
 
-// @covers FR-01.30
+// @covers FR-01.04
 describe("inboxViewStorage", () => {
   afterEach(() => {
     window.localStorage.clear();

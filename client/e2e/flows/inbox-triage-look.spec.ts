@@ -82,7 +82,7 @@ async function groupOrder(page: Page): Promise<string[]> {
     .evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("inbox-project-group-", "")));
 }
 
-// @covers FR-01.30
+// @covers FR-01.04
 test.describe("Inbox in the Triage look", () => {
   test.beforeEach(async ({ page }) => {
     await mockInbox(page, { withProjects: true });
@@ -166,7 +166,7 @@ test.describe("Inbox in the Triage look", () => {
   });
 });
 
-// @covers FR-01.30
+// @covers FR-01.04
 test("the Inbox content starts at the same left edge as the Triage page (no jump when switching)", async ({ page }) => {
   await mockInbox(page, { withProjects: false });
   await page.goto("/inbox");

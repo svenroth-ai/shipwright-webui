@@ -1,0 +1,1 @@
+- **iterate-2026-11-13-inbox-html-baseline** (2026-11-13): Convention — Inbox cards use the scoped .inbox-card dark-glass style (legacy --color-* aliases re-pointed inside the card); project groups fold and reorder, view saved by inboxViewStorage. → decision_log (ADR via Run-ID: iterate-2026-11-13-inbox-html-baseline)

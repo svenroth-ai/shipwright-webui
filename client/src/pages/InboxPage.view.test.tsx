@@ -72,7 +72,7 @@ function groupOrder(): string[] {
     .map((el) => el.getAttribute("data-testid")!.replace("inbox-project-group-", ""));
 }
 
-// @covers FR-01.30
+// @covers FR-01.04
 describe("InboxPage — remembered view", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -141,7 +141,7 @@ describe("InboxPage — remembered view", () => {
   });
 });
 
-// @covers FR-01.30
+// @covers FR-01.04
 describe("Inbox and Triage share ONE body box (no left-edge jump when switching pages)", () => {
   const dir = path.dirname(fileURLToPath(import.meta.url));
   const read = (f: string) => readFileSync(path.join(dir, f), "utf8");

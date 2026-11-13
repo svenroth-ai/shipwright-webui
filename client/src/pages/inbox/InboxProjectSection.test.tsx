@@ -85,6 +85,7 @@ function renderSection(group: ProjectGroup, tasksById: Map<string, ExternalTask>
   );
 }
 
+// @covers FR-01.04
 describe("InboxProjectSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -187,6 +188,7 @@ describe("InboxProjectSection", () => {
 });
 
 
+// @covers FR-01.04
 describe("InboxProjectSection — fold + reorder handle (iterate-2026-11-13-inbox-triage-look)", () => {
   const SESS = "3f9a1c42-aaaa-bbbb-cccc-000000000000";
 
