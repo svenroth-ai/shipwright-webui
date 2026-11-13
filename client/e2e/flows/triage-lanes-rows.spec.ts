@@ -44,7 +44,7 @@ test.afterEach(async ({ request }) => {
 });
 
 // @covers FR-01.30
-test("a row shows severity, the selectable id and a copy button before the title; actions show on hover", async ({
+test("a row shows the title, then a round severity number, the selectable id and a copy button; actions show on hover", async ({
   page,
   context,
 }) => {
@@ -57,18 +57,28 @@ test("a row shows severity, the selectable id and a copy button before the title
   const sev = await page.getByTestId("triage-severity-high").first().boundingBox();
   const id = await page.getByTestId("triage-item-trg-lane0001-id").boundingBox();
   const title = await page.getByTestId("triage-item-trg-lane0001-title").boundingBox();
+  // title first, then the round severity number, then the id (all in the right-hand meta cluster)
+  expect(title!.x).toBeLessThan(sev!.x);
   expect(sev!.x).toBeLessThan(id!.x);
-  expect(id!.x).toBeLessThan(title!.x);
+  expect(Math.abs(sev!.width - sev!.height)).toBeLessThan(1);
   await expect(row).not.toContainText("Explanation that only the dialog shows");
 
   // Hover reveals the buttons, with the pencil next to them.
   const actions = page.getByTestId("triage-row-actions-trg-lane0001");
   await expect(actions).toBeHidden();
+  const titleBefore = await page.getByTestId("triage-item-trg-lane0001-title").boundingBox();
+  const metaBefore = await page.getByTestId("triage-item-trg-lane0001-id").boundingBox();
   await row.hover();
   await expect(actions).toBeVisible();
   await expect(actions.getByTestId("triage-quick-edit-trigger-trg-lane0001")).toBeVisible();
 
-  // The overlay never covers the title: the title text ends left of the buttons.
+  // The title does not move when the buttons appear (fixed empty zone), nor does the id.
+  const titleAfter = await page.getByTestId("triage-item-trg-lane0001-title").boundingBox();
+  const metaAfter = await page.getByTestId("triage-item-trg-lane0001-id").boundingBox();
+  expect(titleAfter).toEqual(titleBefore);
+  expect(metaAfter).toEqual(metaBefore);
+
+  // The buttons never cover the title: the title text ends left of them.
   const t2 = await page.getByTestId("triage-item-trg-lane0001-title").boundingBox();
   const a2 = await actions.boundingBox();
   expect(t2!.x + t2!.width).toBeLessThanOrEqual(a2!.x + 1);
@@ -91,6 +101,19 @@ test("a row shows severity, the selectable id and a copy button before the title
   await page.getByTestId("triage-item-trg-lane0001-id").dblclick();
   expect(await page.evaluate(() => window.getSelection()?.toString().trim())).toBe("trg-lane0001");
   await expect(page.getByTestId("triage-detail-modal")).toHaveCount(0);
+});
+
+// @covers FR-01.30
+test("on a phone the title keeps its width and the severity and id sit under it", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto("/triage");
+  const title = page.getByTestId("triage-item-trg-lane0001-title");
+  await expect(title).toBeVisible({ timeout: 35_000 });
+  const t = (await title.boundingBox())!;
+  const id = (await page.getByTestId("triage-item-trg-lane0001-id").boundingBox())!;
+  expect(t.width).toBeGreaterThan(200);
+  expect(id.y).toBeGreaterThanOrEqual(t.y + t.height - 1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 // @covers FR-01.30

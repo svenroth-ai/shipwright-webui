@@ -1,0 +1,67 @@
+{
+  "run_id": "iterate-2026-11-13-triage-rows-round3",
+  "date": "2026-11-13T09:29:27.353968Z",
+  "event_at": "2026-11-12T23:46:38.113134+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/triage-rows-round3",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-13-triage-rows-round3",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 0,
+      "covered_acs": 0
+    },
+    "behaviors": [
+      {
+        "behavior": "Severity renders as a round number 1-5 right of the title, before the id, with the word as accessible name",
+        "disposition": "tested",
+        "evidence": "vitest TriageItemRow.test + e2e triage-lanes-rows PASSED"
+      },
+      {
+        "behavior": "Hover buttons appear in a reserved zone and neither the title nor the id moves",
+        "disposition": "tested",
+        "evidence": "e2e triage-lanes-rows (bounding box equality) + css fence PASSED"
+      },
+      {
+        "behavior": "Rows are separate bars 6px apart; row is display block",
+        "disposition": "tested",
+        "evidence": "e2e mobile-triage-spacing-filters + triage-card-block-display PASSED"
+      },
+      {
+        "behavior": "No pending-delivery badge on the row, still in the detail dialog",
+        "disposition": "tested",
+        "evidence": "vitest PendingDelivery.test + e2e triage-pending-delivery PASSED"
+      },
+      {
+        "behavior": "Summary pills, non-clickable behind-origin chip, legend and trimmed task box",
+        "disposition": "tested",
+        "evidence": "vitest TriagePage.test + TriageItemRow.fixnow.test + e2e triage-fixnow-task PASSED"
+      }
+    ]
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": [],
+  "surface_verification": {
+    "surface": "web",
+    "runner": "npm.cmd --prefix client run test:e2e:chromium -- client/e2e/flows/triage-lanes-rows.spec.ts client/e2e/flows/triage-fixnow-task.spec.ts client/e2e/flows/triage-deferred-envelope.spec.ts client/e2e/flows/triage-card-block-display.spec.ts client/e2e/flows/mobile-triage-spacing-filters.spec.ts client/e2e/flows/triage-amend.spec.ts client/e2e/flows/triage-pending-delivery.spec.ts client/e2e/flows/triage-redesign.spec.ts --reporter=json",
+    "exit_code": 0,
+    "tests_run": 22,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-rows-round3\\.shipwright\\runs\\iterate-2026-11-13-triage-rows-round3\\surface_verification.log",
+    "timestamp": "2026-11-13T09:29:00.672Z",
+    "attempts": 1
+  }
+}

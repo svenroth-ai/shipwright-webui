@@ -1,0 +1,9 @@
+{"items":[
+{"name":"spec-match","verdict":"pass","note":"all 7 requested changes implemented and compared in a real-browser screenshot against the approved mock (v4)"},
+{"name":"tests","verdict":"pass","note":"vitest 5124 green; 25 triage e2e green; 5 other triage specs fail identically on unmodified main (stale card-era specs)"},
+{"name":"error-handling","verdict":"pass","note":"no new failure paths; error line and task box still render in the wide cell"},
+{"name":"security","verdict":"pass","note":"plain text only, no HTML; severity word in aria-label"},
+{"name":"a11y","verdict":"pass","note":"severity has role=img + aria-label; hidden buttons use visibility so they are unreachable until row focus-within reveals them"},
+{"name":"regressions","verdict":"pass","note":"hover, popover-keeps-strip, copy, reorder, Fix-now, Resolve e2e pass; title and id do not move on hover (new e2e assertion)"},
+{"name":"known-tradeoff","verdict":"pass","note":"fixed 28rem empty zone makes long titles wrap earlier on wide rows; accepted by the operator"},
+{"name":"affected-boundaries","verdict":"pass","note":"client UI only; SeverityBadge for light dialogs unchanged; spec bullets updated"}]}

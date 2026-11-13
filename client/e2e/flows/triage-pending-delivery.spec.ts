@@ -95,10 +95,11 @@ test.describe("Triage pending-delivery badge", () => {
     await expect(trackedCard).toBeVisible({ timeout: 15000 });
     await expect(pendingCard).toBeVisible();
 
-    // AC3 — only the outbox-only item carries the badge.
+    // AC3 — the row carries no badge any more (iterate-2026-11-13-triage-rows-round3);
+    // the outbox-only item shows it in the detail dialog below.
     await expect(
       pendingCard.getByTestId("triage-pending-delivery"),
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(
       trackedCard.getByTestId("triage-pending-delivery"),
     ).toHaveCount(0);

@@ -1,0 +1,6 @@
+{"verdict":"reject","review":[
+{"severity":"high","finding":"Phone/narrow-row layout squeezes the title: meta cluster (nowrap, ~240px) sits beside the title in the base grid, leaving ~25-40px for the title at 375px. -> accepted-and-fixed: single-column base layout (meta under the title), two columns from 40rem, three columns only for wide hover rows; phone e2e added"},
+{"severity":"low","finding":"28rem action zone is tight for the widest set (Start campaign + Promote + Snooze + Dismiss + pencil ~424px); a wrap would reflow the row on hover. -> accepted-and-fixed: zone widened to 29rem and the wide threshold raised to 68rem so the title keeps room"},
+{"severity":"low","finding":"SeverityLegend omits Info (5). -> accepted-and-fixed: Info added to the key"},
+{"severity":"low","finding":"CSS fence test only regex-checks the source; the no-reflow claim rests on the e2e. -> accepted: repo class-fence convention, e2e was run and asserts title and id bounding boxes are unchanged on hover"}
+]}

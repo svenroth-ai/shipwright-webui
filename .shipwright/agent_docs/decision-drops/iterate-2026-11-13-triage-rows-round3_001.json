@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-13-triage-rows-round3",
+  "date": "2026-11-13",
+  "section": "Iterate â€” change: Triage rows round 3",
+  "title": "Triage rows: round severity number on the right, fixed action zone, row bars, summary pills",
+  "context": "Round 2 of the lanes made the title jump when buttons appeared, put a loud Medium word badge left of the title, showed an internal pending-delivery mark, and used wide tiles and a wide banner on top.",
+  "decision": "Round severity number 1-5 right before the ID, a fixed empty 28rem action zone, each row its own bar, pending delivery only in the detail dialog, Promote label, compact filter pills plus a non-clickable behind-origin chip and a plain legend, task box without the repeated title.",
+  "consequences": "On wide rows long titles wrap earlier because the zone is reserved. Severity is a number with the word as tooltip; the light dialogs keep the word badge.",
+  "rationale": "A stable title column and a quiet metadata column scan faster; the operator approved a pixel-true mock first.",
+  "rejected": "Overlaying the buttons or padding the title on hover (the title reflowed); a coloured dot without a number.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

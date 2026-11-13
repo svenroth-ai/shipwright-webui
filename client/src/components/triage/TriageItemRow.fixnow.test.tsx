@@ -99,7 +99,9 @@ describe("TriageItemRow — Fix-now task (iterate-2026-11-09-triage-fixnow-task)
       mount();
       const box = screen.getByTestId(`triage-task-box-${item.id}`);
       expect(box.textContent).toContain("In progress");
-      expect(box.textContent).toContain("Fix drift");
+      // the task title is not repeated in the box (it echoed the item's own title); it is the tooltip
+      expect(box.textContent).not.toContain("Fix drift");
+      expect(box.getAttribute("title")).toBe("Fix drift");
       expect(screen.getByTestId(`triage-task-state-${item.id}`).textContent).toBe("active");
       expect(screen.getByTestId(`triage-task-open-${item.id}`).getAttribute("href")).toBe("/tasks/task-1");
       expect(screen.getByTestId(`triage-card-resolve-${item.id}`)).toBeInTheDocument();

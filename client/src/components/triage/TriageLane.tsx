@@ -128,7 +128,7 @@ export function TriageLane({
         </h2>
       )}
       {!isCollapsed && (
-        <ul className="m-0 list-none p-0" data-testid={`triage-grid-${g.key}`}>
+        <ul className="m-0 flex list-none flex-col gap-1.5 px-2.5 pb-2.5 pt-0" data-testid={`triage-grid-${g.key}`}>
           {g.entries.map((e) => (
             <TriageItemRow
               key={entryKey(e)}
