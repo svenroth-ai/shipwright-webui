@@ -1,0 +1,24 @@
+{
+  "run_id": "iterate-2026-11-14-events-drops-layout",
+  "date": "2026-11-14T19:02:46.061449Z",
+  "event_at": "2026-11-13T15:00:51.952698+00:00",
+  "type": "change",
+  "complexity": "trivial",
+  "branch": "iterate/events-drops-layout",
+  "spec": "",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-14-events-drops-layout",
+  "test_completeness": {
+    "status": "n/a",
+    "reason_code": "trivial-auto"
+  },
+  "surface_verification": {
+    "surface": "cli",
+    "runner": "node C:/Users/SvenRoth/AppData/Local/Temp/claude/22065dc3682a6e55/c90efdb4-e22b-4ed9-9efb-53d2f3245bd1/scratchpad/run-vitest.mjs",
+    "exit_code": 0,
+    "tests_run": 666,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\events-drops-layout\\.shipwright\\runs\\iterate-2026-11-14-events-drops-layout\\surface_verification.log",
+    "timestamp": "2026-11-14T19:02:23.700Z",
+    "attempts": 1
+  }
+}

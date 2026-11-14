@@ -1,0 +1,42 @@
+{
+  "last_updated": "2026-11-14",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-14-events-drops-layout",
+    "date": "2026-11-14",
+    "unit": {
+      "status": "passed",
+      "passed": 666,
+      "skipped": 1,
+      "total": 667
+    },
+    "integration": {
+      "status": "not_run"
+    },
+    "pgtap": {
+      "status": "not_run"
+    },
+    "e2e": {
+      "status": "not_run"
+    },
+    "design_fidelity": {
+      "status": "skipped"
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "n/a",
+      "reason_code": "trivial-auto"
+    },
+    "surface_verification": {
+      "surface": "cli",
+      "runner": "node C:/Users/SvenRoth/AppData/Local/Temp/claude/22065dc3682a6e55/c90efdb4-e22b-4ed9-9efb-53d2f3245bd1/scratchpad/run-vitest.mjs",
+      "exit_code": 0,
+      "tests_run": 666,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\events-drops-layout\\.shipwright\\runs\\iterate-2026-11-14-events-drops-layout\\surface_verification.log",
+      "timestamp": "2026-11-14T19:02:23.700Z",
+      "attempts": 1
+    }
+  }
+}
