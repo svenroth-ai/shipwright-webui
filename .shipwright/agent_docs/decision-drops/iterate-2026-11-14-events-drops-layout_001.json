@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-14-events-drops-layout",
+  "date": "2026-11-14",
+  "section": "Iterate — change: events layout drops",
+  "title": "Switch the webui project to the per-run event-file layout",
+  "context": "The single shipwright_events.jsonl made parallel iterate PRs conflict at the end of the file. The WebUI readers already assemble legacy, archive and drops.",
+  "decision": "Set events_layout to drops in shipwright_sync_config.json; each run now writes its own file under .shipwright/events/drops/.",
+  "consequences": "No more event-log merge conflicts between parallel PRs. Existing events stay in shipwright_events.jsonl and are still read. Branches rebased across the switch must re-record their event.",
+  "rationale": "One key flips the layout; reader tests (59 files) pass unchanged against the assembled log.",
+  "rejected": "Staying on legacy: keeps the conflict class. Moving old events into drops now: unnecessary, readers merge both.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
