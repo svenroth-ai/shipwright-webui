@@ -1,0 +1,66 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-15-compliance-findings-reconcile",
+    "date": "2026-11-15",
+    "unit": {
+      "status": "passed",
+      "passed": 5032,
+      "skipped": 16,
+      "total": 5048
+    },
+    "integration": {
+      "status": "not_run"
+    },
+    "pgtap": {
+      "status": "not_run"
+    },
+    "e2e": {
+      "status": "not_run"
+    },
+    "design_fidelity": {
+      "status": "not_run"
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "instantKey keeps its behavior after the move (naive=UTC, offsets, invalid dates sort first)",
+          "disposition": "tested",
+          "evidence": "server/src/core/event-log-assemble.test.ts instantKey cases PASSED via the re-export"
+        },
+        {
+          "behavior": "assembleEventLog sort/dedup/amend unchanged",
+          "disposition": "tested",
+          "evidence": "event-log-assemble.test.ts + event-log-replay.test.ts PASSED (full server suite 5032 passed, 0 failed)"
+        },
+        {
+          "behavior": "backfilled work_completed event for 52592d67 is accepted by record_event gates",
+          "disposition": "tested",
+          "evidence": "record_event.py success evt-ae2c579cd59d44f5; FR gate and change-type check passed"
+        }
+      ],
+      "counts": {
+        "testable": 3,
+        "tested": 3,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

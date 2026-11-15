@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-15-compliance-findings-reconcile",
+  "date": "2026-11-15",
+  "section": "Iterate - change: reconcile B7 and H1 audit findings",
+  "title": "Split instantKey out of event-log-assemble.ts",
+  "context": "The detective audit flagged event-log-assemble.ts at 303 lines (limit 300) and one commit (52592d67) with no work_completed event.",
+  "decision": "Move instantKey and its ISO regex into event-log-instant.ts and re-export it from event-log-assemble.ts; backfill the missing event. D1 and D-layer are left to the compliance refresh flow.",
+  "consequences": "event-log-assemble.ts is 271 lines; every existing import of instantKey still resolves; no behavior change.",
+  "rationale": "A cohesive module split beats trimming lines: the instant parser is self-contained and pure.",
+  "rejected": "Deleting comments or merging lines to reach 300, which only postpones the next crossing.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

@@ -1,0 +1,59 @@
+{
+  "run_id": "iterate-2026-11-15-compliance-findings-reconcile",
+  "date": "2026-11-15T14:54:56.189895Z",
+  "event_at": "2026-11-15T14:44:26.734710+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/compliance-findings-reconcile",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-15-compliance-findings-reconcile",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "instantKey keeps its behavior after the move (naive=UTC, offsets, invalid dates sort first)",
+        "disposition": "tested",
+        "evidence": "server/src/core/event-log-assemble.test.ts instantKey cases PASSED via the re-export"
+      },
+      {
+        "behavior": "assembleEventLog sort/dedup/amend unchanged",
+        "disposition": "tested",
+        "evidence": "event-log-assemble.test.ts + event-log-replay.test.ts PASSED (full server suite 5032 passed, 0 failed)"
+      },
+      {
+        "behavior": "backfilled work_completed event for 52592d67 is accepted by record_event gates",
+        "disposition": "tested",
+        "evidence": "record_event.py success evt-ae2c579cd59d44f5; FR gate and change-type check passed"
+      }
+    ],
+    "counts": {
+      "testable": 3,
+      "tested": 3,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 3,
+      "covered_acs": 3
+    }
+  },
+  "surface_verification": {
+    "surface": "none",
+    "runner": "",
+    "exit_code": 0,
+    "tests_run": 0,
+    "evidence_path": "",
+    "timestamp": "2026-11-15T14:54:35.299Z",
+    "attempts": 0,
+    "justification": "Pure relocation of instantKey into its own module with a re-export, plus one backfilled event; no runnable path observes it.",
+    "reason_code": "no-behavior-change"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}
