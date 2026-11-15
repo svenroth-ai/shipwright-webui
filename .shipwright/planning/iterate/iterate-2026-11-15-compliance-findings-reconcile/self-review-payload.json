@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Behavior preserved","verdict":"pass","note":"instantKey body moved verbatim into event-log-instant.ts and re-exported from event-log-assemble.ts; existing test import unchanged"},
+{"name":"Tests","verdict":"pass","note":"vitest src/core/event-log + mission-context: 59 files, 666 passed, 1 skipped"},
+{"name":"Typecheck and lint","verdict":"pass","note":"tsc --noEmit and oxlint clean"},
+{"name":"File size cap","verdict":"pass","note":"event-log-assemble.ts 303 -> 271; new file 44 lines"},
+{"name":"Scope","verdict":"pass","note":"only the H1 split plus one backfilled event; D1 and D-layer deliberately untouched (derived snapshots)"},
+{"name":"No secrets or derived snapshots committed","verdict":"pass","note":"explicit per-path git add"},
+{"name":"Affected boundaries","verdict":"n/a","note":"no I/O boundary touched; pure function relocation"}
+]}
