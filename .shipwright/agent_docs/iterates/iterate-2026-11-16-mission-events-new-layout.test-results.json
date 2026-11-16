@@ -1,0 +1,77 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-16-mission-events-new-layout",
+    "date": "2026-11-16",
+    "unit": {
+      "status": "passed",
+      "passed": 5055,
+      "skipped": 16,
+      "total": 5071
+    },
+    "integration": {
+      "status": "skipped",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "skipped",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "skipped",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "skipped"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "a finished run merged on origin/main but absent from the working tree is identified from the transcript Run-ID footer",
+          "disposition": "tested",
+          "evidence": "run-id-recovery.merged-ref.test.ts 'identifies a run only the merged ref knows' PASSED"
+        },
+        {
+          "behavior": "no identification when the merged ref does not know the run, or the transcript has no footer",
+          "disposition": "tested",
+          "evidence": "run-id-recovery.merged-ref.test.ts declines cases PASSED"
+        },
+        {
+          "behavior": "unchanged transcript within TTL does not re-read git; failing git layer yields null not a throw",
+          "disposition": "tested",
+          "evidence": "run-id-recovery.merged-ref.test.ts memo + failure cases PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 3,
+        "tested": 3,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-16-mission-events-new-layout",
+    "commit": "439c83b42e56ae1cc22292f34b6c4d0e1f82f65b",
+    "dirty": false,
+    "base": null,
+    "release": null
+  }
+}

@@ -264,17 +264,15 @@ export function _clearRecoveryMemo(): void {
  * resolver-parts.ts (`buildRecoveryThunk`), so it likewise does not re-pay the
  * scan on every unchanged poll.
  *
- * It was not always so: until iterate-2026-07-21-mission-recovery-memo-perf the
- * resolver computed this BEFORE the table, so a campaign- or pipeline-resolved
- * session that happened to quote a corroborated footer scanned on every poll
- * forever — nothing consumed the answer, so nothing ever persisted it, and the
- * memo below only covers a NEGATIVE result (internal code review of PR #309).
+ * Until iterate-2026-07-21-mission-recovery-memo-perf this ran BEFORE the table, so
+ * a quoted corroborated footer re-scanned on every poll forever (PR #309).
  */
 export function recoverRunIdFromTranscript(
   projectRoot: string,
   transcript: string,
   sessionUuid?: string,
   startedMidFile = false,
+  refCorroborated: string | null = null, // run id corroborated on the merged ref (run-id-recovery-ref.ts)
 ): string | null {
   const memoKey = sessionUuid ? `${projectRoot}::${sessionUuid}` : null;
   const fingerprint = memoKey ? tailFingerprint(transcript, startedMidFile) : null;
@@ -295,5 +293,7 @@ export function recoverRunIdFromTranscript(
     }
     return null;
   }
-  return hasRunRecord(projectRoot, candidate) ? candidate : null;
+  return hasRunRecord(projectRoot, candidate) || candidate === refCorroborated ? candidate : null;
 }
+export const isNoMarkerMemoized = (root: string, sid: string, t: string, mid: boolean): boolean =>
+  negativeScans.get(`${root}::${sid}`) === tailFingerprint(t, mid);

@@ -1,0 +1,57 @@
+{
+  "run_id": "iterate-2026-11-16-mission-events-new-layout",
+  "date": "2026-11-16T07:53:06.470937Z",
+  "event_at": "2026-11-15T14:54:56.370133+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/mission-events-new-layout",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-16-mission-events-new-layout",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "a finished run merged on origin/main but absent from the working tree is identified from the transcript Run-ID footer",
+        "disposition": "tested",
+        "evidence": "run-id-recovery.merged-ref.test.ts 'identifies a run only the merged ref knows' PASSED"
+      },
+      {
+        "behavior": "no identification when the merged ref does not know the run, or the transcript has no footer",
+        "disposition": "tested",
+        "evidence": "run-id-recovery.merged-ref.test.ts declines cases PASSED"
+      },
+      {
+        "behavior": "unchanged transcript within TTL does not re-read git; failing git layer yields null not a throw",
+        "disposition": "tested",
+        "evidence": "run-id-recovery.merged-ref.test.ts memo + failure cases PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 3,
+      "tested": 3,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 3,
+      "covered_acs": 3
+    }
+  },
+  "surface_verification": {
+    "surface": "api",
+    "runner": "npm.cmd --prefix server test -- src/core/mission-context",
+    "exit_code": 0,
+    "tests_run": 623,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\mission-events-new-layout\\.shipwright\\runs\\iterate-2026-11-16-mission-events-new-layout\\surface_verification.log",
+    "timestamp": "2026-11-16T07:52:32.508Z",
+    "attempts": 1
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}
