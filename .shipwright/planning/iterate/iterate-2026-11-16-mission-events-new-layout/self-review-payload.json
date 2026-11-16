@@ -1,0 +1,8 @@
+{"items":[
+{"name":"correctness","verdict":"pass","note":"Run-ID footer is corroborated from origin/main only when pointer and association are absent and the working tree does not know the run"},
+{"name":"tests","verdict":"pass","note":"3 new tests (ref knows run / ref lacks run / no footer); mission-context suite 621 pass; tsc clean"},
+{"name":"security","verdict":"pass","note":"ref and paths are constants; run id passes isSafeRunId grammar via findRunIdFooter; read-only git"},
+{"name":"scope","verdict":"pass","note":"no schema or UI change; sync API of recoverRunIdFromTranscript kept, extra optional param"},
+{"name":"file-size","verdict":"pass","note":"resolver.ts 111 (<=112 baseline), run-id-recovery.ts 299, new helper in its own 31-line file"},
+{"name":"conventions","verdict":"pass","note":"Conventional commit, no derived snapshots committed"},
+{"name":"affected-boundaries","verdict":"pass","note":"boundary: git ls-tree/cat-file over origin/main; failure degrades to unavailable, never to a false identification"}]}
