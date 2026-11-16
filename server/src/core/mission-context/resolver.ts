@@ -22,6 +22,7 @@ export { readDocumentBody } from "./document-read.js";
 import { specPath } from "./fold-map.js";
 import { eventLogRevPaths } from "../event-log-files.js";
 import { readIteratePointer } from "./pointer.js";
+import { corroborateRunIdFromMergedRef } from "./run-id-recovery-ref.js";
 import { detectScenario } from "./scenario.js";
 import { buildNonIterateContext } from "./slice3-sources.js";
 import { resolveIterateContext } from "./resolver-iterate.js";
@@ -46,13 +47,10 @@ export async function resolveMissionContext(
   const { projectRoot, sessionUuid } = req;
 
   const pointer = readIteratePointer(projectRoot, sessionUuid);
-  // LAZY. Called only if rules 1-4 all miss (rule 5) or rule 2b is checking an
-  // association for supersession — "at most once per resolve" is pinned by a
-  // TEST over the table (recovery-schedule.test.ts), not a guard here (a guard
-  // would make a future double-consult invisible, on a hot read path where
-  // silence is what produced the finding being fixed). Rule 2b's use is
-  // additionally throttled by transcript content — see `buildRecoveryThunk`
-  // in resolver-parts.ts for why and how (iterate-2026-08-31-mission-feed-gaps).
+  // The recovery thunk is LAZY (rule 5 / rule 2b only; pinned by recovery-schedule.test.ts).
+  // Merged-but-unpulled runs are corroborated from origin/main (only when nothing else identified the session).
+  const refCorroborated = pointer || req.association ? null
+    : await corroborateRunIdFromMergedRef(projectRoot, req.transcript, sessionUuid, req.transcriptStartedMidFile, { git: deps.git });
   const decision = detectScenario({
     pointer,
     association: req.association ?? null,
@@ -62,6 +60,7 @@ export async function resolveMissionContext(
       req.transcript,
       req.association?.runId ?? null,
       req.transcriptStartedMidFile,
+      refCorroborated,
     ),
     actions: req.actions,
     runConfigStatus: req.runConfigStatus,
