@@ -62,18 +62,12 @@ function isGfmRepresentable(table: PMNode): boolean {
     return cells;
   };
   const span = (c: PMNode) => c.attrs.colspan > 1 || c.attrs.rowspan > 1;
-  // One plain paragraph per cell: a list/quote, a second block or a hard break
-  // (a newline inside a row would split it) cannot live in a pipe-table cell.
+  // One plain paragraph per cell: a list/quote or a second block cannot live in a
+  // pipe-table cell. A hard break is fine: it is written as `<br>` (the GFM idiom).
   const plain = (c: PMNode) => {
     if (c.childCount > 1 || span(c)) return false;
     const p = c.firstChild;
-    if (p && p.type.name !== "paragraph") return false;
-    let hasBreak = false;
-    p?.descendants((n) => {
-      if (n.type.name === "hardBreak") hasBreak = true;
-      return !hasBreak;
-    });
-    return !hasBreak;
+    return !p || p.type.name === "paragraph";
   };
   if (cellsOf(rows[0]).some((c) => c.type.name !== "tableHeader" || !plain(c))) return false;
   return !rows.slice(1).some((r) => cellsOf(r).some((c) => c.type.name === "tableHeader" || !plain(c)));

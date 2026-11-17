@@ -1,0 +1,80 @@
+{
+  "unattended": true,
+  "resolved_items": [
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.35",
+      "new_text": "In the Markdown editor, a table you did not touch is saved exactly as it was written, and a table you did change keeps its original column alignment, so the review shows only the rows that really differ.",
+      "files": [
+        "client/src/lib/markdownTablePreserve.ts"
+      ],
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.35",
+      "new_text": "In the Markdown editor, a table cell that contains a line break stays a normal Markdown table when saved, and the table under the cursor can be edited as plain Markdown text, with any problem shown before the change is applied.",
+      "files": [
+        "client/src/components/external/SmartViewer/MarkdownTableSourcePanel.tsx"
+      ],
+      "decided_by": "code",
+      "confirmed": false
+    }
+  ],
+  "ac_decisions": [
+    {
+      "ac": "FR-01.35.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "ac": "FR-01.35.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    }
+  ],
+  "counts": {
+    "total": 2,
+    "auto": 2,
+    "asked": 0,
+    "exempt": 0,
+    "restore": 0,
+    "unchanged": 0,
+    "answered_inline": 0,
+    "unconfirmed": 0,
+    "exempt_share": 0.0,
+    "restore_share": 0.0
+  },
+  "status": "ok",
+  "ac_mode": {
+    "mode": "auto",
+    "source": "default (unattended)"
+  },
+  "run_id": "iterate-2026-11-17-md-editor-table-editing",
+  "bind_id": "iterate-2026-11-17-md-editor-table-editing",
+  "exemption_check": "tested against the current diff (15 file(s), 6 not observable)",
+  "surface": {
+    "observable": true,
+    "files": [
+      ".scratch-vitest.json",
+      "client/e2e/flows/md-editor-table-editing.spec.ts",
+      "client/src/components/external/SmartViewer/MarkdownEditorModal.tsx",
+      "client/src/components/external/SmartViewer/MarkdownEditorTableBar.tsx",
+      "client/src/components/external/SmartViewer/MarkdownTableSourcePanel.tsx",
+      "client/src/lib/markdownEditorNodes.ts",
+      "client/src/lib/markdownTablePreserve.test.ts",
+      "client/src/lib/markdownTablePreserve.ts",
+      "client/src/lib/markdownTableSource.ts"
+    ],
+    "ignored": 6
+  }
+}

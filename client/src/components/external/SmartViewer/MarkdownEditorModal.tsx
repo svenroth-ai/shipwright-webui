@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { AlertCircle, FileText, Loader2, X } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 import {
   buildEditorExtensions,
@@ -27,6 +27,7 @@ import {
   composeMarkdownEnvelope,
   type MarkdownEnvelope,
 } from "../../../lib/markdownTiptap";
+import { restoreUntouchedTables } from "../../../lib/markdownTablePreserve";
 import {
   loadMarkdownForEdit,
   saveMarkdown,
@@ -36,6 +37,7 @@ import { ApiError } from "../../../lib/externalApi";
 import { MermaidCodeBlockView } from "./MermaidCodeBlockView";
 import { MarkdownDiffView } from "./MarkdownDiffView";
 import { MarkdownEditorToolbar } from "./MarkdownEditorToolbar";
+import { MarkdownEditorHeader } from "./MarkdownEditorHeader";
 import { MarkdownEditorBanners } from "./MarkdownEditorBanners";
 import { MarkdownEditorFooter } from "./MarkdownEditorFooter";
 
@@ -78,6 +80,9 @@ export function MarkdownEditorModal({
   const fingerprint = useRef<string>("");
   // Non-prose envelope the editor must NOT touch (see markdownTiptap.ts).
   const envelopeRef = useRef<MarkdownEnvelope | null>(null);
+  // The editor's own serialization right after load — lets toDiff tell a table the
+  // user edited from one the editor merely re-formatted (markdownTablePreserve.ts).
+  const baselineRef = useRef<string>("");
   // Monotonic load token — discards a stale/superseded async load result
   // (modal reopened for another path, closed mid-flight, or reload-on-conflict).
   const loadGen = useRef(0);
@@ -115,6 +120,7 @@ export function MarkdownEditorModal({
       // The editor owns ONLY the prose body; frontmatter / line-endings /
       // trailing newline live in the envelope and are re-attached on serialize.
       editor?.commands.setContent(env.core);
+      baselineRef.current = editor ? serializeEditorMarkdown(editor) : "";
       setEdited(res.text); // baseline so a no-op save is detectable
       setPhase("editing");
     } catch (err) {
@@ -138,7 +144,11 @@ export function MarkdownEditorModal({
   const toDiff = useCallback(() => {
     if (!editor) return;
     const env = envelopeRef.current;
-    const serializedCore = serializeEditorMarkdown(editor);
+    // Tables the user did not touch go back byte-for-byte; edited ones keep the
+    // original's column padding (no whole-table diff noise).
+    const serializedCore = env
+      ? restoreUntouchedTables(env.core, baselineRef.current, serializeEditorMarkdown(editor))
+      : serializeEditorMarkdown(editor);
     // Re-attach the preserved envelope so the diff (and the eventual save)
     // compares full file vs full file — not body vs whole-file.
     setEdited(
@@ -182,26 +192,7 @@ export function MarkdownEditorModal({
           className="fixed left-1/2 top-1/2 z-50 flex h-[90vh] w-[min(1100px,92vw)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[var(--radius-card,12px)] bg-[var(--color-surface,#ffffff)] shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]"
           data-testid="markdown-editor-modal"
         >
-          <div className="flex items-center gap-2 border-b border-[var(--color-border,#e0dbd4)] px-4 py-2.5">
-            <FileText size={14} className="shrink-0 text-[var(--color-accent,#857568)]" aria-hidden="true" />
-            <Dialog.Title
-              className="min-w-0 flex-1 truncate font-mono text-[12px] text-[var(--color-text,#1a1a1a)]"
-              title={path}
-            >
-              {path}
-            </Dialog.Title>
-            <Dialog.Close asChild>
-              <button
-                type="button"
-                aria-label="Close"
-                disabled={busy}
-                data-testid="markdown-editor-close"
-                className="rounded-[6px] p-1 text-[var(--color-muted,#6b7280)] hover:bg-[var(--color-muted-bg,#ede8e1)] hover:text-[var(--color-text,#1a1a1a)] disabled:opacity-50"
-              >
-                <X size={14} />
-              </button>
-            </Dialog.Close>
-          </div>
+          <MarkdownEditorHeader path={path} busy={busy} />
 
           <MarkdownEditorBanners
             phase={phase}

@@ -1,0 +1,6 @@
+{"verdict":"APPROVE","review":[
+{"severity":"MEDIUM","file":"client/src/lib/markdownTablePreserve.ts","finding":"Restoring an unchanged table verbatim drops a lazy row (no leading pipe). FIXED: restore only when original and baseline row counts match."},
+{"severity":"LOW","file":"client/src/components/external/SmartViewer/MarkdownEditorTableBar.tsx","finding":"Source panel stale state / silent no-op on apply. FIXED: panel closes when caret leaves the table; apply failure shows an inline message."},
+{"severity":"LOW","file":"client/src/lib/markdownTablePreserve.ts","finding":"Cursor pairing approximate after a deleted table; cosmetic padding only. Accepted."},
+{"severity":"LOW","file":"client/src/lib/markdownTablePreserve.ts","finding":"splitRow misreads trailing backslash-escaped pipe; falls back safely. Accepted."},
+{"severity":"LOW","file":"client/src/lib/markdownTablePreserve.ts","finding":"padTable width uses .length (CJK/emoji). Cosmetic. Accepted."}]}

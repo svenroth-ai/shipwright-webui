@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-17-md-editor-table-editing",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-17T21:15:38.907802+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-17T21:15:45.986971+00:00",
+      "disposition": "small iterate: no iterate spec / plan / external review at this complexity; change reviewed by code-reviewer",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": null,
+          "file": "client/src/lib/markdownTablePreserve.ts",
+          "line": null,
+          "finding": "Restoring an unchanged table verbatim drops a lazy row (no leading pipe). FIXED: restore only when original and baseline row counts match.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": "client/src/components/external/SmartViewer/MarkdownEditorTableBar.tsx",
+          "line": null,
+          "finding": "Source panel stale state / silent no-op on apply. FIXED: panel closes when caret leaves the table; apply failure shows an inline message.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": "client/src/lib/markdownTablePreserve.ts",
+          "line": null,
+          "finding": "Cursor pairing approximate after a deleted table; cosmetic padding only. Accepted.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": "client/src/lib/markdownTablePreserve.ts",
+          "line": null,
+          "finding": "splitRow misreads trailing backslash-escaped pipe; falls back safely. Accepted.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": "client/src/lib/markdownTablePreserve.ts",
+          "line": null,
+          "finding": "padTable width uses .length (CJK/emoji). Cosmetic. Accepted.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-17T21:15:56.896773+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-17T21:15:45.816385+00:00",
+      "disposition": "small iterate: no iterate spec / plan / external review at this complexity; change reviewed by code-reviewer",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-17T21:15:46.464208+00:00",
+      "disposition": "small iterate: no iterate spec / plan / external review at this complexity; change reviewed by code-reviewer",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-17T21:15:45.658769+00:00",
+      "disposition": "small iterate: no iterate spec / plan / external review at this complexity; change reviewed by code-reviewer",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-17T21:15:46.144474+00:00",
+      "disposition": "small iterate: no iterate spec / plan / external review at this complexity; change reviewed by code-reviewer",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-17T21:15:46.306017+00:00",
+      "disposition": "small iterate: no iterate spec / plan / external review at this complexity; change reviewed by code-reviewer",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

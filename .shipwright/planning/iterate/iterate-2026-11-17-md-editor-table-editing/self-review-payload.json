@@ -1,0 +1,9 @@
+{"items":[
+{"name":"spec-match","verdict":"pass","note":"Fixes the reported table-corruption: <br> cells stay GFM, padded tables diff-clean, source-edit panel added."},
+{"name":"tests","verdict":"pass","note":"markdownTablePreserve.test.ts (9 tests) + full client suite green; tsc clean."},
+{"name":"edge-cases","verdict":"pass","note":"CRLF, fenced tables, lazy rows, unmatched tables fall back to editor output."},
+{"name":"security","verdict":"pass","note":"No new HTML sinks; source panel text parsed through the editor parser."},
+{"name":"conventions","verdict":"pass","note":"Files under 300 lines, German UI strings, tokens for colours."},
+{"name":"regressions","verdict":"pass","note":"Existing element round-trip tests unchanged and green."},
+{"name":"boundaries","verdict":"pass","note":"Markdown<->ProseMirror boundary: round-trip probes run for padded, br, escaped pipe, empty cell."},
+{"name":"docs","verdict":"pass","note":"Changelog drop and ADR written at finalization."}]}
