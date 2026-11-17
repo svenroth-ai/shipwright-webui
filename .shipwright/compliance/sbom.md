@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-11-12T07:47:40.192514+00:00
-Source-State: run=iterate-2026-11-12-smartviewer-editor-md-roundtrip base=d70179b02bc5 release=v0.33.1
-Consistency-audit: last run 2026-09-29 (44 days earlier) — PASS
+Generated: 2026-11-17T21:22:07.404744+00:00
+Source-State: run=iterate-2026-11-17-md-editor-table-editing base=f65594656a87 release=v0.34.0
+Consistency-audit: last run 2026-09-29 (49 days earlier) — PASS
 
 ## Summary
 

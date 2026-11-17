@@ -1,21 +1,21 @@
 # Commit Change Log
 
-Generated: 2026-11-12T07:47:40.192514+00:00
-Source-State: run=iterate-2026-11-12-smartviewer-editor-md-roundtrip base=d70179b02bc5 release=v0.33.1
-Consistency-audit: last run 2026-09-29 (44 days earlier) — PASS
-Total commits: 1015
+Generated: 2026-11-17T21:22:07.404744+00:00
+Source-State: run=iterate-2026-11-17-md-editor-table-editing base=f65594656a87 release=v0.34.0
+Consistency-audit: last run 2026-09-29 (49 days earlier) — PASS
+Total commits: 1027
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 399
-    "feat" : 268
-    "chore" : 169
+    "fix" : 403
+    "feat" : 272
+    "chore" : 171
     "docs" : 79
     "refactor" : 37
-    "test" : 34
-    "other" : 14
+    "test" : 35
+    "other" : 15
     "ci" : 8
     "perf" : 5
     "build" : 2
@@ -23,10 +23,14 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 399 commits
+### Fixes (fix) — 403 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-17 | smartviewer | keep tables intact through the markdown editor, add table source editing (#609) | f65594656a87 |
+| 2026-11-16 | mission | identify finished runs merged on origin/main but not pulled locally (#608) | 03171889ee85 |
+| 2026-11-13 | events | read the event folders from .shipwright/events/ (#605) | 52592d67defd |
+| 2026-11-13 | triage | solid lanes, wider spacing, hover action strip on the right (#601) | 53404c3fd2cc |
 | 2026-11-12 | smartviewer | markdown editor keeps tables, task lists, images and fences intact; renders mermaid (#596) | d70179b02bc5 |
 | 2026-11-11 | smartviewer | readable large Mermaid diagrams (#592) | 054d05965f8b |
 | 2026-11-10 | smartviewer | follow relative links between files in-pane, across folders (#591) | 57564ba05595 |
@@ -427,10 +431,14 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 268 commits
+### Features (feat) — 272 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-13 | inbox | Triage look for the Inbox, with foldable and reorderable project groups (#604) | d72a18341ae4 |
+| 2026-11-13 | triage | one orange behind-origin alert with hover/tap popover, darker severity legend (#603) | 3972d95af42e |
+| 2026-11-13 | triage | round severity number on the right, fixed action zone, row bars, summary pills (#602) | 45da1e17f92a |
+| 2026-11-12 | triage | project lanes of rows with copyable IDs and reorderable lanes (#598) | 509ee4097dfb |
 | 2026-11-11 | triage | card + detail dialog use the New Task sheet look; equal-height cards (#594) | 7cf80dfa3c60 |
 | 2026-11-10 | actions | pre-checked boolean params + fixed flags in slash_command (#589) | ed44d09bcaa7 |
 | 2026-11-09 | triage | polish round 3 — distinct help texts, shared pills, multi-column cards, calmer detail dialog (#588) | 8e08030337c1 |
@@ -700,10 +708,12 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 169 commits
+### Chores (chore) — 171 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-15 | compliance | reconcile B7 and H1 audit findings (#607) | ce715dba297b |
+| 2026-11-14 | events | switch to the per-run drops event layout (#606) | 591ed6ddb899 |
 | 2026-11-08 | codex-watcher | keep codex-task-watcher.ts at 300 lines (#585) | 49f95290369c |
 | 2026-11-07 | release | v0.31.0 (#582) | bf4016d26eb5 |
 | 2026-11-05 | release | v0.30.0 (#580) | 498a67484cfe |
@@ -1000,10 +1010,11 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 34 commits
+### Tests (test) — 35 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-13 | triage | split TriageItemRow tests under the 300-line cap; tighten bloat baseline (#600) | 4832243c263b |
 | 2026-10-09 | e2e | repair the 25 stale specs - full isolated suite green (#518) | 5e852211f1fa |
 | 2026-10-09 | e2e | specs 55/80/80b seed and clean up their own fixtures (#517) | f683c8b688be |
 | 2026-10-09 | client | disambiguate useSplitterKeydown test names (tag-binding gate) (#516) | bb3a3c8e444f |
@@ -1039,10 +1050,11 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
-### Other (other) — 14 commits
+### Other (other) — 15 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-12 | — | Release v0.33.1 (#597) | 816e515ad933 |
 | 2026-11-11 | — | Release v0.33.0 (#595) | 189de954ee3f |
 | 2026-11-11 | — | Release v0.32.1 (#593) | 4aea7f2279a6 |
 | 2026-11-10 | — | Release v0.32.0 (#590) | e9ad0aff64ac |
@@ -1092,7 +1104,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 1015 |
+| Total commits | 1027 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 1015 |
+| Human-authored commits | 1027 |
 

@@ -1,9 +1,9 @@
 {
   "schema_version": 4,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-11-12T07:47:40.192514+00:00",
-  "source_commit": "d70179b02bc5737c4963c768917b9412198c82b3",
-  "spec_hash": "sha256:5f98668b90fd28e4319862b3df8332400ce945a8ca67f5a1c173f1c671029e21",
+  "generated_at": "2026-11-17T21:22:07.404744+00:00",
+  "source_commit": "f65594656a8761d5bf034e03c14469f22f86517e",
+  "spec_hash": "sha256:88b5106eed843c7704e410a969d9ea8fd2b2874657c907f979680a86965f0120",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
@@ -2905,7 +2905,7 @@
     "01::FR-01.35": {
       "id": "FR-01.35",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "In the file viewer, Markdown files gain an Edit button that opens a rich-text editor; changes save back into the file - the first place the app writes into project files. It is limited to Markdown, size-capped, and uses a safety check so it never overwrites a file a Claude session changed underneath you: on a conflict it keeps your edits and offers to reload. Block-level raw HTML (e.g. a styled call-to-action) is preserved byte-for-byte; it still warns before saving files with other tricky content (tables, inline HTML it can't represent losslessly, footnotes).<br>**Updates:** Gained a formatting toolbar. Raw HTML BLOCKS now round-trip byte-for-byte instead of being silently rewritten.",
+      "title": "In the file viewer, Markdown files gain an Edit button that opens a rich-text editor; changes save back into the file - the first place the app writes into project files. It is limited to Markdown, size-capped, and uses a safety check so it never overwrites a file a Claude session changed underneath you: on a conflict it keeps your edits and offers to reload. Block-level raw HTML (e.g. a styled call-to-action) is preserved byte-for-byte; it still warns before saving files with other tricky content (tables, inline HTML it can't represent losslessly, footnotes).<br>**Updates:** Gained a formatting toolbar. Raw HTML BLOCKS now round-trip byte-for-byte instead of being silently rewritten. Tables then stopped being rewritten: an untouched table is saved exactly as written, an edited one keeps its column alignment, a cell with a line break stays a table, and the table under the cursor can be edited as plain Markdown.",
       "priority": "Should",
       "status": "active",
       "required_layers": [],
@@ -3705,6 +3705,78 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/lib/markdownTablePreserve.test.ts::an untouched padded table is restored byte-for-byte",
+            "path": "client/src/lib/markdownTablePreserve.test.ts::an untouched padded table is restored byte-for-byte",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownTablePreserve.test.ts::an edited table keeps the original padding; its sibling stays untouched",
+            "path": "client/src/lib/markdownTablePreserve.test.ts::an edited table keeps the original padding; its sibling stays untouched",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownTablePreserve.test.ts::falls back to the editor output when tables cannot be paired",
+            "path": "client/src/lib/markdownTablePreserve.test.ts::falls back to the editor output when tables cannot be paired",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownTablePreserve.test.ts::never drops a lazy row (no leading pipe) when restoring",
+            "path": "client/src/lib/markdownTablePreserve.test.ts::never drops a lazy row (no leading pipe) when restoring",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownTablePreserve.test.ts::ignores pipe tables inside code fences",
+            "path": "client/src/lib/markdownTablePreserve.test.ts::ignores pipe tables inside code fences",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownTablePreserve.test.ts::padTable honours alignment",
+            "path": "client/src/lib/markdownTablePreserve.test.ts::padTable honours alignment",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownTablePreserve.test.ts::a <br> inside a cell keeps the table a GFM pipe table",
+            "path": "client/src/lib/markdownTablePreserve.test.ts::a <br> inside a cell keeps the table a GFM pipe table",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownTablePreserve.test.ts::validates a pipe table",
+            "path": "client/src/lib/markdownTablePreserve.test.ts::validates a pipe table",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/markdownTablePreserve.test.ts::replaces the caret's table with the typed source",
+            "path": "client/src/lib/markdownTablePreserve.test.ts::replaces the caret's table with the typed source",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/lib/markdownTiptap.test.ts::mounts a headless editor and serializes back to markdown",
             "path": "client/src/lib/markdownTiptap.test.ts::mounts a headless editor and serializes back to markdown",
             "layer": "unit",
@@ -3893,6 +3965,38 @@
           {
             "id": "client/e2e/flows/md-editor-elements.spec.ts::renders table + diagram, round-trips with NO changes, and a table edit saves as a table",
             "path": "client/e2e/flows/md-editor-elements.spec.ts::renders table + diagram, round-trips with NO changes, and a table edit saves as a table",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "native_tag"
+          },
+          {
+            "id": "client/e2e/flows/md-editor-table-editing.spec.ts::a padded table with <br> is a real table, untouched = No changes, an edit keeps the layout",
+            "path": "client/e2e/flows/md-editor-table-editing.spec.ts::a padded table with <br> is a real table, untouched = No changes, an edit keeps the layout",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/md-editor-table-editing.spec.ts::a padded table with <br> is a real table, untouched = No changes, an edit keeps the layout",
+            "path": "client/e2e/flows/md-editor-table-editing.spec.ts::a padded table with <br> is a real table, untouched = No changes, an edit keeps the layout",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "native_tag"
+          },
+          {
+            "id": "client/e2e/flows/md-editor-table-editing.spec.ts::the table can be edited as Markdown source",
+            "path": "client/e2e/flows/md-editor-table-editing.spec.ts::the table can be edited as Markdown source",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/md-editor-table-editing.spec.ts::the table can be edited as Markdown source",
+            "path": "client/e2e/flows/md-editor-table-editing.spec.ts::the table can be edited as Markdown source",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -6047,6 +6151,46 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "server/src/core/mission-context/run-id-recovery.merged-ref.test.ts::identifies a run only the merged ref knows, and recovery accepts it",
+            "path": "server/src/core/mission-context/run-id-recovery.merged-ref.test.ts::identifies a run only the merged ref knows, and recovery accepts it",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.merged-ref.test.ts::declines when the merged ref does not know the run",
+            "path": "server/src/core/mission-context/run-id-recovery.merged-ref.test.ts::declines when the merged ref does not know the run",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.merged-ref.test.ts::declines for a transcript without a footer",
+            "path": "server/src/core/mission-context/run-id-recovery.merged-ref.test.ts::declines for a transcript without a footer",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.merged-ref.test.ts::does not rescan or re-read git for an unchanged transcript within the TTL",
+            "path": "server/src/core/mission-context/run-id-recovery.merged-ref.test.ts::does not rescan or re-read git for an unchanged transcript within the TTL",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.merged-ref.test.ts::treats a failing git layer as no evidence, never a throw",
+            "path": "server/src/core/mission-context/run-id-recovery.merged-ref.test.ts::treats a failing git layer as no evidence, never a throw",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "server/src/core/mission-context/run-id-recovery.test.ts::finds the footer written as a JSON-escaped commit message",
             "path": "server/src/core/mission-context/run-id-recovery.test.ts::finds the footer written as a JSON-escaped commit message",
             "layer": "unit",
@@ -7135,6 +7279,22 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "server/src/core/session-file/access.unit.test.ts::Windows: alternate spellings of a credential dir are judged by the canonical name",
+            "path": "server/src/core/session-file/access.unit.test.ts::Windows: alternate spellings of a credential dir are judged by the canonical name",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/session-file/access.unit.test.ts::Windows: wrong filename case or lowercase drive resolves to the canonical file",
+            "path": "server/src/core/session-file/access.unit.test.ts::Windows: wrong filename case or lowercase drive resolves to the canonical file",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "server/src/core/session-file/access.unit.test.ts::credential names inside the project are refused (.env, .ssh/...)",
             "path": "server/src/core/session-file/access.unit.test.ts::credential names inside the project are refused (.env, .ssh/...)",
             "layer": "unit",
@@ -7175,8 +7335,32 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "server/src/core/session-file/access.unit.test.ts::Windows device names are refused before any filesystem call",
+            "path": "server/src/core/session-file/access.unit.test.ts::Windows device names are refused before any filesystem call",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "server/src/core/session-file/access.unit.test.ts::a home-style ~ path is never expanded",
             "path": "server/src/core/session-file/access.unit.test.ts::a home-style ~ path is never expanded",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/session-file/access.unit.test.ts::Windows: UNC/device 400; other-drive absolute needs evidence; drive-letter case does not bypass the root",
+            "path": "server/src/core/session-file/access.unit.test.ts::Windows: UNC/device 400; other-drive absolute needs evidence; drive-letter case does not bypass the root",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/session-file/access.unit.test.ts::POSIX: a drive-letter path is invalid, not a relative name",
+            "path": "server/src/core/session-file/access.unit.test.ts::POSIX: a drive-letter path is invalid, not a relative name",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -8393,6 +8577,22 @@
           {
             "id": "server/src/external/session-file/routes.test.ts::UNC / device and foreign-platform absolute paths are invalid",
             "path": "server/src/external/session-file/routes.test.ts::UNC / device and foreign-platform absolute paths are invalid",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/external/session-file/routes.test.ts::Windows: a wrongly-cased project file name and a lowercase drive letter are served (200), not 400",
+            "path": "server/src/external/session-file/routes.test.ts::Windows: a wrongly-cased project file name and a lowercase drive letter are served (200), not 400",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/external/session-file/routes.test.ts::Windows evidence is case- and slash-insensitive",
+            "path": "server/src/external/session-file/routes.test.ts::Windows evidence is case- and slash-insensitive",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -17667,6 +17867,38 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/lib/inboxViewStorage.test.ts::round-trips the folded groups and the order, keeping the order",
+            "path": "client/src/lib/inboxViewStorage.test.ts::round-trips the folded groups and the order, keeping the order",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/inboxViewStorage.test.ts::falls back to the defaults for null, garbage, a wrong version or a wrong shape",
+            "path": "client/src/lib/inboxViewStorage.test.ts::falls back to the defaults for null, garbage, a wrong version or a wrong shape",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/inboxViewStorage.test.ts::drops non-strings, empty and over-long ids and dedupes",
+            "path": "client/src/lib/inboxViewStorage.test.ts::drops non-strings, empty and over-long ids and dedupes",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/inboxViewStorage.test.ts::loads what was saved, and a blocked storage never throws",
+            "path": "client/src/lib/inboxViewStorage.test.ts::loads what was saved, and a blocked storage never throws",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/lib/taskDeepLink.test.ts::builds /tasks/<id>?pane=terminal&focus=terminal",
             "path": "client/src/lib/taskDeepLink.test.ts::builds /tasks/<id>?pane=terminal&focus=terminal",
             "layer": "unit",
@@ -17915,6 +18147,86 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/pages/inbox/InboxCardShell.test.tsx::does not swallow Enter pressed on a nested link",
+            "path": "client/src/pages/inbox/InboxCardShell.test.tsx::does not swallow Enter pressed on a nested link",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/inbox/InboxCardShell.test.tsx::still handles Enter pressed on the card itself",
+            "path": "client/src/pages/inbox/InboxCardShell.test.tsx::still handles Enter pressed on the card itself",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/inbox/InboxProjectSection.test.tsx::renders project label + open-count chip + colour dot",
+            "path": "client/src/pages/inbox/InboxProjectSection.test.tsx::renders project label + open-count chip + colour dot",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/inbox/InboxProjectSection.test.tsx::Unassigned bucket uses the neutral white-tint accent (no project colour)",
+            "path": "client/src/pages/inbox/InboxProjectSection.test.tsx::Unassigned bucket uses the neutral white-tint accent (no project colour)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/inbox/InboxProjectSection.test.tsx::sessions render in input order (MED #3 — ordering preservation)",
+            "path": "client/src/pages/inbox/InboxProjectSection.test.tsx::sessions render in input order (MED #3 — ordering preservation)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/inbox/InboxProjectSection.test.tsx::an expanded group shows its cards and each card carries its session chip",
+            "path": "client/src/pages/inbox/InboxProjectSection.test.tsx::an expanded group shows its cards and each card carries its session chip",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/inbox/InboxProjectSection.test.tsx::a folded group keeps its header but renders no cards",
+            "path": "client/src/pages/inbox/InboxProjectSection.test.tsx::a folded group keeps its header but renders no cards",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/inbox/InboxProjectSection.test.tsx::clicking the header pill folds via onToggle",
+            "path": "client/src/pages/inbox/InboxProjectSection.test.tsx::clicking the header pill folds via onToggle",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/inbox/InboxProjectSection.test.tsx::shows the move handle only when the group can be reordered",
+            "path": "client/src/pages/inbox/InboxProjectSection.test.tsx::shows the move handle only when the group can be reordered",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/inbox/InboxProjectSection.test.tsx::arrow keys on the handle move the group; a blocked direction does nothing",
+            "path": "client/src/pages/inbox/InboxProjectSection.test.tsx::arrow keys on the handle move the group; a blocked direction does nothing",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/pages/inbox/InboxResumeButton.test.tsx::renders an 'Answer in the terminal' button (not a copy button)",
             "path": "client/src/pages/inbox/InboxResumeButton.test.tsx::renders an 'Answer in the terminal' button (not a copy button)",
             "layer": "unit",
@@ -17949,6 +18261,54 @@
           {
             "id": "client/src/pages/inbox/InboxResumeButton.test.tsx::carries NO misleading legacy copy testid",
             "path": "client/src/pages/inbox/InboxResumeButton.test.tsx::carries NO misleading legacy copy testid",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/InboxPage.view.test.tsx::folding a project group hides its cards, keeps the others, and survives a remount",
+            "path": "client/src/pages/InboxPage.view.test.tsx::folding a project group hides its cards, keeps the others, and survives a remount",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/InboxPage.view.test.tsx::honours a saved project order",
+            "path": "client/src/pages/InboxPage.view.test.tsx::honours a saved project order",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/InboxPage.view.test.tsx::the arrow keys on a group's handle move it and the new order is remembered",
+            "path": "client/src/pages/InboxPage.view.test.tsx::the arrow keys on a group's handle move it and the new order is remembered",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/InboxPage.view.test.tsx::a project with no open item today keeps its saved slot when another group is moved",
+            "path": "client/src/pages/InboxPage.view.test.tsx::a project with no open item today keeps its saved slot when another group is moved",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/InboxPage.view.test.tsx::a single group has no move handle",
+            "path": "client/src/pages/InboxPage.view.test.tsx::a single group has no move handle",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/InboxPage.view.test.tsx::both pages use the same scroller padding and the same container",
+            "path": "client/src/pages/InboxPage.view.test.tsx::both pages use the same scroller padding and the same container",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -18004,6 +18364,46 @@
             "executed": "not_run",
             "tag_source": "covers_comment",
             "resolved_from": "FR-01.63"
+          },
+          {
+            "id": "client/e2e/flows/inbox-triage-look.spec.ts::the Inbox content starts at the same left edge as the Triage page (no jump when switching)",
+            "path": "client/e2e/flows/inbox-triage-look.spec.ts::the Inbox content starts at the same left edge as the Triage page (no jump when switching)",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/inbox-triage-look.spec.ts::cards are dark glass with a project-colour bar, text is light, markdown survives",
+            "path": "client/e2e/flows/inbox-triage-look.spec.ts::cards are dark glass with a project-colour bar, text is light, markdown survives",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/inbox-triage-look.spec.ts::the project pill folds its group and the fold is remembered across a reload",
+            "path": "client/e2e/flows/inbox-triage-look.spec.ts::the project pill folds its group and the fold is remembered across a reload",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/inbox-triage-look.spec.ts::projects can be put in their own order with the keyboard",
+            "path": "client/e2e/flows/inbox-triage-look.spec.ts::projects can be put in their own order with the keyboard",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/inbox-triage-look.spec.ts::a click on a card still opens the task; the answer button does not double-navigate",
+            "path": "client/e2e/flows/inbox-triage-look.spec.ts::a click on a card still opens the task; the answer button does not double-navigate",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
           },
           {
             "id": "client/e2e/visual/09-inbox-populated.spec.ts::inbox-populated",
@@ -22062,8 +22462,8 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/PendingDelivery.test.tsx::shows the badge for an outbox-only item",
-            "path": "client/src/components/triage/PendingDelivery.test.tsx::shows the badge for an outbox-only item",
+            "id": "client/src/components/triage/PendingDelivery.test.tsx::shows NO badge on the row, not even for an outbox-only item (it lives in the detail dialog)",
+            "path": "client/src/components/triage/PendingDelivery.test.tsx::shows NO badge on the row, not even for an outbox-only item (it lives in the detail dialog)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -22470,8 +22870,8 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageGroupList.test.tsx::a saved-collapsed group hides its cards",
-            "path": "client/src/components/triage/TriageGroupList.test.tsx::a saved-collapsed group hides its cards",
+            "id": "client/src/components/triage/TriageGroupList.test.tsx::a saved-collapsed group hides its rows",
+            "path": "client/src/components/triage/TriageGroupList.test.tsx::a saved-collapsed group hides its rows",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -22486,192 +22886,224 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.layout.test.tsx::fills its grid cell (equal-height cards) and wraps long unbroken text inside itself",
-            "path": "client/src/components/triage/TriageItemCard.layout.test.tsx::fills its grid cell (equal-height cards) and wraps long unbroken text inside itself",
+            "id": "client/src/components/triage/TriageGroupList.test.tsx::every project lane has a drag handle; the arrow keys on it move the lane by one place",
+            "path": "client/src/components/triage/TriageGroupList.test.tsx::every project lane has a drag handle; the arrow keys on it move the lane by one place",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.layout.test.tsx::findings sit in one minmax(0,1fr) column so a long check title cannot widen the card, and extra checks collapse to +N more",
-            "path": "client/src/components/triage/TriageItemCard.layout.test.tsx::findings sit in one minmax(0,1fr) column so a long check title cannot widen the card, and extra checks collapse to +N more",
+            "id": "client/src/components/triage/TriageGroupList.test.tsx::the first lane cannot move up and the last cannot move down",
+            "path": "client/src/components/triage/TriageGroupList.test.tsx::the first lane cannot move up and the last cannot move down",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.layout.test.tsx::never uses the --body / --muted tokens inside the card (.on-photo flips them to near-white there)",
-            "path": "client/src/components/triage/TriageItemCard.layout.test.tsx::never uses the --body / --muted tokens inside the card (.on-photo flips them to near-white there)",
+            "id": "client/src/components/triage/TriageGroupList.test.tsx::lanes grouped by anything but project have no handle",
+            "path": "client/src/components/triage/TriageGroupList.test.tsx::lanes grouped by anything but project have no handle",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.layout.test.tsx::the edit chip shows priority and domain without the word 'Suggested'",
-            "path": "client/src/components/triage/TriageItemCard.layout.test.tsx::the edit chip shows priority and domain without the word 'Suggested'",
+            "id": "client/src/components/triage/TriageItemRow.fixnow.test.tsx::shows the In progress box and Resolve instead of Fix now, Promote and Snooze",
+            "path": "client/src/components/triage/TriageItemRow.fixnow.test.tsx::shows the In progress box and Resolve instead of Fix now, Promote and Snooze",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::renders on the grey --surface-form sheet (like the New Task dialog) with a resting shadow",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::renders on the grey --surface-form sheet (like the New Task dialog) with a resting shadow",
+            "id": "client/src/components/triage/TriageItemRow.fixnow.test.tsx::Resolve dismisses with the prefilled task reason",
+            "path": "client/src/components/triage/TriageItemRow.fixnow.test.tsx::Resolve dismisses with the prefilled task reason",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::shows no Returned badge for an ordinary item",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::shows no Returned badge for an ordinary item",
+            "id": "client/src/components/triage/TriageItemRow.fixnow.test.tsx::a link for the same id in another project does not show",
+            "path": "client/src/components/triage/TriageItemRow.fixnow.test.tsx::a link for the same id in another project does not show",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::shows the Returned badge when the item's park just came due",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::shows the Returned badge when the item's park just came due",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::puts the title first, then a ROUND numbered severity right before the id, and wraps long titles inside the row",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::puts the title first, then a ROUND numbered severity right before the id, and wraps long titles inside the row",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::clicking the title opens the detail",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::clicking the title opens the detail",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::maps every severity to its number (critical 1 … info 5)",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::maps every severity to its number (critical 1 … info 5)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::clicking an action button does NOT also open the detail",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::clicking an action button does NOT also open the detail",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::shows no priority/domain pill, no coloured severity dot and no detail text on the row",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::shows no priority/domain pill, no coloured severity dot and no detail text on the row",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::clicking inside the open Promote dialog does NOT open the detail",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::clicking inside the open Promote dialog does NOT open the detail",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::never uses the --body / --muted tokens inside the row (.on-photo flips them to near-white there)",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::never uses the --body / --muted tokens inside the row (.on-photo flips them to near-white there)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::Fix now hands the intent up bound to the entry's own project",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::Fix now hands the intent up bound to the entry's own project",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::the pencil is an icon button beside the other actions, not a chip",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::the pencil is an icon button beside the other actions, not a chip",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::Dismiss asks for a reason first and flips the item only after confirming",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::Dismiss asks for a reason first and flips the item only after confirming",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::the id is one-click selectable text (select-all) and clicking it does not open the detail",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::the id is one-click selectable text (select-all) and clicking it does not open the detail",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::Dismiss without typing a reason sends null",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::Dismiss without typing a reason sends null",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::the copy button writes exactly the id to the clipboard and does not open the detail",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::the copy button writes exactly the id to the clipboard and does not open the detail",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::Cancel in the Dismiss popup dismisses nothing",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::Cancel in the Dismiss popup dismisses nothing",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::a refused clipboard falls back to selecting the id so Ctrl+C works",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::a refused clipboard falls back to selecting the id so Ctrl+C works",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::a rejected Dismiss keeps the popup open and shows the error",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::a rejected Dismiss keeps the popup open and shows the error",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::shows no Returned badge for an ordinary item",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::shows no Returned badge for an ordinary item",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::a campaign item offers Start campaign instead of Fix now",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::a campaign item offers Start campaign instead of Fix now",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::shows the Returned badge when the item's park just came due",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::shows the Returned badge when the item's park just came due",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::an active campaign offers Go to board",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::an active campaign offers Go to board",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::clicking the title opens the detail",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::clicking the title opens the detail",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::lists each audit check of a compliance bundle on its own line with a help button",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::lists each audit check of a compliance bundle on its own line with a help button",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::clicking an action button does NOT also open the detail",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::clicking an action button does NOT also open the detail",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::explains the severity with a help marker",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::explains the severity with a help marker",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::clicking inside the open Promote dialog does NOT open the detail",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::clicking inside the open Promote dialog does NOT open the detail",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::shows the project label only when given",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::shows the project label only when given",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::Fix now hands the intent up bound to the entry's own project",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::Fix now hands the intent up bound to the entry's own project",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::a parked item is read-only and says when it returns",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::a parked item is read-only and says when it returns",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::Dismiss asks for a reason first and flips the item only after confirming",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::Dismiss asks for a reason first and flips the item only after confirming",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::shows the In progress box and Resolve instead of Fix now, Promote and Snooze",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::shows the In progress box and Resolve instead of Fix now, Promote and Snooze",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::Dismiss without typing a reason sends null",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::Dismiss without typing a reason sends null",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::Resolve dismisses with the prefilled task reason",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::Resolve dismisses with the prefilled task reason",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::Cancel in the Dismiss popup dismisses nothing",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::Cancel in the Dismiss popup dismisses nothing",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriageItemCard.test.tsx::a link for the same id in another project does not show",
-            "path": "client/src/components/triage/TriageItemCard.test.tsx::a link for the same id in another project does not show",
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::a rejected Dismiss keeps the popup open and shows the error",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::a rejected Dismiss keeps the popup open and shows the error",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::a campaign item offers Start campaign instead of Fix now",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::a campaign item offers Start campaign instead of Fix now",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::an active campaign offers Go to board",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::an active campaign offers Go to board",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::shows the project label only when given",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::shows the project label only when given",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageItemRow.test.tsx::a parked item is read-only and says when it returns",
+            "path": "client/src/components/triage/TriageItemRow.test.tsx::a parked item is read-only and says when it returns",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -22694,16 +23126,48 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriagePills.test.tsx::the card grid is 1 column, then 2, then 3",
-            "path": "client/src/components/triage/TriagePills.test.tsx::the card grid is 1 column, then 2, then 3",
+            "id": "client/src/components/triage/TriagePills.test.tsx::a project-specific source is shown as written and gets the generic help",
+            "path": "client/src/components/triage/TriagePills.test.tsx::a project-specific source is shown as written and gets the generic help",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/triage/TriagePills.test.tsx::a project-specific source is shown as written and gets the generic help",
-            "path": "client/src/components/triage/TriagePills.test.tsx::a project-specific source is shown as written and gets the generic help",
+            "id": "client/src/components/triage/TriageProjectStatus.test.tsx::shows ONE alert; the popover names the project and how far behind",
+            "path": "client/src/components/triage/TriageProjectStatus.test.tsx::shows ONE alert; the popover names the project and how far behind",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageProjectStatus.test.tsx::hover opens it for a mouse and leaving closes it again",
+            "path": "client/src/components/triage/TriageProjectStatus.test.tsx::hover opens it for a mouse and leaving closes it again",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageProjectStatus.test.tsx::a tap (click with no hover) toggles it open and shut; the keyboard opens and Escape closes it",
+            "path": "client/src/components/triage/TriageProjectStatus.test.tsx::a tap (click with no hover) toggles it open and shut; the keyboard opens and Escape closes it",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageProjectStatus.test.tsx::is hidden when in sync (behind 0) or when behind is unknown",
+            "path": "client/src/components/triage/TriageProjectStatus.test.tsx::is hidden when in sync (behind 0) or when behind is unknown",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/triage/TriageProjectStatus.test.tsx::adds a ghost-risk note in the popover only when origin is unavailable (degraded)",
+            "path": "client/src/components/triage/TriageProjectStatus.test.tsx::adds a ghost-risk note in the popover only when origin is unavailable (degraded)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -23334,6 +23798,62 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/lib/triageProjectOrder.test.ts::keeps the natural order when nothing is saved",
+            "path": "client/src/lib/triageProjectOrder.test.ts::keeps the natural order when nothing is saved",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageProjectOrder.test.ts::follows the saved order, ignores vanished projects and puts new ones last",
+            "path": "client/src/lib/triageProjectOrder.test.ts::follows the saved order, ignores vanished projects and puts new ones last",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageProjectOrder.test.ts::moves a project onto the slot of another (down and up)",
+            "path": "client/src/lib/triageProjectOrder.test.ts::moves a project onto the slot of another (down and up)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageProjectOrder.test.ts::is a no-op for the same id",
+            "path": "client/src/lib/triageProjectOrder.test.ts::is a no-op for the same id",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageProjectOrder.test.ts::a lane whose project is not in the saved order (vanished) can still be moved",
+            "path": "client/src/lib/triageProjectOrder.test.ts::a lane whose project is not in the saved order (vanished) can still be moved",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageProjectOrder.test.ts::round-trips, keeping the order",
+            "path": "client/src/lib/triageProjectOrder.test.ts::round-trips, keeping the order",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/triageProjectOrder.test.ts::an older saved view without the field loads with an empty order; junk entries are dropped",
+            "path": "client/src/lib/triageProjectOrder.test.ts::an older saved view without the field loads with an empty order; junk entries are dropped",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/lib/triageSnooze.test.ts::tomorrow / 1 week / 1 month as calendar dates",
             "path": "client/src/lib/triageSnooze.test.ts::tomorrow / 1 week / 1 month as calendar dates",
             "layer": "unit",
@@ -23502,6 +24022,14 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/pages/TriagePage.test.tsx::lines the pills, ONE behind-origin alert and the plain-text severity legend up in one summary row",
+            "path": "client/src/pages/TriagePage.test.tsx::lines the pills, ONE behind-origin alert and the plain-text severity legend up in one summary row",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/pages/TriagePage.test.tsx::hides the empty state when there are zero open items but a dateless park exists",
             "path": "client/src/pages/TriagePage.test.tsx::hides the empty state when there are zero open items but a dateless park exists",
             "layer": "unit",
@@ -23520,30 +24048,6 @@
           {
             "id": "client/src/pages/TriagePage.test.tsx::clicking an item title opens the detail modal",
             "path": "client/src/pages/TriagePage.test.tsx::clicking an item title opens the detail modal",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/pages/TriagePage.test.tsx::shows the staleness banner when the local checkout is behind origin",
-            "path": "client/src/pages/TriagePage.test.tsx::shows the staleness banner when the local checkout is behind origin",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/pages/TriagePage.test.tsx::hides the staleness banner when in sync (behind 0) or when behind is unknown",
-            "path": "client/src/pages/TriagePage.test.tsx::hides the staleness banner when in sync (behind 0) or when behind is unknown",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/pages/TriagePage.test.tsx::adds a ghost-risk note only when origin is unavailable (degraded)",
-            "path": "client/src/pages/TriagePage.test.tsx::adds a ghost-risk note only when origin is unavailable (degraded)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -23606,24 +24110,24 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/styles/on-photo-legibility.test.ts::inbox project group header uses --ink / --muted, not --color-text / --color-muted",
-            "path": "client/src/styles/on-photo-legibility.test.ts::inbox project group header uses --ink / --muted, not --color-text / --color-muted",
+            "id": "client/src/styles/on-photo-legibility.test.ts::inbox project groups + cards are dark glass: explicit white tints, never a token that flips or the legacy aliases (iterate-2026-11-13-inbox-triage-look)",
+            "path": "client/src/styles/on-photo-legibility.test.ts::inbox project groups + cards are dark glass: explicit white tints, never a token that flips or the legacy aliases (iterate-2026-11-13-inbox-triage-look)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/styles/on-photo-legibility.test.ts::triage group headers (bare on the photo) use --ink / --muted, not the legacy text aliases",
-            "path": "client/src/styles/on-photo-legibility.test.ts::triage group headers (bare on the photo) use --ink / --muted, not the legacy text aliases",
+            "id": "client/src/styles/on-photo-legibility.test.ts::triage lanes are dark glass: header + rows use explicit white tints, never a token that flips or the legacy aliases",
+            "path": "client/src/styles/on-photo-legibility.test.ts::triage lanes are dark glass: header + rows use explicit white tints, never a token that flips or the legacy aliases",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/styles/on-photo-legibility.test.ts::the Parked heading and its hidden-parked hint (bare on-photo) use the flipping tokens",
-            "path": "client/src/styles/on-photo-legibility.test.ts::the Parked heading and its hidden-parked hint (bare on-photo) use the flipping tokens",
+            "id": "client/src/styles/on-photo-legibility.test.ts::the Parked lane's hidden-parked hint (bare on-photo) uses the flipping tokens",
+            "path": "client/src/styles/on-photo-legibility.test.ts::the Parked lane's hidden-parked hint (bare on-photo) uses the flipping tokens",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -23660,6 +24164,30 @@
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/styles/triage-rows.css.test.ts::reserves an empty action zone between title and meta in wide rows with a hovering pointer",
+            "path": "client/src/styles/triage-rows.css.test.ts::reserves an empty action zone between title and meta in wide rows with a hovering pointer",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/styles/triage-rows.css.test.ts::hides the buttons with visibility (the zone stays) and shows them on hover, focus or an open popover",
+            "path": "client/src/styles/triage-rows.css.test.ts::hides the buttons with visibility (the zone stays) and shows them on hover, focus or an open popover",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/styles/triage-rows.css.test.ts::no longer pads or re-wraps the title on hover (the old overlay trick)",
+            "path": "client/src/styles/triage-rows.css.test.ts::no longer pads or re-wraps the title on hover (the old overlay trick)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
           }
         ],
         "e2e": [
@@ -23680,16 +24208,24 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): group/list margins resolve to the tightened max-md values",
-            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): group/list margins resolve to the tightened max-md values",
+            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): lanes sit 24px apart and rows are separate bars 6px apart inside a lane",
+            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): lanes sit 24px apart and rows are separate bars 6px apart inside a lane",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): group margin stays at the original 16px value",
-            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): group margin stays at the original 16px value",
+            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): lanes sit 36px apart",
+            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): lanes sit 36px apart",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/tablet-mobile-polish.spec.ts::triage card keeps its meta row together at ${label} width",
+            "path": "client/e2e/flows/tablet-mobile-polish.spec.ts::triage card keeps its meta row together at ${label} width",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -23706,6 +24242,14 @@
           {
             "id": "client/e2e/flows/triage-amend.spec.ts::Cancel discards edits — no amend event is written and the original title stays",
             "path": "client/e2e/flows/triage-amend.spec.ts::Cancel discards edits — no amend event is written and the original title stays",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-behind-alert.spec.ts::behind origin is one nowrap alert in the single summary row; hover shows project and commit count",
+            "path": "client/e2e/flows/triage-behind-alert.spec.ts::behind origin is one nowrap alert in the single summary row; hover shows project and commit count",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -23770,6 +24314,30 @@
           {
             "id": "client/e2e/flows/triage-fixnow-task.spec.ts::phone width: the Dismiss popup stays inside the viewport",
             "path": "client/e2e/flows/triage-fixnow-task.spec.ts::phone width: the Dismiss popup stays inside the viewport",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-lanes-rows.spec.ts::a row shows the title, then a round severity number, the selectable id and a copy button; actions show on hover",
+            "path": "client/e2e/flows/triage-lanes-rows.spec.ts::a row shows the title, then a round severity number, the selectable id and a copy button; actions show on hover",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-lanes-rows.spec.ts::on a phone the title keeps its width and the severity and id sit under it",
+            "path": "client/e2e/flows/triage-lanes-rows.spec.ts::on a phone the title keeps its width and the severity and id sit under it",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-lanes-rows.spec.ts::project lanes can be reordered by their handle and the order is remembered",
+            "path": "client/e2e/flows/triage-lanes-rows.spec.ts::project lanes can be reordered by their handle and the order is remembered",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -24702,6 +25270,14 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "server/src/core/event-log-files.test.ts::never reads a symlinked drop file or a symlinked archive folder",
+            "path": "server/src/core/event-log-files.test.ts::never reads a symlinked drop file or a symlinked archive folder",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "server/src/core/event-log-files.test.ts::reads a dot-named *.jsonl drop, as Python's glob does",
             "path": "server/src/core/event-log-files.test.ts::reads a dot-named *.jsonl drop, as Python's glob does",
             "layer": "unit",
@@ -24728,6 +25304,22 @@
           {
             "id": "server/src/core/event-log-files.test.ts::a drop amendment fills the run's commit; a legacy amendment still does not",
             "path": "server/src/core/event-log-files.test.ts::a drop amendment fills the run's commit; a legacy amendment still does not",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::reads the pre-move root folders while the new folder is absent",
+            "path": "server/src/core/event-log-files.test.ts::reads the pre-move root folders while the new folder is absent",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/event-log-files.test.ts::prefers the new folder: the old one is not read once the new one exists",
+            "path": "server/src/core/event-log-files.test.ts::prefers the new folder: the old one is not read once the new one exists",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -27107,16 +27699,16 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): group/list margins resolve to the tightened max-md values",
-            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): group/list margins resolve to the tightened max-md values",
+            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): lanes sit 24px apart and rows are separate bars 6px apart inside a lane",
+            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::phone (<768px): lanes sit 24px apart and rows are separate bars 6px apart inside a lane",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): group margin stays at the original 16px value",
-            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): group margin stays at the original 16px value",
+            "id": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): lanes sit 36px apart",
+            "path": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts::desktop (>=768px): lanes sit 36px apart",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -27155,8 +27747,8 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/e2e/flows/triage-card-block-display.spec.ts::triage cards are block-level and stack with only the list gap between them",
-            "path": "client/e2e/flows/triage-card-block-display.spec.ts::triage cards are block-level and stack with only the list gap between them",
+            "id": "client/e2e/flows/triage-card-block-display.spec.ts::triage rows are block-level and stack as separate bars (6px apart) inside their lane",
+            "path": "client/e2e/flows/triage-card-block-display.spec.ts::triage rows are block-level and stack as separate bars (6px apart) inside their lane",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -30324,47 +30916,12 @@
     },
     {
       "test": "",
-      "raw": "server/src/core/session-file/access.unit.test.ts:108: // @covers FR-01.66",
-      "reason": "unbound-covers-comment"
-    },
-    {
-      "test": "",
-      "raw": "server/src/core/session-file/access.unit.test.ts:121: // @covers FR-01.66",
-      "reason": "unbound-covers-comment"
-    },
-    {
-      "test": "",
-      "raw": "server/src/core/session-file/access.unit.test.ts:187: // @covers FR-01.66",
-      "reason": "unbound-covers-comment"
-    },
-    {
-      "test": "",
-      "raw": "server/src/core/session-file/access.unit.test.ts:201: // @covers FR-01.66",
-      "reason": "unbound-covers-comment"
-    },
-    {
-      "test": "",
-      "raw": "server/src/core/session-file/access.unit.test.ts:210: // @covers FR-01.66",
-      "reason": "unbound-covers-comment"
-    },
-    {
-      "test": "",
       "raw": "server/src/external/launch/runtime-chokepoint.probe.test.ts:20: // @covers FR-01.51 — the `it.skipIf(win32)` test below never runs on CI",
       "reason": "unbound-covers-comment"
     },
     {
       "test": "",
       "raw": "server/src/external/launch/runtime-chokepoint.probe.test.ts:45: // @covers FR-01.51 — regression proof for the codex_cli_not_found Windows",
-      "reason": "unbound-covers-comment"
-    },
-    {
-      "test": "",
-      "raw": "server/src/external/session-file/routes.test.ts:206: // @covers FR-01.66",
-      "reason": "unbound-covers-comment"
-    },
-    {
-      "test": "",
-      "raw": "server/src/external/session-file/routes.test.ts:212: // @covers FR-01.66",
       "reason": "unbound-covers-comment"
     },
     {
@@ -30444,6 +31001,11 @@
     },
     {
       "test": "",
+      "raw": "client/src/components/triage/TriageProjectStatus.test.tsx:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
       "raw": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx:85: // @covers FR-01.51 — the doors DEEP-LINK into the wizard flow (Rule 1: navigate only).",
       "reason": "unbound-covers-comment"
     },
@@ -30510,6 +31072,11 @@
     {
       "test": "",
       "raw": "client/src/lib/triageHelpText.test.ts:1: // @covers FR-01.30",
+      "reason": "unbound-covers-comment"
+    },
+    {
+      "test": "",
+      "raw": "client/src/lib/triageProjectOrder.test.ts:1: // @covers FR-01.30",
       "reason": "unbound-covers-comment"
     },
     {
@@ -30857,7 +31424,6 @@
     "client/e2e/flows/smartviewer-crossfile-nav.spec.ts::clicking a real RTM FR link navigates the pane to spec.md",
     "client/e2e/flows/smartviewer-document-render.spec.ts::hides comments, blocks frontmatter, renders anchors, scrolls in-pane, pops out",
     "client/e2e/flows/smartviewer-popout-modal.spec.ts::opens a centered modal, suppresses nested pop-out, ESC + X close it, no new tab",
-    "client/e2e/flows/tablet-mobile-polish.spec.ts::triage card keeps its meta row together at ${label} width",
     "client/e2e/flows/terminal-byte-path-guard.spec.ts::a plain keystroke sends exactly its own bytes, one frame per key",
     "client/e2e/flows/terminal-byte-path-guard.spec.ts::auto-execute sends EXACTLY ONE data-frame, only after the CTA click, carrying the launcher's command",
     "client/e2e/flows/terminal-byte-path-guard.spec.ts::paste sends the whole text in a SINGLE frame (the #186/#211 double-send fence)",
@@ -33603,9 +34169,6 @@
     "client/src/pages/inbox/InboxCard.test.tsx::InboxCard throws (never a silent wrong-card render) for an unrecognized kind",
     "client/src/pages/inbox/InboxCard.test.tsx::inboxItemKey returns lq-<taskId> for a lead_question item",
     "client/src/pages/inbox/InboxCard.test.tsx::inboxItemKey throws (never a silent undefined key) for an unrecognized kind",
-    "client/src/pages/inbox/InboxProjectSection.test.tsx::Unassigned bucket uses the muted-token chip",
-    "client/src/pages/inbox/InboxProjectSection.test.tsx::renders project label + (N open) count + chevron-color chip",
-    "client/src/pages/inbox/InboxProjectSection.test.tsx::sessions render in input order (MED #3 — ordering preservation)",
     "client/src/pages/inbox/useInboxData.derivation.test.ts::Unassigned bucket — task missing OR projectId === unassigned (openai MED)",
     "client/src/pages/inbox/useInboxData.derivation.test.ts::openCount sums items across project groups",
     "client/src/pages/inbox/useInboxData.derivation.test.ts::session ordering and item ordering preserved verbatim (openai MED)",
@@ -33822,6 +34385,7 @@
     "server/src/core/campaign-readiness-schema.test.ts::rejects %s",
     "server/src/core/campaign-readiness-schema.test.ts::the skeleton's top-level keys are exactly the keys the mirror requires",
     "server/src/core/campaign-readiness-schema.test.ts::the vendored contract fixture is version 1.x and the mirror supports that major",
+    "server/src/core/campaign-readiness-schema.test.ts::the vendored fixture is byte-equal to the sibling monorepo's pinned contract",
     "server/src/core/campaign-readiness-schema.test.ts::tolerates an unknown reason string (additive minor still renders)",
     "server/src/core/campaign-readiness.test.ts::'only valid for kind' (a section loop) → no-loop",
     "server/src/core/campaign-readiness.test.ts::SHIPWRIGHT_LOOP_CLAIM_SCRIPT overrides the cache location",
@@ -34242,8 +34806,10 @@
     "server/src/core/mission-context/fold-map.test.ts::drops non-FR junk but keeps valid unknown ids",
     "server/src/core/mission-context/fold-map.test.ts::echoes an UNKNOWN id raw rather than blanking it (§3.1 honesty rule)",
     "server/src/core/mission-context/fold-map.test.ts::follows a fold CHAIN (a parent that was itself later folded)",
+    "server/src/core/mission-context/fold-map.test.ts::knows FR-01.66 as a TSK capability (this slice's own FR)",
     "server/src/core/mission-context/fold-map.test.ts::leaves a surviving id untouched and sets NO mappedFrom",
     "server/src/core/mission-context/fold-map.test.ts::resolves a folded id to its parent and records the provenance (AC2)",
+    "server/src/core/mission-context/fold-map.test.ts::resolves the AC2 example FR-01.44 → FR-01.28 from the live table",
     "server/src/core/mission-context/fold-map.test.ts::returns an unloaded map for a project without a spec (degrades, never throws)",
     "server/src/core/mission-context/fold-map.test.ts::separates capability rows from alias rows by shape",
     "server/src/core/mission-context/fold-map.test.ts::terminates on a cyclic map instead of spinning",
@@ -34363,6 +34929,7 @@
     "server/src/core/mission-context/traceability.v4-fixture.test.ts::accepts a v4 manifest carrying an AC-scoped tag (`ac_id` + `acs`) without warning or corruption",
     "server/src/core/mission-context/traceability.v4-fixture.test.ts::accepts a v4 manifest with NO AC tag anywhere — the v3-shaped bare FR tag case (AC2)",
     "server/src/core/mission-context/traceability.v4-fixture.test.ts::handles an AC-scoped requirement and a bare-tag requirement in the SAME manifest without cross-contamination",
+    "server/src/core/mission-context/worktree-roots.test.ts::discovers a real linked worktree",
     "server/src/core/model-tier-config-reader.test.ts::accepts fable as a valid Claude tier (shipwright#771)",
     "server/src/core/model-tier-config-reader.test.ts::fails soft to inherited tiers when the framework config is malformed",
     "server/src/core/model-tier-config-reader.test.ts::ignores inherited Git directory overrides when resolving a linked worktree",
@@ -34572,6 +35139,8 @@
     "server/src/core/project-manager.test.ts::withMode sets adopted=false when shipwright_run_config.json is missing",
     "server/src/core/project-manager.test.ts::withMode sets adopted=true when shipwright_run_config.json exists",
     "server/src/core/readiness-probe-codex.test.ts::Codex CLI absent → carries an install hint",
+    "server/src/core/readiness-probe-run.test.ts::is a pass-through to defaultRun on POSIX",
+    "server/src/core/readiness-probe-run.test.ts::still runs a real .exe on PATH",
     "server/src/core/readiness-probe-run.test.ts::under a forced win32 platform, reports not-found (no execFile attempt) when resolveSpawn cannot place the name on PATH",
     "server/src/core/readiness-probe-run.test.ts::under a forced win32 platform, resolves and runs a bare name via an executable-extension PATH match",
     "server/src/core/run-config-mode.test.ts::DEFAULT_RUN_MODE is standalone (the framework's INERT_MODE sentinel, not a schema default)",
@@ -34703,6 +35272,7 @@
     "server/src/core/session-info/remote-control.test.ts::skips files holding valid JSON that is not an object instead of throwing",
     "server/src/core/session-info/small-file.test.ts::reads a regular file within the cap",
     "server/src/core/session-info/small-file.test.ts::refuses a file over the cap, a directory and a missing path",
+    "server/src/core/session-info/small-file.test.ts::refuses a symlink even when its target is a small regular file",
     "server/src/core/session-jsonl-io.test.ts::caps a partial read at the post-truncation end instead of over-delivering",
     "server/src/core/session-jsonl-io.test.ts::clamps a fromByte past EOF to an empty read",
     "server/src/core/session-jsonl-io.test.ts::clamps a negative fromByte to 0",
