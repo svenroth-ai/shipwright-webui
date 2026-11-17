@@ -1,1 +1,0 @@
-Triage: projects behind origin now show as one compact orange alert (hover or tap for which project and how many commits) instead of a wide chip per project, and the severity legend has a darker background.

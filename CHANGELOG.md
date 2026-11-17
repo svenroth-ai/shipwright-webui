@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-11-17
+
+### Added
+
+- Inbox: each project has a pill header that folds its cards and can be dragged (or moved with the arrow keys) to put projects in your own order; both are remembered after a reload.
+- The Markdown editor's table bar can insert a row above or a column to the left, and edit the table under the cursor as plain Markdown text with problems shown before applying.
+
+### Changed
+
+- Triage: each project is now a dark lane of one-line rows instead of cards; the severity and the item ID sit left of the title, the ID is selectable and has a copy button, and the row buttons (with the edit pencil) appear on hover.
+- Triage: project lanes can be put in your own order with a drag handle (or arrow keys) next to the project name; the order is remembered.
+- Triage row tests split into two files so both stay under the 300-line cap; no user-visible change.
+- Inbox: cards now use the Triage page's dark glass look with the project colour as a bar; the content starts at the same left edge as Triage so it no longer jumps when switching pages.
+- Triage: projects behind origin now show as one compact orange alert (hover or tap for which project and how many commits) instead of a wide chip per project, and the severity legend has a darker background.
+- Triage: severity is a round number 1-5 next to the ID, each row is its own bar, the buttons appear in a reserved zone so the title no longer jumps, and the top summary is compact pills.
+- Event records are now written as one small file per run, so parallel pull requests no longer conflict on the event log.
+- Internal cleanup: the event timestamp parser lives in its own module, no change to what the Command Center shows.
+- The event log reader follows the Shipwright move of the event folders to .shipwright/events/{drops,archive,quarantine}; the old root folders are still read while the new folder does not exist yet.
+
+### Removed
+
+- Triage: the pending delivery mark no longer shows on list rows (it stays in the detail dialog), and the In progress box no longer repeats the task title.
+
+### Fixed
+
+- Triage: lanes are opaque and further apart, Parked is readable, the row buttons appear on the right on hover with longer labels, and the In-progress box and the behind-origin notice match the dark lane look.
+- Mission tab now identifies finished runs that are merged on origin/main even when the local main checkout has not been pulled, instead of leaving every artifact pending.
+- The Markdown editor no longer rewrites tables you did not touch, keeps column alignment in tables you edit, and keeps a table with a line break in a cell a normal Markdown table instead of turning it into HTML.
+
 ## [0.33.1] - 2026-11-12
 
 ### Added

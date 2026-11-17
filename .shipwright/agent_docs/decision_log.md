@@ -6089,3 +6089,133 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Fixing the data loss at the node layer keeps the saved Markdown canonical and the pre-save diff honest; no image src allowlist because the editor shows the user's own file.
 - **Consequences:** Tables, task lists, images and nested fences round-trip byte-identical and idempotent. Footnotes stay unsupported (warned in the diff banner). Loose task lists become tight; image paths are percent-encoded by markdown-it.
 - **Rejected:** Warning only (status quo, still destroys content); a raw-Markdown fallback editor for tables (poor editing UX); a custom Markdown parser instead of markdown-it.
+
+---
+
+### ADR-429: Triage page: dark project lanes of rows instead of cards
+- **Date:** 2026-11-12
+- **Section:** Iterate — change: Triage lanes with rows
+- **Run-ID:** iterate-2026-11-12-triage-lanes-rows
+- **Context:** Triage cards were crowded and showed explanations plus a priority/domain line; user asked for rows, per-project dark lanes, reorderable projects, copyable IDs.
+- **Decision:** Each project is a dark glass lane (Task Board recipe) of one-line rows: severity, selectable ID with copy button, title. Actions appear on hover. Lanes reorder by drag handle or arrow keys; order saved additively in the saved Triage view.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Rows give the title full width and cut clutter; explanations stay in the detail dialog. Reusing the Board lane look keeps one visual language.
+- **Consequences:** TriageItemCard and the card grid are removed. Row actions are a hover overlay only on wide rows with a fine pointer; touch and narrow rows show them always.
+- **Rejected:** Keeping cards with a moved edit button (still crowded); a sortable library (dnd-kit core already covers it).
+
+---
+
+### ADR-430: Reconcile D-layer, D1, H1, H2 compliance findings
+- **Date:** 2026-11-13
+- **Section:** Iterate — change: reconcile 4 compliance findings
+- **Run-ID:** iterate-2026-11-13-compliance-findings-reconcile
+- **Context:** The audit reported 15 required-layer gaps (D-layer), 12 uncovered FRs (D1), an oversize test file (H1) and a stale bloat baseline (H2).
+- **Decision:** Split the Fix-now tests out of TriageItemRow.test.tsx into TriageItemRow.fixnow.test.tsx, tighten the TriagePage baseline to 261, and clear D1/D-layer by staging real executed vitest + Playwright evidence.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Splitting fixes the cause of H1; baselining an avoidable crossing would have hidden it. No tests were added for D findings because the tests already existed.
+- **Consequences:** Both triage test files are under 300 lines. D1 and D-layer were evidence gaps, not missing tests: the tagged tests existed but no executed report was staged.
+- **Rejected:** Adding the oversize file to the bloat baseline; writing new tests for FRs that already had tagged tests.
+
+---
+
+### ADR-431: Inbox wears the Triage dark-glass look; project groups fold and reorder
+- **Date:** 2026-11-13
+- **Section:** Iterate — change: Inbox in the Triage look
+- **Run-ID:** iterate-2026-11-13-inbox-html-baseline
+- **Context:** The Triage page was restyled (dark glass, project accent, drag-ordered lanes). The Inbox still used light cards in a white panel, so switching pages felt like two products, and its content did not share Triage's left edge.
+- **Decision:** Keep Inbox cards (no lanes) but render them as dark glass with a project-colour bar via a scoped .inbox-card style that re-points the legacy colour aliases. Each project gets a solid pill header that folds the group and carries a drag handle (dnd-kit + arrow keys). Fold state and project order persist in localStorage (inboxViewStorage). The page body uses the same scroller box as Triage.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reusing the Triage tokens keeps one visual language; scoping the colour flip to .inbox-card avoids rewriting every inner component; persisting like Triage keeps the view stable across reloads.
+- **Consequences:** All Inbox cards share one chrome component (InboxCardShell); the card-variant files shrink. A folded group shows only a count, so a new item in a folded project does not auto-expand it. The visual-regression baseline for the populated Inbox changes and is regenerated on Linux.
+- **Rejected:** Lanes for the Inbox (user wanted cards); summary pills (display-only, user removed them); rewriting inner components to dark-only colours (large blast radius).
+
+---
+
+### ADR-432: Triage: one orange behind-origin alert with a popover, darker severity legend
+- **Date:** 2026-11-13
+- **Section:** Iterate - change: Triage behind-origin alert
+- **Run-ID:** iterate-2026-11-13-triage-alerts-round4
+- **Context:** Round 3 showed one wide chip per project for 'checkout is N commits behind origin'; the chips wrapped and the severity legend was unreadable on the photo background.
+- **Decision:** A single compact orange alert (A project / Projects behind origin) shares the one summary row with the pills and the legend; hover with a mouse or tap on touch opens a popover listing each project and its commit count. The legend background is darker.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The operator asked for a subtle alert, not the full information; a popover keeps the detail without costing row width.
+- **Consequences:** The row stays on one line; the detail (project, commits, degraded-origin note) is one interaction away instead of always visible. Keyboard and touch use the normal button toggle.
+- **Rejected:** Keeping per-project chips with truncation (still wide, still noisy); a tooltip only (not reachable on touch).
+
+---
+
+### ADR-433: Triage lanes: solid background, spacing, hover strip on the right
+- **Date:** 2026-11-13
+- **Section:** Iterate — bug: Triage rows polish
+- **Run-ID:** iterate-2026-11-13-triage-rows-polish
+- **Context:** After the lanes-and-rows release the operator found lanes too transparent, crowded, Parked unreadable, and action buttons shown below the title instead of on hover at the right.
+- **Decision:** Opaque lane colour (one token), 36px lane gap, taller rows, strip shown on hover whenever the primary input can hover, longer dark buttons, dark task box and banner.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The earlier any-pointer:coarse gate wrongly hid hover behaviour on touch laptops.
+- **Consequences:** Hybrid touch+hover devices hide the strip until hover; every action stays in the detail dialog. Strip needs rows at least 62rem wide, else buttons are inline.
+- **Rejected:** Keeping the coarse-pointer opt-out (shows buttons below the title on touch laptops, which the operator rejected).
+
+---
+
+### ADR-434: Triage rows: round severity number on the right, fixed action zone, row bars, summary pills
+- **Date:** 2026-11-13
+- **Section:** Iterate â€” change: Triage rows round 3
+- **Run-ID:** iterate-2026-11-13-triage-rows-round3
+- **Context:** Round 2 of the lanes made the title jump when buttons appeared, put a loud Medium word badge left of the title, showed an internal pending-delivery mark, and used wide tiles and a wide banner on top.
+- **Decision:** Round severity number 1-5 right before the ID, a fixed empty 28rem action zone, each row its own bar, pending delivery only in the detail dialog, Promote label, compact filter pills plus a non-clickable behind-origin chip and a plain legend, task box without the repeated title.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A stable title column and a quiet metadata column scan faster; the operator approved a pixel-true mock first.
+- **Consequences:** On wide rows long titles wrap earlier because the zone is reserved. Severity is a number with the word as tooltip; the light dialogs keep the word badge.
+- **Rejected:** Overlaying the buttons or padding the title on hover (the title reflowed); a coloured dot without a number.
+
+---
+
+### ADR-435: Switch the webui project to the per-run event-file layout
+- **Date:** 2026-11-14
+- **Section:** Iterate — change: events layout drops
+- **Run-ID:** iterate-2026-11-14-events-drops-layout
+- **Context:** The single shipwright_events.jsonl made parallel iterate PRs conflict at the end of the file. The WebUI readers already assemble legacy, archive and drops.
+- **Decision:** Set events_layout to drops in shipwright_sync_config.json; each run now writes its own file under .shipwright/events/drops/.
+- **Commit:** (assigned post-merge)
+- **Rationale:** One key flips the layout; reader tests (59 files) pass unchanged against the assembled log.
+- **Consequences:** No more event-log merge conflicts between parallel PRs. Existing events stay in shipwright_events.jsonl and are still read. Branches rebased across the switch must re-record their event.
+- **Rejected:** Staying on legacy: keeps the conflict class. Moving old events into drops now: unnecessary, readers merge both.
+
+---
+
+### ADR-436: Split instantKey out of event-log-assemble.ts
+- **Date:** 2026-11-15
+- **Section:** Iterate - change: reconcile B7 and H1 audit findings
+- **Run-ID:** iterate-2026-11-15-compliance-findings-reconcile
+- **Context:** The detective audit flagged event-log-assemble.ts at 303 lines (limit 300) and one commit (52592d67) with no work_completed event.
+- **Decision:** Move instantKey and its ISO regex into event-log-instant.ts and re-export it from event-log-assemble.ts; backfill the missing event. D1 and D-layer are left to the compliance refresh flow.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A cohesive module split beats trimming lines: the instant parser is self-contained and pure.
+- **Consequences:** event-log-assemble.ts is 271 lines; every existing import of instantKey still resolves; no behavior change.
+- **Rejected:** Deleting comments or merging lines to reach 300, which only postpones the next crossing.
+
+---
+
+### ADR-437: Corroborate a transcript Run-ID footer from origin/main as well as the working tree
+- **Date:** 2026-11-16
+- **Section:** Iterate - bug: Mission tab identifies finished runs merged on origin/main but not pulled locally
+- **Run-ID:** iterate-2026-11-16-mission-events-new-layout
+- **Context:** A run merged via gh leaves the user's main checkout unpulled, so hasRunRecord (working tree only) never confirmed the footer and the session stayed unidentified, with every Mission artifact pending.
+- **Decision:** resolveMissionContext awaits corroborateRunIdFromMergedRef (run-id-recovery-ref.ts) when there is no pointer and no association; recoverRunIdFromTranscript accepts that id. Memoized per session by transcript content for 30 s; any failure reads as no evidence.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The assembled event log at origin/main is already read for artifacts of finished runs (merged-events.ts); reusing it keeps one corroboration rule and no new write surface.
+- **Consequences:** Finished runs merged on the default remote are identified without a pull. A run merging or being fetched later may take up to 30 s plus the ref TTL to show up. Adds one async git read per unidentified session.
+- **Rejected:** Making detectScenario async (large ripple through the table); trusting an uncorroborated footer (reopens the quoted-run-id false positive).
+
+---
+
+### ADR-438: Keep tables intact through the markdown editor round trip
+- **Date:** 2026-11-17
+- **Section:** Iterate — change: SmartViewer markdown editor table editing
+- **Run-ID:** iterate-2026-11-17-md-editor-table-editing
+- **Context:** Saving after editing a document corrupted tables: a cell with a line break turned the whole table into an HTML block, and column-aligned tables were reflowed so the diff showed every row changed.
+- **Decision:** Allow hard breaks in GFM cells (written as br); restore unchanged tables byte-for-byte from the original and re-pad edited tables to the original's style, judged against a post-load baseline serialization; add an as-Markdown source panel plus insert-row-above and insert-column-left.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Comparing against a baseline serialization separates editor-side normalisation from real user edits, and falls back safely whenever tables cannot be paired. The pre-save diff remains the safety net.
+- **Consequences:** Untouched tables never show in the diff. A table whose source row count differs from the editor's (lazy rows) falls back to editor output. Pairing after a deleted table is approximate (cosmetic padding only).
+- **Rejected:** Replacing the pipe-table serializer with an HTML-only table (lossy for diffs); a raw-source-only editor (loses the grid UI); prettier-style reformat on every save (diff noise).
