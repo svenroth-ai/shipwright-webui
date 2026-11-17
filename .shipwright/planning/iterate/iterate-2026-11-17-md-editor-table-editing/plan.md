@@ -1,0 +1,7 @@
+Goal: The Markdown editor must not corrupt or reflow tables on save, and tables can be edited as source.
+Reason: Editing a document with a table rewrote it: a cell line break turned the table into an HTML block and padded tables were reflowed, so the review showed every row changed.
+Reference: operator request 2026-11-17 (SmartViewer table editing)
+Affected ACs: FR-01.35
+AC item: {"confirmed": false, "decided_by": "code", "files": ["client/src/lib/markdownTablePreserve.ts"], "kind": "add", "new_text": "Given a Markdown file with tables is open in the editor, when it is saved after edits, then a table you did not touch is saved exactly as it was written and a table you did change keeps its original column alignment, so the review shows only the rows that really differ.", "owner_fr": "FR-01.35"}
+AC item: {"confirmed": false, "decided_by": "code", "files": ["client/src/components/external/SmartViewer/MarkdownTableSourcePanel.tsx"], "kind": "add", "new_text": "Given a table cell contains a line break, when the file is saved from the editor, then the table stays a normal Markdown table, and when you choose to edit the table under the cursor as Markdown, then any problem is shown before the change is applied.", "owner_fr": "FR-01.35"}
+AC decisions: [{"ac": "FR-01.35.new", "mode": "auto", "answer": "auto", "kind": "add", "answered_via": "none", "decided_by": "code", "confirmed": false}, {"ac": "FR-01.35.new", "mode": "auto", "answer": "auto", "kind": "add", "answered_via": "none", "decided_by": "code", "confirmed": false}]

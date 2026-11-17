@@ -1,0 +1,60 @@
+{
+  "run_id": "iterate-2026-11-17-md-editor-table-editing",
+  "date": "2026-11-17T21:22:06.952205Z",
+  "event_at": "2026-11-16T07:53:06.731666+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/md-editor-table-editing",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-17-md-editor-table-editing",
+  "risk_flags": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "a table the user did not touch is written back byte-for-byte; an edited table keeps the original padding",
+        "disposition": "tested",
+        "evidence": "client/src/lib/markdownTablePreserve.test.ts (restore, edited-padding, lazy-row, fence, padTable) PASSED; e2e md-editor-table-editing.spec.ts test 1 PASSED"
+      },
+      {
+        "behavior": "a hard break (br) in a table cell keeps the table a GFM pipe table",
+        "disposition": "tested",
+        "evidence": "markdownTablePreserve.test.ts br round-trip PASSED; e2e test 1 asserts no <table> in saved output"
+      },
+      {
+        "behavior": "the caret's table can be edited as Markdown source; invalid source is refused inline; valid source replaces the table",
+        "disposition": "tested",
+        "evidence": "markdownTablePreserve.test.ts (validate, applyTableSource) PASSED; e2e md-editor-table-editing.spec.ts test 2 PASSED"
+      },
+      {
+        "behavior": "insert row above / column left table-bar commands",
+        "disposition": "tested",
+        "evidence": "existing table-bar suites under SmartViewer PASSED (198 tests); commands are stock TipTap table commands"
+      }
+    ],
+    "counts": {
+      "testable": 4,
+      "tested": 4,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 2,
+      "covered_acs": 2
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs client/e2e/flows/md-editor-table-editing.spec.ts",
+    "exit_code": 0,
+    "tests_run": 2,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\md-editor-table-editing\\.shipwright\\runs\\iterate-2026-11-17-md-editor-table-editing\\surface_verification.log",
+    "timestamp": "2026-11-17T21:21:12.334Z"
+  }
+}

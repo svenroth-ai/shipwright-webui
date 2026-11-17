@@ -1,0 +1,1 @@
+The Markdown editor no longer rewrites tables you did not touch, keeps column alignment in tables you edit, and keeps a table with a line break in a cell a normal Markdown table instead of turning it into HTML.
