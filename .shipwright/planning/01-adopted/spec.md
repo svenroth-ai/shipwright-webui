@@ -798,8 +798,8 @@ write (creation, sub-iterate/step status, `active → complete`).
   toolbar is hidden during loading/load_error/diff and introduces NO new
   serialized construct (the round-trip + warn surface are unchanged). Added by
   `iterate-2026-06-04-md-editor-toolbar`.
-- (E) **(iterate-2026-11-17-md-editor-table-editing)** In the Markdown editor, a table you did not touch is saved exactly as it was written, and a table you did change keeps its original column alignment, so the review shows only the rows that really differ.
-- (E) **(iterate-2026-11-17-md-editor-table-editing)** In the Markdown editor, a table cell that contains a line break stays a normal Markdown table when saved, and the table under the cursor can be edited as plain Markdown text, with any problem shown before the change is applied.
+- (E) **(iterate-2026-11-17-md-editor-table-editing)** Given a Markdown file with tables is open in the editor, when it is saved after edits, then a table you did not touch is saved exactly as it was written and a table you did change keeps its original column alignment, so the review shows only the rows that really differ.
+- (E) **(iterate-2026-11-17-md-editor-table-editing)** Given a table cell contains a line break, when the file is saved from the editor, then the table stays a normal Markdown table, and when you choose to edit the table under the cursor as Markdown, then any problem is shown before the change is applied.
 
 Added by `iterate-2026-06-03-smartviewer-markdown-editor`. The first project-file
 write surface; gated, path-guarded, and concurrency-safe.

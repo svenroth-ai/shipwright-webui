@@ -1,4 +1,1 @@
-{"verdict":"pass","review":[
-{"finding":"Out-of-scope but harmless: insert row above / column left buttons are not in the spec bullets; plain TipTap commands serializing to the same pipe tables. YAGNI note, no change to either contract.","severity":"low"},
-{"finding":"Bullet 1 delivered: untouched table restored byte-for-byte against a post-load baseline; changed table re-padded to the original style.","severity":"info"},
-{"finding":"Bullet 2 delivered: hard-break cells stay pipe tables; Als Markdown panel validates inline and applies only valid source.","severity":"info"}]}
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"Both promised behaviors are delivered and in scope: untouched tables restored byte-for-byte against a post-load baseline with edited tables re-padded to the original style; line-break cells stay pipe tables; the table under the cursor is editable as Markdown with inline validation. Low note: insert row above / column left buttons are unrequested but are stock TipTap commands serializing to the same tables."}
