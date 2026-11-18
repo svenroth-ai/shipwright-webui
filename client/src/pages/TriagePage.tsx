@@ -4,7 +4,7 @@
  * header toolbar (project filter, filter funnel, group, sort), summary pills,
  * active-filter chips, collapsible dark lanes of rows (project lanes can be put
  * in the user's own order) and a read-only Parked lane. The whole view is saved
- * in the browser; only the project choice is shared with the Board.
+ * in the browser; the project choice is its own (not the Board's) and starts on All.
  *
  * Every entry is a `{projectId, item}` pair — triage ids can repeat across
  * projects — and every action is bound to the entry's own project.

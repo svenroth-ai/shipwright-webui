@@ -88,16 +88,16 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "not_applicable",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-11-18T07:47:23.340219+00:00",
-      "disposition": "closed by reason_code diff-below-threshold",
-      "recorded_by": "none",
+      "completed_at": "2026-11-18T07:51:32.681979+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "diff-below-threshold"
+      "model_tier": "inherit"
     },
     "plan_internal": {
       "review_type": "plan_internal",

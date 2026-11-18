@@ -1,0 +1,1 @@
+- **iterate-2026-11-18-triage-project-filter-independent** (2026-11-18): Convention — ProjectFilterDropdown accepts optional value+onChange (controlled mode); a page that must not share the Board's project filter (Triage) owns its own state instead of useProjectFilter(). → decision_log (ADR via Run-ID: iterate-2026-11-18-triage-project-filter-independent)
