@@ -62,6 +62,12 @@ interface Props {
   onDocLinkClick?: (href: string) => void;
   /** Scroll to this fragment once, after a cross-file navigation lands. */
   scrollToFragment?: string | null;
+  /**
+   * Turn a RELATIVE image `src` (`diagram.svg`, `../img/a.png`) into a loadable URL (the file
+   * route of the document's own project). Without it a relative `src` resolves against the
+   * app's URL and shows a broken placeholder. Absolute / data URLs are never passed in.
+   */
+  resolveImageSrc?: (src: string) => string | null;
 }
 
 /**
@@ -188,8 +194,19 @@ const COMPONENTS = {
   },
 };
 
-export function DocumentMarkdown({ text, onDocLinkClick, scrollToFragment }: Props) {
+export function DocumentMarkdown({ text, onDocLinkClick, scrollToFragment, resolveImageSrc }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const components = useMemo(
+    () => ({
+      ...COMPONENTS,
+      img(props: { src?: string; alt?: string; node?: unknown }) {
+        const { src, alt, node: _node, ...rest } = props;
+        const resolved = src && resolveImageSrc && isInternalDocLink(src) ? resolveImageSrc(src) : null;
+        return <img src={resolved ?? src} alt={alt ?? ""} loading="lazy" {...rest} />;
+      },
+    }),
+    [resolveImageSrc],
+  );
   const processed = useMemo(() => frontmatterToCodeFence(text), [text]);
 
   const onClick = useCallback(
@@ -241,7 +258,7 @@ export function DocumentMarkdown({ text, onDocLinkClick, scrollToFragment }: Pro
       <ReactMarkdown
         remarkPlugins={REMARK_PLUGINS}
         rehypePlugins={REHYPE_PLUGINS as never}
-        components={COMPONENTS}
+        components={components}
       >
         {processed}
       </ReactMarkdown>

@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Scope matches request","verdict":"pass","note":"Relative image src in SmartViewer markdown now resolves via the file route; all image types (svg/png/jpg/jpeg/gif/webp) share one path."},
+{"name":"No dead code / debug","verdict":"pass","note":"3 source files + 1 unit test file + 1 E2E spec; no leftovers."},
+{"name":"Error/edge paths","verdict":"pass","note":"Absolute URLs untouched; no resolver (Mission/Compliance hosts) keeps src as written; ../ clamped at root by resolveDocPath; %20 decoded per segment."},
+{"name":"Tests","verdict":"pass","note":"6-ext unit matrix, ../ + encoded name, session route, absolute, no-resolver; E2E asserts naturalWidth>0 for svg+png on the real file route. Full vitest 5164 pass."},
+{"name":"Conventions / file size","verdict":"pass","note":"DocumentMarkdown ~265 lines, MarkdownRenderer ~145; under 300, no bloat entry."},
+{"name":"Security / data","verdict":"pass","note":"Resolved URL is the existing project file route (path-guarded, MIME allowlist, nosniff+sandbox CSP); SVG loads via <img> so scripts do not run; sanitizer unchanged."},
+{"name":"Affected boundaries","verdict":"pass","note":"Outside-project docs use the session-file route; unevidenced siblings 403 and show a broken image (assetOf only supports html owners) - documented limitation."}
+]}
