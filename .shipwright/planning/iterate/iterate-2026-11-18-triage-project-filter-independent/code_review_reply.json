@@ -1,0 +1,4 @@
+{"section":"triage-project-filter-independent","review":[
+{"severity":"low","category":"correctness","file":"client/src/pages/TriagePage.tsx","line":146,"finding":"Dropdown value gets raw activeProjectId while content uses scopeId; stale id shows no checked row","suggestion":"pass value={scopeId} (applied)"},
+{"severity":"low","category":"readability","file":"client/src/components/external/ProjectFilterDropdown.tsx","line":55,"finding":"value without onChange is silently ignored","suggestion":"document it (applied)"}],
+"notes":"Verdict APPROVE. Board/Inbox unaffected; hook still called unconditionally."}

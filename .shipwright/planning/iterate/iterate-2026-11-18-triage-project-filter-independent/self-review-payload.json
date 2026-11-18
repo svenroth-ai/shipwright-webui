@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Scope matches request","verdict":"pass","note":"Triage dropdown owns its state, defaults to All projects; Board/Inbox untouched."},
+{"name":"No dead code / debug","verdict":"pass","note":"Diff is 3 files; no leftovers."},
+{"name":"Error/edge paths","verdict":"pass","note":"Stale/unknown project id still falls back to All projects via scopeId."},
+{"name":"Tests","verdict":"pass","note":"Controlled-mode test added; dropdown + TriagePage suites pass (17)."},
+{"name":"Conventions / file size","verdict":"pass","note":"TriagePage held at bloat baseline 261."},
+{"name":"Security / data","verdict":"pass","note":"No server, storage-write or path changes."},
+{"name":"Affected boundaries","verdict":"pass","note":"Controlled mode never writes webui.activeProjectId or URL ?projectId; onNavigateToBoard still sets Board filter intentionally."}
+]}

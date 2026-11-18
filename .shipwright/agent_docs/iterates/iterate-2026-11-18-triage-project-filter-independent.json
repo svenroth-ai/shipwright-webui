@@ -1,0 +1,53 @@
+{
+  "run_id": "iterate-2026-11-18-triage-project-filter-independent",
+  "date": "2026-11-18T07:49:55.115970Z",
+  "event_at": "2026-11-17T22:33:16.503132+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/triage-project-filter-independent",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-18-triage-project-filter-independent",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Triage dropdown starts on All projects even when the Board has a project selected",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/triage-project-filter-independent.spec.ts PASSED (isolated stack)"
+      },
+      {
+        "behavior": "Picking a project on Triage leaves the Board's stored selection unchanged",
+        "disposition": "tested",
+        "evidence": "triage-project-filter-independent.spec.ts asserts localStorage webui.activeProjectId unchanged; ProjectFilterDropdown.test.tsx controlled-mode PASSED"
+      },
+      {
+        "behavior": "Board/Inbox dropdown keeps using the shared filter when uncontrolled",
+        "disposition": "tested",
+        "evidence": "full client vitest 5154 passed incl. existing ProjectFilterDropdown + board tests"
+      }
+    ],
+    "counts": {
+      "testable": 3,
+      "tested": 3,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 1,
+      "covered_acs": 1
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/triage-project-filter-independent.spec.ts",
+    "exit_code": 0,
+    "tests_run": 1
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

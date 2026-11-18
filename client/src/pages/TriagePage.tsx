@@ -143,7 +143,7 @@ export default function TriagePage() {
         actionsClassName="chrome-dark-controls"
         actions={
           <>
-            <ProjectFilterDropdown showCounts={false} value={activeProjectId} onChange={setScopeProjectId} />
+            <ProjectFilterDropdown showCounts={false} value={scopeId} onChange={setScopeProjectId} />
             <TriageFilterMenu view={view} facets={model.facets} parkedCount={model.parkedAll.length} />
             <TriageGroupMenu groupBy={view.groupBy} onChange={view.setGroupBy} />
             <TriageSortMenu view={view} />

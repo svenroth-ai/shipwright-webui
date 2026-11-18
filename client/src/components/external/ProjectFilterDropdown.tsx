@@ -21,7 +21,7 @@
  *   ─────────────────
  *   + New project…  (footer — navigates to /projects)
  *
- * State source: consumes the same `useProjectFilter()` context that
+ * State source (unless controlled via value/onChange): consumes the same `useProjectFilter()` context that
  * the existing chip-bar + sidebar list use (external-review O27: single
  * source of truth for active-project selection).
  *
@@ -65,7 +65,7 @@ export interface ProjectFilterDropdownProps {
   /**
    * Controlled mode — the page owns the selection (Triage keeps its own, so
    * it neither follows nor changes the Board's project filter). Pass BOTH
-   * `value` (null = All projects) and `onChange`; omit both to use the shared
+   * `value` (null = All projects) and `onChange`; `value` alone is ignored; omit both to use the shared
    * `useProjectFilter()` store.
    */
   value?: string | null;
