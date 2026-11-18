@@ -14,6 +14,7 @@ import { DocumentMarkdown } from "./DocumentMarkdown";
 const srcOf = () => screen.getByRole("img").getAttribute("src") ?? "";
 
 describe("MarkdownRenderer — relative images", () => {
+  // @covers FR-01.02
   it.each(["svg", "png", "jpg", "jpeg", "gif", "webp"])(
     "serves a sibling .%s through the project file route",
     (ext) => {
@@ -24,11 +25,13 @@ describe("MarkdownRenderer — relative images", () => {
     },
   );
 
+  // @covers FR-01.02
   it("resolves ../ and subfolder links against the document's folder", () => {
     render(<MarkdownRenderer text="![x](../img/a%20b.png)" projectId="p1" path="docs/sub/readme.md" />);
     expect(new URL(srcOf(), "http://localhost").searchParams.get("path")).toBe("docs/img/a b.png");
   });
 
+  // @covers FR-01.02
   it("uses the session-file route for an outside-project document", () => {
     render(<MarkdownRenderer text="![x](a.svg)" sessionTaskId="t1" path="C:/notes/readme.md" />);
     const url = new URL(srcOf(), "http://localhost");
@@ -36,11 +39,13 @@ describe("MarkdownRenderer — relative images", () => {
     expect(url.searchParams.get("path")).toBe("C:/notes/a.svg");
   });
 
+  // @covers FR-01.02
   it("leaves absolute URLs untouched", () => {
     render(<MarkdownRenderer text="![x](https://example.com/a.png)" projectId="p1" path="docs/readme.md" />);
     expect(srcOf()).toBe("https://example.com/a.png");
   });
 
+  // @covers FR-01.02
   it("without a resolver (hosts with no file context) keeps the src as written", () => {
     render(<DocumentMarkdown text="![x](pic.png)" />);
     expect(srcOf()).toBe("pic.png");
