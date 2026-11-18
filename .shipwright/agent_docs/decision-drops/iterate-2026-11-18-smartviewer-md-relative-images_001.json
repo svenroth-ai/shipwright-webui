@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-18-smartviewer-md-relative-images",
+  "date": "2026-11-18",
+  "section": "Iterate — bug: SmartViewer markdown relative images",
+  "title": "Markdown images resolve through the file route",
+  "context": "DocumentMarkdown had no img handler, so a relative image src resolved against the app URL and showed a broken placeholder.",
+  "decision": "DocumentMarkdown takes an optional resolveImageSrc; MarkdownRenderer builds it from the document path (resolveDocPath) and the project file route, or the session-file route for outside files.",
+  "consequences": "Relative svg/png/jpg/jpeg/gif/webp images in viewer Markdown render; hosts without a file context (Mission, Compliance) are unchanged.",
+  "rationale": "Reuses resolveDocPath and the existing file route; no server change, sanitizer untouched.",
+  "rejected": "Fetching images as data: URIs (the sanitizer strips data: src, and it needs a JS copy of every file).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate_2026_11_18_smartviewer_md_relative_images-md-images.md"
+}

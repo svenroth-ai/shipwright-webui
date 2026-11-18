@@ -1,0 +1,68 @@
+{
+  "last_updated": "2026-11-18",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-18-smartviewer-md-relative-images",
+    "date": "2026-11-18",
+    "unit": {
+      "status": "passed",
+      "passed": 5164,
+      "skipped": 0,
+      "total": 5164
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0,
+      "total": 1
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "A relative image in rendered Markdown loads via the project file route for svg/png/jpg/jpeg/gif/webp",
+          "disposition": "tested",
+          "evidence": "MarkdownRenderer.images.test.tsx (6-extension matrix) PASSED; E2E smartviewer-md-relative-images.spec.ts asserts naturalWidth>0 for svg+png PASSED"
+        },
+        {
+          "behavior": "../ links, encoded names and outside-project docs resolve against the document folder / session-file route",
+          "disposition": "tested",
+          "evidence": "MarkdownRenderer.images.test.tsx PASSED"
+        },
+        {
+          "behavior": "Absolute URLs and hosts without a file context keep src unchanged",
+          "disposition": "tested",
+          "evidence": "MarkdownRenderer.images.test.tsx PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 3,
+        "tested": 3,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      }
+    }
+  }
+}

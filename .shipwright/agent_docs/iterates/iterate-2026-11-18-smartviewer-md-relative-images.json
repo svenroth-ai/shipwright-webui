@@ -1,0 +1,53 @@
+{
+  "run_id": "iterate-2026-11-18-smartviewer-md-relative-images",
+  "date": "2026-11-18T10:01:19.739721Z",
+  "event_at": "2026-11-18T07:49:55.331454+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/smartviewer-md-relative-images",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-18-smartviewer-md-relative-images",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "A relative image in rendered Markdown loads via the project file route for svg/png/jpg/jpeg/gif/webp",
+        "disposition": "tested",
+        "evidence": "MarkdownRenderer.images.test.tsx (6-extension matrix) PASSED; E2E smartviewer-md-relative-images.spec.ts asserts naturalWidth>0 for svg+png PASSED"
+      },
+      {
+        "behavior": "../ links, encoded names and outside-project docs resolve against the document folder / session-file route",
+        "disposition": "tested",
+        "evidence": "MarkdownRenderer.images.test.tsx PASSED"
+      },
+      {
+        "behavior": "Absolute URLs and hosts without a file context keep src unchanged",
+        "disposition": "tested",
+        "evidence": "MarkdownRenderer.images.test.tsx PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 3,
+      "tested": 3,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 1,
+      "covered_acs": 1
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/smartviewer-md-relative-images.spec.ts",
+    "exit_code": 0,
+    "tests_run": 1
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

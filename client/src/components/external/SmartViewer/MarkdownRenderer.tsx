@@ -23,10 +23,13 @@
  * TipTap/ProseMirror stays out of the initial bundle.
  */
 
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { ExternalLink, Pencil } from "lucide-react";
 
+import { fileUrl } from "../../../lib/externalApi";
+import { sessionFileUrl } from "../../../lib/sessionFileApi";
 import { DocumentMarkdown } from "./DocumentMarkdown";
+import { resolveDocPath } from "./useDocNavigation";
 
 const MarkdownEditorModal = lazy(() =>
   import("./MarkdownEditorModal").then((m) => ({ default: m.MarkdownEditorModal })),
@@ -45,6 +48,8 @@ interface Props {
   projectId?: string;
   /** Current file path (project-root-relative POSIX). */
   path?: string;
+  /** Outside-project file: relative images are served by the task-scoped session-file route. */
+  sessionTaskId?: string;
   /** Re-fetch callback fired after a successful in-app edit. Its presence
    *  (now wired by every caller — see module doc) gates the Edit button. */
   onSaved?: () => void;
@@ -60,9 +65,19 @@ export function MarkdownRenderer({
   scrollToFragment,
   projectId,
   path,
+  sessionTaskId,
   onSaved,
 }: Props) {
   const [editorOpen, setEditorOpen] = useState(false);
+  // Relative images resolve against THIS file's folder and load through the same file route as the
+  // document itself — the browser would otherwise resolve them against the app URL (broken image).
+  const resolveImageSrc = useMemo(() => {
+    if (!path || !(projectId || sessionTaskId)) return undefined;
+    return (src: string): string => {
+      const target = resolveDocPath(path, src).path;
+      return sessionTaskId ? sessionFileUrl(sessionTaskId, target) : fileUrl(projectId!, target);
+    };
+  }, [projectId, sessionTaskId, path]);
   const canEdit = Boolean(projectId && path && onSaved);
 
   // Sven feedback (2026-07-17): the Edit / Pop out controls were muted-grey on a
@@ -116,6 +131,7 @@ export function MarkdownRenderer({
           text={text}
           onDocLinkClick={onDocLinkClick}
           scrollToFragment={scrollToFragment}
+          resolveImageSrc={resolveImageSrc}
         />
       </div>
       {canEdit && editorOpen && (
