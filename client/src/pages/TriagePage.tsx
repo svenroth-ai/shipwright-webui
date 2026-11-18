@@ -4,7 +4,7 @@
  * header toolbar (project filter, filter funnel, group, sort), summary pills,
  * active-filter chips, collapsible dark lanes of rows (project lanes can be put
  * in the user's own order) and a read-only Parked lane. The whole view is saved
- * in the browser; only the project choice is shared with the Board.
+ * in the browser; the project choice is its own (not the Board's) and starts on All.
  *
  * Every entry is a `{projectId, item}` pair — triage ids can repeat across
  * projects — and every action is bound to the entry's own project.
@@ -55,7 +55,8 @@ const FIX_NOW_INITIAL: FixNowModalState = { open: false, projectId: null, intent
 export default function TriagePage() {
   const { data: projects = [] } = useProjects();
   const navigate = useNavigate();
-  const { activeProjectId, setActiveProjectId } = useProjectFilter();
+  const [activeProjectId, setScopeProjectId] = useState<string | null>(null); // own scope, not the Board's
+  const { setActiveProjectId } = useProjectFilter();
   const realProjects = useMemo(() => projects.filter((p) => !p.synthesized), [projects]);
   const projectIds = useMemo(() => realProjects.map((p) => p.id), [realProjects]);
 
@@ -69,8 +70,7 @@ export default function TriagePage() {
   const [fixNowModal, setFixNowModal] = useState<FixNowModalState>(FIX_NOW_INITIAL);
   const fixNowProjectActions = useProjectActions(fixNowModal.projectId);
 
-  // A saved / shared project id that is no longer a real project falls back
-  // to "All projects" rather than an empty page.
+  // An id that is no longer a real project falls back to "All projects".
   const scopeId =
     activeProjectId !== null && projectIds.includes(activeProjectId) ? activeProjectId : null;
   const scoped = useMemo(
@@ -143,7 +143,7 @@ export default function TriagePage() {
         actionsClassName="chrome-dark-controls"
         actions={
           <>
-            <ProjectFilterDropdown showCounts={false} />
+            <ProjectFilterDropdown showCounts={false} value={scopeId} onChange={setScopeProjectId} />
             <TriageFilterMenu view={view} facets={model.facets} parkedCount={model.parkedAll.length} />
             <TriageGroupMenu groupBy={view.groupBy} onChange={view.setGroupBy} />
             <TriageSortMenu view={view} />

@@ -1,0 +1,75 @@
+{
+  "last_updated": "2026-11-18",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-18-triage-project-filter-independent",
+    "date": "2026-11-18",
+    "unit": {
+      "status": "passed",
+      "passed": 5154,
+      "skipped": 0,
+      "total": 5154
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0,
+      "total": 1
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Triage dropdown starts on All projects even when the Board has a project selected",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/triage-project-filter-independent.spec.ts PASSED (isolated stack)"
+        },
+        {
+          "behavior": "Picking a project on Triage leaves the Board's stored selection unchanged",
+          "disposition": "tested",
+          "evidence": "triage-project-filter-independent.spec.ts asserts localStorage webui.activeProjectId unchanged; ProjectFilterDropdown.test.tsx controlled-mode PASSED"
+        },
+        {
+          "behavior": "Board/Inbox dropdown keeps using the shared filter when uncontrolled",
+          "disposition": "tested",
+          "evidence": "full client vitest 5154 passed incl. existing ProjectFilterDropdown + board tests"
+        }
+      ],
+      "counts": {
+        "testable": 3,
+        "tested": 3,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

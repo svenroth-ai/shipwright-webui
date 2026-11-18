@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"Diff satisfies FR-01.30 bullet (E) iterate-2026-11-18 and the amended Triage header bullet; no scope creep. Non-blocking: TriagePage.tsx header comment line 7 stale."}

@@ -21,7 +21,14 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
 });
 
-function renderDropdown(props: { fluid?: boolean; showCounts?: boolean } = {}) {
+function renderDropdown(
+  props: {
+    fluid?: boolean;
+    showCounts?: boolean;
+    value?: string | null;
+    onChange?: (id: string | null) => void;
+  } = {},
+) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={qc}>
@@ -57,5 +64,16 @@ describe("ProjectFilterDropdown task counts (iterate-2026-11-09-triage-polish-r3
     expect(renderDropdown().textContent).toMatch(/\d+ tasks?/);
     cleanup();
     expect(renderDropdown({ showCounts: false }).textContent).not.toMatch(/\d+ tasks?/);
+  });
+});
+
+describe("ProjectFilterDropdown controlled mode (iterate-2026-11-18-triage-project-filter-independent)", () => {
+  // @covers FR-01.30
+  it("ignores the shared Board filter and never writes it", () => {
+    localStorage.setItem("webui.activeProjectId", "board-project");
+    const btn = renderDropdown({ value: null, onChange: vi.fn() });
+    expect(btn.textContent).toContain("All projects");
+    expect(localStorage.getItem("webui.activeProjectId")).toBe("board-project");
+    localStorage.removeItem("webui.activeProjectId");
   });
 });
