@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"Fragment links (id, percent-decoded, name=, bare # / #top) scroll inside the frame with preventDefault so base target=_blank no longer opens a new tab; external links, modified/non-primary clicks and pages that already cancelled the click are left alone; sandbox and CSP unchanged; no scope creep."}

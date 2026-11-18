@@ -13,7 +13,8 @@
  * names in its own folder tree (accepted residual risk, ADR of
  * iterate-2026-11-02-smartviewer-html-images). Links open in
  * a new tab (`allow-popups` + `allow-popups-to-escape-sandbox`,
- * `<base target=_blank>`).
+ * `<base target=_blank>`); in-page `#fragment` links scroll inside the frame
+ * (htmlAnchorNav) instead of being swept into a new tab by that base.
  *
  * Resources: the srcdoc has no base URL, so a relative stylesheet or image can
  * never load. With `path` and a `projectId` (project file) or `sessionTaskId`
@@ -30,6 +31,7 @@ import { ExternalLink } from "lucide-react";
 import { fileUrl } from "../../../lib/externalApi";
 import { sessionFileUrl } from "../../../lib/sessionFileApi";
 import { CodeRenderer } from "./CodeRenderer";
+import { ANCHOR_NAV_SCRIPT } from "./htmlAnchorNav";
 import { createResourceLoader } from "./htmlResourceLoader";
 import { inlineHtmlResources } from "./inlineHtmlResources";
 
@@ -46,7 +48,8 @@ export function buildHtmlSrcDoc(text: string): string {
   if (doctype) text = text.slice(doctype[0].length);
   const head = (doctype ? doctype[0].replace(/^\uFEFF?\s*/, "") : "") +
     `<meta http-equiv="Content-Security-Policy" content="${CSP}">` +
-    `<base target="_blank">`;
+    `<base target="_blank">` +
+    ANCHOR_NAV_SCRIPT;
   return head + text;
 }
 

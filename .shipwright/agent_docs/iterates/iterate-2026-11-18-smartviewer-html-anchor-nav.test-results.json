@@ -1,0 +1,25 @@
+{
+  "last_updated": "2026-11-18",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-18-smartviewer-html-anchor-nav",
+    "date": "2026-11-18",
+    "unit": { "status": "passed", "passed": 5172, "skipped": 0, "total": 5172 },
+    "integration": { "status": "not_run", "passed": 0, "total": 0 },
+    "pgtap": { "status": "not_run", "passed": 0, "total": 0 },
+    "e2e": { "status": "passed", "passed": 2, "skipped": 0, "total": 2 },
+    "design_fidelity": { "status": "not_run", "passed": 0, "total": 0 },
+    "smoke": { "status": "not_run" },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        { "behavior": "A #fragment link in the HTML preview scrolls to the element (id, percent-decoded id, name= anchor, bare #/#top) and cancels the new-tab navigation", "disposition": "tested", "evidence": "htmlAnchorNav.test.ts PASSED; E2E smartviewer-html-anchor-nav.spec.ts (scrolls, no popup) PASSED, and FAILS without the fix (negative control)" },
+        { "behavior": "An element with id=top wins over the scroll-to-top fallback; a dead fragment is swallowed without scrolling", "disposition": "tested", "evidence": "htmlAnchorNav.test.ts PASSED" },
+        { "behavior": "External links, modified clicks and clicks a page handler already cancelled are left to the browser (external link still opens a new tab)", "disposition": "tested", "evidence": "htmlAnchorNav.test.ts PASSED; E2E external-link popup PASSED" },
+        { "behavior": "srcdoc carries the script after CSP+base, before author markup, doctype stays first", "disposition": "tested", "evidence": "htmlAnchorNav.test.ts buildHtmlSrcDoc cases PASSED" }
+      ],
+      "counts": { "testable": 4, "tested": 4, "untestable": 0, "untested_testable": 0 },
+      "enumeration_basis": { "acs": 1, "covered_acs": 1 }
+    }
+  }
+}
