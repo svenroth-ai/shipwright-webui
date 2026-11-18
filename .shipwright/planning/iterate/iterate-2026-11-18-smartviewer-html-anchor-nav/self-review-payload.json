@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Scope matches request","verdict":"pass","note":"In-page #fragment links in the SmartViewer HTML preview scroll inside the frame instead of opening a new tab (base target=_blank); external links unchanged."},
+{"name":"No dead code / debug","verdict":"pass","note":"One helper module (htmlAnchorNav.ts), a one-line splice in buildHtmlSrcDoc, a comment; no leftovers."},
+{"name":"Error/edge paths","verdict":"pass","note":"id wins over top fallback, name= anchors, percent-decoding, dead fragment swallowed, modified/non-primary clicks and already-prevented clicks left alone; known limits (SPA #! routes, svg xlink:href, shadow DOM) noted by code review."},
+{"name":"Tests","verdict":"pass","note":"7 jsdom unit tests of the injected script + srcdoc ordering/doctype; E2E smartviewer-html-anchor-nav.spec.ts (scrolls, no popup; external link still opens one) passes with the fix and FAILS without it (negative control). Full vitest 5172 pass."},
+{"name":"Conventions / file size","verdict":"pass","note":"htmlAnchorNav.ts ~30 lines, HtmlRenderer.tsx ~157; no bloat entry touched."},
+{"name":"Security / data","verdict":"pass","note":"Sandbox (allow-scripts allow-popups..., no allow-same-origin) and CSP unchanged; the script is a static string running in the opaque-origin frame, inline scripts were already allowed."},
+{"name":"Affected boundaries","verdict":"pass","note":"srcdoc built for both inline pane and pop-out modal via the same buildHtmlSrcDoc; doctype stays first."}
+]}

@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-18-smartviewer-html-anchor-nav",
+  "date": "2026-11-18",
+  "section": "Iterate — bug: SmartViewer HTML in-page anchor links",
+  "title": "HTML preview scrolls #fragment links inside the frame",
+  "context": "The HTML preview srcdoc carries <base target=_blank>, which also caught table-of-contents links (#section) and opened them in a new tab instead of scrolling the page.",
+  "decision": "buildHtmlSrcDoc injects a small static click-listener script (htmlAnchorNav.ts) that scrolls to the id / name= target inside the frame and cancels the navigation; external links still use the base target.",
+  "consequences": "In-page navigation works in the inline pane and the pop-out; sandbox and CSP are unchanged. Known limits: SPA-style #!/route links and svg xlink:href anchors are not handled.",
+  "rationale": "Smallest change that keeps new-tab behaviour for external links; the script runs in the opaque-origin frame and inline scripts were already allowed.",
+  "rejected": "Dropping <base target=_blank> (external links would navigate the frame) or rewriting every href in the HTML source (brittle against dynamic markup).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate_2026_11_18_smartviewer_html_anchor_nav-html-anchors.md"
+}
