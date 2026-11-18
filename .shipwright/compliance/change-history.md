@@ -1,21 +1,21 @@
 # Commit Change Log
 
-Generated: 2026-11-17T21:22:07.404744+00:00
-Source-State: run=iterate-2026-11-17-md-editor-table-editing base=f65594656a87 release=v0.34.0
-Consistency-audit: last run 2026-09-29 (49 days earlier) — PASS
-Total commits: 1027
+Generated: 2026-11-18T13:02:26.133797+00:00
+Source-State: run=iterate-2026-11-18-smartviewer-html-anchor-nav base=fd003cb656a1 release=v0.34.1
+Consistency-audit: last run 2026-09-29 (50 days earlier) — PASS
+Total commits: 1031
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 403
-    "feat" : 272
+    "fix" : 405
+    "feat" : 273
     "chore" : 171
     "docs" : 79
     "refactor" : 37
     "test" : 35
-    "other" : 15
+    "other" : 16
     "ci" : 8
     "perf" : 5
     "build" : 2
@@ -23,10 +23,12 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 403 commits
+### Fixes (fix) — 405 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-18 | viewer | in-page #fragment links in HTML preview scroll instead of opening a new tab (#613) | fd003cb656a1 |
+| 2026-11-18 | viewer | render relative images embedded in Markdown files (#612) | 62a28031f821 |
 | 2026-11-17 | smartviewer | keep tables intact through the markdown editor, add table source editing (#609) | f65594656a87 |
 | 2026-11-16 | mission | identify finished runs merged on origin/main but not pulled locally (#608) | 03171889ee85 |
 | 2026-11-13 | events | read the event folders from .shipwright/events/ (#605) | 52592d67defd |
@@ -431,10 +433,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 272 commits
+### Features (feat) — 273 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-18 | triage | project dropdown independent of the Board filter (#611) | 7bab445d9b71 |
 | 2026-11-13 | inbox | Triage look for the Inbox, with foldable and reorderable project groups (#604) | d72a18341ae4 |
 | 2026-11-13 | triage | one orange behind-origin alert with hover/tap popover, darker severity legend (#603) | 3972d95af42e |
 | 2026-11-13 | triage | round severity number on the right, fixed action zone, row bars, summary pills (#602) | 45da1e17f92a |
@@ -1050,10 +1053,11 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
-### Other (other) — 15 commits
+### Other (other) — 16 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-11-17 | — | Release v0.34.0 (#610) | accf88f4bd87 |
 | 2026-11-12 | — | Release v0.33.1 (#597) | 816e515ad933 |
 | 2026-11-11 | — | Release v0.33.0 (#595) | 189de954ee3f |
 | 2026-11-11 | — | Release v0.32.1 (#593) | 4aea7f2279a6 |
@@ -1104,7 +1108,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 1027 |
+| Total commits | 1031 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 1027 |
+| Human-authored commits | 1031 |
 

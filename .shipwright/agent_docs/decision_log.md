@@ -6219,3 +6219,45 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Comparing against a baseline serialization separates editor-side normalisation from real user edits, and falls back safely whenever tables cannot be paired. The pre-save diff remains the safety net.
 - **Consequences:** Untouched tables never show in the diff. A table whose source row count differs from the editor's (lazy rows) falls back to editor output. Pairing after a deleted table is approximate (cosmetic padding only).
 - **Rejected:** Replacing the pipe-table serializer with an HTML-only table (lossy for diffs); a raw-source-only editor (loses the grid UI); prettier-style reformat on every save (diff noise).
+
+---
+
+### ADR-439: HTML preview scrolls #fragment links inside the frame
+- **Date:** 2026-11-18
+- **Section:** Iterate — bug: SmartViewer HTML in-page anchor links
+- **Run-ID:** iterate-2026-11-18-smartviewer-html-anchor-nav
+- **Context:** The HTML preview srcdoc carries <base target=_blank>, which also caught table-of-contents links (#section) and opened them in a new tab instead of scrolling the page.
+- **Decision:** buildHtmlSrcDoc injects a small static click-listener script (htmlAnchorNav.ts) that scrolls to the id / name= target inside the frame and cancels the navigation; external links still use the base target.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Smallest change that keeps new-tab behaviour for external links; the script runs in the opaque-origin frame and inline scripts were already allowed.
+- **Consequences:** In-page navigation works in the inline pane and the pop-out; sandbox and CSP are unchanged. Known limits: SPA-style #!/route links and svg xlink:href anchors are not handled.
+- **Rejected:** Dropping <base target=_blank> (external links would navigate the frame) or rewriting every href in the HTML source (brittle against dynamic markup).
+- **Details:** [iterate_2026_11_18_smartviewer_html_anchor_nav-html-anchors.md](../planning/adr/iterate_2026_11_18_smartviewer_html_anchor_nav-html-anchors.md)
+
+---
+
+### ADR-440: Markdown images resolve through the file route
+- **Date:** 2026-11-18
+- **Section:** Iterate — bug: SmartViewer markdown relative images
+- **Run-ID:** iterate-2026-11-18-smartviewer-md-relative-images
+- **Context:** DocumentMarkdown had no img handler, so a relative image src resolved against the app URL and showed a broken placeholder.
+- **Decision:** DocumentMarkdown takes an optional resolveImageSrc; MarkdownRenderer builds it from the document path (resolveDocPath) and the project file route, or the session-file route for outside files.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reuses resolveDocPath and the existing file route; no server change, sanitizer untouched.
+- **Consequences:** Relative svg/png/jpg/jpeg/gif/webp images in viewer Markdown render; hosts without a file context (Mission, Compliance) are unchanged.
+- **Rejected:** Fetching images as data: URIs (the sanitizer strips data: src, and it needs a JS copy of every file).
+- **Details:** [iterate_2026_11_18_smartviewer_md_relative_images-md-images.md](../planning/adr/iterate_2026_11_18_smartviewer_md_relative_images-md-images.md)
+
+---
+
+### ADR-441: Triage owns its project filter
+- **Date:** 2026-11-18
+- **Section:** Iterate — change: Triage project dropdown independent of Board
+- **Run-ID:** iterate-2026-11-18-triage-project-filter-independent
+- **Context:** The Triage dropdown shared the Board's useProjectFilter store (URL + localStorage), so picking a project on one page changed the other.
+- **Decision:** TriagePage keeps its own local state (default All projects); ProjectFilterDropdown gained an optional controlled mode (value + onChange). Board/Inbox stay on the shared store.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Smallest change: no new store, no persistence; reuses the existing dropdown.
+- **Consequences:** Triage always opens on All projects and never reads or writes the Board filter; the 'open in Board' action still sets the Board project on purpose.
+- **Rejected:** A second module-level store with its own localStorage key: persistence was not requested and the user wants the default to be All projects.
+- **Details:** [iterate_2026_11_18_triage_project_filter_independent-triage-filter.md](../planning/adr/iterate_2026_11_18_triage_project_filter_independent-triage-filter.md)

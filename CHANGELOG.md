@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.34.1] - 2026-11-18
+
+### Changed
+
+- Triage: the project dropdown is now independent of the Task Board selection and always starts on "All projects".
+
+### Fixed
+
+- File viewer: a table-of-contents link (#section) inside a rendered HTML page now scrolls within the page instead of opening a new browser tab.
+- File viewer: images embedded in a Markdown file by a relative link (svg, png, jpg, jpeg, gif, webp) now render instead of showing a placeholder.
+
 ## [0.34.0] - 2026-11-17
 
 ### Added

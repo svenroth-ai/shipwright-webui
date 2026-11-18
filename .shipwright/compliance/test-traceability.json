@@ -1,9 +1,9 @@
 {
   "schema_version": 4,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-11-17T21:22:07.404744+00:00",
-  "source_commit": "f65594656a8761d5bf034e03c14469f22f86517e",
-  "spec_hash": "sha256:88b5106eed843c7704e410a969d9ea8fd2b2874657c907f979680a86965f0120",
+  "generated_at": "2026-11-18T13:02:26.133797+00:00",
+  "source_commit": "fd003cb656a13e9cf85207c7824cc5ce30e444b0",
+  "spec_hash": "sha256:32813f96c4fac5442fd200660f468df4cc3f03a8f2560c63204b984202d674d5",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
@@ -1846,7 +1846,7 @@
     "01::FR-01.02": {
       "id": "FR-01.02",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, diagrams, and sandboxed HTML pages (an HTML page is shown with its own relative stylesheets and images applied (also for pages outside the project once the session has mentioned them; fonts load for those pages only) and nothing else read on its behalf; a Pop out button opens a larger view). Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. On small screens, the same workspace becomes four direct one-pane-at-a-time destinations so the live work area stays large. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout and a compact mobile work mode; the file preview pane's wide-table horizontal scroll now actually engages for a table with a long free-text column (previously crushed into wrapped lines instead), and the pane gained accessibility fixes (screen-reader-friendly table headers, a focusable labelled region, a keyboard-reachable tab close button); code and plain-text files in the file viewer now wrap long lines by default (continuation rows are indented slightly under the start of the line, and in text files the line number appears on the first row only) behind one \"Wrap lines\" toggle remembered per browser, both shown at 13px with 1.6 line spacing (code was 14px, plain text 12px); a relative link between files (including links across sibling folders, `%20` in names, and links in files opened from outside the project) now opens the linked file in the viewer itself, whatever its type, instead of a `localhost:<port>` address in the browser.",
+      "title": "The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, diagrams, and sandboxed HTML pages (an HTML page is shown with its own relative stylesheets and images applied (also for pages outside the project once the session has mentioned them; fonts load for those pages only) and nothing else read on its behalf; a Pop out button opens a larger view). Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. On small screens, the same workspace becomes four direct one-pane-at-a-time destinations so the live work area stays large. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout and a compact mobile work mode; the file preview pane's wide-table horizontal scroll now actually engages for a table with a long free-text column (previously crushed into wrapped lines instead), and the pane gained accessibility fixes (screen-reader-friendly table headers, a focusable labelled region, a keyboard-reachable tab close button); code and plain-text files in the file viewer now wrap long lines by default (continuation rows are indented slightly under the start of the line, and in text files the line number appears on the first row only) behind one \"Wrap lines\" toggle remembered per browser, both shown at 13px with 1.6 line spacing (code was 14px, plain text 12px); a relative link between files (including links across sibling folders, `%20` in names, and links in files opened from outside the project) now opens the linked file in the viewer itself, whatever its type, instead of a `localhost:<port>` address in the browser; images embedded in a Markdown file by a relative link now render in the viewer instead of showing a broken placeholder; a table-of-contents link inside a rendered HTML page (`#section`) now scrolls within that page instead of opening a new browser tab.",
       "priority": "Must",
       "status": "active",
       "required_layers": [],
@@ -1944,6 +1944,70 @@
           {
             "id": "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::a relative link to a non-markdown file is followed in-pane, not opened in a new tab",
             "path": "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::a relative link to a non-markdown file is followed in-pane, not opened in a new tab",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::scrolls to the target and cancels the default new-tab navigation",
+            "path": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::scrolls to the target and cancels the default new-tab navigation",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::decodes percent-escapes, resolves name= anchors and bare # (top)",
+            "path": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::decodes percent-escapes, resolves name= anchors and bare # (top)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::lets a real id=top element win over the scroll-to-top fallback",
+            "path": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::lets a real id=top element win over the scroll-to-top fallback",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::swallows a dead fragment (no new tab) without scrolling",
+            "path": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::swallows a dead fragment (no new tab) without scrolling",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::leaves external links and modified clicks to the browser",
+            "path": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::leaves external links and modified clicks to the browser",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::yields to a page handler that already cancelled the click",
+            "path": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::yields to a page handler that already cancelled the click",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::carries the anchor script after the CSP and base, before author markup",
+            "path": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::carries the anchor script after the CSP and base, before author markup",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::keeps a leading doctype first (no quirks mode)",
+            "path": "client/src/components/external/SmartViewer/htmlAnchorNav.test.ts::keeps a leading doctype first (no quirks mode)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -2414,6 +2478,46 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/components/external/SmartViewer/MarkdownRenderer.images.test.tsx::serves a sibling .%s through the project file route",
+            "path": "client/src/components/external/SmartViewer/MarkdownRenderer.images.test.tsx::serves a sibling .%s through the project file route",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/MarkdownRenderer.images.test.tsx::resolves ../ and subfolder links against the document's folder",
+            "path": "client/src/components/external/SmartViewer/MarkdownRenderer.images.test.tsx::resolves ../ and subfolder links against the document's folder",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/MarkdownRenderer.images.test.tsx::uses the session-file route for an outside-project document",
+            "path": "client/src/components/external/SmartViewer/MarkdownRenderer.images.test.tsx::uses the session-file route for an outside-project document",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/MarkdownRenderer.images.test.tsx::leaves absolute URLs untouched",
+            "path": "client/src/components/external/SmartViewer/MarkdownRenderer.images.test.tsx::leaves absolute URLs untouched",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/MarkdownRenderer.images.test.tsx::without a resolver (hosts with no file context) keeps the src as written",
+            "path": "client/src/components/external/SmartViewer/MarkdownRenderer.images.test.tsx::without a resolver (hosts with no file context) keeps the src as written",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::initialises mermaid with natural-size (no max-width squeeze) for flowcharts",
             "path": "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::initialises mermaid with natural-size (no max-width squeeze) for flowcharts",
             "layer": "unit",
@@ -2816,6 +2920,22 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/e2e/flows/smartviewer-html-anchor-nav.spec.ts::a #fragment link scrolls inside the preview and opens no new tab",
+            "path": "client/e2e/flows/smartviewer-html-anchor-nav.spec.ts::a #fragment link scrolls inside the preview and opens no new tab",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/smartviewer-html-anchor-nav.spec.ts::an external link still opens in a new tab",
+            "path": "client/e2e/flows/smartviewer-html-anchor-nav.spec.ts::an external link still opens in a new tab",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/e2e/flows/smartviewer-html-assets.spec.ts::a project page shows its image, stylesheet and CSS background",
             "path": "client/e2e/flows/smartviewer-html-assets.spec.ts::a project page shows its image, stylesheet and CSS background",
             "layer": "e2e",
@@ -2850,6 +2970,14 @@
           {
             "id": "client/e2e/flows/smartviewer-html-render.spec.ts::applies a relative stylesheet and offers a pop-out (inline + modal)",
             "path": "client/e2e/flows/smartviewer-html-render.spec.ts::applies a relative stylesheet and offers a pop-out (inline + modal)",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/smartviewer-md-relative-images.spec.ts::sibling svg and png render as real images",
+            "path": "client/e2e/flows/smartviewer-md-relative-images.spec.ts::sibling svg and png render as real images",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
@@ -22406,6 +22534,14 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/components/external/ProjectFilterDropdown.test.tsx::ignores the shared Board filter and never writes it",
+            "path": "client/src/components/external/ProjectFilterDropdown.test.tsx::ignores the shared Board filter and never writes it",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/components/triage/fixNowIntent.test.ts::github source → new-task + phase=security + 'Fix for' title prefix",
             "path": "client/src/components/triage/fixNowIntent.test.ts::github source → new-task + phase=security + 'Fix for' title prefix",
             "layer": "unit",
@@ -24386,6 +24522,14 @@
           {
             "id": "client/e2e/flows/triage-polish-r3.spec.ts::an unknown project source shows as written with the generic help",
             "path": "client/e2e/flows/triage-polish-r3.spec.ts::an unknown project source shows as written with the generic help",
+            "layer": "e2e",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/e2e/flows/triage-project-filter-independent.spec.ts::starts on All projects and leaves the Board selection alone",
+            "path": "client/e2e/flows/triage-project-filter-independent.spec.ts::starts on All projects and leaves the Board selection alone",
             "layer": "e2e",
             "status": "enabled",
             "executed": "not_run",
