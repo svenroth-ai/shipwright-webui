@@ -55,7 +55,8 @@ const FIX_NOW_INITIAL: FixNowModalState = { open: false, projectId: null, intent
 export default function TriagePage() {
   const { data: projects = [] } = useProjects();
   const navigate = useNavigate();
-  const { activeProjectId, setActiveProjectId } = useProjectFilter();
+  const [activeProjectId, setScopeProjectId] = useState<string | null>(null); // own scope, not the Board's
+  const { setActiveProjectId } = useProjectFilter();
   const realProjects = useMemo(() => projects.filter((p) => !p.synthesized), [projects]);
   const projectIds = useMemo(() => realProjects.map((p) => p.id), [realProjects]);
 
@@ -69,8 +70,7 @@ export default function TriagePage() {
   const [fixNowModal, setFixNowModal] = useState<FixNowModalState>(FIX_NOW_INITIAL);
   const fixNowProjectActions = useProjectActions(fixNowModal.projectId);
 
-  // A saved / shared project id that is no longer a real project falls back
-  // to "All projects" rather than an empty page.
+  // An id that is no longer a real project falls back to "All projects".
   const scopeId =
     activeProjectId !== null && projectIds.includes(activeProjectId) ? activeProjectId : null;
   const scoped = useMemo(
@@ -143,7 +143,7 @@ export default function TriagePage() {
         actionsClassName="chrome-dark-controls"
         actions={
           <>
-            <ProjectFilterDropdown showCounts={false} />
+            <ProjectFilterDropdown showCounts={false} value={activeProjectId} onChange={setScopeProjectId} />
             <TriageFilterMenu view={view} facets={model.facets} parkedCount={model.parkedAll.length} />
             <TriageGroupMenu groupBy={view.groupBy} onChange={view.setGroupBy} />
             <TriageSortMenu view={view} />

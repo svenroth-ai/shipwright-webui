@@ -62,13 +62,30 @@ export interface ProjectFilterDropdownProps {
    * (iterate-2026-11-09-triage-polish-r3).
    */
   showCounts?: boolean;
+  /**
+   * Controlled mode — the page owns the selection (Triage keeps its own, so
+   * it neither follows nor changes the Board's project filter). Pass BOTH
+   * `value` (null = All projects) and `onChange`; omit both to use the shared
+   * `useProjectFilter()` store.
+   */
+  value?: string | null;
+  onChange?: (id: string | null) => void;
 }
 
-export function ProjectFilterDropdown({ className, fluid, showCounts = true }: ProjectFilterDropdownProps) {
+export function ProjectFilterDropdown({
+  className,
+  fluid,
+  showCounts = true,
+  value,
+  onChange,
+}: ProjectFilterDropdownProps) {
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
   const { data: tasks = [] } = useExternalTasks();
-  const { activeProjectId, setActiveProjectId } = useProjectFilter();
+  const shared = useProjectFilter();
+  const controlled = onChange !== undefined;
+  const activeProjectId = controlled ? (value ?? null) : shared.activeProjectId;
+  const setActiveProjectId = controlled ? onChange : shared.setActiveProjectId;
 
   const countByProject = useMemo(() => {
     const m = new Map<string, number>();
