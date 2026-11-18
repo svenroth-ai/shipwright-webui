@@ -446,3 +446,6 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_decision_log_index.py 
 - [ADR-436 — Split instantKey out of event-log-assemble.ts](decision_log.md#adr-436-split-instantkey-out-of-event-log-assemblets)
 - [ADR-437 — Corroborate a transcript Run-ID footer from origin/main as well as the working tree](decision_log.md#adr-437-corroborate-a-transcript-run-id-footer-from-originmain-as-well-as-the-working-tree)
 - [ADR-438 — Keep tables intact through the markdown editor round trip](decision_log.md#adr-438-keep-tables-intact-through-the-markdown-editor-round-trip)
+- [ADR-439 — HTML preview scrolls #fragment links inside the frame](decision_log.md#adr-439-html-preview-scrolls-fragment-links-inside-the-frame)
+- [ADR-440 — Markdown images resolve through the file route](decision_log.md#adr-440-markdown-images-resolve-through-the-file-route)
+- [ADR-441 — Triage owns its project filter](decision_log.md#adr-441-triage-owns-its-project-filter)
