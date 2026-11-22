@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { runReminderDue, runReminderWrite, type ReminderCliDeps } from "./reminder-cli-runner.js";
@@ -22,6 +24,25 @@ describe("reminder CLI bridge: due", () => {
     expect(seen[0].bin).toBe("uv");
     expect(seen[0].args).toEqual(["run", "--no-project", "--python", ">=3.11", SCRIPT, "--project-root=C:/project", "due", "--json"]);
     expect(r.kind).toBe("ok");
+  });
+
+  it("a project registered at a linked worktree is called from its MAIN checkout", async () => {
+    const base = mkdtempSync(path.join(os.tmpdir(), "rem-wt-"));
+    try {
+      const main = path.join(base, "main");
+      const wt = path.join(base, "wt");
+      mkdirSync(path.join(main, ".git", "worktrees", "wt"), { recursive: true });
+      mkdirSync(wt, { recursive: true });
+      writeFileSync(path.join(wt, ".git"), `gitdir: ${path.join(main, ".git", "worktrees", "wt")}
+`);
+      const roots: string[] = [];
+      const spawn = async (_b: string, args: string[]) => { roots.push(args[5]); return { code: 0, stdout: JSON.stringify(GOOD_ANSWER), stderr: "" }; };
+      await runReminderDue(wt, deps(spawn));
+      await runReminderWrite(wt, { operation: "done", id: "rem-aabbccdd" }, deps(spawn));
+      expect(roots).toEqual([`--project-root=${main}`, `--project-root=${main}`]);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
   });
 
   it("CLI script missing or uv missing -> engine-unavailable, never a python fallback", async () => {

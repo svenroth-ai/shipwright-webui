@@ -107,6 +107,7 @@ export function createReminderRoutes(deps: ReminderRoutesDeps): Hono {
     const projects = deps.projects.getAll().filter((p) => !p.synthesized);
     const entries: Record<string, unknown>[] = Array.from({ length: projects.length });
     let next = 0;
+    // `next` is only mutated synchronously (never across an await), so workers cannot share an index.
     const worker = async (): Promise<void> => {
       for (let i = next++; i < projects.length; i = next++) {
         const p = projects[i];

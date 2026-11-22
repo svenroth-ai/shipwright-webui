@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resolveReminderCliScript, runReminderDue, runReminderWrite } from "./reminder-cli-runner.js";
 
@@ -20,11 +20,14 @@ describe.skipIf(!enabled)("reminder CLI bridge against the real CLI", () => {
   const root = enabled ? mkdtempSync(path.join(os.tmpdir(), "rem-int-")) : "";
   afterAll(() => { if (root) rmSync(root, { recursive: true, force: true }); });
 
-  it("add -> due -> snooze -> done, and the secret refusal arrives unchanged", async () => {
+  beforeAll(() => {
     execFileSync("git", ["init", "-q", root]);
     execFileSync("git", ["-C", root, "commit", "--allow-empty", "-q", "-m", "init", "--no-gpg-sign"], {
       env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" },
     });
+  });
+
+  it("add -> due -> snooze -> done, and the secret refusal arrives unchanged", async () => {
     const added = await runReminderWrite(root, {
       operation: "add", title: "-Renew the cert", due: "2020-01-01", why: "-It expires", open: "Who renews?",
       command: "claude --resume 1234", links: [{ label: "Docs", ref: "https://example.com/?a=b" }],

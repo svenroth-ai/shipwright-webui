@@ -9,10 +9,9 @@
  * `triage-cli-runner.ts`; `--no-project` for the same reason (never pick up an
  * ambient pyproject.toml from the spawning process's cwd).
  *
- * `projectRoot` is the registered project path and is ASSUMED to be the main
- * checkout. The CLI finds the main root for the reminder store itself, but the
- * triage half of `due` reads from the checkout top of the path it is given, so
- * a project registered at a worktree answers differently.
+ * `projectRoot` is the registered project path; it is resolved to its MAIN
+ * checkout (`reminder-main-root.ts`) before the CLI is called, because the
+ * triage half of `due` reads from the checkout top of the path it is given.
  *
  * Argv is built without a shell. Every value is passed in `--flag=value` form
  * and positionals follow a `--`, so a value that starts with `-` can never be
@@ -29,6 +28,7 @@ import path from "node:path";
 
 import { defaultCliChildSpawn, type CliChildSpawnFn } from "./cli-child-spawn.js";
 import { READINESS_REPAIR_COMMAND, shipwrightCacheRoot, type RunFn } from "./readiness-probe.js";
+import { resolveMainCheckout } from "./reminder-main-root.js";
 import { parseDueAnswer, type ReminderDueView } from "./reminder-contract.js";
 import { resolveUv } from "./uv-runner.js";
 
@@ -103,7 +103,8 @@ function unavailable(reason: string): ReminderCliFailure {
 function cliMessage(stderr: string): string {
   const lines = stderr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const own = [...lines].reverse().find((l) => l.startsWith("error: "));
-  return (own ? own.slice("error: ".length) : lines.pop() ?? "").slice(0, 1000);
+  // No `error: ` line (a traceback, say): a generic text, never a stack frame.
+  return own ? own.slice("error: ".length).slice(0, 1000) : "";
 }
 
 function isCliRefusal(stderr: string): boolean {
@@ -155,7 +156,7 @@ export async function runReminderDue(
 ): Promise<ReminderDueResult> {
   const prep = await prepare(deps);
   if (isFailure(prep)) return prep;
-  const args = [...baseArgs(prep.script, projectRoot), "due", "--json"];
+  const args = [...baseArgs(prep.script, resolveMainCheckout(projectRoot)), "due", "--json"];
   if (on) args.push(`--on=${on}`);
   const spawn = deps.spawn ?? defaultCliChildSpawn;
   const res = await spawn(prep.uv.bin, args, { timeoutMs: deps.timeoutMs ?? REMINDER_CLI_TIMEOUT_MS, env: prep.uv.env });
@@ -189,7 +190,7 @@ export async function runReminderWrite(
   const spawn = deps.spawn ?? defaultCliChildSpawn;
   const res = await spawn(
     prep.uv.bin,
-    [...baseArgs(prep.script, projectRoot), ...writeArgs(input)],
+    [...baseArgs(prep.script, resolveMainCheckout(projectRoot)), ...writeArgs(input)],
     { timeoutMs: deps.timeoutMs ?? REMINDER_CLI_TIMEOUT_MS, env: prep.uv.env },
   );
   // Exit 2 is also argparse's usage error (`usage:` / `<prog>: error:`): that is an
