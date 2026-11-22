@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"PASS. Every W3 acceptance criterion, FR-01.76 and mockup pages 01, 02, 03, 06, 07 are built and within scope. Non-blocking notes: visual baselines still to be regenerated on Linux; detail dialog button order Snooze/Done/Start task vs mockup; Open in Triage goes to /triage generally."}

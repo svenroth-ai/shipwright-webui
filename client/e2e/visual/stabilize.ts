@@ -71,3 +71,13 @@ export async function settle(page: Page): Promise<void> {
   await page.waitForLoadState("networkidle");
   await page.evaluate(() => document.fonts.ready);
 }
+
+/**
+ * The Inbox also asks the reminder tool what is due (W3). Baselines are about the page, not about whether the CI
+ * container has the tool, so pin the answer: every project read fine, nothing due.
+ */
+export async function stubNothingDue(page: Page): Promise<void> {
+  await page.route("**/api/reminders/**", (route) =>
+    route.fulfill({ json: { projects: [] } }),
+  );
+}

@@ -7,6 +7,7 @@
  */
 import type { InboxItem } from "../../lib/externalApi";
 import type { Project } from "../../types";
+import type { ReminderEntry } from "./reminderModel";
 
 export interface SessionGroup {
   sessionUuid: string;
@@ -25,5 +26,8 @@ export interface ProjectGroup {
    */
   project?: Project;
   sessions: SessionGroup[];
+  /** Due reminders + expired parked-triage entries of this project (W3); absent = none. */
+  reminders?: ReminderEntry[];
+  /** Session items + reminders. */
   totalItems: number;
 }

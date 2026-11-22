@@ -24,7 +24,7 @@ import {
   setActiveProject,
   type SeededProject,
 } from "../helpers/fixtures";
-import { settle } from "./stabilize";
+import { settle, stubNothingDue } from "./stabilize";
 
 const TAUPE = "rgb(35, 38, 44)"; // #23262C — the anthracite ground
 
@@ -44,6 +44,7 @@ test.describe("A05 chrome: geometry + anthracite + fonts", () => {
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "Atlas", dirName: "sw-visual-atlas" });
     await setActiveProject(page, project.projectId);
+    await stubNothingDue(page);
   });
 
   test.afterEach(async ({ request }) => {

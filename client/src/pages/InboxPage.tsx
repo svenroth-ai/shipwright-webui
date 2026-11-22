@@ -34,16 +34,41 @@ import { useNavigate } from "react-router-dom";
 import { InboxFilterBar } from "./inbox/InboxFilterBar";
 import { InboxGroupList } from "./inbox/InboxGroupList";
 import { countByFilter, filterGroups, type InboxFilter } from "./inbox/inboxRowModel";
+import { NewReminderDialog } from "../components/reminders/NewReminderDialog";
+import { ReminderBanners } from "./inbox/ReminderBanners";
+import { ReminderStartDialog } from "./inbox/ReminderStartDialog";
 import { useInboxData } from "./inbox/useInboxData";
+import { mergeReminders, useInboxReminders } from "./inbox/useInboxReminders";
+import { useReminderActions } from "./inbox/useReminderActions";
 import { PageHead } from "../components/common/PageHead";
 import { useInboxViewState } from "../hooks/useInboxViewState";
+import { useProjectFilter } from "../hooks/useProjectFilter";
+import { useProjects } from "../hooks/useProjects";
 import { glossaryLookup } from "../lib/glossary";
 import { applyProjectOrder, moveProject } from "../lib/triageProjectOrder";
 
 export default function InboxPage() {
-  const { projectGroups, openCount, isLoading, tasksById } = useInboxData();
+  const { projectGroups: sessionGroups, openCount: sessionCount, isLoading: sessionsLoading, tasksById } = useInboxData();
   const navigate = useNavigate();
   const view = useInboxViewState();
+  // Reminders + expired parked triage (campaign reminders-webui, W3): one shared read, merged into the project groups.
+  const reminders = useInboxReminders();
+  const { data: projects = [] } = useProjects();
+  const { activeProjectId } = useProjectFilter();
+  const realProjects = useMemo(() => projects.filter((p) => !p.synthesized), [projects]);
+  const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p] as const)), [projects]);
+  const projectGroups = useMemo(
+    () => mergeReminders(sessionGroups, reminders.entries, projectsById),
+    [sessionGroups, reminders.entries, projectsById],
+  );
+  const openCount = sessionCount + reminders.entries.length;
+  const isLoading = sessionsLoading || reminders.isLoading;
+  const nameOf = (id: string): string => projectsById.get(id)?.name ?? id;
+  const { ui: reminderUi, startModal } = useReminderActions();
+  const [newOpen, setNewOpen] = useState(false);
+  const [created, setCreated] = useState<{ due: string; projectName: string } | null>(null);
+  // "Creating in" only for a genuine single-project selection; All projects (or Unassigned) gets a picker.
+  const scopedProject = realProjects.find((p) => p.id === activeProjectId);
   const [filter, setFilter] = useState<InboxFilter>("all");
   const counts = useMemo(() => countByFilter(projectGroups), [projectGroups]);
   // A filter whose last entry just left (polling) falls back to all, never an empty page.
@@ -81,6 +106,20 @@ export default function InboxPage() {
         title="Inbox"
         small={<span data-testid="inbox-header-count">({openCount} open)</span>}
         testId="inbox-header"
+        actions={
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => {
+              setCreated(null);
+              setNewOpen(true);
+            }}
+            disabled={realProjects.length === 0}
+            data-testid="inbox-new-reminder"
+          >
+            + New reminder
+          </button>
+        }
       />
 
       {/* Body — the SAME box as the Triage page (same scroller padding, same
@@ -96,7 +135,20 @@ export default function InboxPage() {
             </div>
           )}
 
-          {!isLoading && projectGroups.length === 0 && (
+          {/* What is wrong with the reminder answer, never as "nothing due" (mockup page 06). */}
+          <ReminderBanners problems={reminders.problems} nameOf={nameOf} onRetry={reminders.refetch} />
+          {created && (
+            <div className="inbox-banner is-ok" role="status" data-testid="inbox-reminder-created">
+              <div className="inbox-banner-body">
+                <b>Reminder created for {created.due}.</b> It shows up in the Inbox on that day.
+              </div>
+              <button type="button" onClick={() => setCreated(null)} aria-label="Dismiss">
+                OK
+              </button>
+            </div>
+          )}
+
+          {!isLoading && projectGroups.length === 0 && !reminders.problems.any && (
             // A07 teaching empty state — copy lifted VERBATIM from the approved
             // prototype (Spec/prototype/screens/inbox.js). One sentence + exactly
             // one action (go to the board, where the running work lives). The
@@ -150,7 +202,12 @@ export default function InboxPage() {
 
           {/* Filter chips, then one dark-glass card per project (inbox-cards.css). */}
           {projectGroups.length > 0 && (
-            <InboxFilterBar counts={counts} active={activeFilter} onChange={setFilter} />
+            <InboxFilterBar
+              counts={counts}
+              active={activeFilter}
+              onChange={setFilter}
+              damagedLines={reminders.problems.corruptLines}
+            />
           )}
           {projectGroups.length > 0 && (
             <InboxGroupList
@@ -159,10 +216,21 @@ export default function InboxPage() {
               collapsed={view.collapsed}
               onToggle={view.toggleCollapsed}
               onReorderProject={onReorderProject}
+              reminderUi={reminderUi}
             />
           )}
         </div>
       </div>
+      {newOpen && (
+        <NewReminderDialog
+          open={newOpen}
+          onOpenChange={setNewOpen}
+          projects={realProjects}
+          scopedProject={scopedProject}
+          onCreated={setCreated}
+        />
+      )}
+      <ReminderStartDialog modal={startModal} />
     </div>
   );
 }

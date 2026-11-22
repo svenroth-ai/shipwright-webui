@@ -77,6 +77,13 @@ export const VISUAL_ROUTES: VisualRoute[] = [
       "Inbox with a pending mid-run question (A19, FR-01.63; Triage look iterate-2026-11-22-w2): the filter bar and one dark project card with a compact row (AWAITING REPLY chip, first line, session id, age). Captured by e2e/visual/09-inbox-populated.spec.ts. Baseline rendered in the pinned CI container (A00 bootstrap path).",
     status: "baselined",
   },
+  {
+    id: "inbox-reminders",
+    path: "/inbox (reminders — green REMINDER and grey PARKED TRIAGE rows)",
+    description:
+      "Inbox with a due reminder and an expired park (reminders-webui W3, FR-01.76): filter bar, + New reminder, one dark project card. Captured by e2e/visual/12-inbox-reminders.spec.ts with the tool answer and the clock pinned. Baseline rendered in the pinned CI container.",
+    status: "baselined",
+  },
   { id: "triage", path: "/triage", description: "Triage list", status: "baselined" },
   { id: "settings", path: "/settings", description: "Settings", status: "baselined" },
   {

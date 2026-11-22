@@ -25,7 +25,7 @@ import {
   type SeededProject,
 } from "../helpers/fixtures";
 import { apiUrl } from "../helpers/env";
-import { freezeClock, settle } from "./stabilize";
+import { freezeClock, settle, stubNothingDue } from "./stabilize";
 
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
@@ -51,6 +51,7 @@ test.describe("visual: inbox populated", () => {
   test("inbox-populated", async ({ page, request }) => {
     const stamp = Date.now();
     const toolUseId = `vis-a19-${stamp}`;
+    await stubNothingDue(page);
 
     project = await seedProject(request, { name: "Atlas", dirName: "sw-visual-inbox-a19" });
     const task = await seedTask(request, {

@@ -126,7 +126,7 @@ describe("countByFilter / filterGroups", () => {
   ];
 
   it("counts every item once per bucket", () => {
-    expect(countByFilter(groups)).toEqual({ all: 3, awaiting: 1, notices: 2 });
+    expect(countByFilter(groups)).toEqual({ all: 3, awaiting: 1, notices: 2, reminders: 0, parked: 0 });
   });
 
   it("filtering keeps only the bucket, drops empty groups and recounts", () => {
