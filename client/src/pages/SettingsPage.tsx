@@ -27,6 +27,7 @@ import { useProjects } from "../hooks/useProjects";
 import { ActionsConfigCard } from "../components/settings/ActionsConfigCard";
 import { TerminalSettingsCard } from "../components/settings/TerminalSettingsCard";
 import { StandaloneViewCard } from "../components/settings/StandaloneViewCard";
+import { ReminderMailCard } from "../components/settings/ReminderMailCard";
 import { CodexSettingsCard } from "../components/settings/CodexSettingsCard";
 import { StackProfilesCard } from "../components/settings/StackProfilesCard";
 import { useStandaloneView } from "../lib/standaloneView";
@@ -65,6 +66,8 @@ export default function SettingsPage() {
           className="page-container flex flex-col gap-4"
           style={{ paddingTop: "24px", paddingBottom: "24px" }}
         >
+          {/* Reminder mail (W4): server-side, off by default; the password is write-only. */}
+          <ReminderMailCard />
           {/* Terminal preferences (client-local). */}
           <TerminalSettingsCard />
           {/* Standalone view — hide Triage + Ship's Log (per browser). */}

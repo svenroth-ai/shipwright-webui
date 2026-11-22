@@ -36,6 +36,7 @@ import { InboxGroupList } from "./inbox/InboxGroupList";
 import { countByFilter, filterGroups, type InboxFilter } from "./inbox/inboxRowModel";
 import { NewReminderDialog } from "../components/reminders/NewReminderDialog";
 import { ReminderBanners } from "./inbox/ReminderBanners";
+import { MailFailedBanner } from "./inbox/MailFailedBanner";
 import { ReminderStartDialog } from "./inbox/ReminderStartDialog";
 import { useInboxData } from "./inbox/useInboxData";
 import { mergeReminders, useInboxReminders } from "./inbox/useInboxReminders";
@@ -137,6 +138,7 @@ export default function InboxPage() {
 
           {/* What is wrong with the reminder answer, never as "nothing due" (mockup page 06). */}
           <ReminderBanners problems={reminders.problems} nameOf={nameOf} onRetry={reminders.refetch} />
+          <MailFailedBanner />
           {created && (
             <div className="inbox-banner is-ok" role="status" data-testid="inbox-reminder-created">
               <div className="inbox-banner-body">

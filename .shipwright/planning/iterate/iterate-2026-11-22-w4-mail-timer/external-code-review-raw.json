@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n- Category: bug\n- Severity: medium\n- File: server/src/core/reminder-mail/service.ts \u2014 `collect()` (the `seen` dedupe set)\n- Finding: Items are deduped across projects by bare `${item.kind}|${item.id}`, but the ledger's triage keys are project-scoped (`triage|<project>|<id>|once`). When two distinct projects each have an expired parked triage item with the same id, the second project's item is dropped by the in-run dedupe *and never mailed at all* \u2014 once the first project's key is claimed, the second project's key (`triage|p2|\u2026|once`) is never even attempted because the entry never reaches `entries`. The test `two projects with the same triage id are each mailed once` (service.test.ts, ~line 245) actually asserts `sent).toHaveLength(1)` \u2014 its name contradicts what it verifies, so the test blesses the broken behavior rather than catching it.\n- Suggestion: Dedupe by `${item.kind}|${item.id}|${projectId}` (or at least scope the triage dedupe to the project), and rename/fix the test so it genuinely asserts one mail per project.\n\n- Category: security\n- Severity: low\n- File: server/src/routes/reminder-mail.ts \u2014 the PUT \"changed server\" guard\n- Finding: The \"type the password again when the SMTP server changes\" guard is skipped when `before.smtpHost === \"\"`. A password can be saved first (with `enabled: false`, empty host \u2014 the route allows this), and a later save that fills in a *different* host is accepted with `password.kind === \"keep\"`, silently sending the previously-saved password to the new host. That weakens the credential-not-following-to-a-new-host protection the route otherwise enforces.\n- Suggestion: Drop the `before.smtpHost !== \"\"` exemption, or refuse to store a password while the host is empty.\n\n- Category: bug\n- Severity: low\n- File: server/src/routes/reminder-mail.ts \u2014 PUT handler ordering\n- Finding: `writeSmtpPassword` runs before `saveSettings`. If the settings write then fails (disk, lock), the password in `.env.local` no longer matches the persisted settings (e.g., password for a server the settings never recorded). Not secret-leaking, but leaves the two stores inconsistent with no rollback.\n- Suggestion: Save settings first, then the password; or on settings-save failure, restore the previous password state.\n\n- Category: edge-case\n- Severity: low\n- File: server/src/core/reminder-mail/timer.ts \u2014 `go()`\n- Finding: When `run()` throws, `out` is `undefined`, so `out?.ran !== false` is true and `lastRun` is updated: a crashed check counts as a run and the next check waits the full interval. For `checkInterval: \"daily\"`, a throw at/after the summary time also sets `lastDailyDay`, burning that day's daily slot to a failed check. The comment says only checks that \"did not run\" shouldn't count; a check that ran *and failed* arguably shouldn't consume the daily slot either.\n- Suggestion: On exception, leave `lastRun`/`lastDailyDay` unchanged (or use a shorter retry backoff).\n\n- Category: test\n- Severity: low\n- File: server/src/core/reminder-mail/settings-timer.test.ts \u2014 \"round-trips and survives a corrupt file\"\n- Finding: The corrupt-settings case asserts the file silently reverts to `DEFAULT_SETTINGS` (mail off). That is the documented tolerant-read design, but it means a corrupt `reminder-mail.json` silently disables a configured mail with no visible note anywhere (status notes are only produced by checks, and checks return `{ran:false, reason:\"off\"}` with no note). The operator has no way to notice. At minimum the check could surface a \"settings unreadable\" note.\n- Suggestion: Consider recording a note/status error when the settings file is corrupt rather than silently defaulting.\n\nChecked and found sound: secret scrubbing (`describeSendError`, secretForms incl. base64/URL-embedded forms), `.env.local` storage with git-repo refusal and 0600, write-only password across API/page, ledger claim-before-send crash semantics, fail-closed on damaged ledger, header-injection blocking in subjects (control chars stripped), HTML escaping and path redaction, start-check + interval scheduling, per-day try cap, restart persistence tests, and the cross-site/content-type guards. The regression changes to `InboxPage` tests (mocking `useReminderMail`) are appropriate and keep existing fetch assertions exact.\n\nOverall: solid, well-tested implementation; ship after fixing the cross-project triage-dedupe bug (and its mislabeled test), which is the only one that actually suppresses a mail the spec requires.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: high\n- File: server/src/core/reminder-mail/service.ts:168\n- Finding: Collection deduplicates triage entries by `(kind, id)` across all projects, although triage IDs are only project-unique. Two projects with `trg-1` cause the second entry to disappear from every check. The test titled \u201ctwo projects with the same triage id are each mailed once\u201d incorrectly asserts just one mail, preserving the bug.\n- Suggestion: Include the project ID in triage deduplication keys. Change the test to require both items to be mailed and independently suppressed after restart.\n\n- Category: bug\n- Severity: high\n- File: server/src/core/reminder-mail/service.ts:230\n- Finding: After sending a summary, the service marks every listed triage entry as sent, but `composeSummaryMail` displays only the first 30 entries. An expired park beyond that limit receives permanent suppression without its title or details ever reaching the operator.\n- Suggestion: Have composition return the entries actually included, and suppress only those. Ensure omitted parks remain eligible for a subsequent summary.\n\n- Category: security\n- Severity: high\n- File: server/src/core/reminder-mail/transport.ts:66\n- Finding: Secret scrubbing excludes representations shorter than three characters, while settings accept one- and two-character passwords. For password `xy`, an SMTP error containing `535 rejected xy` exposes the literal password through the API, status file, and warning log.\n- Suggestion: Always scrub the literal password regardless of length. Add tests using short passwords through both scheduled-send and test-mail failure paths.\n\n- Category: security\n- Severity: medium\n- File: server/src/core/reminder-mail/compose.ts:35\n- Finding: POSIX path redaction only recognizes a fixed list of root directories. Text such as `See /projects/acme/private.txt` passes through unchanged, violating the requirement that mail contain no local paths. Paths containing spaces also leave trailing path components exposed.\n- Suggestion: Broaden path sanitization while preserving validated HTTP(S) URLs, and cover arbitrary POSIX roots and paths containing spaces in composition tests.\n\n- Category: spec\n- Severity: medium\n- File: server/src/core/reminder-mail/ledger.ts:113\n- Finding: Pruning deletes once-only suppression records after 5,000 expired parks. An older park that remains due becomes eligible again when its record is evicted, contradicting the requirement that expired parked items mail once only.\n- Suggestion: Retain once-only records permanently, or remove them only when authoritative project data proves the item can no longer appear.\n\nOverall assessment: **ship-with-fixes**. The implementation covers most of the requested workflow, but notification loss, password disclosure, and suppression violations need correction before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-22-w4-mail-timer",
+    "at": "2026-11-22T22:39:52.640774+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

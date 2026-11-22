@@ -1,0 +1,1 @@
+- (2026-11-22) iterate W4 - a record-claim-before-send ledger is at-most-once: starting the timer before the port is bound, or shutdown before an SMTP answer, loses that mail, so delay the first check. [→ iterate-2026-11-22-w4-mail-timer]

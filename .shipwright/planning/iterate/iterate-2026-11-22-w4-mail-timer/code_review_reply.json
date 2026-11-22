@@ -1,0 +1,13 @@
+{
+  "section": "W4-mail-timer",
+  "review": [
+    {"severity": "medium", "category": "security", "file": "server/src/core/reminder-mail/compose.ts", "finding": "POSIX_PATH, ANY_ABS_PATH and HOME_PATH only matched after start-of-text or whitespace, quote, parenthesis or equals; backtick-quoted, bracketed, colon- or comma-prefixed paths passed unredacted into text and HTML.", "disposition": "fixed in 1c4f34c0: lookbehind instead of a prefix class, web addresses survive; tests for each shape plus a URL case"},
+    {"severity": "low", "category": "correctness", "file": "server/src/core/reminder-mail/service.ts", "finding": "failClaim errors swallowed.", "disposition": "fixed: release retried once, then stop and a visible status note"},
+    {"severity": "low", "category": "security", "file": "server/src/core/reminder-mail/settings.ts", "finding": "hand-edited recipient, host, user not validated on load.", "disposition": "fixed: invalid value reads as not set"},
+    {"severity": "low", "category": "readability", "file": "client tests", "finding": "duplicated covers line.", "disposition": "fixed"},
+    {"severity": "low", "category": "test", "file": "transport.integration.test.ts", "finding": "no two-mails-in-one-check case.", "disposition": "fixed"},
+    {"severity": "low", "category": "correctness", "finding": "status text for daily mode (L5/L6).", "disposition": "wording made truthful; behaviour unchanged; L6 accepted in the ADR"},
+    {"severity": "low", "category": "notes", "finding": "L2, L4, L7, L8 and notes.", "disposition": "accepted, one line each in the ADR"}
+  ],
+  "verdict": "changes-requested-then-fixed"
+}
