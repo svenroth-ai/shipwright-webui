@@ -77,7 +77,7 @@ async function post(projectId: string, verb: "done" | "snooze" | "add", body: un
       body: JSON.stringify(body),
     });
     if (r.ok) return { ok: true };
-    const j = (await r.json().catch(() => ({}))) as { message?: string; reason?: string; error?: string };
+    const j = ((await r.json().catch(() => null)) ?? {}) as { message?: string; reason?: string; error?: string };
     // The CLI's own plain wording (e.g. the secret refusal) is passed through unchanged.
     return { ok: false, status: r.status, message: j.message || j.reason || `The request failed (${r.status}).` };
   } catch {

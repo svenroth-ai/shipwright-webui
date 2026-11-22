@@ -181,6 +181,15 @@ describe("InboxPage - reminders", () => {
     expect(screen.getByTestId("stub-new-issue")).toHaveAttribute("data-project", "p2");
   });
 
+  it("a busy reminder file says so (try again), not 'could not be started'", () => {
+    wire([{ projectId: "p1", state: "store-busy" } as ReminderProjectDue]);
+    renderPage();
+    const b = screen.getByTestId("inbox-reminders-unavailable");
+    expect(b).toHaveTextContent("busy right now");
+    expect(b).not.toHaveTextContent("could not be started");
+    expect(screen.queryByText(/Your inbox is clear/i)).toBeNull();
+  });
+
   it("a reminder without a command has no Start task", () => {
     wire([makeDue({ projectId: "p1", items: [makeReminderItem()] })]);
     renderPage();

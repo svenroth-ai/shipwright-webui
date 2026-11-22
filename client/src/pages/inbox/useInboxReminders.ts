@@ -30,7 +30,7 @@ export function useInboxReminders(): InboxReminders {
   const projects = q.data?.projects;
   const entries = useMemo(() => (projects ?? []).flatMap(entriesForProject), [projects]);
   const problems = useMemo(() => reminderProblems(projects, q.isError), [projects, q.isError]);
-  return { entries, problems, isLoading: q.isLoading, refetch: () => void q.refetch() };
+  return { entries, problems, isLoading: q.isLoading, refetch: () => void q.refetch({ cancelRefetch: false }) };
 }
 
 /** Put each entry into its project's group (creating the group when the project has no session entries). */

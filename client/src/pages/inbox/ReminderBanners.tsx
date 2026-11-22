@@ -49,13 +49,17 @@ export function ReminderBanners({
   if (!problems.any) return null;
   const { unavailable, triageErrors, corruptLines, requestFailed } = problems;
   const names = unavailable.map((u) => nameOf(u.projectId));
+  const onlyBusy = !requestFailed && unavailable.length > 0 && unavailable.every((u) => u.state === "store-busy");
   const detail = unavailable.find((u) => u.reason)?.reason ?? null;
   return (
     <div data-testid="inbox-reminder-banners">
       {(requestFailed || unavailable.length > 0) && (
         <Banner tone="error" testId="inbox-reminders-unavailable" onRetry={onRetry}>
-          <b>Reminders are unavailable.</b> The Shipwright reminder tool could not be started (or answered in a format
-          this WebUI does not know). Reminder entries for the affected projects are switched off until this is fixed. Everything else in the
+          <b>Reminders are unavailable.</b>{" "}
+          {onlyBusy
+            ? "The reminder file is busy right now (another writer holds it). Try again in a moment."
+            : "The Shipwright reminder tool could not be started, could not read the file, or answered in a format this WebUI does not know. Reminder entries for the affected projects are switched off until this is fixed."}{" "}
+          {requestFailed && unavailable.length === 0 ? "The list shown may be out of date. " : ""}Everything else in the
           Inbox still works.
           {names.length > 0 && <> Affected: {names.join(", ")}.</>}
           {detail && <> (Tool detail: &ldquo;{detail}&rdquo;)</>}

@@ -48,9 +48,9 @@ function useWrite<V>(fn: (v: V) => ReturnType<typeof reminderDone>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
-    onSuccess: (r) => {
-      if (r.ok) void qc.invalidateQueries({ queryKey: REMINDERS_KEY });
-    },
+    // Returned, so the mutation settles (and the row stays locked) only once the list is re-read; also after a refusal,
+    // which usually means the entry was already handled elsewhere.
+    onSettled: () => qc.invalidateQueries({ queryKey: REMINDERS_KEY }),
   });
 }
 

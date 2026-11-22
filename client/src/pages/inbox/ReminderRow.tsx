@@ -93,7 +93,7 @@ export function ReminderRow({ entry, model, ui, onOpen }: Props) {
               >
                 Done
               </button>
-              <Popover.Root open={snoozeOpen} onOpenChange={setSnoozeOpen}>
+              <Popover.Root open={snoozeOpen} onOpenChange={(o) => { if (o) ui?.clearError(key); setSnoozeOpen(o); }}>
                 <Popover.Trigger asChild>
                   <button
                     type="button"
