@@ -21,5 +21,9 @@ export function mountReminders(app: Hono, projects: ReminderRoutesDeps["projects
   const service = new ReminderMailService({ dir, listProjects: () => projects.getAll(), readDue: (p) => runReminderDue(p), makeTransport: nodemailerTransport, log });
   app.route("/", createReminderRoutes({ projects }));
   app.route("/", createReminderMailRoutes({ dir, service }));
-  return startReminderMailTimer({ run: () => service.runCheck(), getSchedule: () => loadSettings(dir), log });
+  // First check 20 s after start: a boot that dies early (port already taken) must not claim a mail it never sends.
+  const timer = startReminderMailTimer({ run: () => service.runCheck(), getSchedule: () => loadSettings(dir), log, initialDelayMs: 20_000 });
+  // No new check once the server is shutting down.
+  for (const sig of ["SIGINT", "SIGTERM"] as const) process.once(sig, () => timer.stop());
+  return timer;
 }

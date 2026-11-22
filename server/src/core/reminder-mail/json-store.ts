@@ -6,7 +6,7 @@
  * and tolerant (missing / corrupt / wrong shape -> the empty value).
  */
 
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { createTriageLock } from "../triage-lock.js";
@@ -45,7 +45,10 @@ export function writeAtomic(file: string, data: unknown, mode: number, raw = fal
       return;
     } catch (e) {
       const code = (e as NodeJS.ErrnoException).code;
-      if (i >= 6 || (code !== "EPERM" && code !== "EBUSY" && code !== "EACCES")) throw e;
+      if (i >= 6 || (code !== "EPERM" && code !== "EBUSY" && code !== "EACCES")) {
+        try { unlinkSync(tmp); } catch { /* best effort: never leave a second copy of the content behind */ }
+        throw e;
+      }
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25 * (i + 1));
     }
   }

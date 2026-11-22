@@ -112,9 +112,10 @@ test.describe("Settings - reminder mail", () => {
 
       await page.getByTestId("reminder-mail-test").click();
       await expect(page.getByTestId("reminder-mail-result")).toHaveText("Test mail sent.", { timeout: 20_000 });
-      expect(smtp.messages).toHaveLength(1);
-      expect(smtp.messages[0]).toContain("Subject: [Shipwright] Test mail");
-      expect(smtp.messages[0]).not.toContain(PASSWORD);
+      // (a scheduled check may also have mailed a summary in the meantime: look for the test mail, do not count)
+      const testMail = smtp.messages.find((m) => m.includes("Subject: [Shipwright] Test mail"));
+      expect(testMail).toBeDefined();
+      for (const m of smtp.messages) expect(m).not.toContain(PASSWORD);
       await shot(page, "w4-settings-sent");
 
       // a dead server: the exact failure, in plain words

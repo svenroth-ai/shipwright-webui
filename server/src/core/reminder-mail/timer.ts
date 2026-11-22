@@ -16,7 +16,10 @@ const INTERVAL_MS: Record<Exclude<CheckInterval, "daily">, number> = { "15m": 15
 
 export interface TimerDeps {
   run: () => Promise<unknown>;
-  getSchedule: () => { checkInterval: CheckInterval; summaryTime: string };
+  getSchedule: () => { checkInterval: CheckInterval; summaryTime: string; format?: string };
+  /** Wait this long before the first check, so a start that dies early (port taken) never claims a mail. */
+  initialDelayMs?: number;
+  setTimeoutFn?: (fn: () => void, ms: number) => unknown;
   now?: () => Date;
   setIntervalFn?: (fn: () => void, ms: number) => unknown;
   clearIntervalFn?: (h: unknown) => void;
@@ -36,6 +39,7 @@ export function startReminderMailTimer(deps: TimerDeps): MailTimer {
   let lastRun: Date | null = null;
   let lastDailyDay: string | null = null;
   let running = false;
+  let armed = (deps.initialDelayMs ?? 0) <= 0;
 
   const hhmm = (t: Date): string => `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
 
@@ -64,17 +68,31 @@ export function startReminderMailTimer(deps: TimerDeps): MailTimer {
     if (lastRun === null) return true;
     const { checkInterval, summaryTime } = deps.getSchedule();
     const t = now();
-    if (checkInterval === "daily") return hhmm(t) >= summaryTime && lastDailyDay !== localDay(t);
+    const { format } = deps.getSchedule();
+    const summaryDue = hhmm(t) >= summaryTime && lastDailyDay !== localDay(t);
+    if (checkInterval === "daily") return summaryDue;
+    // 15m / 1h: the summary must not depend on which minute the server happened to start at.
+    if (format !== undefined && format !== "item" && summaryDue) return true;
     return t.getTime() - lastRun.getTime() >= INTERVAL_MS[checkInterval];
   }
 
   const tick = async (): Promise<void> => {
-    if (due()) await go();
+    if (armed && due()) await go();
   };
 
   const handle = (deps.setIntervalFn ?? setInterval)(() => void tick(), TICK_MS);
   (handle as { unref?: () => void } | undefined)?.unref?.();
-  const started = go(); // once at start
+  let started: Promise<void>;
+  if (armed) started = go(); // once at start
+  else {
+    started = new Promise<void>((resolve) => {
+      const h = (deps.setTimeoutFn ?? setTimeout)(() => {
+        armed = true;
+        void go().then(resolve);
+      }, deps.initialDelayMs ?? 0);
+      (h as { unref?: () => void } | undefined)?.unref?.();
+    });
+  }
 
   return {
     started,

@@ -95,8 +95,8 @@ describe(".env.local secret", () => {
 });
 
 describe("timer", () => {
-  function harness(schedule: { checkInterval: "15m" | "1h" | "daily"; summaryTime: string }) {
-    let now = new Date(2026, 10, 22, 7, 0, 0);
+  function harness(schedule: { checkInterval: "15m" | "1h" | "daily"; summaryTime: string; format?: string }, start = new Date(2026, 10, 22, 7, 0, 0)) {
+    let now = start;
     let runs = 0;
     let cb: (() => void) | null = null;
     let cleared = false;
@@ -118,6 +118,34 @@ describe("timer", () => {
     expect(h.runs()).toBe(1);
     await h.advance(60_000);
     expect(h.runs()).toBe(2);
+  });
+
+  it("a summary time inside the last interval of the day is not skipped by an hourly timer", async () => {
+    const h = harness({ checkInterval: "1h", summaryTime: "23:30", format: "both" }, new Date(2026, 10, 22, 22, 20, 0));
+    await h.timer.started; // 22:20
+    await h.advance(60_000 * 60); // 23:20: interval due
+    expect(h.runs()).toBe(2);
+    await h.advance(10 * 60_000); // 23:30: the summary slot, no interval is due
+    expect(h.runs()).toBe(3);
+    await h.advance(5 * 60_000); // 23:35: today's summary slot is used up
+    expect(h.runs()).toBe(3);
+  });
+
+  it("the first check waits for the start delay (a boot that dies early claims nothing)", async () => {
+    let fired: (() => void) | null = null;
+    let runs = 0;
+    const timer = startReminderMailTimer({
+      run: async () => { runs++; },
+      getSchedule: () => ({ checkInterval: "1h", summaryTime: "08:00" }),
+      setIntervalFn: () => ({}),
+      initialDelayMs: 20_000,
+      setTimeoutFn: (fn) => { fired = fn; return {}; },
+    });
+    await timer.tick();
+    expect(runs).toBe(0);
+    (fired as unknown as () => void)();
+    await timer.started;
+    expect(runs).toBe(1);
   });
 
   it("honours 15 minutes", async () => {
