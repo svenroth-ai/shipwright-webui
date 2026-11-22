@@ -10,7 +10,7 @@
  * plain navigation. The tool's own refusal text is shown unchanged. Errors are
  * kept per entry so a failure under one row never hides under another.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useProjectActions } from "../../hooks/useProjectActions";
@@ -20,7 +20,8 @@ import type { ReminderEntry } from "./reminderModel";
 import { buildReminderStartIntent, type ReminderStartIntent } from "./reminderStartIntent";
 
 export interface ReminderUi {
-  busyKey: string | null;
+  /** Entries with a write in flight: each row is locked on its own, others stay usable. */
+  busyKeys: ReadonlySet<string>;
   errors: Readonly<Record<string, string>>;
   done: (entry: ReminderEntry) => Promise<boolean>;
   snooze: (entry: ReminderEntry, day: string) => Promise<boolean>;
@@ -41,7 +42,8 @@ export function useReminderActions(): { ui: ReminderUi; startModal: ReminderStar
   const navigate = useNavigate();
   const doneMut = useReminderDone();
   const snoozeMut = useReminderSnooze();
-  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [busyKeys, setBusyKeys] = useState<ReadonlySet<string>>(new Set());
+  const busyRef = useRef(new Set<string>());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState<ReminderEntry | null>(null);
   const [intent, setIntent] = useState<ReminderStartIntent | null>(null);
@@ -77,7 +79,9 @@ export function useReminderActions(): { ui: ReminderUi; startModal: ReminderStar
   const run = useCallback(
     async (entry: ReminderEntry, call: () => Promise<{ ok: true } | { ok: false; message: string }>) => {
       if (entry.item.id === null) return false;
-      setBusyKey(entry.key);
+      if (busyRef.current.has(entry.key)) return false;
+      busyRef.current.add(entry.key);
+      setBusyKeys(new Set(busyRef.current));
       setError(entry.key, null);
       try {
         const r = await call();
@@ -87,14 +91,15 @@ export function useReminderActions(): { ui: ReminderUi; startModal: ReminderStar
         }
         return true;
       } finally {
-        setBusyKey(null);
+        busyRef.current.delete(entry.key);
+        setBusyKeys(new Set(busyRef.current));
       }
     },
     [setError],
   );
 
   const ui: ReminderUi = {
-    busyKey,
+    busyKeys,
     errors,
     done: (entry) => run(entry, () => doneMut.mutateAsync({ projectId: entry.projectId, id: entry.item.id ?? "" })),
     snooze: (entry, day) =>

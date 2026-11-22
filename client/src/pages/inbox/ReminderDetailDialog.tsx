@@ -80,7 +80,7 @@ interface Props {
 export function ReminderDetailDialog({ open, onOpenChange, entry, model, projectName, ui }: Props) {
   const { item, key } = entry;
   const [snoozeOpen, setSnoozeOpen] = useState(false);
-  const busy = ui?.busyKey === key;
+  const busy = ui?.busyKeys.has(key) === true;
   const error = ui?.errors[key] ?? null;
 
   return (

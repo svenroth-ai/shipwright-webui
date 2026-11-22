@@ -36,7 +36,7 @@ interface Props {
 export function ReminderRow({ entry, model, ui, onOpen }: Props) {
   const { key } = entry;
   const [snoozeOpen, setSnoozeOpen] = useState(false);
-  const busy = ui?.busyKey === key;
+  const busy = ui?.busyKeys.has(key) === true;
   const error = ui?.errors[key] ?? null;
 
   return (

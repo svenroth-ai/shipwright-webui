@@ -14,7 +14,7 @@ import {
   setActiveProject,
   type SeededProject,
 } from "../helpers/fixtures";
-import { settle } from "./stabilize";
+import { settle, stubNothingDue } from "./stabilize";
 
 /** Route id (== baseline filename, per the manifest) -> path + a landmark to await. */
 const SHELL_ROUTES = [
@@ -31,6 +31,7 @@ test.describe("visual: shell routes", () => {
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "Atlas", dirName: "sw-visual-atlas" });
     await setActiveProject(page, project.projectId);
+    await stubNothingDue(page);
   });
 
   test.afterEach(async ({ request }) => {

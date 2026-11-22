@@ -163,7 +163,7 @@ test.describe("Inbox reminders", () => {
 
     // Snooze with Tomorrow: the row leaves the Inbox and the count drops.
     await created.hover();
-    const row = page.getByTestId(/inbox-card-reminder-.*-rem-1/);
+    const row = page.locator('[data-testid^="inbox-card-"]', { has: created });
     await row.getByTestId(/reminder-snooze-/).click();
     await shot(page, "07-snooze-popover");
     await page.getByTestId(/-snooze-tomorrow$/).click();

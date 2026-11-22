@@ -55,7 +55,7 @@ export function ReminderBanners({
       {(requestFailed || unavailable.length > 0) && (
         <Banner tone="error" testId="inbox-reminders-unavailable" onRetry={onRetry}>
           <b>Reminders are unavailable.</b> The Shipwright reminder tool could not be started (or answered in a format
-          this WebUI does not know). Reminder entries are switched off until this is fixed. Everything else in the
+          this WebUI does not know). Reminder entries for the affected projects are switched off until this is fixed. Everything else in the
           Inbox still works.
           {names.length > 0 && <> Affected: {names.join(", ")}.</>}
           {detail && <> (Tool detail: &ldquo;{detail}&rdquo;)</>}
