@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-22-w1-cli-bridge",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T17:10:20.305920+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "The state model does not explicitly handle `triageError` or `reminderCorruptLines`. A parseable v1 response containing either could become an `ok` response with no items, incorrectly suggesting nothing is due. Aggregation also needs to preserve individual project failures.",
+          "suggestion": "Define these states explicitly, retain their diagnostics, and test both per-project and mixed-success all-project responses. Validate all ten item fields at runtime before accepting a v1 answer.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency |",
+          "file": null,
+          "line": null,
+          "finding": "The plan omits the required shared `cli-child-spawn.ts` helper and does not establish how the runner resolves the project’s main checkout. These are explicit requirements; using the server working directory or a selected worktree could operate on the wrong store.",
+          "suggestion": "Specify shared spawn-helper reuse and main-checkout resolution from registered project metadata. Test invocation from a worktree and ensure any triage runner changes preserve its existing behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "“Exit 2 refused passes message through” does not establish unchanged refusal text or the required no-retry behavior. Generic output trimming, stderr decoration, or shared retry handling could violate that contract.",
+          "suggestion": "Pin the actual CLI refusal behavior in a test: assert the exact exposed message and exactly one invocation. Confirm the CLI distinguishes refusal from ordinary argument-validation failures before treating every exit 2 as refusal.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency |",
+          "file": null,
+          "line": null,
+          "finding": "The requested inspection of real stored command strings and operator note about resume-style commands are absent. This leaves a concrete scope item unfinished.",
+          "suggestion": "Inspect representative stored commands read-only, record the observed resume syntax for the operator, and preserve command values as opaque text throughout the bridge.  The CLI-only approach is sound and appropriately scoped. The explicit error-state handling and execution-context requirements need to be resolved before implementation is ready to approve.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-11-22T17:06:17.831631+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] **Findings**\n\n- **Category: approach / Severity: medium** — All-projects fan-out with concurrency 3: the mini-plan doesn't say how per-project cwd is resolved (\"called from the project main checkout\" is a per-project requirement). If cwd handling is centralized in cli-child-spawn.ts, make sure the reminder runner can accept a per-project cwd and that a missing/uncloned checkout for one project maps to that project's explicit `unavailable` state rather than failing the whole aggregate response.\n- **Category: edge-case / Severity: medium** — `--flag=value` argv form with untrusted text values: a value beginning with `--` (e.g., a reminder title `--help`) can be misparsed by some arg parsers. Since reminder_cli.py's parser is outside this change's control, prefer `--flag value` as two argv tokens or verify the CLI's parser handles `--flag=--weird` correctly, and add a pinned argv test covering adversarial titles.\n- **Category: edge-case / Severity: low** — Exit-code mapping lists 2/3/4/-1 explicitly; define a default bucket for any other nonzero code (e.g., 1) so an unexpected CLI failure can't fall through to something ambiguous. Also confirm exit code for `due` when the store is empty is 0 with a parseable answer — the spec's \"never nothing due\" requirement depends on distinguishing success from failure precisely.\n- **Category: risk / Severity: medium** — Concurrency and the CLI's store: GET fan-out is read-only, but done/snooze/add mutate reminders.jsonl. Exit 4 (store-busy) is mapped — decide whether the server retries once or surfaces it to the client as a transient state; a hard failure with no retry on a likely-transient lock is a poor UX and the client mockups may not model it.\n- **Category: security / Severity: medium** — No mention of auth on the new routes. If the existing server gates /api/* with middleware via the index.ts mount, fine — but confirm the mount inherits it rather than bypassing it. Also confirm the snooze `--until` is strictly va […truncated]\n\n[openai] Repository access was blocked, so this review is based on the supplied specification and mini-plan.\n\n1. **Category: edge-case | Severity: high**  \n   **Finding:** The state model does not explicitly handle `triageError` or `reminderCorruptLines`. A parseable v1 response containing either could become an `ok` response with no items, incorrectly suggesting nothing is due. Aggregation also needs to preserve individual project failures.  \n   **Suggestion:** Define these states explicitly, retain their diagnostics, and test both per-project and mixed-success all-project responses. Validate all ten item fields at runtime before accepting a v1 answer.\n\n2. **Category: dependency | Severity: medium**  \n   **Finding:** The plan omits the required shared `cli-child-spawn.ts` helper and does not establish how the runner resolves the project’s main checkout. These are explicit requirements; using the server working directory or a selected worktree could operate on the wrong store.  \n   **Suggestion:** Specify shared spawn-helper reuse and main-checkout resolution from registered project metadata. Test invocation from a worktree and ensure any triage runner changes preserve its existing behavior.\n\n3. **Category: edge-case | Severity: medium**  \n   **Finding:** “Exit 2 refused passes message through” does not establish unchanged refusal text or the required no-retry behavior. Generic output trimming, stderr decoration, or shared retry handling could violate that contract.  \n   **Suggestion:** Pin the actual CLI refusal behavior in a test: assert the exact exposed message and exactly one invocation. Confirm the CLI distinguishes refusal from ordinary argument-validation failures before treating every exit 2 as refusal.\n\n4. **Category: dependency | Severity: medium**  \n   **Finding:** The requested inspection of real stored command strings and operator note about resume-style commands are absent. This leaves a concrete scope item unfinished.  \n   **Suggestion:** Inspect […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T17:08:59.700585+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T17:08:59.561039+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

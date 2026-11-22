@@ -1,0 +1,114 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-22-w1-cli-bridge",
+    "date": "2026-11-22",
+    "unit": {
+      "status": "passed",
+      "passed": 5111,
+      "skipped": 16,
+      "total": 5127
+    },
+    "integration": {
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0,
+      "total": 2
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "due route returns the contract shape (contractVersion 1, 10 item fields) per project and across all registered projects",
+          "disposition": "tested",
+          "evidence": "reminders.test.ts GET due + reminder-contract.test.ts pinned shape + real-CLI integration"
+        },
+        {
+          "behavior": "an unknown contractVersion, unreadable answer, CLI/uv unavailable, store busy and failures are explicit error states, never nothing due",
+          "disposition": "tested",
+          "evidence": "reminder-contract.test.ts it.each + reminder-cli-runner.test.ts + reminders.test.ts error-state table"
+        },
+        {
+          "behavior": "triageError and reminderCorruptLines surface as a degraded state with the data intact",
+          "disposition": "tested",
+          "evidence": "reminders.test.ts degraded state test"
+        },
+        {
+          "behavior": "one failing project does not blank the all-projects answer",
+          "disposition": "tested",
+          "evidence": "reminders.test.ts all-projects mixed + throwing runner"
+        },
+        {
+          "behavior": "done, snooze and add call the CLI only with the right argv (--, flag=value) and validated input",
+          "disposition": "tested",
+          "evidence": "reminder-cli-runner.test.ts argv pins + reminders.test.ts POST tests + real-CLI round trip"
+        },
+        {
+          "behavior": "the CLI's secret-refusal text is passed through unchanged with no retry; argparse usage errors are not shown as refusals",
+          "disposition": "tested",
+          "evidence": "reminder-cli-runner.test.ts refusal + usage tests; reminders.test.ts 422 passthrough"
+        },
+        {
+          "behavior": "write routes refuse non-JSON content-type, bad ids/days, non-http links, NUL and oversized input",
+          "disposition": "tested",
+          "evidence": "reminders.test.ts 415 + validation tests"
+        },
+        {
+          "behavior": "the bridge never writes reminders.jsonl or any file",
+          "disposition": "tested",
+          "evidence": "reminder-cli-runner.test.ts static guard"
+        },
+        {
+          "behavior": "non-ASCII, multi-line and option-looking text survive the real argv round trip on Windows",
+          "disposition": "tested",
+          "evidence": "reminder-cli-runner.integration.test.ts probes 1 and 2 (both no finding)"
+        }
+      ],
+      "counts": {
+        "testable": 9,
+        "tested": 9,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
+    },
+    "surface_verification": {
+      "surface": "api",
+      "runner": "node server/node_modules/vitest/vitest.mjs run --root server src/routes/reminders.test.ts src/core/reminder-cli-runner.integration.test.ts",
+      "exit_code": 0,
+      "tests_run": 29,
+      "evidence_path": ".shipwright/runs/iterate-2026-11-22-w1-cli-bridge/surface_verification.log",
+      "timestamp": "2026-11-22T17:12:51.912Z",
+      "attempts": 1
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-22-w1-cli-bridge",
+    "commit": "72d39c6dcc0425235a59ea37025225b11932e60c",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

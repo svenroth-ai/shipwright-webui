@@ -1,0 +1,133 @@
+/*
+ * reminder-contract.ts — the WebUI side of the `reminder_cli.py due --json`
+ * contract (Shipwright `lib/reminder_due.py`, "Cross-repo contract").
+ *
+ * PINNED. Any change to the envelope, the 10 item fields or the 3 link fields
+ * on the Shipwright side needs a `contractVersion` bump and a matching change
+ * here; `reminder-contract.test.ts` pins the shape. A version we do not know is
+ * never half-read: it becomes the `unsupported-version` state.
+ *
+ * Every text field is UNTRUSTED (triage text can originate in external
+ * issues). This module only validates and narrows the shape; it never
+ * interprets a field. Consumers must escape on render.
+ *
+ * `sourceRoot` / `reminderStore` are local paths and are deliberately NOT
+ * carried into `ReminderDueView` — they must never reach a mail body.
+ */
+
+export const SUPPORTED_CONTRACT_VERSION = 1;
+
+export const REMINDER_ITEM_FIELDS = [
+  "kind", "id", "title", "due", "why", "decided", "open", "command", "links", "severity",
+] as const;
+export const REMINDER_LINK_FIELDS = ["label", "kind", "ref"] as const;
+
+export interface ReminderLink {
+  label: string | null;
+  kind: string | null;
+  ref: string | null;
+}
+
+export interface ReminderDueItem {
+  kind: "reminder" | "triage";
+  id: string | null;
+  title: string | null;
+  due: string | null;
+  why: string | null;
+  decided: string | null;
+  open: string | null;
+  command: string | null;
+  links: ReminderLink[];
+  severity: string | null;
+}
+
+/** The validated answer, minus the local-path fields. */
+export interface ReminderDueView {
+  contractVersion: 1;
+  on: string;
+  /** Non-zero means the store has unreadable lines: show a hint, never hide it. */
+  reminderCorruptLines: number;
+  /** Non-null means the triage side was NOT read: "nothing due" is unproven. */
+  triageError: string | null;
+  items: ReminderDueItem[];
+}
+
+export type ReminderDueParse =
+  | { kind: "ok"; view: ReminderDueView }
+  | { kind: "unsupported-version"; contractVersion: unknown }
+  | { kind: "unreadable"; reason: string };
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+const strOrNull = (v: unknown): v is string | null => v === null || typeof v === "string";
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseLink(raw: unknown): ReminderLink | null {
+  if (!isRecord(raw)) return null;
+  const { label, kind, ref } = raw;
+  if (!strOrNull(label) || !strOrNull(kind) || !strOrNull(ref)) return null;
+  return { label, kind, ref };
+}
+
+function parseItem(raw: unknown): ReminderDueItem | null {
+  if (!isRecord(raw)) return null;
+  for (const f of REMINDER_ITEM_FIELDS) if (!(f in raw)) return null;
+  if (raw.kind !== "reminder" && raw.kind !== "triage") return null;
+  const text = ["id", "title", "due", "why", "decided", "open", "command", "severity"] as const;
+  for (const f of text) if (!strOrNull(raw[f])) return null;
+  if (!Array.isArray(raw.links)) return null;
+  const links: ReminderLink[] = [];
+  for (const l of raw.links) {
+    const parsed = parseLink(l);
+    if (!parsed) return null;
+    links.push(parsed);
+  }
+  return {
+    kind: raw.kind,
+    id: raw.id as string | null,
+    title: raw.title as string | null,
+    due: raw.due as string | null,
+    why: raw.why as string | null,
+    decided: raw.decided as string | null,
+    open: raw.open as string | null,
+    command: raw.command as string | null,
+    links,
+    severity: raw.severity as string | null,
+  };
+}
+
+/** Parse the CLI's stdout. Never throws; anything off-contract is a named state. */
+export function parseDueAnswer(stdout: string): ReminderDueParse {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(stdout);
+  } catch {
+    return { kind: "unreadable", reason: "The answer was not valid JSON." };
+  }
+  if (!isRecord(raw)) return { kind: "unreadable", reason: "The answer was not a JSON object." };
+  if (typeof raw.contractVersion !== "number" && typeof raw.contractVersion !== "string") {
+    return { kind: "unreadable", reason: "The answer names no contract version." };
+  }
+  if (raw.contractVersion !== SUPPORTED_CONTRACT_VERSION) {
+    return { kind: "unsupported-version", contractVersion: raw.contractVersion };
+  }
+  const { on, reminderCorruptLines, triageError, items } = raw;
+  if (typeof on !== "string" || !DAY.test(on)) return { kind: "unreadable", reason: "The answer has no valid day." };
+  if (typeof reminderCorruptLines !== "number" || !Number.isInteger(reminderCorruptLines) || reminderCorruptLines < 0) {
+    return { kind: "unreadable", reason: "The answer has no valid damaged-line count." };
+  }
+  if (triageError !== null && typeof triageError !== "string") {
+    return { kind: "unreadable", reason: "The answer has an invalid triage status." };
+  }
+  if (!Array.isArray(items)) return { kind: "unreadable", reason: "The answer has no item list." };
+  const parsed: ReminderDueItem[] = [];
+  for (const it of items) {
+    const p = parseItem(it);
+    if (!p) return { kind: "unreadable", reason: "An item in the answer does not match the contract." };
+    parsed.push(p);
+  }
+  return {
+    kind: "ok",
+    view: { contractVersion: 1, on, reminderCorruptLines, triageError, items: parsed },
+  };
+}

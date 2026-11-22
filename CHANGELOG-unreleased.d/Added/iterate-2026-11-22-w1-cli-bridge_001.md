@@ -1,0 +1,1 @@
+feat(reminders): server bridge to the Shipwright reminder CLI - due per project and across all projects, plus done, snooze and add; CLI-missing, unreadable answer, unknown contract version, triage read error and damaged store lines are explicit states, never "nothing due"
