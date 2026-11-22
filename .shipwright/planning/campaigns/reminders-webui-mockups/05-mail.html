@@ -1,11 +1,8 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>5 The mail</title><link rel="stylesheet" href="mock.css"></head><body>
-<div class="top"><b>Shipwright Command Center</b><span class="mock">MOCKUP - static HTML, no server, sample data only</span><nav><a href="index.html">All screens</a></nav></div><main>
-<h1>5. The mail, as the recipient sees it</h1>
-<span class="cli">CLI call: content comes from one item of reminder_cli.py due --json (one mail per item and day)</span>
-<div class="mail"><div class="h"><b>Subject:</b> [Shipwright] Due: Renew the code-signing certificate<br><b>From:</b> Shipwright Command Center &lt;noreply@example.org&gt;<br><b>To:</b> operator@example.org</div>
-<div class="b"><p><b>Renew the code-signing certificate</b><br>Type: reminder - due 2026-11-22</p>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>5 The mail</title><link rel="stylesheet" href="mock.css"></head><body><div class="mocknote"><b>MOCKUP</b> - static HTML, invented sample data, nothing is built. Real Command Center look (sidebar, title bar, backdrop, cards). <a href="index.html">All screens</a></div><div class="wrap"><h1 style="color:#fff;font-size:24px;margin:0">5. The mail, as the recipient sees it</h1><span class="cli">CLI call: content comes from one item of reminder_cli.py due --json (one mail per item and day)</span><div class="mail"><div class="env"><b>Subject:</b> [Shipwright] Due: Renew the code-signing certificate<br><b>From:</b> Shipwright Command Center &lt;noreply@example.org&gt;<br><b>To:</b> operator@example.org</div>
+<div class="logo"><img src="assets/shipwright-logo-white.png" alt="Shipwright"></div>
+<div class="b"><p style="font-size:18px;font-weight:600;margin-bottom:2px">Renew the code-signing certificate</p><p style="color:#79716B">Reminder - due 2026-11-22 - project: Shipwright WebUI</p>
 <p><b>Why:</b> The certificate expires on 2026-12-01; the release build fails without it.</p><p><b>Decided:</b> Renew with the same vendor, 1 year.</p>
-<p><b>Still open:</b> Who pays? Needs the finance contact. (Long texts are cut after 1000 characters with "...".)</p>
+<p><b>Still open:</b> Who pays? Needs the finance contact. <span style="color:#79716B">(Long texts are cut after 1000 characters with "...")</span></p>
 <p><b>Next step:</b> <code>/shipwright-iterate renew signing cert</code></p><p><b>Link:</b> https://example.org/vendor-order</p>
-<hr><p class="mock">Open the Command Center to mark it done or snooze it. This is the only mail for this item today. Hostile text such as &lt;script&gt;alert(1)&lt;/script&gt; arrives as plain text. No folder paths and no project path appear in the mail.</p></div></div>
-</main></body></html>
+<p><a class="cta" href="#">Open the Command Center</a></p>
+<hr style="border:0;border-top:1px solid #e0dbd4"><p style="font-size:12.5px;color:#79716B">Mark it done or snooze it in the Command Center. This is the only mail for this item today. Hostile text such as &lt;script&gt;alert(1)&lt;/script&gt; arrives as plain text. No folder paths appear in this mail.</p></div></div></div></body></html>
