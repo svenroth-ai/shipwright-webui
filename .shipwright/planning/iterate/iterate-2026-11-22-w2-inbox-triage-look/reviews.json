@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-22-w2-inbox-triage-look",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T18:15:47.924250+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The plan adds an `inboxRowModel.ts` abstraction covering \"all 8 InboxItem kinds\" plus generic `render format` (markdown/mono/plain) branching, but the scope explicitly covers awaiting-reply entries only — no reminders yet. Modeling 8 kinds with per-kind render formats is speculative structure for W2; reminders presumably arrive in a later sub-iterate and will need their own look decisions anyway.",
+          "suggestion": "Keep the model but trim to what page 01/02 actually renders now: awaiting vs. notices buckets, first-line title, chip. If codex notices already exist in the Inbox, fine — but verify which kinds are actually live before building the 8-kind matrix; the \"notices\" bucket in the mockup may only need 2–3 kinds handled concretely.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Two silent behaviour changes are packed in: (a) whole-row click no longer navigates — long-time users will click the row muscle-memory-wise and get a dialog instead; (b) the lead-question answer form moved behind an extra click. The plan flags these under Risks but proposes no mitigation, and the spec says \"No behaviour change for awaiting-reply entries.\"",
+          "suggestion": "Confirm with the brief that these are sanctioned deviations; at minimum, make the dialog's \"Open task\" reachable via Enter/Space on the row (row is a button opening the dialog — one keyboard path, not two), and consider keeping the answer form for lead questions directly in the row's actions if the mockup shows it — extra click on an interactive answer form is a real regression risk.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "\"A filter whose last entry leaves falls back to all\" — this creates a stateful redirect with a flash risk: user is on \"Awaiting reply,\" answers/ dismisses the last item, view silently jumps to \"All.\" Also unhandled: does the count badge update before or after the entries refetch? If the Inbox is live-updating (websocket/poll), a filter can empty mid-session.",
+          "suggestion": "Specify the fallback as an explicit state reset on the next data render (not on a transient empty list), and add a unit test for \"last entry of active filter leaves via live update.\"",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "First-line title extraction: no spec for entries whose text starts with a code block, heading, or is a single very long line (truncation? max-width?). `mono <pre>` in the detail dialog for picker prompts — if a picker prompt has no trailing newline/very long lines, `pre` overflow is unstated.",
+          "suggestion": "Define title truncation (CSS ellipsis at the row's width, `title` attribute with full text) and `white-space: pre-wrap; max-height` with scroll for the dialog's mono block.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "Good that `MarkdownText` (XSS-safe) is used, but the plan says mono content goes into a raw `<pre>`. If picker prompts or session ids are interpolated as JSX children this is safe; confirm no `dangerouslySetInnerHTML` sneaks in for the mono path, and that the \"copy\" of session/task ids can't copy injected newlines (multiline paste targets).",
+          "suggestion": "State explicitly that mono content is rendered as text children only; test one picker prompt with HTML-ish content.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Mounting the dialog as a sibling \"portal event bubbling\" — the reasoning is inverted: Radix portals stop events bubbling to the row, which is why sibling mounting matters. But sibling mounting next to a row inside a hover/focus-revealed actions area risks: the row loses hover styling while dialog is open (dialog focus moves away), and if the dialog unmounts on blur, focus restoration must return to the row's trigger button for keyboard users.",
+          "suggestion": "Test keyboard path: open dialog with Enter, close with Esc → focus returns to trigger; row hover state shouldn't flicker the dialog's anchoring if any positioning depends on it.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "TriageIdCopy` is being extended with new props — shared-component change that can ripple into Triage tests. Also `.inbox-row` overriding the action-column breakpoint (48rem vs 68rem) via `inbox-cards.css` relies on the cascade order of `triage-rows.css` vs `inbox-cards.css`; load-order fragility if bundler ordering changes.",
+          "suggestion": "Use optional props (backward-compatible defaults) and note the CSS load-order requirement explicitly; prefer a specific class selector that wins on specificity rather than relying on file order.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "\"Touch shows the action always\" — the detection mechanism isn't specified (`@media (hover: none)` vs JS). JS-based detection is flaky in E2E; the CSS-only approach is standard.",
+          "suggestion": "Use `@media (hover: none) and (pointer: coarse)` in CSS; the Playwright touch/phone spec should assert visibility without hovering, and also assert desktop hover shows nothing by default.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Accessibility claim \"reduced motion: final state by construction\" is fine since no animation, but the chip contrast is asserted to match \"mockup page 02 table\" — orange AWAITING REPLY chips on white often fail 4.5:1 for small text. The acceptance criterion promises contrast per the mockup, so this is a verification item, not a design one.",
+          "suggestion": "Keep the legibility fence test asserted against actual ratios; if the mockup colour fails, flag it now rather than shipping a failing baseline.  Overall: the approach is sound and the reuse of Triage row patterns is the right call; the main revisions needed are trimming the 8-kind model to what's live, getting explicit sign-off on the two behaviour deviations (row click, lead-question extra click), and pinning down the filter-fallback and dialog focus behaviours.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "The plan expands an awaiting-reply restyle into a redesign of all eight Inbox item kinds, including Notices filtering and lead-question interactions. That exceeds the specified scope and increases regression risk.",
+          "suggestion": "Confirm eligible kinds against brief section 4 and mockups 01/02. Apply the new presentation to the specified entries; preserve other kinds and their interactions unless the brief explicitly includes them. Limit the row model and filters accordingly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "Moving the lead-question answer form into a dialog introduces a behavior change that the plan itself acknowledges, despite the requirement to preserve existing behavior. Changing whole-row navigation to a detail dialog is explicitly requested; changing how users reach the answer form is not clearly authorized.",
+          "suggestion": "Preserve the existing lead-question answer interaction, or establish that the approved brief explicitly requires its relocation. Verify that each “Answer in the terminal” action retains the existing task/session routing and terminal fallback behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The action-column override only activates at 48rem, while touch actions must always remain visible and the title must never reflow. The plan does not explain how a narrow touch viewport accommodates the title, metadata, copy control, and terminal action together.",
+          "suggestion": "Define the narrow-screen layout explicitly using reserved action space and title truncation. Verify persistent action visibility on touch and hybrid devices, keyboard focus visibility, and unchanged title geometry before and during interaction.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "Extending the shared `TriageIdCopy` component creates a regression surface outside Inbox, but the validation list does not explicitly cover its existing Triage consumers.",
+          "suggestion": "Keep current defaults unchanged and run the existing Triage copy/accessibility checks alongside Inbox tests. Ensure opening the detail dialog does not intercept copy or terminal-action clicks, and that closing it restores focus to the originating row.  The shared Triage patterns and existing dialog/rendering components are a sound foundation. Resolve the scope and interaction changes, and make the responsive layout contract explicit before implementation.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-22T18:12:10.637709+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review Findings\n\n**Category: approach — Severity: medium**\n**Finding:** The plan adds an `inboxRowModel.ts` abstraction covering \"all 8 InboxItem kinds\" plus generic `render format` (markdown/mono/plain) branching, but the scope explicitly covers awaiting-reply entries only — no reminders yet. Modeling 8 kinds with per-kind render formats is speculative structure for W2; reminders presumably arrive in a later sub-iterate and will need their own look decisions anyway.\n**Suggestion:** Keep the model but trim to what page 01/02 actually renders now: awaiting vs. notices buckets, first-line title, chip. If codex notices already exist in the Inbox, fine — but verify which kinds are actually live before building the 8-kind matrix; the \"notices\" bucket in the mockup may only need 2–3 kinds handled concretely.\n\n**Category: risk — Severity: medium**\n**Finding:** Two silent behaviour changes are packed in: (a) whole-row click no longer navigates — long-time users will click the row muscle-memory-wise and get a dialog instead; (b) the lead-question answer form moved behind an extra click. The plan flags these under Risks but proposes no mitigation, and the spec says \"No behaviour change for awaiting-reply entries.\"\n**Suggestion:** Confirm with the brief that these are sanctioned deviations; at minimum, make the dialog's \"Open task\" reachable via Enter/Space on the row (row is a button opening the dialog — one keyboard path, not two), and consider keeping the answer form for lead questions directly in the row's actions if the mockup shows it — extra click on an interactive answer form is a real regression risk.\n\n**Category: edge-case — Severity: medium**\n**Finding:** \"A filter whose last entry leaves falls back to all\" — this creates a stateful redirect with a flash risk: user is on \"Awaiting reply,\" answers/ dismisses the last item, view silently jumps to \"All.\" Also unhandled: does the count badge update before or after the entries refetch? If the Inbox is liv […truncated]\n\n[openai] 1. **Category: approach · Severity: high**  \n   **Finding:** The plan expands an awaiting-reply restyle into a redesign of all eight Inbox item kinds, including Notices filtering and lead-question interactions. That exceeds the specified scope and increases regression risk.\n   **Suggestion:** Confirm eligible kinds against brief section 4 and mockups 01/02. Apply the new presentation to the specified entries; preserve other kinds and their interactions unless the brief explicitly includes them. Limit the row model and filters accordingly.\n\n2. **Category: risk · Severity: high**  \n   **Finding:** Moving the lead-question answer form into a dialog introduces a behavior change that the plan itself acknowledges, despite the requirement to preserve existing behavior. Changing whole-row navigation to a detail dialog is explicitly requested; changing how users reach the answer form is not clearly authorized.\n   **Suggestion:** Preserve the existing lead-question answer interaction, or establish that the approved brief explicitly requires its relocation. Verify that each “Answer in the terminal” action retains the existing task/session routing and terminal fallback behavior.\n\n3. **Category: edge-case · Severity: medium**  \n   **Finding:** The action-column override only activates at 48rem, while touch actions must always remain visible and the title must never reflow. The plan does not explain how a narrow touch viewport accommodates the title, metadata, copy control, and terminal action together.\n   **Suggestion:** Define the narrow-screen layout explicitly using reserved action space and title truncation. Verify persistent action visibility on touch and hybrid devices, keyboard focus visibility, and unchanged title geometry before and during interaction.\n\n4. **Category: risk · Severity: medium**  \n   **Finding:** Extending the shared `TriageIdCopy` component creates a regression surface outside Inbox, but the validation list does not explicitly cover its exis […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/pages/inbox/inboxRowModel.ts",
+          "line": null,
+          "finding": "Rows could get an empty title (line stripping to nothing) leaving an unnamed button.",
+          "suggestion": "Skip empty-after-strip lines; fall back to the chip label. FIXED in 4ca9649b.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/triage/TriageIdCopy.tsx",
+          "line": null,
+          "finding": "Clipboard fallback selected only the 8-char display id.",
+          "suggestion": "Select the full value. FIXED in 4ca9649b.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/pages/inbox/InboxRow.tsx",
+          "line": null,
+          "finding": "Dead data-testid-legacy attribute.",
+          "suggestion": "Removed. FIXED.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/pages/inbox/inboxRowModel.ts",
+          "line": null,
+          "finding": "Misplaced doc comment on filter field.",
+          "suggestion": "FIXED.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/pages/inbox/InboxDetailDialog.tsx",
+          "line": null,
+          "finding": "Selector built from raw itemKey.",
+          "suggestion": "CSS.escape. FIXED.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/pages/inbox/InboxCard.test.tsx",
+          "line": null,
+          "finding": "Some tests are weak (trivially true).",
+          "suggestion": "Noted, not changed.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/styles/triage-rows.css",
+          "line": null,
+          "finding": "Empty actions row adds blank space on narrow layouts for task-less rows.",
+          "suggestion": "Noted, cosmetic.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-22T18:19:19.077668+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "50a24260ebba32f1fe9241733f51f18fb4b15fe1"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T18:19:12.373452+00:00",
+      "disposition": "client-only presentation change: no migration, async/concurrency, cross-plugin import or irreversible op, so the conditional Stage-3 pass does not apply",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "diff-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "client/src/pages/inbox/InboxCard.tsx (deleted re-export) + client/src/pages/inbox/phaseMeta.ts (deleted)",
+          "line": null,
+          "finding": "InboxCard` previously re-exported `KNOWN_PHASES` and `PHASE_ICON` (\"Re-exported for existing importers\"), and `phaseMeta.ts` itself is deleted. `InboxCardShell.tsx` (exported `InboxEyebrow`, `InboxCardShell`) is also deleted with its test. Any importer outside the diff (e.g. Triage-side or spec helpers importing `KNOWN_PHASES` from `./InboxCard` or `./phaseMeta`) now fails to compile. The comment even acknowledged external importers existed at some point.",
+          "suggestion": "Grep the repo for `phaseMeta`, `KNOWN_PHASES`, `PHASE_ICON`, `InboxCardShell`, `InboxEyebrow` imports; if any remain outside the deleted files, re-home or re-export them. Also note `InboxTerminalHonesty` lost its `align` prop — any remaining caller passing `align` is a type error.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/src/styles/inbox-cards.css (`@container triage-row (min-width: 48rem)`)",
+          "line": null,
+          "finding": "The hover/focus reveal depends entirely on a container named `triage-row` being declared (e.g. `container: triage-row / inline-size`) in `triage-rows.css`, which is not in the diff. If the Triage row class doesn't set that container name (or the row grid template is overridden in a way that drops the actions area), the desktop action zone never appears (or is permanently hidden), breaking AC \"hover/keyboard-focus action row\". The e2e test would catch it, but only if triage-rows.css already declares the container — this should be verified explicitly, and the override is fragile against upstream changes to the shared grid template (`grid-template-columns: ... 14rem 13rem` hard-copies Triage's layout).",
+          "suggestion": "Confirm `container: triage-row` exists in triage-rows.css and consider asserting in the e2e that the button is hidden because of the media/container rule (e.g. computed `visibility`), not merely absent.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/pages/inbox/InboxRow.tsx (`w-[3.4rem]` on the age span)",
+          "line": null,
+          "finding": "The age is hard-clamped to a 3.4rem right-aligned box with no truncation handling; `formatRelativeTime` can produce strings wider than that at some locales/fonts (\"yesterday\", \"2 days ago\"), causing overflow or clipping. Triage presumably sized this for its own value set.",
+          "suggestion": "Use `whitespace-nowrap` plus a sensible min-width, or drop the fixed width and let the meta cluster size naturally.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/pages/inbox/inboxRowModel.test.ts (`firstLine` hostile-text case)",
+          "line": null,
+          "finding": "The \"keeps hostile text as text\" test only proves the regex doesn't strip `<script>`; it proves nothing about XSS (React escaping does). Fine as a unit test, but the claim in the test name overstates coverage. Not a defect per se — noting so it isn't counted as security coverage.",
+          "suggestion": "None needed beyond renaming; actual XSS coverage comes from the `document.body.querySelector(\"script\")` assertions in InboxPage.test.tsx, which are good.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/components/triage/TriageIdCopy.tsx (aria-label)",
+          "line": null,
+          "finding": "With `display`/`copyValue` set, the copy button's accessible name still reads the full `id` (entire session UUID) while the visible text is 8 chars, and the \"Copied <id>\" message reads the full UUID too. Not wrong (it copies the full UUID) but the name/announcement diverges from what's shown; acceptable.",
+          "suggestion": "Optionally announce `display ?? id`.  Positives worth noting: the dialog-as-sibling (portaled event bubbling) reasoning is correct and documented; filter fallback-to-all when the active bucket empties is handled and tested; the selection-drag guard on the row click is a nice touch; MarkdownText stays XSS-safe and is only used for the kinds that always had it; the touch path (hover:none shows actions always) and the title-never-reflow test (boundingBox before/after) are real behavioral assertions, not smoke tests.  Overall: solid, spec-faithful implementation with strong tests. The deleted re-exports need a grep-verification pass before merge; everything else is minor.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/pages/inbox/InboxDetailDialog.tsx",
+          "line": 41,
+          "finding": "The dialog has no `Dialog.Trigger` or explicit focus restoration. Radix therefore has no trigger to focus when Escape or Close dismisses it, leaving keyboard users without focus on the row they opened. The new E2E test comments that focus returns but only checks row visibility.",
+          "suggestion": "Capture the opening control and restore focus through `onCloseAutoFocus`, or wire the title through `Dialog.Trigger`. Assert that the title is focused after dismissal.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/pages/inbox/inboxRowModel.ts",
+          "line": 60,
+          "finding": "AskUserQuestion detail content still uses only `parts[0]`. For a payload containing multiple questions, the new detail dialog omits every subsequent question and its options, failing the requirement to show the full text.",
+          "suggestion": "Keep the first question for the compact row, but retain and render every payload part in the detail dialog. Add a test with two distinct questions and option sets.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/visual/09-inbox-populated.spec.ts",
+          "line": 109,
+          "finding": "The populated Inbox changes substantially, but the diff contains no updated visual baseline. Changing the mask does not update the expected image, so the existing screenshot assertion will continue comparing against the old card layout.",
+          "suggestion": "Regenerate and commit the affected baseline through the required Linux flow, then run the visual assertion against it.  Ship-with-fixes: the implementation broadly follows the requested layout, but dialog accessibility, complete question content, and visual validation need changes before shipping. Local inspection and test execution were blocked by the environment’s command policy; this assessment is based on the supplied diff.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-22T18:15:12.202135+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] Findings:\n\n- Category: regression\n  Severity: medium\n  File: client/src/pages/inbox/InboxCard.tsx (deleted re-export) + client/src/pages/inbox/phaseMeta.ts (deleted)\n  Finding: `InboxCard` previously re-exported `KNOWN_PHASES` and `PHASE_ICON` (\"Re-exported for existing importers\"), and `phaseMeta.ts` itself is deleted. `InboxCardShell.tsx` (exported `InboxEyebrow`, `InboxCardShell`) is also deleted with its test. Any importer outside the diff (e.g. Triage-side or spec helpers importing `KNOWN_PHASES` from `./InboxCard` or `./phaseMeta`) now fails to compile. The comment even acknowledged external importers existed at some point.\n  Suggestion: Grep the repo for `phaseMeta`, `KNOWN_PHASES`, `PHASE_ICON`, `InboxCardShell`, `InboxEyebrow` imports; if any remain outside the deleted files, re-home or re-export them. Also note `InboxTerminalHonesty` lost its `align` prop — any remaining caller passing `align` is a type error.\n\n- Category: edge-case\n  Severity: medium\n  File: client/src/styles/inbox-cards.css (`@container triage-row (min-width: 48rem)`)\n  Finding: The hover/focus reveal depends entirely on a container named `triage-row` being declared (e.g. `container: triage-row / inline-size`) in `triage-rows.css`, which is not in the diff. If the Triage row class doesn't set that container name (or the row grid template is overridden in a way that drops the actions area), the desktop action zone never appears (or is permanently hidden), breaking AC \"hover/keyboard-focus action row\". The e2e test would catch it, but only if triage-rows.css already declares the container — this should be verified explicitly, and the override is fragile against upstream changes to the shared grid template (`grid-template-columns: ... 14rem 13rem` hard-copies Triage's layout).\n  Suggestion: Confirm `container: triage-row` exists in triage-rows.css and consider asserting in the e2e that the button is hidden *because of* the media/container rule (e.g. computed `visibility`), not  […truncated]\n\n[openai] - Category: bug\n- Severity: medium\n- File: client/src/pages/inbox/InboxDetailDialog.tsx:41\n- Finding: The dialog has no `Dialog.Trigger` or explicit focus restoration. Radix therefore has no trigger to focus when Escape or Close dismisses it, leaving keyboard users without focus on the row they opened. The new E2E test comments that focus returns but only checks row visibility.\n- Suggestion: Capture the opening control and restore focus through `onCloseAutoFocus`, or wire the title through `Dialog.Trigger`. Assert that the title is focused after dismissal.\n\n- Category: spec\n- Severity: medium\n- File: client/src/pages/inbox/inboxRowModel.ts:60\n- Finding: AskUserQuestion detail content still uses only `parts[0]`. For a payload containing multiple questions, the new detail dialog omits every subsequent question and its options, failing the requirement to show the full text.\n- Suggestion: Keep the first question for the compact row, but retain and render every payload part in the detail dialog. Add a test with two distinct questions and option sets.\n\n- Category: test\n- Severity: medium\n- File: client/e2e/visual/09-inbox-populated.spec.ts:109\n- Finding: The populated Inbox changes substantially, but the diff contains no updated visual baseline. Changing the mask does not update the expected image, so the existing screenshot assertion will continue comparing against the old card layout.\n- Suggestion: Regenerate and commit the affected baseline through the required Linux flow, then run the visual assertion against it.\n\nShip-with-fixes: the implementation broadly follows the requested layout, but dialog accessibility, complete question content, and visual validation need changes before shipping. Local inspection and test execution were blocked by the environment’s command policy; this assessment is based on the supplied diff.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T18:15:12.070343+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "6cc796fade6f38adcfd2e4602af1d024c7716959"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T18:13:21.052311+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T18:12:10.759944+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "run_id": "iterate-2026-11-22-w2-inbox-triage-look",
+  "date": "2026-11-22T18:20:08.753584Z",
+  "event_at": "2026-11-22T18:19:49.027073+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/campaign-reminders-webui--W2",
+  "spec": ".shipwright/planning/iterate/campaigns/reminders-webui/sub-iterates/W2-inbox-triage-look.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-22-w2-inbox-triage-look",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "every Inbox kind becomes one compact row with chip, first-line title, id+copy, age",
+        "disposition": "tested",
+        "evidence": "inboxRowModel.test.ts + InboxCard*.test.tsx + inbox-triage-look.spec.ts"
+      },
+      {
+        "behavior": "filter chips show counts, narrow the list, hide empty kinds, and reset when the last entry leaves",
+        "disposition": "tested",
+        "evidence": "InboxPage.filter.test.tsx"
+      },
+      {
+        "behavior": "hover/focus action zone appears without moving the title; always visible under the title on touch",
+        "disposition": "tested",
+        "evidence": "inbox-triage-look.spec.ts (hover, touch phone)"
+      },
+      {
+        "behavior": "row click opens the detail dialog with full text, all AskUserQuestion parts, markdown only for text/lead questions",
+        "disposition": "tested",
+        "evidence": "InboxPage.test.tsx + inboxRowModel.test.ts + e2e dialog test"
+      },
+      {
+        "behavior": "hostile and very long text stays text and never breaks row/dialog layout",
+        "disposition": "tested",
+        "evidence": "inbox-triage-look.spec.ts hostile-text test + InboxPage.test.tsx"
+      },
+      {
+        "behavior": "Answer in the terminal only navigates; the one clipboard path copies a session id",
+        "disposition": "tested",
+        "evidence": "inbox-no-writepath.test.ts + e2e no-double-navigate"
+      },
+      {
+        "behavior": "lead-question answer and dismiss still work from the dialog",
+        "disposition": "tested",
+        "evidence": "InboxCard.LeadQuestion.test.tsx"
+      },
+      {
+        "behavior": "a row title is never empty (bare code fence, empty text)",
+        "disposition": "tested",
+        "evidence": "inboxRowModel.test.ts"
+      },
+      {
+        "behavior": "Inbox content shares the Triage left edge; per-project fold/order persist",
+        "disposition": "tested",
+        "evidence": "inbox-triage-look.spec.ts"
+      }
+    ],
+    "counts": {
+      "testable": 9,
+      "tested": 9,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "npm.cmd --prefix client run test:e2e -- --reporter=json e2e/flows/inbox-triage-look.spec.ts",
+    "exit_code": 0,
+    "tests_run": 9,
+    "evidence_path": ".shipwright/runs/iterate-2026-11-22-w2-inbox-triage-look/surface_verification.log",
+    "timestamp": "2026-11-22T18:16:59.189Z",
+    "attempts": 1
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": ["touches_auth"]
+}

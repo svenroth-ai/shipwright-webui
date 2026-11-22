@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Every W2 AC mapped to code and a test; documented deviations (lead form in dialog, row click opens dialog) flagged."},
+{"name":"Error Handling","verdict":"pass","note":"Unknown item kind throws (as before); lead answer errors still surfaced; filter falls back to all when empty."},
+{"name":"Security Basics","verdict":"pass","note":"All text rendered as React text nodes; markdown only for the same kinds through MarkdownText; hostile-text unit + real-browser probes; Answer button only navigates (no-writepath fence extended)."},
+{"name":"Test Quality","verdict":"pass","note":"Model, filter, dialog, hostile text, touch layout covered; old card tests re-targeted rather than deleted."},
+{"name":"Performance Basics","verdict":"pass","note":"Per-poll model recompute is O(items), negligible; no new polling or effects beyond filter reset."},
+{"name":"Naming & Structure","verdict":"pass","note":"New files under 300 lines; dead card/shell/phaseMeta removed; InboxPage.test stays under its baseline."},
+{"name":"Affected Boundaries","verdict":"pass","note":"No serialized format changed (client presentation only); probes: untrusted text to DOM round trip in jsdom and real Chromium."}
+]}

@@ -1,0 +1,1 @@
+{"stage": "spec-compliance", "verdict": "PASS", "spec_citations": [], "summary": "PASS. All W2 acceptance criteria met (Triage look, hover/focus action zone + touch, detail dialog, reduced motion/a11y/contrast, E2E + baseline workflow). Documented deviations accepted: lead-question form in dialog, row click opens dialog (Open task explicit)."}

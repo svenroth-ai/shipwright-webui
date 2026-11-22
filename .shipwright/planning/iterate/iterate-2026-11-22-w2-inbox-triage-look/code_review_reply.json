@@ -1,0 +1,9 @@
+{"section":"W2-inbox-triage-look","review":[
+{"severity":"medium","category":"correctness","file":"client/src/pages/inbox/inboxRowModel.ts","finding":"Rows could get an empty title (line stripping to nothing) leaving an unnamed button.","suggestion":"Skip empty-after-strip lines; fall back to the chip label. FIXED in 4ca9649b."},
+{"severity":"medium","category":"correctness","file":"client/src/components/triage/TriageIdCopy.tsx","finding":"Clipboard fallback selected only the 8-char display id.","suggestion":"Select the full value. FIXED in 4ca9649b."},
+{"severity":"low","category":"readability","file":"client/src/pages/inbox/InboxRow.tsx","finding":"Dead data-testid-legacy attribute.","suggestion":"Removed. FIXED."},
+{"severity":"low","category":"readability","file":"client/src/pages/inbox/inboxRowModel.ts","finding":"Misplaced doc comment on filter field.","suggestion":"FIXED."},
+{"severity":"low","category":"correctness","file":"client/src/pages/inbox/InboxDetailDialog.tsx","finding":"Selector built from raw itemKey.","suggestion":"CSS.escape. FIXED."},
+{"severity":"low","category":"correctness","file":"client/src/pages/inbox/InboxCard.test.tsx","finding":"Some tests are weak (trivially true).","suggestion":"Noted, not changed."},
+{"severity":"low","category":"readability","file":"client/src/styles/triage-rows.css","finding":"Empty actions row adds blank space on narrow layouts for task-less rows.","suggestion":"Noted, cosmetic."}
+]}
