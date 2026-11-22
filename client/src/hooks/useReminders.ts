@@ -32,6 +32,7 @@ export function useRemindersDue() {
     queryFn: fetchRemindersDue,
     refetchInterval: POLL_MS,
     refetchIntervalInBackground: false,
+    staleTime: 60_000, // a tab refocus must not start a burst of tool runs (writes invalidate explicitly)
     retry: false,
   });
 }

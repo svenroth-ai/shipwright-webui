@@ -27,16 +27,17 @@ vi.mock("../hooks/useReminders", async (orig) => ({
   useRemindersDue: vi.fn(),
 }));
 vi.mock("../hooks/useProjectActions", () => ({
-  useProjectActions: vi.fn(() => ({
-    data: { actions: [{ id: "new-iterate", label: "New iterate" }] },
+  useProjectActions: vi.fn((projectId: string | null) => ({
+    data: { projectId, actions: [{ id: "new-iterate", label: "New iterate" }] },
     isLoading: false,
     isFetching: false,
   })),
 }));
 vi.mock("../components/external/NewIssueModal", () => ({
-  NewIssueModal: (p: { open: boolean; initialTitle?: string; initialDescription?: string; initialProjectId?: string; action: { id: string } | null }) =>
+  NewIssueModal: (p: { open: boolean; projectActions?: { projectId?: string }; initialTitle?: string; initialDescription?: string; initialProjectId?: string; action: { id: string } | null }) =>
     p.open ? (
       <div data-testid="stub-new-issue" data-project={p.initialProjectId} data-action={p.action?.id}>
+        <span data-testid="stub-catalog">{p.projectActions?.projectId}</span>
         <span data-testid="stub-title">{p.initialTitle}</span>
         <span data-testid="stub-desc">{p.initialDescription}</span>
       </div>
@@ -165,6 +166,19 @@ describe("InboxPage - reminders", () => {
     expect(modal.textContent).not.toContain("rm -rf");
     // nothing was sent to the server by clicking Start task
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("Start task in a second project uses THAT project's catalog, not the previous one", async () => {
+    wire([
+      makeDue({ projectId: "p1", items: [makeReminderItem({ command: "x" })] }),
+      makeDue({ projectId: "p2", items: [makeReminderItem({ id: "rem-b", command: "y" })] }),
+    ]);
+    renderPage();
+    fireEvent.click(screen.getByTestId("reminder-start-reminder-p1-rem-a41c09"));
+    expect(await screen.findByTestId("stub-catalog")).toHaveTextContent("p1");
+    fireEvent.click(screen.getByTestId("reminder-start-reminder-p2-rem-b"));
+    await waitFor(() => expect(screen.getByTestId("stub-catalog")).toHaveTextContent("p2"));
+    expect(screen.getByTestId("stub-new-issue")).toHaveAttribute("data-project", "p2");
   });
 
   it("a reminder without a command has no Start task", () => {

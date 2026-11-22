@@ -46,7 +46,8 @@ export function useReminderActions(): { ui: ReminderUi; startModal: ReminderStar
   const [pending, setPending] = useState<ReminderEntry | null>(null);
   const [intent, setIntent] = useState<ReminderStartIntent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const catalog = useProjectActions(intent?.projectId ?? pending?.projectId ?? null);
+  // The new click wins over the last intent, so a second project never borrows the first one's catalog.
+  const catalog = useProjectActions(pending?.projectId ?? intent?.projectId ?? null);
 
   const setError = useCallback((key: string, message: string | null) => {
     setErrors((prev) => {
