@@ -33,7 +33,7 @@ describe("composeItemMail", () => {
   it("escapes hostile text in the HTML part and keeps it as plain text in the text part", () => {
     const m = composeItemMail({ item: item({ title: "<script>alert(1)</script>", why: "<img src=x onerror=alert(1)>" }), projectName: "P", projectId: "p1" }, ADDR);
     expect(m.html).not.toContain("<script>");
-    expect(m.html).not.toContain("<img");
+    expect(m.html).not.toMatch(/<img(?![^>]*cid:shipwright-logo)/); // only the inline logo is an image
     expect(m.html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(m.text).toContain("<script>alert(1)</script>");
   });
@@ -59,6 +59,16 @@ describe("composeItemMail", () => {
   it("shows where an untrusted link label really goes", () => {
     const m = composeItemMail({ item: item({ links: [{ label: "Open in the Command Center", kind: "url", ref: "https://evil.example/x" }] }), projectName: "P", projectId: "p1" }, ADDR);
     expect(m.html).toContain("(evil.example)");
+  });
+
+  it("redacts any absolute path with two or more segments but keeps a lone command", () => {
+    const out = clean("See /projects/acme/private.txt then run /shipwright-iterate now");
+    expect(out).not.toContain("acme");
+    expect(out).toContain("/shipwright-iterate");
+  });
+
+  it("scrubs even a one- or two-character password literally", () => {
+    expect(describeSendError(new Error("535 rejected xy"), { host: "h", port: 1, user: "u", pass: "xy" })).not.toContain("xy");
   });
 
   it("redacts MSYS paths and file:// addresses too", () => {

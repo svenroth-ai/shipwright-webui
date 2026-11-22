@@ -17,11 +17,12 @@
 import path from "node:path";
 
 import type { ReminderDueResult } from "../reminder-cli-runner.js";
-import { composeItemMail, composeSummaryMail, composeTestMail, type ComposedMail, type MailEntry } from "./compose.js";
+import { MAX_SUMMARY_ITEMS, composeItemMail, composeSummaryMail, composeTestMail, type ComposedMail, type MailEntry } from "./compose.js";
 import { defaultLock, readJson, updateJson, type Lock } from "./json-store.js";
 import { MailLedger, itemKey, localDay, summaryKey } from "./ledger.js";
-import { loadSettings, missingForSending, readSmtpPassword, type ReminderMailSettings } from "./settings.js";
-import { describeSendError, type SmtpConfig, type TransportFactory } from "./transport.js";
+import { EMAIL, loadSettings, missingForSending, readSmtpPassword, type ReminderMailSettings } from "./settings.js";
+import { logoAttachment } from "./logo.js";
+import { describeSendError, type MailMessage, type SmtpConfig, type TransportFactory } from "./transport.js";
 
 const MAX_MAILS_PER_CHECK = 25;
 const MAX_CONSECUTIVE_FAILURES = 2;
@@ -102,8 +103,14 @@ export class ReminderMailService {
     return { host: s.smtpHost, port: s.smtpPort, user: s.smtpUser, pass: readSmtpPassword(this.deps.dir) };
   }
 
+  /** `Shipwright Command Center <address>` (mockup page 05); the address is the user name when it is one, else the recipient. */
   private from(s: ReminderMailSettings): string {
-    return s.smtpUser.includes("@") ? s.smtpUser : s.recipient;
+    const addr = EMAIL.test(s.smtpUser) ? s.smtpUser : s.recipient;
+    return `Shipwright Command Center <${addr}>`;
+  }
+
+  private message(s: ReminderMailSettings, mail: ComposedMail): MailMessage {
+    return { from: this.from(s), to: s.recipient, ...mail, attachments: logoAttachment() };
   }
 
   async clearError(): Promise<void> {
@@ -120,7 +127,7 @@ export class ReminderMailService {
     const cfg = this.smtp(s);
     try {
       const mail = composeTestMail(s.webuiAddress);
-      await this.deps.makeTransport(cfg).send({ from: this.from(s), to: s.recipient, ...mail });
+      await this.deps.makeTransport(cfg).send(this.message(s, mail));
       return { ok: true };
     } catch (err) {
       return { ok: false, error: describeSendError(err, cfg) };
@@ -170,7 +177,8 @@ export class ReminderMailService {
       for (const item of r.view.items) {
         if (sharedStore && item.kind === "reminder") continue;
         if (typeof item.id !== "string" || item.id === "" || item.id.length > 200) continue;
-        const dedupe = `${item.kind}|${item.id}`;
+        // triage ids are only unique inside one project's log; a reminder is one store-wide entry
+        const dedupe = item.kind === "triage" ? `triage|${p.id}|${item.id}` : `reminder|${item.id}`;
         if (seen.has(dedupe)) continue;
         seen.add(dedupe);
         entries.push({ item, projectName: label, projectId: p.id });
@@ -202,7 +210,7 @@ export class ReminderMailService {
         return false;
       }
       try {
-        await transport.send({ from: this.from(s), to: s.recipient, ...mail });
+        await transport.send(this.message(s, mail));
         sent++;
         consecutive = 0;
         return true;
@@ -232,8 +240,10 @@ export class ReminderMailService {
       // ones that have not been mailed yet (in "both" the per-item mail already took them).
       const listed = entries.filter((e) => e.item.kind !== "triage" || !this.ledger.isSent(itemKey("triage", e.item.id as string, day, e.projectId)));
       if (!this.ledger.isSent(key) && !this.ledger.exhausted(key, day) && (listed.length > 0 || s.summaryWhenEmpty || notes.length > 0)) {
-        if (await attempt(key, composeSummaryMail(listed, { address: s.webuiAddress, day, problems: notes }))) {
-          for (const e of listed) if (e.item.kind === "triage") await this.ledger.claim(itemKey("triage", e.item.id as string, day, e.projectId), day).catch(() => false);
+        // Only what the mail really shows is marked as mailed; the rest stays eligible for the next summary.
+        const shown = listed.slice(0, MAX_SUMMARY_ITEMS);
+        if (await attempt(key, composeSummaryMail(shown, { address: s.webuiAddress, day, problems: notes, more: listed.length - shown.length }))) {
+          for (const e of shown) if (e.item.kind === "triage") await this.ledger.claim(itemKey("triage", e.item.id as string, day, e.projectId), day).catch(() => false);
         }
       }
     }

@@ -7,6 +7,7 @@
  *   reminder|<id>|<YYYY-MM-DD>   one mail per reminder per day
  *   triage|<project>|<id>|once   an expired parked triage item mails ONCE EVER
  *   summary||<YYYY-MM-DD>        the daily summary
+ * The once-only keys are NEVER pruned (an old park that is still due must not mail again).
  * Failures are counted per key and day (`tries`) so a dead SMTP server is tried
  * at most MAX_TRIES_PER_DAY times per item and day, never hammered. "Day" is the
  * SERVER-LOCAL calendar day (`localDay`), the same clock the summary time uses.
@@ -18,7 +19,6 @@ import { defaultLock, readJson, updateJson, type Lock } from "./json-store.js";
 
 export const MAX_TRIES_PER_DAY = 3;
 const KEEP_DAYS = 30;
-const MAX_ONCE_KEYS = 5000;
 
 interface LedgerFile {
   version: 1;
@@ -109,7 +109,5 @@ export class MailLedger {
       if (!k.endsWith("|once") && day < cut) delete cur.sent[k];
     }
     for (const [k, t] of Object.entries(cur.tries)) if (t.day < cut) delete cur.tries[k];
-    const once = Object.entries(cur.sent).filter(([k]) => k.endsWith("|once")).sort((a, b) => a[1].localeCompare(b[1]));
-    for (const [k] of once.slice(0, Math.max(0, once.length - MAX_ONCE_KEYS))) delete cur.sent[k];
   }
 }

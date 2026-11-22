@@ -55,13 +55,13 @@ export function createReminderMailRoutes(deps: { dir: string; service: ReminderM
     const before = loadSettings(deps.dir);
     const s = parsed.settings;
     const serverChanged = before.smtpHost !== s.smtpHost || before.smtpPort !== s.smtpPort || before.smtpUser !== s.smtpUser;
-    if (serverChanged && parsed.password.kind === "keep" && hasSmtpPassword(deps.dir) && before.smtpHost !== "") {
+    if (serverChanged && parsed.password.kind === "keep" && hasSmtpPassword(deps.dir)) {
       return c.json({ error: "invalid_body", message: "You changed the SMTP server or user name. Enter the password again for the new server (or remove the saved one)." }, 400);
     }
     try {
+      await saveSettings(deps.dir, parsed.settings);
       if (parsed.password.kind === "set") writeSmtpPassword(deps.dir, parsed.password.value);
       else if (parsed.password.kind === "clear") writeSmtpPassword(deps.dir, null);
-      await saveSettings(deps.dir, parsed.settings);
       if (!parsed.settings.enabled) await deps.service.clearError(); // a stale failure must not outlive "mail off"
     } catch (err) {
       // The message of OUR errors (repo refusal) is safe; nothing here ever holds the password text.

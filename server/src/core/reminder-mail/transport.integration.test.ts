@@ -11,6 +11,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { composeItemMail } from "./compose.js";
+import { logoAttachment } from "./logo.js";
 import { startFakeSmtp, type FakeSmtp } from "./fake-smtp.js";
 import { ReminderMailService } from "./service.js";
 import { DEFAULT_SETTINGS, saveSettings, writeSmtpPassword } from "./settings.js";
@@ -32,14 +33,16 @@ afterEach(async () => {
 describe("nodemailer transport (loopback fake SMTP)", () => {
   it("delivers a hostile reminder as escaped plain text with no path in it", async () => {
     const mail = composeItemMail(
-      { item: { kind: "reminder", id: "rem-1", title: "<script>alert(1)</script>", due: "2026-11-22", why: "see C:\\Users\\me\\repo\\x.md", decided: null, open: "o".repeat(3000), command: null, links: [], severity: null }, projectName: "P" },
+      { item: { kind: "reminder", id: "rem-1", title: "<script>alert(1)</script>", due: "2026-11-22", why: "see C:\\Users\\me\\repo\\x.md", decided: null, open: "o".repeat(3000), command: null, links: [], severity: null }, projectName: "P", projectId: "p1" },
       "http://localhost:3847",
     );
-    await nodemailerTransport({ host: "127.0.0.1", port: smtp.port, user: "me@example.org", pass: PASS }).send({ from: "me@example.org", to: "you@example.org", ...mail });
+    await nodemailerTransport({ host: "127.0.0.1", port: smtp.port, user: "me@example.org", pass: PASS }).send({ from: "Shipwright Command Center <me@example.org>", to: "you@example.org", ...mail, attachments: logoAttachment() });
     expect(smtp.messages).toHaveLength(1);
     const raw = smtp.messages[0];
     expect(raw).toMatch(/Subject: \[Shipwright\] Due:/);
     expect(raw).toContain("To: you@example.org");
+    expect(raw).toContain("Shipwright Command Center");
+    expect(raw).toContain("Content-ID: <shipwright-logo>");
     expect(raw).not.toMatch(/Users|\\repo/);
     expect(raw).not.toContain("<script>alert(1)</script></h2>"); // HTML part is escaped
     expect(raw).not.toContain("o".repeat(1001));

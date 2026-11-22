@@ -45,6 +45,7 @@ export function startReminderMailTimer(deps: TimerDeps): MailTimer {
     const t = now();
     try {
       const out = (await deps.run()) as { ran?: boolean } | undefined;
+      // (a check that THREW falls to the catch below and counts as no run: it is tried again next tick)
       // A check that did not run (mail off / not complete) is NOT a run: turning mail on is picked up
       // within a minute, and a start check before the summary time never uses up today's daily slot.
       if (out?.ran !== false) {

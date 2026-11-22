@@ -1,9 +1,9 @@
 /*
- * compose.ts — builds the reminder mails (mockup page 05).
+ * compose.ts — builds the reminder mails (mockup page 05: dark header band with the inline logo, body, links).
  *
  * EVERY field is untrusted (triage text can originate in external issues). The
  * mail is plain text first; the HTML part is the same cleaned text, HTML-escaped,
- * with no scripts, no remote images. Texts are cut at 1000 characters ("..."),
+ * with no scripts and no remote images (the logo is an inline attachment). Texts are cut at 1000 characters ("..."),
  * local paths are redacted, control characters and header-breaking newlines are
  * stripped. `command` is inert display text, never something to run; a `file`
  * link (a local path) is dropped, only http(s) `url` links are carried. The
@@ -11,9 +11,10 @@
  */
 
 import type { ReminderDueItem } from "../reminder-contract.js";
+import { LOGO_CID } from "./logo.js";
 
 export const MAX_FIELD_CHARS = 1000;
-const MAX_SUMMARY_ITEMS = 30;
+export const MAX_SUMMARY_ITEMS = 30;
 
 export interface ComposedMail {
   subject: string;
@@ -35,6 +36,8 @@ const WIN_PATH = /(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s"'<>|]*/g;
 const UNC_PATH = /\\\\[^\s\\]+\\[^\s"'<>|]*/g;
 const POSIX_PATH = /(^|[\s("'=])\/(?:[a-zA-Z]\/(?:Users|Documents and Settings)|Users|home|var|etc|opt|tmp|mnt|root|private|srv|usr|Volumes|workspace|data|builds|nix)\/[^\s"'<>|]*/g;
 const FILE_URL = /file:\/\/[^\s"'<>|]*/gi;
+// Any other absolute path with at least two segments ("/projects/acme/x"), not a URL: a lone "/command" stays.
+const ANY_ABS_PATH = /(^|[\s("'=])\/[\w.@~-]+(?:\/[^\s"'<>|]+)+/g;
 const HOME_PATH = /(^|[\s("'=])~[\\/][^\s"'<>|]*/g;
 
 /** Plain-text hygiene shared by every field: no controls, no local paths, cut at `max`. */
@@ -43,7 +46,7 @@ export function clean(value: string | null | undefined, max = MAX_FIELD_CHARS): 
     // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u2028\u2029\u202A-\u202E\u2066-\u2069]/g, "")
     .replace(/\r\n?/g, "\n");
-  s = s.replace(WIN_PATH, "[path]").replace(UNC_PATH, "[path]").replace(FILE_URL, "[path]").replace(POSIX_PATH, "$1[path]").replace(HOME_PATH, "$1[path]");
+  s = s.replace(WIN_PATH, "[path]").replace(UNC_PATH, "[path]").replace(FILE_URL, "[path]").replace(POSIX_PATH, "$1[path]").replace(ANY_ABS_PATH, "$1[path]").replace(HOME_PATH, "$1[path]");
   s = s.trim();
   return s.length > max ? `${s.slice(0, max)}...` : s;
 }
@@ -91,7 +94,8 @@ function itemLines(entry: MailEntry): { lines: string[]; links: { label: string;
 const FOOT_NOTE = "Mark it done or snooze it in your Inbox.";
 
 function htmlWrap(bodyHtml: string): string {
-  return `<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;color:#2b2724;line-height:1.5">${bodyHtml}</body></html>`;
+  const band = `<div style="background:#23262C;padding:16px 22px"><img src="cid:${LOGO_CID}" alt="Shipwright" height="24" style="height:24px;display:block"></div>`;
+  return `<!doctype html><html><body style="margin:0;font-family:Arial,Helvetica,sans-serif;color:#2b2724;line-height:1.5">${band}<div style="padding:20px 24px;max-width:660px">${bodyHtml}</div></body></html>`;
 }
 
 const pHtml = (s: string): string => `<p style="margin:0 0 8px;white-space:pre-wrap">${escapeHtml(s)}</p>`;
@@ -131,11 +135,13 @@ export interface SummaryContext {
   day: string;
   /** Non-empty when the check could not read everything: "nothing due" would be a lie. */
   problems: string[];
+  /** Items that did not fit and are not in this mail. */
+  more?: number;
 }
 
 export function composeSummaryMail(entries: MailEntry[], ctx: SummaryContext): ComposedMail {
   const base = origin(ctx.address);
-  const n = entries.length;
+  const n = entries.length + (ctx.more ?? 0);
   const subject = n === 0
     ? `[Shipwright] Daily summary ${ctx.day}: nothing due`
     : `[Shipwright] Daily summary ${ctx.day}: ${n} item${n === 1 ? "" : "s"} due`;
@@ -143,7 +149,7 @@ export function composeSummaryMail(entries: MailEntry[], ctx: SummaryContext): C
     const tag = e.item.kind === "triage" ? "parked triage" : "reminder";
     return `- ${oneLine(e.item.title, 200) || "(no title)"} (${tag}, due ${oneLine(e.item.due, 20) || "?"}, ${oneLine(e.projectName, 80) || "?"})`;
   });
-  if (n > MAX_SUMMARY_ITEMS) shown.push(`- ...and ${n - MAX_SUMMARY_ITEMS} more`);
+  if (n > shown.length) shown.push(`- ...and ${n - shown.length} more`);
   const head = n === 0 && ctx.problems.length === 0 ? "Nothing is due today." : n === 0 ? "No due item was found, but the check could not read everything." : "Due today:";
   const problemLines = ctx.problems.map((p) => `Note: ${oneLine(p, 200)}`);
   const text = [head, ...shown, ...problemLines, "", `Open in the Command Center: ${base}/inbox`, `Change reminder mail settings: ${base}/settings`].join("\n");

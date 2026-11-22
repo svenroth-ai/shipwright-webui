@@ -230,16 +230,37 @@ describe("reminder mail service", () => {
     expect(svc.getStatus().error?.message).toContain("ledger file is damaged");
   });
 
-  it("two projects with the same triage id are each mailed once (keys are project-scoped)", async () => {
+  it("two projects with the same triage id are each mailed once, and stay suppressed after a restart", async () => {
     await enable();
     due = [rem("trg-1", { kind: "triage", id: "trg-1" })];
-    const svc = make({
+    const opts = {
       listProjects: () => [{ id: "p1", path: "S:/p1", name: "A" }, { id: "p2", path: "S:/p2", name: "B" }],
-      readDue: async (pp) => ({ kind: "ok", storeKey: `S:/${pp}`, view: { contractVersion: 1, on: "2026-11-22", reminderCorruptLines: 0, triageError: null, items: due } }),
-    });
+      readDue: async (pp: string): Promise<ReminderDueResult> => ({ kind: "ok", storeKey: `S:/${pp}`, view: { contractVersion: 1, on: "2026-11-22", reminderCorruptLines: 0, triageError: null, items: due } }),
+    };
+    await make(opts).runCheck();
+    expect(sent).toHaveLength(2);
+    clock = new Date(2026, 10, 25, 9, 0, 0);
+    await make(opts).runCheck();
+    expect(sent).toHaveLength(2);
+  });
+
+  it("a summary marks as mailed only the parked items it actually lists (the rest stay eligible)", async () => {
+    await enable({ format: "summary" });
+    due = Array.from({ length: 35 }, (_, i) => rem(`trg-${i}`, { kind: "triage", id: `trg-${i}`, title: `Park ${i}` }));
+    const svc = make();
     await svc.runCheck();
-    // the in-run dedupe is by (kind, id): the second project's twin is skipped, so exactly one mail now
-    expect(sent).toHaveLength(1);
+    clock = new Date(2026, 10, 23, 9, 0, 0);
+    await svc.runCheck();
+    const texts = sent.map((m) => m.text).join("\n");
+    for (let i = 0; i < 35; i++) expect(texts).toContain(`Park ${i} `);
+  });
+
+  it("the mail carries the sender name and the inline logo from the page 05 template", async () => {
+    await enable();
+    await make().runCheck();
+    expect(sent[0].from).toBe("Shipwright Command Center <me@example.org>");
+    expect(sent[0].html).toContain("cid:shipwright-logo");
+    expect(sent[0].attachments?.[0]).toMatchObject({ cid: "shipwright-logo", contentDisposition: "inline" });
   });
 
   it("test mail goes to the saved recipient and reports what is missing", async () => {

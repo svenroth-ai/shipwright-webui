@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: ReminderMailSettings = {
 
 const FORMATS = ["item", "summary", "both"] as const;
 const INTERVALS = ["15m", "1h", "daily"] as const;
-const EMAIL = /^[^\s@<>(),;:"\\]+@[^\s@<>(),;:"\\]+\.[^\s@<>(),;:"\\]+$/;
+export const EMAIL = /^[^\s@<>(),;:"\\]+@[^\s@<>(),;:"\\]+\.[^\s@<>(),;:"\\]+$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const HOST = /^[A-Za-z0-9._:\-[\]]+$/;
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);

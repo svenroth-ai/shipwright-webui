@@ -17,6 +17,8 @@ export interface MailMessage {
   subject: string;
   text: string;
   html: string;
+  /** Inline (CID) attachments, e.g. the logo. */
+  attachments?: { filename: string; content: Buffer; cid: string; contentType: string; contentDisposition: "inline" }[];
 }
 
 export interface MailTransport {
@@ -64,7 +66,9 @@ export const nodemailerTransport: TransportFactory = (cfg) => {
 function secretForms(pass: string, user?: string): string[] {
   const b64 = (s: string): string => Buffer.from(s, "utf-8").toString("base64");
   const forms = [pass, encodeURIComponent(pass), b64(pass), b64(`\0${user ?? ""}\0${pass}`), b64(`${user ?? ""}:${pass}`)];
-  return [...new Set(forms)].filter((f) => f.length >= 3).sort((x, y) => y.length - x.length);
+  // The literal password is ALWAYS scrubbed, however short; the derived spellings only when long
+  // enough not to mangle ordinary words.
+  return [...new Set(forms)].filter((f) => f === pass || f.length >= 3).sort((x, y) => y.length - x.length);
 }
 
 function scrub(msg: string, cfg: { pass: string | null; user?: string }): string {
