@@ -36,6 +36,7 @@ function app(opts: {
 }
 
 describe("GET due", () => {
+  // @covers FR-01.04
   it("per project: contract shape, no local paths, state ok", async () => {
     const { a } = app({});
     const res = await a.request("/api/reminders/p1/due");
@@ -48,6 +49,7 @@ describe("GET due", () => {
     expect(JSON.stringify(body)).not.toContain("reminders.jsonl");
   });
 
+  // @covers FR-01.04
   it("across all registered projects (synthesized skipped), each with its own state", async () => {
     const roots: string[] = [];
     const { a } = app({
@@ -58,6 +60,7 @@ describe("GET due", () => {
     expect(body.projects.map((p: { projectId: string; state: string }) => [p.projectId, p.state])).toEqual([["p1", "ok"], ["p2", "unreadable"]]);
   });
 
+  // @covers FR-01.04
   it("registrations that reach ONE store list its reminders once; triage items stay per project", async () => {
     const a = createReminderRoutes({
       projects: { getAll: () => [{ id: "m", path: "C:/repo" }, { id: "n", path: "C:/repo/sub" }, { id: "o", path: "C:/other" }], getById: () => undefined },
@@ -76,6 +79,7 @@ describe("GET due", () => {
     expect(JSON.stringify(body)).not.toContain("reminders.jsonl");
   });
 
+  // @covers FR-01.04
   it("the all-projects read is shared while in flight and the CLI children are capped at 3 across requests", async () => {
     let active = 0;
     let peak = 0;
@@ -96,6 +100,7 @@ describe("GET due", () => {
     expect(peak).toBeLessThanOrEqual(3);
   });
 
+  // @covers FR-01.04
   it("refuses a cross-site GET before any CLI call", async () => {
     let calls = 0;
     const { a } = app({ due: async () => { calls++; return okDue(); } });
@@ -105,6 +110,7 @@ describe("GET due", () => {
     expect(calls).toBe(1);
   });
 
+  // @covers FR-01.04
   it("a throwing runner becomes a failed state for that project only", async () => {
     const { a } = app({ due: async (root) => { if (root === "C:/one") throw new Error("boom"); return okDue(); } });
     const body = await (await a.request("/api/reminders/due")).json();
@@ -112,6 +118,7 @@ describe("GET due", () => {
     expect(body.projects[1]).toMatchObject({ projectId: "p2", state: "ok" });
   });
 
+  // @covers FR-01.04
   it("triageError and corrupt lines are a degraded state WITH the data, not 'nothing due'", async () => {
     const { a } = app({ due: async () => okDue({ triageError: "the triage log could not be read (OSError)", reminderCorruptLines: 3 }) });
     const res = await a.request("/api/reminders/p1/due");
@@ -136,6 +143,7 @@ describe("GET due", () => {
     expect(body).not.toHaveProperty("items");
   });
 
+  // @covers FR-01.04
   it("unknown or synthesized project -> 404", async () => {
     const { a } = app({});
     expect((await a.request("/api/reminders/nope/due")).status).toBe(404);
@@ -144,6 +152,7 @@ describe("GET due", () => {
 });
 
 describe("POST done / snooze / add", () => {
+  // @covers FR-01.04
   it("done calls the CLI bridge for the project's path", async () => {
     const { post, writes } = app({});
     const res = await post("/api/reminders/p2/done", { id: "rem-aabbccdd" });
@@ -152,6 +161,7 @@ describe("POST done / snooze / add", () => {
     expect(writes).toEqual([{ root: "C:/two", input: { operation: "done", id: "rem-aabbccdd" } }]);
   });
 
+  // @covers FR-01.04
   it("snooze validates the day and forwards --until", async () => {
     const { post, writes } = app({});
     expect((await post("/api/reminders/p1/snooze", { id: "rem-aabbccdd", until: "2026-02-31" })).status).toBe(400);
@@ -162,6 +172,7 @@ describe("POST done / snooze / add", () => {
     expect(writes[0].input).toEqual({ operation: "snooze", id: "rem-aabbccdd", until: "2026-12-01" });
   });
 
+  // @covers FR-01.04
   it("add requires title, due and why; passes optional fields and url links", async () => {
     const { post, writes } = app({ write: async () => ({ kind: "ok", operation: "add", reminder: { id: "rem-11112222" } }) });
     for (const bad of [{}, { title: "t", due: "2026-12-01" }, { title: "t", why: "w" }, { title: " ", due: "2026-12-01", why: "w" }, { title: "t", due: "soon", why: "w" }]) {
@@ -180,6 +191,7 @@ describe("POST done / snooze / add", () => {
     });
   });
 
+  // @covers FR-01.04
   it.each([
     ["a non-url link kind", { links: [{ label: "x", kind: "file", ref: "a" }] }],
     ["a link label with '='", { links: [{ label: "a=b", kind: "url", ref: "https://x" }] }],
@@ -191,6 +203,7 @@ describe("POST done / snooze / add", () => {
     expect(res.status).toBe(400);
   });
 
+  // @covers FR-01.04
   it("the CLI's secret refusal is passed through unchanged (422), without a second call", async () => {
     const msg = "The text in `why` looks like it contains a secret ... reword it.";
     const { post, writes } = app({ write: async () => ({ kind: "refused", message: msg }) });
@@ -213,6 +226,7 @@ describe("POST done / snooze / add", () => {
     expect((await res.json()).error).toBe(error);
   });
 
+  // @covers FR-01.04
   it("refuses a non-JSON content-type (cross-site simple POST) with 415 before any CLI call", async () => {
     const { a, writes } = app({});
     const res = await a.request("/api/reminders/p1/done", { method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify({ id: "rem-aabbccdd" }) });
@@ -221,6 +235,7 @@ describe("POST done / snooze / add", () => {
     expect(writes).toHaveLength(0);
   });
 
+  // @covers FR-01.04
   it("add rejects javascript:/data: link addresses, NUL characters and an oversized total", async () => {
     const { post, writes } = app({});
     const base = { title: "t", due: "2026-12-01", why: "w" };
@@ -232,6 +247,7 @@ describe("POST done / snooze / add", () => {
     expect(writes).toHaveLength(0);
   });
 
+  // @covers FR-01.04
   it("a runner that throws becomes a named failure (502), not a bare 500", async () => {
     const { a, post } = app({ due: async () => { throw new Error("boom"); }, write: async () => { throw new Error("boom"); } });
     expect((await a.request("/api/reminders/p1/due")).status).toBe(502);
@@ -240,6 +256,7 @@ describe("POST done / snooze / add", () => {
     expect((await res.json()).error).toBe("failed");
   });
 
+  // @covers FR-01.04
   it("rejects bad ids, bad JSON and unknown projects", async () => {
     const { post, writes } = app({});
     expect((await post("/api/reminders/p1/done", { id: "--help" })).status).toBe(400);

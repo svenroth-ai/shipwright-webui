@@ -30,6 +30,7 @@ describe.skipIf(!enabled)("reminder CLI bridge against the real CLI", () => {
     });
   });
 
+  // @covers FR-01.04
   it("add -> due -> snooze -> done, and the secret refusal arrives unchanged", async () => {
     const added = await runReminderWrite(root, {
       operation: "add", title: "-Renew the cert", due: "2020-01-01", why: "-It expires", open: "Who renews?",
@@ -57,6 +58,7 @@ describe.skipIf(!enabled)("reminder CLI bridge against the real CLI", () => {
     if (refused.kind === "refused") expect(refused.message).toMatch(/looks like it contains a secret/);
     expect(existsSync(path.join(root, ".shipwright", "reminders.jsonl"))).toBe(true);
   }, 120_000);
+  // @covers FR-01.04
   it("embedded quotes, trailing backslashes and a lone -- title survive the argv round trip", async () => {
     const bs = String.fromCharCode(92);
     const why = `say "hi" in C:${bs}dir${bs}`;
@@ -67,6 +69,7 @@ describe.skipIf(!enabled)("reminder CLI bridge against the real CLI", () => {
     expect(due.view.items.find((i) => i.id === added.reminder.id)).toMatchObject({ title: "--", why, open: `a ${bs}${bs}" b${bs}` });
   }, 120_000);
 
+  // @covers FR-01.04
   it("non-ASCII text, multi-line open and a title that looks like an option survive the argv round trip", async () => {
     const lf = String.fromCharCode(10);
     const open = ["Zeile eins: Café Über 日本語", "second line", "third"].join(lf);

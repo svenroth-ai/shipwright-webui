@@ -5,6 +5,7 @@ import { GOOD_ANSWER } from "./reminder-fixtures.js";
 import { parseDueAnswer, REMINDER_ITEM_FIELDS, REMINDER_LINK_FIELDS } from "./reminder-contract.js";
 
 describe("reminder due contract (pinned, v1)", () => {
+  // @covers FR-01.04
   it("pins the 10 item fields and 3 link fields", () => {
     expect([...REMINDER_ITEM_FIELDS]).toEqual(
       ["kind", "id", "title", "due", "why", "decided", "open", "command", "links", "severity"],
@@ -19,6 +20,7 @@ describe("reminder due contract (pinned, v1)", () => {
     .map((p) => `${p}/shared/scripts/lib/reminder_due.py`)
     .find((p) => existsSync(p));
 
+  // @covers FR-01.04
   it.skipIf(!contractSrc)("matches the Shipwright contract source when the sibling clone is present", () => {
     const src = readFileSync(contractSrc as string, "utf-8");
     const grab = (name: string): string[] => {
@@ -30,6 +32,7 @@ describe("reminder due contract (pinned, v1)", () => {
     expect(/CONTRACT_VERSION = 1\b/.test(src)).toBe(true);
   });
 
+  // @covers FR-01.04
   it("accepts the contract shape and drops the local-path fields", () => {
     const r = parseDueAnswer(JSON.stringify(GOOD_ANSWER));
     expect(r.kind).toBe("ok");
@@ -41,12 +44,14 @@ describe("reminder due contract (pinned, v1)", () => {
     expect(JSON.stringify(r.view)).not.toContain("C:/proj");
   });
 
+  // @covers FR-01.04
   it("strips unknown extra item fields (only the 10 contract fields survive)", () => {
     const answer = { ...GOOD_ANSWER, items: [{ ...GOOD_ANSWER.items[0], secretExtra: "x" }] };
     const r = parseDueAnswer(JSON.stringify(answer));
     expect(r.kind === "ok" && r.view.items[0]).not.toHaveProperty("secretExtra");
   });
 
+  // @covers FR-01.04
   it("a url link that is not http(s) loses its address on the read path (label stays)", () => {
     const links = [
       { label: "bad", kind: "url", ref: "javascript:alert(1)" },
@@ -58,11 +63,13 @@ describe("reminder due contract (pinned, v1)", () => {
     expect(r.kind === "ok" && r.view.items[0].links.map((l) => l.ref)).toEqual([null, null, "https://example.com/a", "trg-1"]);
   });
 
+  // @covers FR-01.04
   it("an unknown contractVersion is its own state, never read as data", () => {
     expect(parseDueAnswer(JSON.stringify({ ...GOOD_ANSWER, contractVersion: 2 }))).toEqual({ kind: "unsupported-version", contractVersion: 2 });
     expect(parseDueAnswer(JSON.stringify({ items: [] }))).toMatchObject({ kind: "unreadable" }); // no version named
   });
 
+  // @covers FR-01.04
   it.each([
     ["not JSON", "oops"],
     ["a JSON array", "[]"],
@@ -79,6 +86,7 @@ describe("reminder due contract (pinned, v1)", () => {
     expect(parseDueAnswer(stdout).kind).toBe("unreadable");
   });
 
+  // @covers FR-01.04
   it("carries triageError and the damaged-line count through intact", () => {
     const r = parseDueAnswer(JSON.stringify({ ...GOOD_ANSWER, triageError: "the triage log could not be read (OSError)", reminderCorruptLines: 2, items: [] }));
     expect(r).toMatchObject({ kind: "ok", view: { triageError: "the triage log could not be read (OSError)", reminderCorruptLines: 2, items: [] } });

@@ -87,6 +87,9 @@ export function resolveReminderCliScript(
 ): string | null {
   const exists = deps.existsFn ?? existsSync;
   if (deps.scriptOverride) return exists(deps.scriptOverride) ? deps.scriptOverride : null;
+  // Dev/E2E override (a sibling Shipwright clone, an isolated HOME without a plugin cache).
+  const fromEnv = process.env.SHIPWRIGHT_REMINDER_CLI_PATH;
+  if (fromEnv && exists(fromEnv)) return fromEnv;
   const candidate = path.join(
     shipwrightCacheRoot(deps.homeDir ?? os.homedir()),
     "shared", "scripts", "tools", "reminder_cli.py",

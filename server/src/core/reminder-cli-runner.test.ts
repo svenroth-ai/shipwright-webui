@@ -15,6 +15,7 @@ function deps(spawn: ReminderCliDeps["spawn"], extra: Partial<ReminderCliDeps> =
 }
 
 describe("reminder CLI bridge: due", () => {
+  // @covers FR-01.04
   it("runs via `uv run --no-project --python >=3.11`, fixed argv, parses the contract", async () => {
     const seen: { bin: string; args: string[] }[] = [];
     const r = await runReminderDue("C:/project", deps(async (bin, args) => {
@@ -26,6 +27,7 @@ describe("reminder CLI bridge: due", () => {
     expect(r.kind).toBe("ok");
   });
 
+  // @covers FR-01.04
   it("a project registered at a linked worktree is called from its MAIN checkout", async () => {
     const base = mkdtempSync(path.join(os.tmpdir(), "rem-wt-"));
     try {
@@ -45,6 +47,7 @@ describe("reminder CLI bridge: due", () => {
     }
   });
 
+  // @covers FR-01.04
   it("CLI script missing or uv missing -> engine-unavailable, never a python fallback", async () => {
     let spawned = 0;
     const spawn = async () => { spawned++; return { code: 0, stdout: "", stderr: "" }; };
@@ -54,11 +57,13 @@ describe("reminder CLI bridge: due", () => {
     expect(await runReminderDue("C:/p", deps(async () => ({ code: -1, stdout: "", stderr: "", spawnError: "ENOENT" })))).toMatchObject({ kind: "engine-unavailable" });
   });
 
+  // @covers FR-01.04
   it("unreadable answer and unknown contractVersion are error states", async () => {
     expect(await runReminderDue("C:/p", deps(async () => ({ code: 0, stdout: "not json", stderr: "" })))).toMatchObject({ kind: "unreadable" });
     expect(await runReminderDue("C:/p", deps(async () => ({ code: 0, stdout: JSON.stringify({ ...GOOD_ANSWER, contractVersion: 9 }), stderr: "" })))).toEqual({ kind: "unsupported-version", contractVersion: 9 });
   });
 
+  // @covers FR-01.04
   it("exit 4 -> store-busy; other non-zero and timeout -> failed (never an empty list)", async () => {
     expect(await runReminderDue("C:/p", deps(async () => ({ code: 4, stdout: "", stderr: "error: the reminder store is busy or unreadable: x" })))).toMatchObject({ kind: "store-busy" });
     expect(await runReminderDue("C:/p", deps(async () => ({ code: 1, stdout: "", stderr: "Traceback..." })))).toMatchObject({ kind: "failed" });
@@ -67,6 +72,7 @@ describe("reminder CLI bridge: due", () => {
 });
 
 describe("reminder CLI bridge: writes", () => {
+  // @covers FR-01.04
   it("done and snooze use `--` before the id so it can never read as an option", async () => {
     const calls: string[][] = [];
     const spawn = async (_b: string, args: string[]) => { calls.push(args); return { code: 0, stdout: "done rem-aabbccdd  done  2026-11-20  T\n", stderr: "" }; };
@@ -77,6 +83,7 @@ describe("reminder CLI bridge: writes", () => {
     expect(calls[1].slice(5)).toEqual(["--project-root=C:/p", "snooze", "--until=2026-12-01", "--", "rem-aabbccdd"]);
   });
 
+  // @covers FR-01.04
   it("add passes every field as --flag=value, links as LABEL=url=REF, title after `--`", async () => {
     let args: string[] = [];
     const r = await runReminderWrite("C:/p", {
@@ -90,6 +97,7 @@ describe("reminder CLI bridge: writes", () => {
     expect(r).toMatchObject({ kind: "ok", operation: "add", reminder: { id: "rem-11112222" } });
   });
 
+  // @covers FR-01.04
   it("passes the CLI's secret-refusal message through unchanged, with no retry", async () => {
     let calls = 0;
     const text = "The text in `why` looks like it contains a secret (a key, token, password or a URL with credentials). Reminders are shown and mailed in plain text, so reword it without the secret, for example name where it is kept instead.";
@@ -98,6 +106,7 @@ describe("reminder CLI bridge: writes", () => {
     expect(calls).toBe(1);
   });
 
+  // @covers FR-01.04
   it("argparse usage errors (also exit 2) are a failure, never shown as a content refusal", async () => {
     const add = { operation: "add", title: "t", due: "2026-12-01", why: "w" } as const;
     const usage = ["usage: reminder_cli.py [-h] add", "reminder_cli.py: error: unrecognized arguments: --foo"].join(String.fromCharCode(10));
@@ -105,6 +114,7 @@ describe("reminder CLI bridge: writes", () => {
     expect(await runReminderWrite("C:/p", add, deps(async () => ({ code: -1, stdout: "", stderr: "", spawnError: "E2BIG" })))).toMatchObject({ kind: "failed" });
   });
 
+  // @covers FR-01.04
   it("uv's own exit-2 failures are a failure, never a content refusal; a write timeout says the outcome is unknown", async () => {
     const add = { operation: "add", title: "t", due: "2026-12-01", why: "w" } as const;
     const uvErr = "error: No interpreter found for Python >=3.11 in managed installations or search path";
@@ -113,6 +123,7 @@ describe("reminder CLI bridge: writes", () => {
     expect(timed).toMatchObject({ kind: "failed", reason: expect.stringMatching(/may or may not have been saved/) });
   });
 
+  // @covers FR-01.04
   it("a registered project whose folder is gone is a named failure, not 'nothing due'", async () => {
     let spawned = 0;
     const r = await runReminderDue("C:/gone", deps(async () => { spawned++; return { code: 0, stdout: "", stderr: "" }; }, { dirExists: () => false }));
@@ -120,6 +131,7 @@ describe("reminder CLI bridge: writes", () => {
     expect(spawned).toBe(0);
   });
 
+  // @covers FR-01.04
   it("maps not-found, busy, unreadable add output and unavailable engine", async () => {
     const w = { operation: "done", id: "rem-zzzzzzzz" } as const;
     expect(await runReminderWrite("C:/p", w, deps(async () => ({ code: 3, stdout: "", stderr: "error: no reminder with id rem-zzzzzzzz" })))).toEqual({ kind: "not-found", message: "no reminder with id rem-zzzzzzzz" });
@@ -130,6 +142,7 @@ describe("reminder CLI bridge: writes", () => {
     expect(await runReminderWrite("C:/p", w, deps(async () => ({ code: 0, stdout: "", stderr: "" }), { run: noUv }))).toMatchObject({ kind: "engine-unavailable" });
   });
 
+  // @covers FR-01.04
   it("static guard: the bridge never touches reminders.jsonl or writes files itself", () => {
     for (const f of ["reminder-cli-runner.ts", "reminder-contract.ts", "reminder-validation.ts", "../routes/reminders.ts"]) {
       const src = readFileSync(new URL(f, import.meta.url), "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
