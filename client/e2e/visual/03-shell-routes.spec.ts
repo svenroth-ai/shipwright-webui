@@ -49,7 +49,8 @@ test.describe("visual: shell routes", () => {
       ).toBeVisible({ timeout: 15_000 });
       await settle(page);
 
-      await expect(page).toHaveScreenshot(`${route.id}.png`, { fullPage: true });
+      // The Settings mail card prefills the address the page was opened from (port differs per stack): mask it.
+      await expect(page).toHaveScreenshot(`${route.id}.png`, { fullPage: true, mask: [page.locator("#reminder-mail-address")] });
     });
   }
 });
