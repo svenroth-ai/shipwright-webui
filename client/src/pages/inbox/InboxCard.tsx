@@ -1,26 +1,18 @@
 /*
- * InboxCard — polymorphic dispatcher (C7 — 2026-05-26).
- *
- * Pre-budgeted sub-split per mini-plan Risk R1 (and external-plan-review
- * gemini LOW finding): the source's two card variants exceed 300 LOC
- * combined, so this file hosts only the dispatcher + shared module-scope
- * helpers (PHASE_ICON, KNOWN_PHASES, inboxItemKey, MAX_BODY_PREVIEW_PX).
- * The two variants live in InboxCard.AskTool.tsx + InboxCard.Waiting.tsx.
- *
- * Same DOM tree, same testids, same nav semantics as source (no wrapper
- * nodes added — external-plan-review MED #2).
+ * InboxCard — one Inbox entry: a compact Triage-style row plus the detail dialog
+ * it opens (C7 split 2026-05-26; compact rows + dialog
+ * iterate-2026-11-22-w2-inbox-triage-look). The kind-specific work (chip, one-line
+ * title, full text, how to render it) is `inboxRowModel`; this component only
+ * wires the row, its open state and the dialog. The dialog is a SIBLING of the
+ * row, not a child: a portaled dialog bubbles React events up the React tree and
+ * the row's click would reopen it.
  */
-import type { ExternalTask, InboxItem } from "../../lib/externalApi";
-import { KNOWN_PHASES, PHASE_ICON } from "./phaseMeta";
-import { AskToolCard } from "./InboxCard.AskTool";
-import { WaitingReplyCard } from "./InboxCard.Waiting";
-import { LeadQuestionCard } from "./InboxCard.LeadQuestion";
-import { CodexNoticeCard } from "./InboxCard.CodexNotice";
+import { useMemo, useState } from "react";
 
-/** Inbox card body preview height before the soft fade-out clip kicks in
- *  (iterate-2026-05-19-inbox-markdown-render). The whole card is
- *  click-through to TaskDetail for the full content. */
-export const MAX_BODY_PREVIEW_PX = 220;
+import type { ExternalTask, InboxItem } from "../../lib/externalApi";
+import { InboxDetailDialog } from "./InboxDetailDialog";
+import { InboxRow } from "./InboxRow";
+import { inboxRowModel } from "./inboxRowModel";
 
 /** Stable React key / testid base for an inbox item, kind-aware. */
 export function inboxItemKey(item: InboxItem): string {
@@ -42,9 +34,8 @@ export function inboxItemKey(item: InboxItem): string {
     case "codex_error":
       return `ce-${item.taskId}`;
     default:
-      // Exhaustiveness guard (FR-04.19 trap 3/4) — a fifth kind added to
-      // `InboxItem` without a case here is a TYPE error at this line,
-      // not a silent `undefined` key.
+      // Exhaustiveness guard (FR-04.19 trap 3/4) — a kind added to `InboxItem`
+      // without a case here is a TYPE error at this line, not a silent `undefined` key.
       return unhandledInboxItemKind(item);
   }
 }
@@ -55,52 +46,6 @@ export function unhandledInboxItemKind(item: never): never {
   );
 }
 
-/**
- * The honesty line (A19, FR-01.63, AC4). Every waiting card states plainly that
- * the operator answers in the terminal and the WebUI does NOT answer for them —
- * so nobody is left guessing whether a click "sent" their reply. The copy is a
- * REQUIREMENT (asserted in a test), not decoration; kept as one canonical string
- * so both card variants say the same thing.
- */
-export const INBOX_TERMINAL_HONESTY =
-  "Claude is waiting for your answer. Type it in the task's terminal — the WebUI doesn't answer for you.";
-
-export function InboxTerminalHonesty({
-  itemKey,
-  align = "left",
-}: {
-  itemKey: string;
-  align?: "left" | "right";
-}) {
-  return (
-    <p
-      data-testid={`inbox-honesty-${itemKey}`}
-      style={{
-        fontSize: "11.5px",
-        color: "var(--color-muted)",
-        lineHeight: 1.5,
-        marginTop: "8px",
-        textAlign: align,
-      }}
-    >
-      {INBOX_TERMINAL_HONESTY}
-    </p>
-  );
-}
-
-/**
- * InboxCard — dispatches on `item.kind`:
- *  - `ask_tool`        → `AskToolCard`     (read-only Ask-bubble + Answer CTA)
- *  - `text_question`   → `WaitingReplyCard` (plain-text end-of-turn question)
- *  - `terminal_prompt` → `WaitingReplyCard` (live AskUserQuestion picker
- *    detected in the embedded terminal — iterate-2026-05-18-inbox-terminal-prompts)
- *  - `codex_approval`  → `WaitingReplyCard` (live Codex approval dialog —
- *    Codex Light §5.3, same terminal-answered semantics as `terminal_prompt`)
- *  - `lead_question`   → `LeadQuestionCard` (FR-04.19 — webui answers inline,
- *    PATCHing `poFeedback`, unlike the terminal-answered kinds above)
- *  - `codex_watcher`, `codex_error` → `CodexNoticeCard` (Codex Light
- *    AC6/§5.3 — informational, no reply required)
- */
 export function InboxCard({
   item,
   task,
@@ -108,24 +53,37 @@ export function InboxCard({
   item: InboxItem;
   task: ExternalTask | undefined;
 }) {
-  switch (item.kind) {
-    case "text_question":
-    case "terminal_prompt":
-    case "phase_gate":
-    case "codex_approval":
-      return <WaitingReplyCard item={item} task={task} />;
-    case "ask_tool":
-      return <AskToolCard item={item} task={task} />;
-    case "lead_question":
-      return <LeadQuestionCard item={item} task={task} />;
-    case "codex_watcher":
-    case "codex_error":
-      return <CodexNoticeCard item={item} task={task} />;
-    default:
-      // Exhaustiveness guard (FR-04.19 trap 3/4) — see `unhandledInboxItemKind` above.
-      return unhandledInboxItemKind(item);
-  }
+  const [open, setOpen] = useState(false);
+  // Both throw on an unknown kind (never a silent wrong render).
+  const itemKey = inboxItemKey(item);
+  const model = useMemo(() => inboxRowModel(item), [item]);
+
+  return (
+    <>
+      <InboxRow
+        itemKey={itemKey}
+        sessionUuid={item.sessionUuid}
+        model={model}
+        task={task}
+        onOpen={() => setOpen(true)}
+        legacyTestId={item.kind === "ask_tool" ? `inbox-item-${item.toolUseId}` : undefined}
+      />
+      {item.kind === "ask_tool" && (
+        <span data-testid={`inbox-item-${item.toolUseId}`} style={{ display: "none" }} aria-hidden="true" />
+      )}
+      {open && (
+        <InboxDetailDialog
+          open={open}
+          onOpenChange={setOpen}
+          item={item}
+          itemKey={itemKey}
+          model={model}
+          task={task}
+        />
+      )}
+    </>
+  );
 }
 
-// Re-exported for existing importers; the data lives in the leaf module phaseMeta.ts.
-export { KNOWN_PHASES, PHASE_ICON };
+// Re-exported for existing importers; the copy lives in the leaf module.
+export { INBOX_TERMINAL_HONESTY, InboxTerminalHonesty } from "./InboxHonesty";

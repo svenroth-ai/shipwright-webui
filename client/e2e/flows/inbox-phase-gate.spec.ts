@@ -38,10 +38,12 @@ test.describe("Inbox phase gate", () => {
       await expect(page.getByTestId("inbox-page")).toBeVisible();
       const card = page.getByTestId(`inbox-card-${itemKey}`);
       await expect(card).toBeVisible({ timeout: 25_000 });
-      await expect(card).toContainText("Awaiting your reply");
+      await expect(card).toContainText(/awaiting reply/i);
+      await page.getByTestId(`inbox-row-title-${itemKey}`).click();
       await expect(page.getByTestId(`inbox-question-text-${itemKey}`)).toContainText(
         /waits for your answer/i,
       );
+      await page.keyboard.press("Escape");
 
       setLoop("running");
       await page.reload();

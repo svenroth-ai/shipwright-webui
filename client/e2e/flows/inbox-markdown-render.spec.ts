@@ -114,7 +114,8 @@ test.describe("Inbox markdown rendering (iterate-2026-05-19)", () => {
     await page.goto("/inbox");
     await expect(page.getByTestId("inbox-page")).toBeVisible();
 
-    // text_question — markdown is rendered: bold, inline code, both lists.
+    // text_question — markdown is rendered in the detail dialog: bold, inline code, both lists.
+    await page.getByTestId("inbox-row-title-q-md").click();
     const mdBody = page.getByTestId("inbox-question-text-q-md");
     await expect(mdBody).toBeVisible();
     await expect(mdBody.locator("strong").first()).toBeVisible();
@@ -130,7 +131,11 @@ test.describe("Inbox markdown rendering (iterate-2026-05-19)", () => {
       .evaluate((el) => getComputedStyle(el).listStyleType);
     expect(ulMarker).toBe("disc");
 
+    await page.screenshot({ path: "test-results/inbox-markdown-render-dialog.png" });
+    await page.keyboard.press("Escape");
+
     // terminal_prompt — escaped plain-text; markdown syntax stays literal.
+    await page.getByTestId("inbox-row-title-tp-task-tp").click();
     const tpBody = page.getByTestId("inbox-question-text-tp-task-tp");
     await expect(tpBody).toBeVisible();
     await expect(tpBody.locator("strong")).toHaveCount(0);

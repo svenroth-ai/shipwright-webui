@@ -1,5 +1,5 @@
 /*
- * InboxCard.LeadQuestion.test.tsx — FR-04.17/18/19: the answer form
+ * InboxCard.LeadQuestion.test.tsx — FR-04.17/18/19: the answer form (LeadAnswerPanel, shown in the detail dialog)
  * PATCHes poFeedback with a timestamp, and Dismiss calls the lq-<taskId>
  * dismiss endpoint. Network is a stubbed global fetch (boardColumnApi.test.ts
  * convention).
@@ -9,7 +9,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
-import { LeadQuestionCard } from "./InboxCard.LeadQuestion";
+import { LeadAnswerPanel } from "./InboxCard.LeadQuestion";
 import type { ExternalTask } from "../../lib/externalApi";
 import type { LeadQuestionInboxItem } from "../../lib/leadQuestionApi";
 
@@ -54,7 +54,7 @@ function renderCard(node: React.ReactElement) {
   );
 }
 
-describe("LeadQuestionCard", () => {
+describe("LeadAnswerPanel", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("Send answer PATCHes poFeedback with the typed text plus a timestamp", async () => {
@@ -64,7 +64,7 @@ describe("LeadQuestionCard", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    renderCard(<LeadAnswerPanel item={LEAD} itemKey="lq-task-A" />);
 
     fireEvent.change(screen.getByTestId("inbox-lead-answer-input-lq-task-A"), {
       target: { value: "Yes, proceed." },
@@ -80,7 +80,7 @@ describe("LeadQuestionCard", () => {
   });
 
   it("Send answer is disabled for empty/whitespace-only text", () => {
-    renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    renderCard(<LeadAnswerPanel item={LEAD} itemKey="lq-task-A" />);
     expect(screen.getByTestId("inbox-lead-answer-send-lq-task-A")).toBeDisabled();
 
     fireEvent.change(screen.getByTestId("inbox-lead-answer-input-lq-task-A"), {
@@ -96,7 +96,7 @@ describe("LeadQuestionCard", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    renderCard(<LeadAnswerPanel item={LEAD} itemKey="lq-task-A" />);
     fireEvent.click(screen.getByTestId("inbox-lead-dismiss-lq-task-A"));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
@@ -115,7 +115,7 @@ describe("LeadQuestionCard", () => {
   // stripped input would prove nothing about the stripping itself.
 
   it("shows the 'not the lead' caveat next to Discuss in terminal", () => {
-    renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    renderCard(<LeadAnswerPanel item={LEAD} itemKey="lq-task-A" />);
     expect(screen.getByTestId("inbox-lead-discuss-terminal-lq-task-A")).toHaveTextContent(
       "Discuss in terminal",
     );
@@ -128,7 +128,7 @@ describe("LeadQuestionCard", () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
     vi.stubGlobal("fetch", fetchMock);
 
-    renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    renderCard(<LeadAnswerPanel item={LEAD} itemKey="lq-task-A" />);
     fireEvent.click(screen.getByTestId("inbox-lead-discuss-terminal-lq-task-A"));
 
     expect(await screen.findByTestId("task-detail-stub")).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe("LeadQuestionCard", () => {
   });
 
   it("Take the outcome as the answer focuses the answer field", () => {
-    renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    renderCard(<LeadAnswerPanel item={LEAD} itemKey="lq-task-A" />);
     fireEvent.click(screen.getByTestId("inbox-lead-take-outcome-lq-task-A"));
     expect(screen.getByTestId("inbox-lead-answer-input-lq-task-A")).toHaveFocus();
   });
@@ -156,7 +156,7 @@ describe("LeadQuestionCard", () => {
   // button's native Enter-triggers-click activation (making it keyboard-
   // unreachable) and navigate away instead.
   it("pressing Enter on a nested button does not navigate away or swallow its own action", () => {
-    renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    renderCard(<LeadAnswerPanel item={LEAD} itemKey="lq-task-A" />);
     fireEvent.keyDown(screen.getByTestId("inbox-lead-take-outcome-lq-task-A"), {
       key: "Enter",
     });
@@ -164,7 +164,7 @@ describe("LeadQuestionCard", () => {
   });
 
   it("presents no thread/round affordance -- one answer field, no round counter or reply history", () => {
-    const { container } = renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    const { container } = renderCard(<LeadAnswerPanel item={LEAD} itemKey="lq-task-A" />);
     expect(container.querySelectorAll("textarea")).toHaveLength(1);
     expect(screen.queryByTestId(/round|thread/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/round \d|reply history|previous answer/i)).not.toBeInTheDocument();

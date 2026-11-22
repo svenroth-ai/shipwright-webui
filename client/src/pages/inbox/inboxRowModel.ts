@@ -1,0 +1,154 @@
+/*
+ * inboxRowModel — what one Inbox entry looks like as a compact row and as a
+ * detail dialog (iterate-2026-11-22-w2-inbox-triage-look). Pure: one function
+ * turns any InboxItem kind into the same small shape (chip, one-line title,
+ * full text and how to render it), so the row and the dialog never switch on
+ * the kind themselves. The text is untrusted and stays text: the row shows it
+ * through React (escaped), the dialog renders markdown only for the kinds that
+ * always did (text_question, lead_question), through the XSS-safe MarkdownText.
+ */
+import { extractAskUserPayload } from "../../lib/askUserPayload";
+import type { InboxItemPart } from "../../types/inbox";
+import type { InboxItem } from "../../lib/externalApi";
+import type { ProjectGroup } from "./types";
+
+/** Filter-bar buckets. `all` is the "Open" chip; the others are exclusive. */
+export type InboxFilter = "all" | "awaiting" | "notices";
+
+export type InboxChipTone = "awaiting" | "notice" | "error";
+
+export interface InboxRowModel {
+  /** Stable key, the same one `inboxItemKey` returns (kept out of here to avoid a cycle). */
+  filter: Exclude<InboxFilter, "all">;
+  chip: { label: string; tone: InboxChipTone };
+  /** First line of the text, markdown marks removed - the row title. */
+  title: string;
+  /** Label above the full text in the dialog ("Claude asks"). */
+  textLabel: string;
+  /** The full text. */
+  text: string;
+  format: "markdown" | "mono" | "plain";
+  /** Set for an AskUserQuestion with a readable first part. */
+  ask: InboxItemPart | null;
+  /** The honesty line applies: the answer is typed in the task's terminal. */
+  answeredInTerminal: boolean;
+}
+
+const NOTICE_LABEL: Record<string, string> = {
+  nudge_sent: "Nudge sent",
+  delivery_error: "Delivery failed",
+  no_oracle_unresolved: "Needs a status check",
+  launch_confirmation_failed: "Launch may have failed",
+};
+
+/** First non-empty line, with the common markdown marks stripped. */
+export function firstLine(text: string): string {
+  const line = text.split(/\r?\n/).find((l) => l.trim().length > 0) ?? "";
+  return line
+    .replace(/^\s*(?:#{1,6}\s+|>\s+|[-*+]\s+|\d+[.)]\s+)/, "")
+    .replace(/(\*\*|__|`)/g, "")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .trim();
+}
+
+const AWAITING = { label: "awaiting reply", tone: "awaiting" } as const;
+
+export function inboxRowModel(item: InboxItem): InboxRowModel {
+  switch (item.kind) {
+    case "ask_tool": {
+      const isAUQ = item.toolName === "AskUserQuestion";
+      const part = isAUQ ? (extractAskUserPayload(item.input).parts[0] ?? null) : null;
+      const ask = part && part.question.trim() ? part : null;
+      const text = ask
+        ? ask.question
+        : "Question payload schema differed from expected - open the task in your terminal to see the original.";
+      return {
+        filter: "awaiting",
+        chip: AWAITING,
+        title: firstLine(text),
+        textLabel: "Claude asks",
+        text,
+        format: "plain",
+        ask,
+        answeredInTerminal: true,
+      };
+    }
+    case "text_question":
+      return textRow(item.questionText, "markdown");
+    case "terminal_prompt":
+    case "phase_gate":
+    case "codex_approval":
+      return textRow(item.promptText, "mono");
+    case "lead_question":
+      return {
+        filter: "awaiting",
+        chip: { label: "lead asks", tone: "awaiting" },
+        title: firstLine(item.questionText),
+        textLabel: "Lead asks",
+        text: item.questionText,
+        format: "markdown",
+        ask: null,
+        answeredInTerminal: false,
+      };
+    case "codex_watcher":
+    case "codex_error": {
+      const isError = item.kind === "codex_error" || item.noticeKind === "delivery_error";
+      const text = item.kind === "codex_watcher" ? item.detail : item.errorText;
+      const label = item.kind === "codex_watcher" ? (NOTICE_LABEL[item.noticeKind] ?? "Notice") : "Codex error";
+      return {
+        filter: "notices",
+        chip: { label: isError ? "error" : "notice", tone: isError ? "error" : "notice" },
+        title: firstLine(text) || label,
+        textLabel: label,
+        text,
+        format: "plain",
+        ask: null,
+        answeredInTerminal: false,
+      };
+    }
+    default:
+      // Same exhaustiveness guard as inboxItemKey: a new kind is a type error here.
+      throw new Error(`inboxRowModel: unhandled inbox item kind: ${(item as InboxItem).kind}`);
+  }
+}
+
+function textRow(text: string, format: "markdown" | "mono"): InboxRowModel {
+  return {
+    filter: "awaiting",
+    chip: AWAITING,
+    title: firstLine(text),
+    textLabel: "Claude asks",
+    text,
+    format,
+    ask: null,
+    answeredInTerminal: true,
+  };
+}
+
+/** Per-bucket counts across every group (the filter chips). */
+export function countByFilter(groups: readonly ProjectGroup[]): Record<InboxFilter, number> {
+  const c: Record<InboxFilter, number> = { all: 0, awaiting: 0, notices: 0 };
+  for (const g of groups) {
+    for (const s of g.sessions) {
+      for (const item of s.items) {
+        c.all += 1;
+        c[inboxRowModel(item).filter] += 1;
+      }
+    }
+  }
+  return c;
+}
+
+/** Keep only the items of one bucket; empty sessions and groups disappear. */
+export function filterGroups(groups: readonly ProjectGroup[], filter: InboxFilter): ProjectGroup[] {
+  if (filter === "all") return [...groups];
+  const out: ProjectGroup[] = [];
+  for (const g of groups) {
+    const sessions = g.sessions
+      .map((s) => ({ ...s, items: s.items.filter((i) => inboxRowModel(i).filter === filter) }))
+      .filter((s) => s.items.length > 0);
+    if (sessions.length === 0) continue;
+    out.push({ ...g, sessions, totalItems: sessions.reduce((n, s) => n + s.items.length, 0) });
+  }
+  return out;
+}

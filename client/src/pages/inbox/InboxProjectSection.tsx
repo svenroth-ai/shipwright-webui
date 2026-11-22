@@ -1,14 +1,15 @@
 /*
- * InboxProjectSection — one project's group of cards (C7 — 2026-05-26;
- * Triage look 2026-11-13). No lane: a solid header pill (drag handle, fold
- * chevron, project colour dot, name, count) above the project's cards. The
- * project colour is handed to the cards as `--acc` (their 3px top bar + glass
- * tint). The handle drags the group (or the arrow keys on the focused handle
- * move it) — the same mechanics as a Triage lane — and the pill folds it.
+ * InboxProjectSection — one project's card of the Inbox (C7 — 2026-05-26;
+ * Triage look 2026-11-13; one card of compact rows 2026-11-22). Like a Triage
+ * lane: dark glass tinted 12 % in the project colour (`--acc`), a 3px colour bar
+ * on top, a header (drag handle, fold chevron, colour dot, name, count), then
+ * one compact row per entry (InboxCard). The handle drags the group (or the
+ * arrow keys on the focused handle move it) — the same mechanics as a Triage
+ * lane — and the header folds it.
  *
- * Sessions are no longer a visual level: each card carries its own session
- * chip (InboxCardShell). The `inbox-session-<uuid>` wrapper stays so the DOM
- * keeps one node per session, in input order.
+ * Sessions are no longer a visual level: each row carries its own session id
+ * (InboxRow). The `inbox-session-<uuid>` wrapper stays (display: contents) so
+ * the DOM keeps one node per session, in input order.
  */
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
@@ -62,6 +63,7 @@ export function InboxProjectSection({
       }}
       data-testid={`inbox-project-group-${group.projectId}`}
     >
+      <div className="inbox-group-bar" aria-hidden="true" />
       <h2 className="inbox-group-head m-0">
         {reorder ? (
           <button
@@ -124,13 +126,13 @@ export function InboxProjectSection({
       </h2>
 
       {!isCollapsed && (
-        <div className="inbox-group-cards" id={`inbox-group-cards-${group.projectId}`}>
+        <div className="inbox-group-cards" role="list" id={`inbox-group-cards-${group.projectId}`}>
           {group.sessions.map((sg) => {
             const task = tasksById.get(sg.taskId);
             return (
               <div
                 key={sg.sessionUuid}
-                className="inbox-group-cards"
+                className="contents"
                 data-testid={`inbox-session-${sg.sessionUuid}`}
               >
                 {sg.items.map((item) => (

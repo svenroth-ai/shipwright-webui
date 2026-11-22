@@ -81,13 +81,14 @@ test.describe("Inbox awaiting-user (plain-text question)", () => {
     // timeout so the assertion is not coupled to fixture accumulation.
     const card = page.getByTestId(`inbox-card-${questionUuid}`);
     await expect(card).toBeVisible({ timeout: 25_000 });
-    await expect(
-      page.getByTestId(`inbox-question-text-${questionUuid}`),
-    ).toContainText("Which would you like?");
+    await expect(page.getByTestId(`inbox-row-title-${questionUuid}`)).toContainText("Which would you like?");
 
-    // The current Inbox provides a navigation-only terminal handoff.  It must
-    // not fabricate a reply; the following JSONL user event still clears it.
-    await expect(card.locator("button")).toHaveCount(1);
+    // The Inbox provides a navigation-only terminal handoff (the row's hover
+    // action). It must not fabricate a reply: no text field, exactly one
+    // "Answer in the terminal" button; the following JSONL user event still
+    // clears the entry.
+    await expect(card.getByTestId(`inbox-resume-${questionUuid}`)).toHaveCount(1);
+    await expect(card.locator("textarea, input")).toHaveCount(0);
 
     // The user replies in the terminal — a `user` event lands after the
     // turn. The next inbox derivation must drop the card (auto-clear).
@@ -155,6 +156,7 @@ test.describe("Inbox awaiting-user (plain-text question)", () => {
 
     const card = page.getByTestId(`inbox-card-${questionUuid}`);
     await expect(card).toBeVisible({ timeout: 25_000 });
+    await page.getByTestId(`inbox-row-title-${questionUuid}`).click();
     await expect(
       page.getByTestId(`inbox-question-text-${questionUuid}`),
     ).toContainText("Refactor the parser first");

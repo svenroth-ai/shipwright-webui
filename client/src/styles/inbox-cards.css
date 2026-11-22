@@ -1,16 +1,18 @@
 /*
  * inbox-cards.css — the Inbox in the Triage look
- * (iterate-2026-11-13-inbox-triage-look). Cards stay cards (no lanes): the same
- * dark warm glass as a Triage lane (`--triage-lane-solid` tinted 12 % in the
- * project colour, light edge, `--sh-photo`), the project colour as a 3px bar on
- * top, white tints for text. The project header is a solid pill, not a lane.
- *
- * Inside a card the legacy `--color-*` aliases are re-pointed to dark-glass
- * values (the same scoped flip `.chrome-dark-controls` does for the taupe bar),
- * so every inner component that reads them — MarkdownText, the option chips,
- * the answer textarea, the buttons — reads light-on-dark without a rewrite. The
- * semantic warning / error families are deliberately NOT overridden.
+ * (iterate-2026-11-13-inbox-triage-look; compact rows + filter bar
+ * iterate-2026-11-22-w2-inbox-triage-look). One card per project: the same dark
+ * warm glass as a Triage lane (`--triage-lane-solid` tinted 12 % in the project
+ * colour, light edge, `--sh-photo`), the project colour as a 3px bar on top,
+ * white tints for text. The rows inside are Triage rows (triage-rows.css owns
+ * their layout and the hover action zone); this file owns the card, the filter
+ * bar and the kind chips (colours = the approved mockup page 02 contrast table:
+ * awaiting reply = orange, notice = grey, error = red; every pair >= 4.5 : 1).
  * Plain CSS (not utilities) so the dark scope cannot be reordered by the sorter.
+ *
+ * `.inbox-card` is now only the frame of the empty-state card: inside it the
+ * legacy `--color-*` aliases are re-pointed to dark-glass values (the same
+ * scoped flip `.chrome-dark-controls` does for the taupe bar).
  */
 
 .inbox-card {
@@ -29,148 +31,66 @@
   background: var(--inbox-card-bg);
   border: 1px solid color-mix(in srgb, var(--acc) 32%, rgba(255, 255, 255, .18));
   box-shadow: var(--sh-photo);
-  transition: border-color var(--motion-fast) var(--ease-standard);
 }
-.inbox-card[role="button"] {
-  cursor: pointer;
-}
-.inbox-card[role="button"]:hover {
-  border-color: rgba(255, 255, 255, .3);
-}
-.inbox-card:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, .85);
-  outline-offset: 2px;
-}
-.inbox-card.is-err {
-  --acc: var(--err-solid);
-  --color-danger: var(--err-solid);
-}
-.inbox-card-bar {
-  height: 3px;
-  width: 100%;
-  background: var(--acc);
-}
-.inbox-card-in {
-  padding: 12px 22px 18px;
-}
-.inbox-card-top {
+
+/* Filter bar: toggle chips with a count, like the Triage summary pills */
+.inbox-filter-bar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 24px;
-  margin-bottom: 8px;
-}
-.inbox-card-pill {
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: 5px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, .12);
-  background: rgba(255, 255, 255, .08);
-  padding: 2px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .02em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, .8);
-}
-.inbox-card-meta {
-  display: flex;
-  flex-shrink: 0;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
+  margin-bottom: 16px;
 }
-.inbox-card-id {
-  border-radius: 6px;
-  background: rgba(255, 255, 255, .1);
-  padding: 1px 8px;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: rgba(255, 255, 255, .88);
-}
-.inbox-card-ago {
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: rgba(255, 255, 255, .6);
-}
-.inbox-card-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .6px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, .7);
-}
-.inbox-card-eyebrow::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  flex-shrink: 0;
-  border-radius: 9999px;
-  background: var(--warn-solid);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn-solid) 20%, transparent);
-}
-.inbox-card-eyebrow.is-err {
-  color: var(--err-solid);
-}
-.inbox-card-eyebrow.is-err::before {
-  background: var(--err-solid);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--err-solid) 20%, transparent);
-}
-
-/* Markdown + code that ship light-surface classes (bg-inset, text-info) */
-.inbox-card .markdown-body {
-  font-size: 15px;
-  line-height: 1.4;
-  color: rgba(255, 255, 255, .92);
-}
-.inbox-card .markdown-body p {
-  margin-block: 0 14px;
-}
-.inbox-card .markdown-body p:last-child {
-  margin-bottom: 0;
-}
-.inbox-card .markdown-body strong {
-  color: #fff;
-}
-/* No border here: an inline-code border makes a short line overflow the body by 1-2px,
-   which switches the "long text" fade on over text that is not long. */
-.inbox-card .markdown-body :not(pre) > code {
-  background: rgba(255, 255, 255, .1);
-  color: #fff;
-}
-.inbox-card .markdown-body a {
-  color: #8ddcd0;
-}
-.inbox-card .markdown-body th,
-.inbox-card .markdown-body td {
-  border-color: rgba(255, 255, 255, .16);
-}
-
-/* Project header: a solid pill (like the Triage summary pills), no lane */
-.inbox-group {
-  --acc: rgba(255, 255, 255, .35);
-  border-radius: var(--radius-card);
-}
-.inbox-group-head {
+.inbox-filter-chip {
   display: inline-flex;
-  max-width: 100%;
-  height: 34px;
   align-items: center;
   gap: 6px;
-  margin-bottom: 12px;
-  padding: 0 14px 0 6px;
+  height: 32px;
+  padding: 0 14px;
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, .2);
   background: var(--triage-lane-solid);
   box-shadow: 0 1px 2px rgb(0 0 0 / .25);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.inbox-filter-chip:hover {
+  border-color: rgba(255, 255, 255, .4);
+}
+.inbox-filter-chip[aria-pressed="true"] {
+  background: #134e48;
+  border-color: #35b8a4;
+}
+.inbox-filter-chip:focus-visible,
+.inbox-row-title:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, .85);
+  outline-offset: 2px;
+}
+
+/* Project card: dark glass, colour bar, header, rows */
+.inbox-group {
+  --acc: rgba(255, 255, 255, .35);
+  overflow: hidden;
+  border-radius: var(--radius-card);
   color: rgba(255, 255, 255, .95);
-  font-size: 15px;
+  background: color-mix(in srgb, var(--acc) 12%, var(--triage-lane-solid));
+  border: 1px solid color-mix(in srgb, var(--acc) 32%, rgba(255, 255, 255, .18));
+  box-shadow: var(--sh-photo);
+}
+.inbox-group-bar {
+  height: 3px;
+  width: 100%;
+  background: var(--acc);
+}
+.inbox-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  color: rgba(255, 255, 255, .95);
+  font-size: 16px;
   font-weight: 600;
 }
 .inbox-group-count {
@@ -190,13 +110,82 @@
 .inbox-group-cards {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
+  margin: 0;
+  padding: 0 10px 10px;
 }
 
-/* Answer textarea + secondary buttons inside a card */
-.inbox-card textarea {
-  color: #fff;
+/* One title line pair in the row; the full text is in the dialog */
+.inbox-row-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.inbox-card textarea::placeholder {
-  color: rgba(255, 255, 255, .45);
+
+/* Kind chips: on the dark row (.inbox-chip) and on the light dialog (.inbox-dchip) */
+.inbox-chip,
+.inbox-dchip {
+  display: inline-block;
+  flex: none;
+  border-radius: 9999px;
+  padding: 1px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.inbox-chip.is-awaiting {
+  background: #6a3a0a;
+  color: #fde2b3;
+  border: 1px solid #f79009;
+}
+.inbox-chip.is-notice {
+  background: #57534e;
+  color: #fff;
+  border: 1px solid #a8a29e;
+}
+.inbox-chip.is-error {
+  background: #7a1f17;
+  color: #fff;
+  border: 1px solid #f97066;
+}
+.inbox-dchip.is-awaiting {
+  background: #fffaeb;
+  color: #93370d;
+  border: 1px solid #f79009;
+}
+.inbox-dchip.is-notice {
+  background: #f5f5f4;
+  color: #44403c;
+  border: 1px solid #a8a29e;
+}
+.inbox-dchip.is-error {
+  background: #fef3f2;
+  color: #7a1f17;
+  border: 1px solid #f04438;
+}
+
+/* Row layout: the Triage row (triage-rows.css) reserves 29rem for its widest button set;
+   an Inbox row has ONE short button, so its action zone is narrower and kicks in earlier.
+   Same behaviour: empty until hover / keyboard focus, title never reflows; touch and
+   narrow rows keep the button under the title, always visible. */
+@media (hover: hover) {
+  @container triage-row (min-width: 48rem) {
+    .inbox-row .triage-row-in {
+      grid-template-columns: minmax(0, 1fr) 14rem 13rem;
+      grid-template-areas: "main actions meta";
+      min-height: 3.75rem;
+      padding-block: 0.6875rem;
+    }
+    .inbox-row .triage-row-actions {
+      justify-content: flex-end;
+      visibility: hidden;
+    }
+    .inbox-row:hover .triage-row-actions,
+    .inbox-row:focus-within .triage-row-actions {
+      visibility: visible;
+    }
+  }
 }

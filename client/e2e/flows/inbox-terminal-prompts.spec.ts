@@ -67,7 +67,9 @@ test.describe("Inbox → Terminal focus (iterate-2026-05-18-inbox-terminal-promp
       const card = page.getByTestId(`inbox-card-${questionUuid}`);
       await expect(card).toBeVisible({ timeout: 25_000 });
 
+      // A click opens the detail dialog; "Open task" is the explicit hop to the task.
       await card.click();
+      await page.getByTestId(`inbox-open-task-${questionUuid}`).click();
 
       // Landed on TaskDetail…
       await expect(page.getByTestId("task-detail-page")).toBeVisible({

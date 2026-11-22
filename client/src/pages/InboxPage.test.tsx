@@ -367,6 +367,8 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
       projects: [PROJECT_A],
     });
     const { container } = renderPage();
+    // The options live in the detail dialog the row opens.
+    fireEvent.click(screen.getByTestId("inbox-row-title-tu-opts"));
 
     // Chips must be rendered but NOT as buttons — they're read-only.
     const chip0 = screen.getByTestId("inbox-option-chip-0");
@@ -379,7 +381,8 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
     expect(chip1).toHaveTextContent("Session");
 
     // No <button> elements should wrap the option labels.
-    const buttons = Array.from(container.querySelectorAll("button"));
+    expect(container).toBeTruthy();
+    const buttons = Array.from(document.body.querySelectorAll("button"));
     for (const b of buttons) {
       const txt = b.textContent ?? "";
       expect(txt).not.toMatch(/^\s*JWT\s*$/);
@@ -387,7 +390,7 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
     }
   });
 
-  it("whole-card click navigates to /tasks/<taskId>", () => {
+  it("whole-row click opens the detail dialog; Open task goes to /tasks/<taskId>", () => {
     wireHooks({
       items: [ITEM_A],
       tasks: [TASK_A],
@@ -397,22 +400,11 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
 
     expect(screen.queryByTestId("task-detail-stub")).not.toBeInTheDocument();
     const card = screen.getByTestId("inbox-card-tu-A");
-    expect(card).toHaveAttribute("role", "button");
-    expect(card).toHaveAttribute("tabIndex", "0");
+    expect(card).toHaveAttribute("role", "listitem");
     fireEvent.click(card);
-    expect(screen.getByTestId("task-detail-stub")).toBeInTheDocument();
-  });
-
-  it("Enter key on the card navigates to /tasks/<taskId>", () => {
-    wireHooks({
-      items: [ITEM_A],
-      tasks: [TASK_A],
-      projects: [PROJECT_A],
-    });
-    renderPage();
-
-    const card = screen.getByTestId("inbox-card-tu-A");
-    fireEvent.keyDown(card, { key: "Enter" });
+    expect(screen.getByTestId("inbox-detail-tu-A")).toBeInTheDocument();
+    expect(screen.queryByTestId("task-detail-stub")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("inbox-open-task-tu-A"));
     expect(screen.getByTestId("task-detail-stub")).toBeInTheDocument();
   });
 
@@ -451,11 +443,16 @@ describe("InboxPage — text_question cards", () => {
     renderPage();
 
     expect(screen.getByTestId("inbox-card-q-A")).toBeInTheDocument();
+    expect(screen.getByTestId("inbox-row-title-q-A")).toHaveTextContent(
+      "Option 1 or Option 2 — which should I build?",
+    );
+    // The "awaiting" affordance chip.
+    expect(screen.getByTestId("inbox-chip-q-A")).toHaveTextContent(/awaiting reply/i);
+    // The full text is in the dialog.
+    fireEvent.click(screen.getByTestId("inbox-row-title-q-A"));
     expect(screen.getByTestId("inbox-question-text-q-A")).toHaveTextContent(
       "Option 1 or Option 2 — which should I build?",
     );
-    // The "awaiting" affordance label.
-    expect(screen.getByText(/awaiting your reply/i)).toBeInTheDocument();
   });
 
   it("text_question cards show the terminal CTA + NO option chips / freetext", () => {
@@ -477,21 +474,6 @@ describe("InboxPage — text_question cards", () => {
     ).toBeNull();
   });
 
-  it("text_question card click-through navigates to /tasks/<taskId>", () => {
-    const item = makeTextItem({
-      taskId: "task-A",
-      sessionUuid: "sess-A",
-      questionId: "q-A",
-    });
-    wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
-    renderPage();
-
-    const card = screen.getByTestId("inbox-card-q-A");
-    expect(card).toHaveAttribute("role", "button");
-    fireEvent.click(card);
-    expect(screen.getByTestId("task-detail-stub")).toBeInTheDocument();
-  });
-
   // iterate-2026-05-19-inbox-markdown-render: text_question bodies are
   // Claude prose, so they render through the XSS-safe <MarkdownText>.
   it("renders text_question body as markdown (bold, inline code, bullet list)", () => {
@@ -504,6 +486,7 @@ describe("InboxPage — text_question cards", () => {
     wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
     renderPage();
 
+    fireEvent.click(screen.getByTestId("inbox-row-title-q-A"));
     const body = screen.getByTestId("inbox-question-text-q-A");
     // **Status** → <strong>, `STATUS.md` → <code>, "- " list → two <li>.
     expect(body.querySelector("strong")).not.toBeNull();
@@ -522,19 +505,22 @@ describe("InboxPage — text_question cards", () => {
     });
     wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
     const { container } = renderPage();
+    fireEvent.click(screen.getByTestId("inbox-row-title-q-A"));
 
     // react-markdown has no rehype-raw → raw HTML never becomes a live node.
     expect(container.querySelector("script")).toBeNull();
+    expect(document.body.querySelector("script")).toBeNull();
     // …but the question text is still surfaced to the user.
     expect(screen.getByTestId("inbox-question-text-q-A")).toHaveTextContent(
       "Shall I proceed?",
     );
   });
 
-  it("clicking an inbox card navigates to /tasks/:id with { focusTerminal: true } (Phase 1)", () => {
+  it("Open task in the dialog navigates to /tasks/:id with { focusTerminal: true } (Phase 1)", () => {
     wireHooks({ items: [ITEM_A], tasks: [TASK_A], projects: [PROJECT_A] });
     renderPage();
     fireEvent.click(screen.getByTestId("inbox-card-tu-A"));
+    fireEvent.click(screen.getByTestId("inbox-open-task-tu-A"));
     const stub = screen.getByTestId("task-detail-stub");
     // Lands on the clicked task's detail route…
     expect(stub).toHaveAttribute("data-task-id", "task-A");
@@ -590,10 +576,10 @@ describe("InboxPage — terminal_prompt cards", () => {
     renderPage();
 
     expect(screen.getByTestId("inbox-card-tp-task-A")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("inbox-question-text-tp-task-A"),
-    ).toHaveTextContent("Von wo aus?");
-    expect(screen.getByText(/awaiting your reply/i)).toBeInTheDocument();
+    expect(screen.getByTestId("inbox-row-title-tp-task-A")).toHaveTextContent("Von wo aus?");
+    expect(screen.getByTestId("inbox-chip-tp-task-A")).toHaveTextContent(/awaiting reply/i);
+    fireEvent.click(screen.getByTestId("inbox-row-title-tp-task-A"));
+    expect(screen.getByTestId("inbox-question-text-tp-task-A")).toHaveTextContent("Enter to select");
   });
 
   it("terminal_prompt card shows the terminal CTA, no freetext input", () => {
@@ -616,10 +602,12 @@ describe("InboxPage — terminal_prompt cards", () => {
     });
     wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
     const { container } = renderPage();
+    fireEvent.click(screen.getByTestId("inbox-row-title-tp-task-A"));
     expect(
       screen.getByTestId("inbox-question-text-tp-task-A"),
     ).toHaveTextContent("<img src=x onerror=alert(1)> pick one");
     expect(container.querySelector("img")).toBeNull();
+    expect(document.body.querySelector("img")).toBeNull();
   });
 
   // iterate-2026-05-19-inbox-markdown-render: a terminal_prompt body is a
@@ -633,6 +621,7 @@ describe("InboxPage — terminal_prompt cards", () => {
     });
     wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
     renderPage();
+    fireEvent.click(screen.getByTestId("inbox-row-title-tp-task-A"));
 
     const body = screen.getByTestId("inbox-question-text-tp-task-A");
     expect(body.querySelector("strong")).toBeNull();
@@ -640,7 +629,7 @@ describe("InboxPage — terminal_prompt cards", () => {
     expect(body.textContent ?? "").toContain("**Pick one**");
   });
 
-  it("terminal_prompt card click carries the focusTerminal nav-state", () => {
+  it("terminal_prompt dialog Open task carries the focusTerminal nav-state", () => {
     const item = makeTerminalPromptItem({
       taskId: "task-A",
       sessionUuid: "sess-A",
@@ -648,6 +637,7 @@ describe("InboxPage — terminal_prompt cards", () => {
     wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
     renderPage();
     fireEvent.click(screen.getByTestId("inbox-card-tp-task-A"));
+    fireEvent.click(screen.getByTestId("inbox-open-task-tp-task-A"));
     const stub = screen.getByTestId("task-detail-stub");
     expect(stub).toHaveAttribute("data-task-id", "task-A");
     expect(stub).toHaveAttribute("data-focus-terminal", "true");
