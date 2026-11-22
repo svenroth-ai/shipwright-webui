@@ -80,6 +80,7 @@ function renderPage(url = "/inbox") {
 const fetchMock = vi.fn();
 
 // @covers FR-01.76
+// @covers FR-01.76
 describe("InboxPage - reminders", () => {
   beforeEach(() => {
     window.localStorage.clear();

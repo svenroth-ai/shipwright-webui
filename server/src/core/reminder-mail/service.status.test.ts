@@ -38,6 +38,7 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
+// @covers FR-01.77
 describe("reminder mail service - ledger and status", () => {
   it("a good test mail clears the failed-send error", async () => {
     await enable();

@@ -15,6 +15,7 @@ afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 const body = (o: Record<string, unknown> = {}) => ({ ...DEFAULT_SETTINGS, ...o });
 
+// @covers FR-01.77
 describe("settings", () => {
   it("is off by default", () => {
     expect(loadSettings(dir).enabled).toBe(false);
@@ -62,6 +63,7 @@ describe("settings", () => {
   });
 });
 
+// @covers FR-01.77
 describe(".env.local secret", () => {
   it("stores the password in .env.local only, with other lines kept, and removes it again", async () => {
     await writeSmtpPassword(dir, 'p"w\\1');
@@ -94,6 +96,7 @@ describe(".env.local secret", () => {
   });
 });
 
+// @covers FR-01.77
 describe("timer", () => {
   function harness(schedule: { checkInterval: "15m" | "1h" | "daily"; summaryTime: string; format?: string }, start = new Date(2026, 10, 22, 7, 0, 0)) {
     let now = start;

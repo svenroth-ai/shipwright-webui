@@ -11,6 +11,7 @@ const item = (over: Partial<ReminderDueItem> = {}): ReminderDueItem => ({
   why: "It expires.", decided: null, open: null, command: null, links: [], severity: null, ...over,
 });
 
+// @covers FR-01.77
 describe("clean", () => {
   it("cuts at 1000 characters with an ellipsis", () => {
     const out = clean("x".repeat(5000));
@@ -29,6 +30,7 @@ describe("clean", () => {
   });
 });
 
+// @covers FR-01.77
 describe("composeItemMail", () => {
   it("escapes hostile text in the HTML part and keeps it as plain text in the text part", () => {
     const m = composeItemMail({ item: item({ title: "<script>alert(1)</script>", why: "<img src=x onerror=alert(1)>" }), projectName: "P", projectId: "p1" }, ADDR);
@@ -96,6 +98,7 @@ describe("composeItemMail", () => {
   });
 });
 
+// @covers FR-01.77
 describe("composeSummaryMail", () => {
   it("never says nothing is due when part of the check failed", () => {
     const m = composeSummaryMail([], { address: ADDR, day: "2026-11-22", problems: ["P: parked triage items could not be read."] });
@@ -111,6 +114,7 @@ describe("composeSummaryMail", () => {
   });
 });
 
+// @covers FR-01.77
 describe("describeSendError scrubbing", () => {
   const pass = `pw-${randomUUID()}`;
   const cfg = { host: "smtp.example.org", port: 587, user: "me@example.org", pass };

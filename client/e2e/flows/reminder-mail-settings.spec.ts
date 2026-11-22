@@ -74,6 +74,7 @@ async function openCard(page: Page) {
   await expect(page.getByTestId("settings-reminder-mail")).toBeVisible({ timeout: 15_000 });
 }
 
+// @covers FR-01.77
 test.describe("Settings - reminder mail", () => {
   test("off by default; save, password write-only, test mail sent and exact failure", async ({ page }) => {
     const smtp = await startSmtp();

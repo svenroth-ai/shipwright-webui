@@ -34,6 +34,7 @@ function wrap(ui: React.ReactNode) {
   );
 }
 
+// @covers FR-01.77
 describe("ReminderMailCard", () => {
   it("is off by default and prefills the WebUI address from where the page was opened", async () => {
     server.use(http.get("/api/reminder-mail", () => HttpResponse.json(view())));
@@ -137,6 +138,7 @@ describe("ReminderMailCard", () => {
   });
 });
 
+// @covers FR-01.77
 describe("MailFailedBanner (Inbox, mockup page 06 d)", () => {
   it("is hidden without an error and when mail is off", async () => {
     server.use(http.get("/api/reminder-mail", () => HttpResponse.json(view({ settings: { ...SETTINGS, enabled: false }, status: { ...STATUS, error: { at: "t", message: "x", recipient: "r@e.org" } } }))));

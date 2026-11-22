@@ -32,6 +32,7 @@ const settings = (o: Record<string, unknown> = {}) => ({
 beforeEach(() => { dir = mkdtempSync(path.join(os.tmpdir(), "rmail-rt-")); sent = []; failWith = null; logs = []; now = 1_000_000; });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
+// @covers FR-01.77
 describe("reminder-mail routes", () => {
   it("starts off with no password set", async () => {
     const j = await (await app().request("/api/reminder-mail")).json();

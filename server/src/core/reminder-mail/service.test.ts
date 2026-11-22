@@ -53,6 +53,7 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
+// @covers FR-01.77
 describe("reminder mail service", () => {
   it("is off by default: no CLI call, no mail", async () => {
     expect(await make().runCheck()).toEqual({ ran: false, reason: "off" });

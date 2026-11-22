@@ -30,6 +30,7 @@ afterEach(async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+// @covers FR-01.77
 describe("nodemailer transport (loopback fake SMTP)", () => {
   it("delivers a hostile reminder as escaped plain text with no path in it", async () => {
     const mail = composeItemMail(
