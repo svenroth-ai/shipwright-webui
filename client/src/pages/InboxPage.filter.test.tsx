@@ -102,5 +102,17 @@ describe("InboxPage — filter chips", () => {
     );
     expect(screen.getByTestId("inbox-card-tu-A")).toBeInTheDocument();
     expect(screen.getByTestId("inbox-filter-all")).toHaveAttribute("aria-pressed", "true");
+
+    // a notice coming back later does not silently narrow the list again
+    wire(true);
+    rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <InboxPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByTestId("inbox-filter-all")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("inbox-card-tu-A")).toBeInTheDocument();
   });
 });

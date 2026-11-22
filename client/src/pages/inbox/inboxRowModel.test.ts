@@ -78,9 +78,15 @@ describe("inboxRowModel", () => {
       makeAskItem({ input: { parts: [{ question: "JWT or Session?", options: ["JWT", "Session"] }] } }),
     );
     expect(m.title).toBe("JWT or Session?");
-    expect(m.ask?.options).toEqual(["JWT", "Session"]);
+    expect(m.asks[0]?.options).toEqual(["JWT", "Session"]);
+    // every question reaches the dialog, not just the first
+    const two = inboxRowModel(
+      makeAskItem({ input: { parts: [{ question: "First?" }, { question: "Second?", options: ["x"] }] } }),
+    );
+    expect(two.asks.map((a) => a.question)).toEqual(["First?", "Second?"]);
+    expect(two.title).toBe("First?");
     const bad = inboxRowModel(makeAskItem({ input: { nonsense: true } }));
-    expect(bad.ask).toBeNull();
+    expect(bad.asks).toEqual([]);
     expect(bad.title).toMatch(/schema differed/);
     expect(bad.answeredInTerminal).toBe(true);
   });

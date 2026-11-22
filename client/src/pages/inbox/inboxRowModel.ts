@@ -28,8 +28,8 @@ export interface InboxRowModel {
   /** The full text. */
   text: string;
   format: "markdown" | "mono" | "plain";
-  /** Set for an AskUserQuestion with a readable first part. */
-  ask: InboxItemPart | null;
+  /** Every readable part of an AskUserQuestion (the row title is the first); empty otherwise. */
+  asks: InboxItemPart[];
   /** The honesty line applies: the answer is typed in the task's terminal. */
   answeredInTerminal: boolean;
 }
@@ -57,10 +57,9 @@ export function inboxRowModel(item: InboxItem): InboxRowModel {
   switch (item.kind) {
     case "ask_tool": {
       const isAUQ = item.toolName === "AskUserQuestion";
-      const part = isAUQ ? (extractAskUserPayload(item.input).parts[0] ?? null) : null;
-      const ask = part && part.question.trim() ? part : null;
-      const text = ask
-        ? ask.question
+      const asks = isAUQ ? extractAskUserPayload(item.input).parts.filter((p) => p.question.trim()) : [];
+      const text = asks[0]
+        ? asks[0].question
         : "Question payload schema differed from expected - open the task in your terminal to see the original.";
       return {
         filter: "awaiting",
@@ -69,7 +68,7 @@ export function inboxRowModel(item: InboxItem): InboxRowModel {
         textLabel: "Claude asks",
         text,
         format: "plain",
-        ask,
+        asks,
         answeredInTerminal: true,
       };
     }
@@ -87,7 +86,7 @@ export function inboxRowModel(item: InboxItem): InboxRowModel {
         textLabel: "Lead asks",
         text: item.questionText,
         format: "markdown",
-        ask: null,
+        asks: [],
         answeredInTerminal: false,
       };
     case "codex_watcher":
@@ -102,14 +101,18 @@ export function inboxRowModel(item: InboxItem): InboxRowModel {
         textLabel: label,
         text,
         format: "plain",
-        ask: null,
+        asks: [],
         answeredInTerminal: false,
       };
     }
     default:
       // Same exhaustiveness guard as inboxItemKey: a new kind is a type error here.
-      throw new Error(`inboxRowModel: unhandled inbox item kind: ${(item as InboxItem).kind}`);
+      return unhandledKind(item);
   }
+}
+
+function unhandledKind(item: never): never {
+  throw new Error(`inboxRowModel: unhandled inbox item kind: ${(item as InboxItem).kind}`);
 }
 
 function textRow(text: string, format: "markdown" | "mono"): InboxRowModel {
@@ -120,7 +123,7 @@ function textRow(text: string, format: "markdown" | "mono"): InboxRowModel {
     textLabel: "Claude asks",
     text,
     format,
-    ask: null,
+    asks: [],
     answeredInTerminal: true,
   };
 }

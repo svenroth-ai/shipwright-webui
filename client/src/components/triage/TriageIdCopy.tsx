@@ -29,9 +29,11 @@ export interface TriageIdCopyProps {
   /** Test-id base: `<base>-id` / `<base>-copy` (default `triage-item-<id>`). */
   testIdBase?: string;
   title?: string;
+  /** Accessible name of the copy button (default: `Copy <id>`). */
+  label?: string;
 }
 
-export function TriageIdCopy({ id, display, copyValue, testIdBase, title }: TriageIdCopyProps) {
+export function TriageIdCopy({ id, display, copyValue, testIdBase, title, label }: TriageIdCopyProps) {
   const base = testIdBase ?? `triage-item-${id}`;
   const [copied, setCopied] = useState(false);
   const codeRef = useRef<HTMLElement>(null);
@@ -67,7 +69,7 @@ export function TriageIdCopy({ id, display, copyValue, testIdBase, title }: Tria
       <button
         type="button"
         onClick={() => void copy()}
-        aria-label={copied ? `Copied ${id}` : `Copy ${id}`}
+        aria-label={copied ? (label ? "Copied" : `Copied ${id}`) : (label ?? `Copy ${id}`)}
         title={copied ? "Copied" : "Copy ID"}
         data-testid={`${base}-copy`}
         className="inline-flex h-6 w-6 items-center justify-center rounded text-white/70 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white"

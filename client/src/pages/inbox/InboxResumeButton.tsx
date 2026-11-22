@@ -52,7 +52,6 @@ export function InboxResumeButton({
       }}
       data-testid={`inbox-resume-${idKey}`}
       className={variant === "dialog" ? "btn-primary" : ROW_BTN}
-      aria-label="Open the task's terminal to answer"
     >
       <Terminal size={14} aria-hidden="true" />
       Answer in the terminal

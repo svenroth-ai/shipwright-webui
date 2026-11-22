@@ -139,4 +139,15 @@ describe("Inbox fence — no control writes into a pty (AC1)", () => {
       "Inbox uses execCommand('copy') — the CTA must navigate, not copy",
     ).toEqual([]);
   });
+
+  // The ONE clipboard write on the Inbox is the row's "copy id" button
+  // (shared TriageIdCopy, outside this scan): it copies a SESSION ID, never a
+  // command. Pin that: the row is the only Inbox file using it, and it passes
+  // nothing but the session uuid as the copied value.
+  it("the only clipboard path is the row's copy-session-id button", () => {
+    expect(scan(/TriageIdCopy/).map((f) => path.basename(f))).toEqual(["InboxRow.tsx"]);
+    const row = readFileSync(path.join(SRC, "pages", "inbox", "InboxRow.tsx"), "utf8");
+    expect(row).not.toMatch(/copyValue/);
+    expect(row).toMatch(/<TriageIdCopy[^>]*id=\{sessionUuid\}/);
+  });
 });

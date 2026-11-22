@@ -38,7 +38,6 @@ interface Props {
 export function InboxDetailDialog({ open, onOpenChange, item, itemKey, model, task }: Props) {
   const navigate = useNavigate();
   const contextLine = task?.title ?? item.taskTitle;
-  const { ask } = model;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -46,6 +45,11 @@ export function InboxDetailDialog({ open, onOpenChange, item, itemKey, model, ta
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[4px]" />
         <Dialog.Content
           aria-describedby={undefined}
+          // No Dialog.Trigger here (the row opens it), so hand focus back to the row title.
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            document.querySelector<HTMLElement>(`[data-testid="inbox-row-title-${itemKey}"]`)?.focus();
+          }}
           className="kbd-dialog fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[640px] max-w-[90vw] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[var(--radius-card)] bg-[var(--surface-form,#edeae7)] p-6 shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]"
           data-testid={`inbox-detail-${itemKey}`}
         >
@@ -76,8 +80,28 @@ export function InboxDetailDialog({ open, onOpenChange, item, itemKey, model, ta
           <dl className="m-0 grid grid-cols-[7.5rem_minmax(0,1fr)] gap-x-4 gap-y-3 text-sm">
             <dt className="text-[var(--color-muted)]">{model.textLabel}</dt>
             <dd className="m-0 min-w-0 text-[var(--color-text)]" data-testid={`inbox-question-text-${itemKey}`}>
-              {ask?.header && <div className="mb-1 text-xs font-semibold uppercase tracking-wide">{ask.header}</div>}
-              {model.format === "markdown" ? (
+              {model.asks.length > 0 ? (
+                model.asks.map((ask, pi) => (
+                  <div key={pi} className={pi > 0 ? "mt-4 border-t border-[var(--surface-form-divider,#c3b8ae)] pt-3" : undefined}>
+                    {ask.header && <div className="mb-1 text-xs font-semibold uppercase tracking-wide">{ask.header}</div>}
+                    <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{ask.question}</div>
+                    {ask.context && <div className="mt-2 text-[13px] text-[var(--color-muted)]">{ask.context}</div>}
+                    {ask.options && ask.options.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {ask.options.map((o, i) => (
+                          <span
+                            key={i}
+                            data-testid={pi === 0 ? `inbox-option-chip-${i}` : `inbox-option-chip-${pi}-${i}`}
+                            className="inline-flex items-center rounded-[10px] border border-[var(--color-border)] bg-white px-3 py-1 text-[13px] font-medium"
+                          >
+                            {o}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : model.format === "markdown" ? (
                 <MarkdownText text={model.text} />
               ) : model.format === "mono" ? (
                 <pre className="m-0 max-h-[40vh] overflow-auto whitespace-pre-wrap rounded-[8px] border border-[var(--color-border)] bg-white p-2.5 font-mono text-[12.5px] leading-relaxed">
@@ -85,20 +109,6 @@ export function InboxDetailDialog({ open, onOpenChange, item, itemKey, model, ta
                 </pre>
               ) : (
                 <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{model.text}</div>
-              )}
-              {ask?.context && <div className="mt-2 text-[13px] text-[var(--color-muted)]">{ask.context}</div>}
-              {ask?.options && ask.options.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {ask.options.map((o, i) => (
-                    <span
-                      key={i}
-                      data-testid={`inbox-option-chip-${i}`}
-                      className="inline-flex items-center rounded-[10px] border border-[var(--color-border)] bg-white px-3 py-1 text-[13px] font-medium"
-                    >
-                      {o}
-                    </span>
-                  ))}
-                </div>
               )}
             </dd>
           </dl>

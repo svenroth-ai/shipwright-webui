@@ -29,7 +29,7 @@
  * groups foldable + reorderable (remembered in localStorage), same body box as
  * the Triage page.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { InboxFilterBar } from "./inbox/InboxFilterBar";
 import { InboxGroupList } from "./inbox/InboxGroupList";
@@ -48,6 +48,10 @@ export default function InboxPage() {
   const counts = useMemo(() => countByFilter(projectGroups), [projectGroups]);
   // A filter whose last entry just left (polling) falls back to all, never an empty page.
   const activeFilter: InboxFilter = counts[filter] > 0 ? filter : "all";
+  // ...and the choice itself is reset, so a later notice does not silently narrow the list again.
+  useEffect(() => {
+    if (filter !== activeFilter) setFilter(activeFilter);
+  }, [filter, activeFilter]);
 
   // The groups follow the user's own project order (drag handle on a group).
   const orderedGroups = useMemo(
@@ -82,7 +86,7 @@ export default function InboxPage() {
       {/* Body — the SAME box as the Triage page (same scroller padding, same
           .page-container), so the content's left edge does not jump when the
           operator switches between the two pages. The Inbox is simply narrower:
-          its cards cap at 720px and sit left-aligned. */}
+          its cards use the full page width like the Triage lanes. */}
       <div className="flex-1 overflow-y-auto pt-4 pb-10 md:pt-6">
         <div className="page-container density-surface">
           {isLoading && (

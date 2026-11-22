@@ -9,7 +9,7 @@
  * (the same container-query row Triage uses); the chip colours are
  * inbox-cards.css. Dark glass: explicit white tints, never a flipping token.
  */
-import { memo, useMemo } from "react";
+import { useMemo } from "react";
 
 import { TriageIdCopy } from "../../components/triage/TriageIdCopy";
 import { formatRelativeTime } from "../../lib/formatTime";
@@ -30,7 +30,7 @@ interface Props {
   legacyTestId?: string;
 }
 
-function InboxRowImpl({ itemKey, sessionUuid, model, task, onOpen, legacyTestId }: Props) {
+export function InboxRow({ itemKey, sessionUuid, model, task, onOpen, legacyTestId }: Props) {
   const timeAgo = useMemo<string | null>(() => {
     const stamp = task?.launchedAt ?? task?.createdAt;
     return stamp ? formatRelativeTime(stamp) : null;
@@ -78,9 +78,10 @@ function InboxRowImpl({ itemKey, sessionUuid, model, task, onOpen, legacyTestId 
             display={sessionUuid.slice(0, 8)}
             testIdBase={`inbox-row-${itemKey}`}
             title={`Session ${sessionUuid}`}
+            label="Copy session id"
           />
           {timeAgo && (
-            <span className="w-[3.4rem] text-right text-xs tabular-nums text-white/60" data-testid={`inbox-row-age-${itemKey}`}>
+            <span className="min-w-[3.4rem] whitespace-nowrap text-right text-xs tabular-nums text-white/60" data-testid={`inbox-row-age-${itemKey}`}>
               {timeAgo}
             </span>
           )}
@@ -89,5 +90,3 @@ function InboxRowImpl({ itemKey, sessionUuid, model, task, onOpen, legacyTestId 
     </div>
   );
 }
-
-export const InboxRow = memo(InboxRowImpl);
