@@ -48,7 +48,7 @@ export function InboxDetailDialog({ open, onOpenChange, item, itemKey, model, ta
           // No Dialog.Trigger here (the row opens it), so hand focus back to the row title.
           onCloseAutoFocus={(e) => {
             e.preventDefault();
-            document.querySelector<HTMLElement>(`[data-testid="inbox-row-title-${itemKey}"]`)?.focus();
+            document.querySelector<HTMLElement>(`[data-testid="inbox-row-title-${CSS.escape(itemKey)}"]`)?.focus();
           }}
           className="kbd-dialog fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[640px] max-w-[90vw] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[var(--radius-card)] bg-[var(--surface-form,#edeae7)] p-6 shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]"
           data-testid={`inbox-detail-${itemKey}`}

@@ -45,6 +45,11 @@ describe("firstLine", () => {
     expect(firstLine("see [the docs](http://x.test) now")).toBe("see the docs now");
   });
 
+  it("skips a line that strips to nothing (bare code fence); titles never come out empty", () => {
+    expect(firstLine("```\nreal question")).toBe("real question");
+    expect(inboxRowModel(makeTextItem({ questionText: "" })).title).toBe("Claude asks");
+  });
+
   it("returns an empty string for empty text (never throws)", () => {
     expect(firstLine("")).toBe("");
     expect(firstLine("  \n \n")).toBe("");

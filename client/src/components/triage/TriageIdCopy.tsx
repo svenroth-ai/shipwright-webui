@@ -37,6 +37,7 @@ export function TriageIdCopy({ id, display, copyValue, testIdBase, title, label 
   const base = testIdBase ?? `triage-item-${id}`;
   const [copied, setCopied] = useState(false);
   const codeRef = useRef<HTMLElement>(null);
+  const fullRef = useRef<HTMLElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -52,7 +53,8 @@ export function TriageIdCopy({ id, display, copyValue, testIdBase, title, label 
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 1500);
     } catch {
-      selectNode(codeRef.current);
+      // Select the FULL value (the visible text may be a shortened display).
+      selectNode(fullRef.current ?? codeRef.current);
     }
   };
 
@@ -66,6 +68,11 @@ export function TriageIdCopy({ id, display, copyValue, testIdBase, title, label 
       >
         {display ?? id}
       </code>
+      {copyValue && copyValue !== display && (
+        <code ref={fullRef} className="sr-only" aria-hidden="true">
+          {copyValue}
+        </code>
+      )}
       <button
         type="button"
         onClick={() => void copy()}

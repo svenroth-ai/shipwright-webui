@@ -249,3 +249,39 @@ test.describe("Inbox on a touch phone", () => {
     await page.screenshot({ path: "test-results/inbox-triage-look-phone.png", fullPage: true });
   });
 });
+
+// @covers FR-01.04
+test("hostile and very long text stays text and never breaks the row or the dialog layout", async ({ page }) => {
+  await mockInbox(page, { withProjects: true });
+  const hostile = `<img src=x onerror="window.__pwned=1"><script>window.__pwned=1</script> ${"AVeryLongUnbrokenToken".repeat(12)}`;
+  await page.route("**/api/external/inbox", (r) =>
+    r.fulfill({
+      json: {
+        items: [
+          {
+            kind: "terminal_prompt",
+            taskId: "task-a",
+            sessionUuid: SESSION_A,
+            taskTitle: "build / Inbox restyle",
+            promptText: hostile,
+            bestEffort: true,
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto("/inbox");
+  const row = page.getByTestId("inbox-card-tp-task-a");
+  await expect(row).toBeVisible();
+  await expect(page.getByTestId("inbox-row-title-tp-task-a")).toContainText("<img src=x");
+  const rowBox = await row.boundingBox();
+  const group = await page.getByTestId("inbox-project-group-proj-a").boundingBox();
+  expect(rowBox!.x + rowBox!.width).toBeLessThanOrEqual(group!.x + group!.width + 1);
+  await row.click({ position: { x: 60, y: 24 } });
+  const dialog = page.getByTestId("inbox-detail-tp-task-a");
+  await expect(dialog).toBeVisible();
+  const d = await dialog.boundingBox();
+  expect(d!.x).toBeGreaterThanOrEqual(0);
+  expect(d!.x + d!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  expect(await page.evaluate(() => (window as unknown as { __pwned?: number }).__pwned)).toBeUndefined();
+});

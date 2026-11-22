@@ -18,7 +18,7 @@ export type InboxFilter = "all" | "awaiting" | "notices";
 export type InboxChipTone = "awaiting" | "notice" | "error";
 
 export interface InboxRowModel {
-  /** Stable key, the same one `inboxItemKey` returns (kept out of here to avoid a cycle). */
+  /** Filter-bar bucket this entry belongs to. */
   filter: Exclude<InboxFilter, "all">;
   chip: { label: string; tone: InboxChipTone };
   /** First line of the text, markdown marks removed - the row title. */
@@ -43,12 +43,15 @@ const NOTICE_LABEL: Record<string, string> = {
 
 /** First non-empty line, with the common markdown marks stripped. */
 export function firstLine(text: string): string {
-  const line = text.split(/\r?\n/).find((l) => l.trim().length > 0) ?? "";
-  return line
-    .replace(/^\s*(?:#{1,6}\s+|>\s+|[-*+]\s+|\d+[.)]\s+)/, "")
-    .replace(/(\*\*|__|`)/g, "")
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .trim();
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw
+      .replace(/^\s*(?:#{1,6}\s+|>\s+|[-*+]\s+|\d+[.)]\s+)/, "")
+      .replace(/(\*\*|__|`)/g, "")
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .trim();
+    if (line) return line; // a line that strips to nothing (bare code fence) is skipped
+  }
+  return "";
 }
 
 const AWAITING = { label: "awaiting reply", tone: "awaiting" } as const;
@@ -64,7 +67,7 @@ export function inboxRowModel(item: InboxItem): InboxRowModel {
       return {
         filter: "awaiting",
         chip: AWAITING,
-        title: firstLine(text),
+        title: firstLine(text) || "Claude asks",
         textLabel: "Claude asks",
         text,
         format: "plain",
@@ -82,7 +85,7 @@ export function inboxRowModel(item: InboxItem): InboxRowModel {
       return {
         filter: "awaiting",
         chip: { label: "lead asks", tone: "awaiting" },
-        title: firstLine(item.questionText),
+        title: firstLine(item.questionText) || "Lead asks",
         textLabel: "Lead asks",
         text: item.questionText,
         format: "markdown",
@@ -119,7 +122,7 @@ function textRow(text: string, format: "markdown" | "mono"): InboxRowModel {
   return {
     filter: "awaiting",
     chip: AWAITING,
-    title: firstLine(text),
+    title: firstLine(text) || "Claude asks",
     textLabel: "Claude asks",
     text,
     format,

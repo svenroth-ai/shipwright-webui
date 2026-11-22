@@ -26,11 +26,9 @@ interface Props {
   model: InboxRowModel;
   task: ExternalTask | undefined;
   onOpen: () => void;
-  /** Extra attribute some specs still read (`data-testid-legacy`). */
-  legacyTestId?: string;
 }
 
-export function InboxRow({ itemKey, sessionUuid, model, task, onOpen, legacyTestId }: Props) {
+export function InboxRow({ itemKey, sessionUuid, model, task, onOpen }: Props) {
   const timeAgo = useMemo<string | null>(() => {
     const stamp = task?.launchedAt ?? task?.createdAt;
     return stamp ? formatRelativeTime(stamp) : null;
@@ -41,7 +39,6 @@ export function InboxRow({ itemKey, sessionUuid, model, task, onOpen, legacyTest
       role="listitem"
       className="triage-row inbox-row relative block rounded-[10px] border border-white/[0.09] bg-white/[0.055] text-white/95 transition-colors hover:border-white/20 hover:bg-white/10 focus-within:border-white/20 focus-within:bg-white/10"
       data-testid={`inbox-card-${itemKey}`}
-      data-testid-legacy={legacyTestId}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest(NO_OPEN)) return;
         // Dragging across the row's text to select it must not open the dialog.

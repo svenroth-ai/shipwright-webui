@@ -66,7 +66,6 @@ export function InboxCard({
         model={model}
         task={task}
         onOpen={() => setOpen(true)}
-        legacyTestId={item.kind === "ask_tool" ? `inbox-item-${item.toolUseId}` : undefined}
       />
       {item.kind === "ask_tool" && (
         <span data-testid={`inbox-item-${item.toolUseId}`} style={{ display: "none" }} aria-hidden="true" />
