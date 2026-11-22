@@ -56,7 +56,7 @@ import { createCodextenderModelsRoutes } from "./routes/codextender-models.js";
 import { createGradeRoutes } from "./routes/grade.js";
 import { createTerminalAppearanceRoutes } from "./routes/terminal-appearance.js";
 import { createTriageRoutes } from "./routes/triage.js";
-import { createReminderRoutes } from "./routes/reminders.js";
+import { mountReminders } from "./routes/reminder-mail-wiring.js";
 import { createCampaignsRoutes } from "./routes/campaigns.js";
 import { resolveCampaignsDir } from "./core/campaign-paths.js";
 import { readCampaigns } from "./core/campaign-store.js";
@@ -685,7 +685,7 @@ if (isMainModule) {
         }),
       );
 
-      app.route("/", createReminderRoutes({ projects: projectManager }));
+      mountReminders(app, projectManager); // reminder routes (W1) + mail Settings routes and the unref'd mail timer (W4)
 
       // FR-01.31 — Campaigns lane routes. GET is a read-only sibling of the
       // triage route; mounts after /api/external so it inherits the same

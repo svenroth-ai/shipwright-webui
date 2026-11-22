@@ -19,6 +19,8 @@ import { makeDue } from "./inbox/__fixtures__/reminder-fixtures";
 vi.mock("../hooks/useExternalInbox", () => ({ useExternalInbox: vi.fn() }));
 vi.mock("../hooks/useExternalTasks", () => ({ useExternalTasks: vi.fn() }));
 vi.mock("../hooks/useProjects", () => ({ useProjects: vi.fn() }));
+// The mail-failure banner is W4's concern; keep it off the wire so the fetch-call assertions below stay exact.
+vi.mock("../hooks/useReminderMail", () => ({ useReminderMail: () => ({ data: undefined }) }));
 vi.mock("../hooks/useReminders", async (orig) => ({
   ...(await orig<typeof import("../hooks/useReminders")>()),
   useRemindersDue: vi.fn(),
