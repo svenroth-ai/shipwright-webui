@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>1 The alert</title><link rel="stylesheet" href="mock.css"></head><body>
+<div class="top"><b>Shipwright Command Center</b><span class="mock">MOCKUP - static HTML, no server, sample data only</span><nav><a href="index.html">All screens</a></nav></div><main>
+<h1>1. The alert: where does "something is due" show up?</h1>
+<p>Counts reminders and parked triage items whose day has come, for the selected project (or all projects).</p>
+<span class="cli">CLI call: uv run --python ">=3.11" --no-project reminder_cli.py due --json   (read-only, run from the project's main checkout)</span>
+<div class="grid">
+<div class="card"><h2>Option A: header badge<span class="rec">recommended, with C</span></h2>
+<div class="top" style="border:1px solid var(--line);border-radius:8px"><b>Board</b><span>Triage</span><span>Settings</span><nav><span title="3 things are due">Due <span class="badge">3</span></span></nav></div>
+<p>Always visible, calm, one click opens the due list. Easy to overlook, because it is small.</p></div>
+<div class="card"><h2>Option B: banner on top of the board</h2>
+<div class="alert"><b>3 things are due today</b> - 2 reminders, 1 parked triage item. <a href="02-due-list.html">Open list</a> <button class="btn" style="height:28px">Dismiss for today</button></div>
+<p>Hard to miss, same orange as the "behind origin" notice. Can get annoying if you cannot act right away.</p></div>
+<div class="card"><h2>Option C: entry in the Inbox<span class="rec">recommended, with A</span></h2>
+<div class="card" style="margin:0"><span class="pill r">reminder</span> <b>Renew the signing certificate</b><div class="mock">due today - open the due list</div></div>
+<div class="card" style="margin:6px 0 0"><span class="pill t">triage</span> <b>Revisit: flaky Windows runner</b><div class="mock">park expired 4 days ago</div></div>
+<p>Lives where you already look for things that need you. Does not shout.</p></div>
+</div>
+<div class="note"><b>Recommendation:</b> A + C. The badge tells you something is there; the Inbox entries are the list. Use the banner (B) only when an item is overdue by more than a day. A parked triage item stays in the alert every day until you act on it (that is how the CLI works); a snoozed reminder reappears on its snooze date.</div>
+</main></body></html>

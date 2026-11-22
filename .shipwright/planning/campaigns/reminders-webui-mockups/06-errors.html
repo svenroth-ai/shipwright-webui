@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>6 Error states</title><link rel="stylesheet" href="mock.css"></head><body>
+<div class="top"><b>Shipwright Command Center</b><span class="mock">MOCKUP - static HTML, no server, sample data only</span><nav><a href="index.html">All screens</a></nav></div><main>
+<h1>6. Error states</h1>
+<p>Rule: when something is wrong, never show "nothing due". Say what is wrong.</p>
+<div class="card"><h2>a) The reminder tool is not available</h2><span class="cli">CLI call: uv run ... reminder_cli.py due --json -> could not start / non-zero exit / unreadable answer / unknown contractVersion</span>
+<div class="alert bad"><b>Reminders are unavailable.</b> The Shipwright reminder tool could not be started (or answered in a format this WebUI does not know). The reminder features are switched off until this is fixed. <button class="btn">Try again</button></div><p class="mock">The alert badge is replaced by a grey "?" so it is not mistaken for "all clear".</p></div>
+<div class="card"><h2>b) Triage could not be read (<code>triageError</code> set)</h2><span class="cli">CLI call: reminder_cli.py due --json (field triageError)</span>
+<div class="alert"><b>Parked triage items could not be checked</b>, so this list may be incomplete. Reminders are shown below. (Detail from the tool: "triage.jsonl: unreadable at line 12")</div></div>
+<div class="card"><h2>c) Damaged line in the reminder file (<code>reminderCorruptLines</code> &gt; 0)</h2><span class="cli">CLI call: reminder_cli.py due --json (field reminderCorruptLines)</span>
+<div class="alert"><b>2 lines in the reminder file are damaged</b> and were skipped; the reminders on them are not shown. Ask Shipwright to repair the file (the WebUI never edits it). <span class="mock">Shown only when the count is above 0.</span></div></div>
+<div class="card"><h2>d) Mail could not be sent</h2><span class="cli">CLI call: none (server-side SMTP send)</span>
+<div class="alert bad"><b>Mail to operator@example.org failed:</b> connection refused by smtp.example.org:587. The item stays in the alert. The server tries again at the next check (at most 3 tries per item and day). <a href="04-settings.html">Open mail settings</a></div></div>
+</main></body></html>

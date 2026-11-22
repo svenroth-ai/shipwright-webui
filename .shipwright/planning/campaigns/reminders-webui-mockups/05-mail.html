@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>5 The mail</title><link rel="stylesheet" href="mock.css"></head><body>
+<div class="top"><b>Shipwright Command Center</b><span class="mock">MOCKUP - static HTML, no server, sample data only</span><nav><a href="index.html">All screens</a></nav></div><main>
+<h1>5. The mail, as the recipient sees it</h1>
+<span class="cli">CLI call: content comes from one item of reminder_cli.py due --json (one mail per item and day)</span>
+<div class="mail"><div class="h"><b>Subject:</b> [Shipwright] Due: Renew the code-signing certificate<br><b>From:</b> Shipwright Command Center &lt;noreply@example.org&gt;<br><b>To:</b> operator@example.org</div>
+<div class="b"><p><b>Renew the code-signing certificate</b><br>Type: reminder - due 2026-11-22</p>
+<p><b>Why:</b> The certificate expires on 2026-12-01; the release build fails without it.</p><p><b>Decided:</b> Renew with the same vendor, 1 year.</p>
+<p><b>Still open:</b> Who pays? Needs the finance contact. (Long texts are cut after 1000 characters with "...".)</p>
+<p><b>Next step:</b> <code>/shipwright-iterate renew signing cert</code></p><p><b>Link:</b> https://example.org/vendor-order</p>
+<hr><p class="mock">Open the Command Center to mark it done or snooze it. This is the only mail for this item today. Hostile text such as &lt;script&gt;alert(1)&lt;/script&gt; arrives as plain text. No folder paths and no project path appear in the mail.</p></div></div>
+</main></body></html>

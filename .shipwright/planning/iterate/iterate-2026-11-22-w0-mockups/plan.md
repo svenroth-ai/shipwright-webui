@@ -1,0 +1,1 @@
+Goal: Six static HTML mockup screens plus open questions for the reminders WebUI | Reason: Operator must see and approve the UI before W1-W3 are built (brief section 1) | Reference: .shipwright/planning/campaigns/2026-11-22-reminders-webui-BRIEF.md

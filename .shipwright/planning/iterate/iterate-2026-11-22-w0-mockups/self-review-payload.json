@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"All six screens plus open questions exist, each names its CLI call, sample data includes long open text, triage item, snoozed reminder, damaged-line hint."},
+{"name":"Error Handling","verdict":"pass","note":"Screen 6 covers CLI missing, triageError, corrupt lines, mail failure."},
+{"name":"Security Basics","verdict":"pass","note":"No scripts or external resources; hostile text shown pre-escaped; no local paths or secrets in samples."},
+{"name":"Test Quality","verdict":"n/a","note":"Static HTML, nothing executable; grep check for script tags and external URLs."},
+{"name":"Performance Basics","verdict":"n/a","note":"Static pages."},
+{"name":"Naming & Structure","verdict":"pass","note":"Numbered files, shared mock.css, index.html."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No serialized format produced or consumed; CLI contract only described."},
+{"name":"Scope","verdict":"pass","note":"No production code touched; W1-W3 not started."}]}
