@@ -60,6 +60,22 @@ describe("nodemailer transport (loopback fake SMTP)", () => {
     expect(smtp.authLines.length).toBeGreaterThan(0);
   });
 
+  it("two due items in one check arrive as two separate mails on the real transport", async () => {
+    await saveSettings(dir, { ...DEFAULT_SETTINGS, enabled: true, format: "item", recipient: "you@example.org", smtpHost: "127.0.0.1", smtpPort: smtp.port, smtpUser: "me@example.org", webuiAddress: "http://localhost:3847" });
+    await writeSmtpPassword(dir, PASS);
+    const mk = (id: string) => ({ kind: "reminder" as const, id, title: `T ${id}`, due: "2026-11-22", why: "w", decided: null, open: null, command: null, links: [], severity: null });
+    const svc = new ReminderMailService({
+      dir, listProjects: () => [{ id: "p1", path: "S:/p1", name: "P" }], makeTransport: nodemailerTransport,
+      readDue: async () => ({ kind: "ok", storeKey: "S:/s", view: { contractVersion: 1, on: "2026-11-22", reminderCorruptLines: 0, triageError: null, items: [mk("rem-1"), mk("rem-2")] } }),
+    });
+    await svc.runCheck();
+    expect(smtp.messages).toHaveLength(2);
+    expect(smtp.messages.join("\n")).toContain("T rem-1");
+    expect(smtp.messages.join("\n")).toContain("T rem-2");
+    await svc.runCheck(); // the same day: nothing again
+    expect(smtp.messages).toHaveLength(2);
+  });
+
   it("a closed port gives the exact, plain failure", async () => {
     await smtp.close();
     const cfg = { host: "127.0.0.1", port: smtp.port, user: "", pass: null };

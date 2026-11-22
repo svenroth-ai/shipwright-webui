@@ -86,7 +86,7 @@ export function ReminderMailCard() {
       </div>
       {err && (
         <p role="alert" data-testid="reminder-mail-last-error" style={{ margin: 0, fontSize: "13px", color: "#fff", background: "#7a1f17", border: "1px solid #f97066", borderRadius: "var(--radius-button)", padding: "10px 12px", overflowWrap: "anywhere" }}>
-          <b>Mail to {err.recipient} failed:</b> {err.message.replace(/\.+$/, "")}. The server tries again at the next check (at most 3 tries per item and day).
+          <b>Mail to {err.recipient} failed:</b> {err.message.replace(/\.+$/, "")}. {data?.settings.checkInterval === "daily" ? "The server tries again at tomorrow's check (one check a day)." : "The server tries again at the next check (at most 3 tries per item and day)."}
         </p>
       )}
       <ReminderMailFields form={form} set={set} passwordSet={passwordSet} onClearPassword={() => {

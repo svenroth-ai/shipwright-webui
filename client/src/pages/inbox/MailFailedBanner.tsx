@@ -17,8 +17,9 @@ export function MailFailedBanner() {
     <div className="inbox-banner is-error" role="alert" data-testid="inbox-mail-failed">
       <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
       <div className="inbox-banner-body">
-        <b>Mail to {err.recipient} failed:</b> {err.message.replace(/\.+$/, "")}. The item stays in the Inbox. The server tries again at the next check
-        (at most 3 tries per item and day).
+        <b>Mail to {err.recipient} failed:</b> {err.message.replace(/\.+$/, "")}. The item stays in the Inbox. {data?.settings.checkInterval === "daily"
+          ? "The server tries again at tomorrow's check (one check a day)."
+          : "The server tries again at the next check (at most 3 tries per item and day)."}
       </div>
       <button type="button" onClick={() => navigate("/settings")} data-testid="inbox-mail-failed-settings">
         Open mail settings

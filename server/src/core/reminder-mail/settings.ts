@@ -63,6 +63,11 @@ export function normalizeAddress(v: string): string | null {
 }
 
 /** Tolerant read-side normalizer: a hand-edited / corrupt file never crashes the timer. */
+// A hand-edited file is not trusted: an invalid recipient / host / user reads as "not set" (mail then stays off).
+const validRecipient = (v: string): string => (EMAIL.test(v.trim()) ? v.trim() : "");
+const validHost = (v: string): string => (HOST.test(v.trim()) && v.trim().length <= 255 ? v.trim() : "");
+const validUser = (v: string): string => (/[\r\n]/.test(v) || v.trim().length > 255 ? "" : v.trim());
+
 export function normalizeSettings(raw: unknown): ReminderMailSettings {
   const r = isRecord(raw) ? raw : {};
   const d = DEFAULT_SETTINGS;
@@ -70,14 +75,14 @@ export function normalizeSettings(raw: unknown): ReminderMailSettings {
   const port = typeof r.smtpPort === "number" && Number.isInteger(r.smtpPort) && r.smtpPort > 0 && r.smtpPort < 65536 ? r.smtpPort : d.smtpPort;
   return {
     enabled: r.enabled === true,
-    recipient: str(r.recipient, d.recipient),
+    recipient: validRecipient(str(r.recipient, d.recipient)),
     format: (FORMATS as readonly unknown[]).includes(r.format) ? (r.format as MailFormat) : d.format,
     summaryTime: typeof r.summaryTime === "string" && TIME.test(r.summaryTime) ? r.summaryTime : d.summaryTime,
     summaryWhenEmpty: r.summaryWhenEmpty === true,
     webuiAddress: normalizeAddress(str(r.webuiAddress, d.webuiAddress)) ?? "", // a hand-edited bad value = not set
-    smtpHost: str(r.smtpHost, d.smtpHost),
+    smtpHost: validHost(str(r.smtpHost, d.smtpHost)),
     smtpPort: port,
-    smtpUser: str(r.smtpUser, d.smtpUser),
+    smtpUser: validUser(str(r.smtpUser, d.smtpUser)),
     checkInterval: (INTERVALS as readonly unknown[]).includes(r.checkInterval) ? (r.checkInterval as CheckInterval) : d.checkInterval,
   };
 }
@@ -104,11 +109,12 @@ export function parseSettingsBody(raw: unknown): SettingsParse {
   if (raw.checkInterval !== undefined && !(INTERVALS as readonly unknown[]).includes(raw.checkInterval)) return { ok: false, error: "Unknown check interval." };
   if (raw.summaryTime !== undefined && !(typeof raw.summaryTime === "string" && TIME.test(raw.summaryTime))) return { ok: false, error: "Summary time must look like 08:00." };
   if (raw.smtpPort !== undefined && s.smtpPort !== raw.smtpPort) return { ok: false, error: "Port must be a number between 1 and 65535." };
-  const recipient = s.recipient.trim();
+  const rawStr = (k: string): string => (typeof raw[k] === "string" ? (raw[k] as string) : "");
+  const recipient = rawStr("recipient").trim();
   if (recipient && !EMAIL.test(recipient)) return { ok: false, error: "Recipient must be one e-mail address." };
-  const host = s.smtpHost.trim();
+  const host = rawStr("smtpHost").trim();
   if (host && (!HOST.test(host) || host.length > 255)) return { ok: false, error: "SMTP server must be a plain host name; put the port in the Port field." };
-  const user = s.smtpUser.trim();
+  const user = rawStr("smtpUser").trim();
   if (/[\r\n]/.test(user) || user.length > 255) return { ok: false, error: "User name is not valid." };
   let address = "";
   const rawAddress = typeof raw.webuiAddress === "string" ? raw.webuiAddress : "";

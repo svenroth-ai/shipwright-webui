@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { startReminderMailTimer } from "./timer.js";
 import {
   DEFAULT_SETTINGS, envFile, hasSmtpPassword, insideGitRepo, loadSettings, parseSettingsBody,
-  readSmtpPassword, saveSettings, settingsFile, writeSmtpPassword,
+  missingForSending, normalizeSettings, readSmtpPassword, saveSettings, settingsFile, writeSmtpPassword,
 } from "./settings.js";
 
 let dir: string;
@@ -60,6 +60,22 @@ describe("settings", () => {
     expect(r).toMatchObject({ ok: true, settings: { webuiAddress: "http://localhost:3847" }, password: { kind: "set", value: "pw1" } });
     expect(parseSettingsBody(body({}))).toMatchObject({ password: { kind: "keep" } });
     expect(parseSettingsBody(body({ clearPassword: true }))).toMatchObject({ password: { kind: "clear" } });
+  });
+});
+
+// @covers FR-01.77
+describe("hand-edited settings file", () => {
+  it("an invalid recipient, host or user name reads as not set, never used", () => {
+    const s = normalizeSettings({ enabled: true, recipient: "a@b.co\nBcc: x@y.zz", smtpHost: "evil.example\r\nX: 1", smtpUser: "u\r\nv", smtpPort: 587 });
+    expect(s.recipient).toBe("");
+    expect(s.smtpHost).toBe("");
+    expect(s.smtpUser).toBe("");
+    expect(missingForSending(s)).toEqual(expect.arrayContaining(["recipient", "SMTP server"]));
+  });
+
+  it("a valid hand-edited value is kept", () => {
+    const s = normalizeSettings({ recipient: " me@example.org ", smtpHost: "smtp.example.org", smtpUser: "me" });
+    expect([s.recipient, s.smtpHost, s.smtpUser]).toEqual(["me@example.org", "smtp.example.org", "me"]);
   });
 });
 

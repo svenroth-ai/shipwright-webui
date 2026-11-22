@@ -63,6 +63,15 @@ describe("reminder mail service - ledger and status", () => {
     expect(m).not.toContain("Delete");
   });
 
+  it("a failed mail that cannot be given back is reported, not swallowed", async () => {
+    await enable();
+    failWith = new Error("down");
+    let ledgerLocks = 0;
+    const svc = make({ lock: async (f: string) => { if (!f.includes("ledger") || ++ledgerLocks === 1) return defaultLock(f); throw new Error("disk trouble"); } });
+    await svc.runCheck();
+    expect(svc.getStatus().error?.message).toContain("could not be given back");
+  });
+
   it("a failed summary stays visible in 'both' even when the item mails went out", async () => {
     await enable({ format: "both", summaryTime: "08:00" });
     due = [rem("rem-1")];

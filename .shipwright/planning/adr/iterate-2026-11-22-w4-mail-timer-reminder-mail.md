@@ -49,5 +49,13 @@ Verdict approve with fixes, all applied: daily-timer skip bug, saved password fo
 | Host-change guard skipped when no host was set; password written before settings; crashed check burned the daily slot | accepted-and-fixed |
 | Corrupt settings file silently turns mail off | rejected-with-reason: tolerant read is the documented design; the Settings card shows mail off |
 
+## Accepted review notes (orchestrator code review of b73b8aa8, doubt review)
+- L2: 25 mails per check is a hard cap per check; in daily mode the first 25 entries win each day while they stay due. The Inbox still shows every item.
+- L4: the password write and the settings write are two separately locked writes; a check between them in a millisecond window is accepted (a changed server without a retyped password is refused up front).
+- L6: a daily timer makes one try per day in practice, so "3 tries per item and day" is an upper bound; the notice text says "one check a day" in daily mode.
+- L7: in "both" a reminder appears in its own mail and in the summary (both channels on purpose); parked triage items are kept out of the summary.
+- L8: http(s) link addresses are mailed as given; the link host is shown next to the label.
+- At-most-once delivery stays (see above); a failed release of a claim is now retried once and, if it still fails, shown in the status.
+
 ## Confidence Calibration
 Boundaries probed: SMTP (real nodemailer against a loopback server, in vitest and in a real browser), `.env.local` (quote / backslash round trip, git-repo refusal), ledger and settings files (missing, empty, damaged, concurrent), the `due` answer to mail (hostile text, long text, paths, links). Not probed: a real third-party SMTP relay with STARTTLS and a certificate (no relay available here), DST transitions on a real machine (day keys are local-calendar based and pinned across midnight only).

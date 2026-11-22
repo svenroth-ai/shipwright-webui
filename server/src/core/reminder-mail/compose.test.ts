@@ -25,6 +25,27 @@ describe("clean", () => {
     expect(out.match(/\[path\]/g)).toHaveLength(4);
   });
 
+  it.each([
+    ["backtick-quoted", "see `/Users/sven/acme/notes.md` now", "Users/sven"],
+    ["colon-prefixed", "store:/home/sven/proj/reminders.jsonl", "home/sven"],
+    ["bracketed", "see [~/secret/x] here", "secret"],
+    ["angle-bracketed", "see </projects/acme/readme.md> here", "acme"],
+    ["comma-prefixed", "a,/var/lib/app/data.db,b", "var/lib"],
+    ["parenthesised home", "(~/secret/x)", "secret"],
+  ])("redacts a %s path", (_name, input, leak) => {
+    const out = clean(input);
+    expect(out).toContain("[path]");
+    expect(out).not.toContain(leak);
+  });
+
+  it("keeps a web address that has a path-looking part, also next to quotes and brackets", () => {
+    const out = clean("see https://host.example/home/x/y and `https://host.example/Users/a/b` and [http://h.example:8080/var/lib/z]");
+    expect(out).toContain("https://host.example/home/x/y");
+    expect(out).toContain("https://host.example/Users/a/b");
+    expect(out).toContain("http://h.example:8080/var/lib/z");
+    expect(out).not.toContain("[path]");
+  });
+
   it("strips control and bidi characters", () => {
     expect(clean("a\u0000b\u202Ec\u0007d")).toBe("abcd");
   });

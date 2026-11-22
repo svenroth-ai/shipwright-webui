@@ -34,11 +34,14 @@ export function escapeHtml(s: string): string {
 
 const WIN_PATH = /(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s"'<>|]*/g;
 const UNC_PATH = /\\\\[^\s\\]+\\[^\s"'<>|]*/g;
-const POSIX_PATH = /(^|[\s("'=])\/(?:[a-zA-Z]\/(?:Users|Documents and Settings)|Users|home|var|etc|opt|tmp|mnt|root|private|srv|usr|Volumes|workspace|data|builds|nix)\/[^\s"'<>|]*/g;
+// A path starts where the previous character is not part of a word, a slash or a dot: backticks, brackets,
+// colons, commas and angle brackets all count as "start", while "https://host/home/x" (preceded by a word
+// character or a slash) is a web address and survives.
+const POSIX_PATH = /(?<![\w/.])\/(?:[a-zA-Z]\/(?:Users|Documents and Settings)|Users|home|var|etc|opt|tmp|mnt|root|private|srv|usr|Volumes|workspace|data|builds|nix)\/[^\s"'<>|`\])]*/g;
 const FILE_URL = /file:\/\/[^\s"'<>|]*/gi;
 // Any other absolute path with at least two segments ("/projects/acme/x"), not a URL: a lone "/command" stays.
-const ANY_ABS_PATH = /(^|[\s("'=])\/[\w.@~-]+(?:\/[^\s"'<>|]+)+/g;
-const HOME_PATH = /(^|[\s("'=])~[\\/][^\s"'<>|]*/g;
+const ANY_ABS_PATH = /(?<![\w/.])\/[\w.@~-]+(?:\/[^\s"'<>|`\])]+)+/g;
+const HOME_PATH = /(?<![\w~])~[\\/][^\s"'<>|`\])]*/g;
 
 /** Plain-text hygiene shared by every field: no controls, no local paths, cut at `max`. */
 export function clean(value: string | null | undefined, max = MAX_FIELD_CHARS): string {
@@ -46,7 +49,7 @@ export function clean(value: string | null | undefined, max = MAX_FIELD_CHARS): 
     // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u2028\u2029\u202A-\u202E\u2066-\u2069]/g, "")
     .replace(/\r\n?/g, "\n");
-  s = s.replace(WIN_PATH, "[path]").replace(UNC_PATH, "[path]").replace(FILE_URL, "[path]").replace(POSIX_PATH, "$1[path]").replace(ANY_ABS_PATH, "$1[path]").replace(HOME_PATH, "$1[path]");
+  s = s.replace(WIN_PATH, "[path]").replace(UNC_PATH, "[path]").replace(FILE_URL, "[path]").replace(POSIX_PATH, "[path]").replace(ANY_ABS_PATH, "[path]").replace(HOME_PATH, "[path]");
   s = s.trim();
   return s.length > max ? `${s.slice(0, max)}...` : s;
 }

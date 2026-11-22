@@ -224,7 +224,11 @@ export class ReminderMailService {
         consecutive = 0;
         return true;
       } catch (err) {
-        await this.ledger.failClaim(key, day).catch(() => undefined);
+        if (!(await this.ledger.release(key, day))) {
+          // The key stays marked as sent although the mail did not go out: say so, and stop this check.
+          stop = true;
+          firstError = "A failed mail could not be given back in the ledger, so it may not be retried. Check reminder-mail-ledger.json in the WebUI user folder.";
+        }
         failed++;
         consecutive++;
         const why = describeSendError(err, cfg);

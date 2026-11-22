@@ -99,6 +99,19 @@ export class MailLedger {
     }, this.lock, { strict: true });
   }
 
+  /** Give a failed claim back, retrying once. Returns false when it could not be released (the caller must say so). */
+  async release(key: string, day: string): Promise<boolean> {
+    for (let i = 0; i < 2; i++) {
+      try {
+        await this.failClaim(key, day);
+        return true;
+      } catch {
+        /* retry once */
+      }
+    }
+    return false;
+  }
+
   /** The send failed: give the key back and count the try (at most MAX_TRIES_PER_DAY per day). */
   async failClaim(key: string, day: string): Promise<void> {
     await updateJson(this.file, normalize, (cur) => {
