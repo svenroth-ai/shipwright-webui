@@ -1,6 +1,3 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { ReminderDueResult, ReminderWriteResult } from "../core/reminder-cli-runner.js";
@@ -61,25 +58,51 @@ describe("GET due", () => {
     expect(body.projects.map((p: { projectId: string; state: string }) => [p.projectId, p.state])).toEqual([["p1", "ok"], ["p2", "unreadable"]]);
   });
 
-  it("two registrations of one repo (main + linked worktree) are read once, the second says shared-root", async () => {
-    const base = mkdtempSync(path.join(os.tmpdir(), "rem-share-"));
-    try {
-      const main = path.join(base, "main");
-      const wt = path.join(base, "wt");
-      mkdirSync(path.join(main, ".git", "worktrees", "wt"), { recursive: true });
-      mkdirSync(wt, { recursive: true });
-      writeFileSync(path.join(wt, ".git"), `gitdir: ${path.join(main, ".git", "worktrees", "wt")}`);
-      const roots: string[] = [];
-      const a = createReminderRoutes({
-        projects: { getAll: () => [{ id: "m", path: main }, { id: "w", path: wt }], getById: () => undefined },
-        runReminderDue: async (root) => { roots.push(root); return okDue(); },
-      });
-      const body = await (await a.request("/api/reminders/due")).json();
-      expect(roots).toEqual([main]);
-      expect(body.projects).toEqual([expect.objectContaining({ projectId: "m", state: "ok" }), { projectId: "w", state: "shared-root", sharedWithProjectId: "m" }]);
-    } finally {
-      rmSync(base, { recursive: true, force: true });
-    }
+  it("registrations that reach ONE store list its reminders once; triage items stay per project", async () => {
+    const a = createReminderRoutes({
+      projects: { getAll: () => [{ id: "m", path: "C:/repo" }, { id: "n", path: "C:/repo/sub" }, { id: "o", path: "C:/other" }], getById: () => undefined },
+      runReminderDue: async (root) => {
+        const r = okDue();
+        if (r.kind !== "ok") throw new Error("fixture");
+        return { ...r, storeKey: root === "C:/other" ? "C:/other/.shipwright/reminders.jsonl" : "C:/Repo/.shipwright/reminders.jsonl" };
+      },
+    });
+    const body = await (await a.request("/api/reminders/due")).json();
+    const [m, n, o] = body.projects;
+    expect(m.items.map((i: { kind: string }) => i.kind)).toEqual(["reminder", "triage"]);
+    expect(n.items.map((i: { kind: string }) => i.kind)).toEqual(["triage"]);
+    expect(n.remindersSharedWithProjectId).toBe("m");
+    expect(o.items).toHaveLength(2);
+    expect(JSON.stringify(body)).not.toContain("reminders.jsonl");
+  });
+
+  it("the all-projects read is shared while in flight and the CLI children are capped at 3 across requests", async () => {
+    let active = 0;
+    let peak = 0;
+    let calls = 0;
+    const projects = Array.from({ length: 8 }, (_, i) => ({ id: `p${i}`, path: `C:/p${i}` }));
+    const a = createReminderRoutes({
+      projects: { getAll: () => projects, getById: (id) => projects.find((p) => p.id === id) },
+      runReminderDue: async () => {
+        calls++; active++; peak = Math.max(peak, active);
+        await new Promise((r) => setTimeout(r, 15));
+        active--;
+        return okDue();
+      },
+    });
+    const [r1, r2, r3] = await Promise.all([a.request("/api/reminders/due"), a.request("/api/reminders/due"), a.request("/api/reminders/p1/due")]);
+    expect([r1.status, r2.status, r3.status]).toEqual([200, 200, 200]);
+    expect(calls).toBe(9); // one shared all-projects run (8) + one per-project read
+    expect(peak).toBeLessThanOrEqual(3);
+  });
+
+  it("refuses a cross-site GET before any CLI call", async () => {
+    let calls = 0;
+    const { a } = app({ due: async () => { calls++; return okDue(); } });
+    expect((await a.request("/api/reminders/due", { headers: { "sec-fetch-site": "cross-site" } })).status).toBe(403);
+    expect((await a.request("/api/reminders/p1/due", { headers: { "sec-fetch-site": "cross-site" } })).status).toBe(403);
+    expect((await a.request("/api/reminders/p1/due", { headers: { "sec-fetch-site": "same-origin" } })).status).toBe(200);
+    expect(calls).toBe(1);
   });
 
   it("a throwing runner becomes a failed state for that project only", async () => {

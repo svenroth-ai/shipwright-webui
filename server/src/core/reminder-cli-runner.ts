@@ -68,7 +68,7 @@ export type ReminderCliFailure =
   | { kind: "failed"; reason: string };
 
 export type ReminderDueResult =
-  | { kind: "ok"; view: ReminderDueView }
+  | { kind: "ok"; view: ReminderDueView; storeKey: string | null }
   | { kind: "unsupported-version"; contractVersion: unknown }
   | { kind: "unreadable"; reason: string }
   | ReminderCliFailure;
@@ -179,7 +179,7 @@ export async function runReminderDue(
   const failure = commonFailure(res.code, res.spawnError, res.stderr);
   if (failure) return failure;
   const parsed = parseDueAnswer(res.stdout);
-  if (parsed.kind === "ok") return { kind: "ok", view: parsed.view };
+  if (parsed.kind === "ok") return { kind: "ok", view: parsed.view, storeKey: parsed.storeKey };
   return parsed;
 }
 

@@ -28,7 +28,7 @@ import {
   type ReminderDueResult,
   type ReminderWriteResult,
 } from "../core/reminder-cli-runner.js";
-import { resolveMainCheckout } from "../core/reminder-main-root.js";
+import type { ReminderDueItem } from "../core/reminder-contract.js";
 import { parseAddBody, parseReminderId, parseSnoozeBody } from "../core/reminder-validation.js";
 
 export interface ReminderProjectMeta {
@@ -49,8 +49,8 @@ export interface ReminderRoutesDeps {
   runReminderWrite?: typeof runReminderWrite;
 }
 
-/** Spawn at most this many `uv run` children at once for the all-projects read. */
-const ALL_PROJECTS_CONCURRENCY = 3;
+/** At most this many CLI children at once, across all requests. */
+const MAX_CLI_CHILDREN = 3;
 
 type DueBody = Record<string, unknown> & { state: string };
 
@@ -104,46 +104,65 @@ export function createReminderRoutes(deps: ReminderRoutesDeps): Hono {
   const readDue = deps.runReminderDue ?? runReminderDue;
   const write = deps.runReminderWrite ?? runReminderWrite;
 
-  app.get("/api/reminders/due", async (c) => {
+  // Process-wide cap on concurrent CLI children (every route, every request), a FIFO queue beyond it.
+  let active = 0;
+  const waiting: (() => void)[] = [];
+  async function limited<T>(fn: () => Promise<T>): Promise<T> {
+    if (active >= MAX_CLI_CHILDREN) await new Promise<void>((resolve) => waiting.push(resolve));
+    active++;
+    try {
+      return await fn();
+    } finally {
+      active--;
+      waiting.shift()?.();
+    }
+  }
+
+  // A cross-site page can fire a simple GET (CORS only hides the answer, the handler still runs).
+  app.use("/api/reminders/*", async (c, next) => {
+    if (c.req.method === "GET" && c.req.header("sec-fetch-site") === "cross-site") return c.json({ error: "cross_site_refused" }, 403);
+    await next();
+  });
+
+  async function readAll(): Promise<Record<string, unknown>[]> {
     const projects = deps.projects.getAll().filter((p) => !p.synthesized);
-    // Two registrations of one repo (main tree + a linked worktree) share ONE store:
-    // read it once, under the first project; the other gets an explicit shared-root state.
-    const firstByRoot = new Map<string, string>();
-    const sharedWith = projects.map((p) => {
-      const root = resolveMainCheckout(p.path);
-      const first = firstByRoot.get(root);
-      if (first === undefined) firstByRoot.set(root, p.id);
-      return first;
-    });
-    const entries: Record<string, unknown>[] = Array.from({ length: projects.length });
-    let next = 0;
-    // `next` is only mutated synchronously (never across an await), so workers cannot share an index.
-    const worker = async (): Promise<void> => {
-      for (let i = next++; i < projects.length; i = next++) {
-        const p = projects[i];
-        const shared = sharedWith[i];
-        if (shared !== undefined) {
-          entries[i] = { projectId: p.id, state: "shared-root", sharedWithProjectId: shared };
-          continue;
-        }
-        let body: DueBody;
-        try {
-          body = dueResponse(await readDue(p.path)).body;
-        } catch {
-          body = { state: "failed", reason: "The reminder check failed unexpectedly." };
-        }
-        entries[i] = { projectId: p.id, ...body };
+    const results = await Promise.all(projects.map(async (p) => {
+      try {
+        return await limited(() => readDue(p.path));
+      } catch {
+        return { kind: "failed", reason: "The reminder check failed unexpectedly." } as ReminderDueResult;
       }
-    };
-    await Promise.all(Array.from({ length: Math.min(ALL_PROJECTS_CONCURRENCY, projects.length) }, worker));
-    return c.json({ projects: entries });
+    }));
+    // Registrations that reach ONE store (a nested project, a worktree, a differently-cased path)
+    // would list the same reminders twice: keep them under the first project that answered.
+    const storeOwner = new Map<string, string>();
+    return results.map((r, i) => {
+      const p = projects[i];
+      const { body } = dueResponse(r);
+      if (r.kind !== "ok" || typeof r.storeKey !== "string") return { projectId: p.id, ...body };
+      const key = process.platform === "win32" ? r.storeKey.toLowerCase().replaceAll("\\", "/") : r.storeKey;
+      const owner = storeOwner.get(key);
+      if (owner === undefined) {
+        storeOwner.set(key, p.id);
+        return { projectId: p.id, ...body };
+      }
+      const items = (body.items as ReminderDueItem[]).filter((it) => it.kind !== "reminder");
+      return { projectId: p.id, ...body, items, remindersSharedWithProjectId: owner };
+    });
+  }
+
+  // One all-projects read at a time: concurrent callers (tabs, a timer) share the in-flight run.
+  let inflightAll: Promise<Record<string, unknown>[]> | null = null;
+  app.get("/api/reminders/due", async (c) => {
+    inflightAll ??= readAll().finally(() => { inflightAll = null; });
+    return c.json({ projects: await inflightAll });
   });
 
   app.get("/api/reminders/:projectId/due", async (c) => {
     const project = deps.projects.getById(c.req.param("projectId"));
     if (!project || project.synthesized) return c.json({ error: "project_not_found" }, 404);
     try {
-      const { status, body } = dueResponse(await readDue(project.path));
+      const { status, body } = dueResponse(await limited(() => readDue(project.path)));
       return c.json({ projectId: project.id, ...body }, status);
     } catch {
       return c.json({ projectId: project.id, state: "failed", reason: "The reminder check failed unexpectedly." }, 502);

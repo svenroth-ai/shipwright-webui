@@ -47,6 +47,17 @@ describe("reminder due contract (pinned, v1)", () => {
     expect(r.kind === "ok" && r.view.items[0]).not.toHaveProperty("secretExtra");
   });
 
+  it("a url link that is not http(s) loses its address on the read path (label stays)", () => {
+    const links = [
+      { label: "bad", kind: "url", ref: "javascript:alert(1)" },
+      { label: "data", kind: "url", ref: "data:text/html,x" },
+      { label: "ok", kind: "url", ref: "https://example.com/a" },
+      { label: "Triage x", kind: "triage", ref: "trg-1" },
+    ];
+    const r = parseDueAnswer(JSON.stringify({ ...GOOD_ANSWER, items: [{ ...GOOD_ANSWER.items[0], links }] }));
+    expect(r.kind === "ok" && r.view.items[0].links.map((l) => l.ref)).toEqual([null, null, "https://example.com/a", "trg-1"]);
+  });
+
   it("an unknown contractVersion is its own state, never read as data", () => {
     expect(parseDueAnswer(JSON.stringify({ ...GOOD_ANSWER, contractVersion: 2 }))).toEqual({ kind: "unsupported-version", contractVersion: 2 });
     expect(parseDueAnswer(JSON.stringify({ items: [] }))).toMatchObject({ kind: "unreadable" }); // no version named

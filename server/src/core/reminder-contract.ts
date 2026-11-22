@@ -53,7 +53,7 @@ export interface ReminderDueView {
 }
 
 export type ReminderDueParse =
-  | { kind: "ok"; view: ReminderDueView }
+  | { kind: "ok"; view: ReminderDueView; storeKey: string | null }
   | { kind: "unsupported-version"; contractVersion: unknown }
   | { kind: "unreadable"; reason: string };
 
@@ -62,11 +62,22 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 const strOrNull = (v: unknown): v is string | null => v === null || typeof v === "string";
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
+const isHttpUrl = (v: string): boolean => {
+  try {
+    const p = new URL(v).protocol;
+    return p === "http:" || p === "https:";
+  } catch {
+    return false;
+  }
+};
+
 function parseLink(raw: unknown): ReminderLink | null {
   if (!isRecord(raw)) return null;
   const { label, kind, ref } = raw;
   if (!strOrNull(label) || !strOrNull(kind) || !strOrNull(ref)) return null;
-  return { label, kind, ref };
+  // A `url` link whose address is not http(s) (javascript:, data:, ...) must never become a live
+  // href in a later page or mail: its address is dropped, the label stays as plain text.
+  return { label, kind, ref: kind === "url" && ref !== null && !isHttpUrl(ref) ? null : ref };
 }
 
 function parseItem(raw: unknown): ReminderDueItem | null {
@@ -126,8 +137,11 @@ export function parseDueAnswer(stdout: string): ReminderDueParse {
     if (!p) return { kind: "unreadable", reason: "An item in the answer does not match the contract." };
     parsed.push(p);
   }
+  // The store path itself never leaves the server; it only identifies WHICH store answered.
+  const storeKey = typeof raw.reminderStore === "string" ? raw.reminderStore : null;
   return {
     kind: "ok",
     view: { contractVersion: 1, on, reminderCorruptLines, triageError, items: parsed },
+    storeKey,
   };
 }

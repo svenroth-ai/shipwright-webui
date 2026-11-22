@@ -57,6 +57,16 @@ describe.skipIf(!enabled)("reminder CLI bridge against the real CLI", () => {
     if (refused.kind === "refused") expect(refused.message).toMatch(/looks like it contains a secret/);
     expect(existsSync(path.join(root, ".shipwright", "reminders.jsonl"))).toBe(true);
   }, 120_000);
+  it("embedded quotes, trailing backslashes and a lone -- title survive the argv round trip", async () => {
+    const bs = String.fromCharCode(92);
+    const why = `say "hi" in C:${bs}dir${bs}`;
+    const added = await runReminderWrite(root, { operation: "add", title: "--", due: "2020-01-03", why, open: `a ${bs}${bs}" b${bs}` });
+    expect(added.kind).toBe("ok");
+    const due = await runReminderDue(root);
+    if (due.kind !== "ok" || added.kind !== "ok" || added.operation !== "add") throw new Error("round trip failed");
+    expect(due.view.items.find((i) => i.id === added.reminder.id)).toMatchObject({ title: "--", why, open: `a ${bs}${bs}" b${bs}` });
+  }, 120_000);
+
   it("non-ASCII text, multi-line open and a title that looks like an option survive the argv round trip", async () => {
     const lf = String.fromCharCode(10);
     const open = ["Zeile eins: Café Über 日本語", "second line", "third"].join(lf);
