@@ -59,10 +59,12 @@ export function createReminderMailRoutes(deps: { dir: string; service: ReminderM
       return c.json({ error: "invalid_body", message: "You changed the SMTP server or user name. Enter the password again for the new server (or remove the saved one)." }, 400);
     }
     try {
+      // Password FIRST: if it cannot be stored nothing else changes, so the old password can never end up paired with a new server.
+      if (parsed.password.kind === "set") await writeSmtpPassword(deps.dir, parsed.password.value);
+      else if (parsed.password.kind === "clear") await writeSmtpPassword(deps.dir, null);
       await saveSettings(deps.dir, parsed.settings);
-      if (parsed.password.kind === "set") writeSmtpPassword(deps.dir, parsed.password.value);
-      else if (parsed.password.kind === "clear") writeSmtpPassword(deps.dir, null);
-      if (!parsed.settings.enabled) await deps.service.clearError(); // a stale failure must not outlive "mail off"
+      // A stale failure must not outlive "mail off" or a changed server / password: the next check says the truth again.
+      if (!parsed.settings.enabled || serverChanged || parsed.password.kind !== "keep") await deps.service.clearError();
     } catch (err) {
       // The message of OUR errors (repo refusal) is safe; nothing here ever holds the password text.
       const message = err instanceof Error && err.message.startsWith("The WebUI user folder") ? err.message : "The settings could not be saved.";

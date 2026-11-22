@@ -63,21 +63,21 @@ describe("settings", () => {
 });
 
 describe(".env.local secret", () => {
-  it("stores the password in .env.local only, with other lines kept, and removes it again", () => {
-    writeSmtpPassword(dir, 'p"w\\1');
+  it("stores the password in .env.local only, with other lines kept, and removes it again", async () => {
+    await writeSmtpPassword(dir, 'p"w\\1');
     expect(readSmtpPassword(dir)).toBe('p"w\\1');
     expect(hasSmtpPassword(dir)).toBe(true);
     expect(existsSync(envFile(dir))).toBe(true);
     expect(existsSync(settingsFile(dir))).toBe(false);
-    writeSmtpPassword(dir, null);
+    await writeSmtpPassword(dir, null);
     expect(hasSmtpPassword(dir)).toBe(false);
   });
 
-  it("refuses to store the password inside a git repository", () => {
+  it("refuses to store the password inside a git repository", async () => {
     mkdirSync(path.join(dir, ".git"));
     const inner = path.join(dir, "data");
     expect(insideGitRepo(inner)).toBe(true);
-    expect(() => writeSmtpPassword(inner, "x")).toThrow(/git repository/);
+    await expect(writeSmtpPassword(inner, "x")).rejects.toThrow(/git repository/);
     expect(existsSync(envFile(inner))).toBe(false);
   });
 
@@ -88,8 +88,8 @@ describe(".env.local secret", () => {
     expect(rel.startsWith("..") || path.isAbsolute(rel)).toBe(true);
   });
 
-  it("file content is just the one key", () => {
-    writeSmtpPassword(dir, "abc");
+  it("file content is just the one key", async () => {
+    await writeSmtpPassword(dir, "abc");
     expect(readFileSync(envFile(dir), "utf-8")).toBe('SHIPWRIGHT_SMTP_PASSWORD="abc"\n');
   });
 });

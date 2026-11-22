@@ -18,7 +18,7 @@ import path from "node:path";
 
 import type { ReminderDueResult } from "../reminder-cli-runner.js";
 import { MAX_SUMMARY_ITEMS, composeItemMail, composeSummaryMail, composeTestMail, type ComposedMail, type MailEntry } from "./compose.js";
-import { defaultLock, readJson, updateJson, type Lock } from "./json-store.js";
+import { DamagedStateError, defaultLock, readJson, updateJson, type Lock } from "./json-store.js";
 import { MailLedger, itemKey, localDay, summaryKey } from "./ledger.js";
 import { EMAIL, loadSettings, missingForSending, readSmtpPassword, type ReminderMailSettings } from "./settings.js";
 import { logoAttachment } from "./logo.js";
@@ -128,6 +128,7 @@ export class ReminderMailService {
     try {
       const mail = composeTestMail(s.webuiAddress);
       await this.deps.makeTransport(cfg).send(this.message(s, mail));
+      await this.clearError(); // the operator just proved the settings work
       return { ok: true };
     } catch (err) {
       return { ok: false, error: describeSendError(err, cfg) };
@@ -202,10 +203,12 @@ export class ReminderMailService {
     const attempt = async (key: string, mail: ComposedMail): Promise<boolean> => {
       try {
         if (!(await this.ledger.claim(key, day))) return false; // already mailed (or taken by another check)
-      } catch {
+      } catch (err) {
         // Fail closed: a damaged or locked ledger must never turn into a mail storm.
         stop = true;
-        firstError ??= "Could not record what was mailed (the mail ledger file is damaged or locked), so nothing was sent. Delete reminder-mail-ledger.json in the WebUI user folder to resume; mail may then repeat once.";
+        firstError ??= err instanceof DamagedStateError
+          ? "Could not record what was mailed (the mail ledger file is damaged), so nothing was sent. Delete reminder-mail-ledger.json in the WebUI user folder to resume; mail may then repeat once."
+          : "Could not record what was mailed (the mail ledger is busy), so nothing was sent. The next check tries again.";
         failed++;
         return false;
       }
@@ -261,7 +264,8 @@ export class ReminderMailService {
 
   /** Items that used up their tries today keep the error visible even on a quiet check. */
   private hasExhausted(entries: MailEntry[], day: string, s: ReminderMailSettings): boolean {
-    if (s.format === "summary") return this.ledger.exhausted(summaryKey(day), day);
+    if (s.format !== "item" && this.ledger.exhausted(summaryKey(day), day)) return true;
+    if (s.format === "summary") return false;
     return entries.some((e) => this.ledger.exhausted(itemKey(e.item.kind, e.item.id as string, day, e.projectId), day));
   }
 }

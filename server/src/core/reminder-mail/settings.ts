@@ -8,10 +8,10 @@
  * "is set"). Mail is OFF by default.
  */
 
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { defaultLock, readJson, updateJson, type Lock } from "./json-store.js";
+import { defaultLock, readJson, updateJson, writeAtomic, type Lock } from "./json-store.js";
 
 export type MailFormat = "item" | "summary" | "both";
 export type CheckInterval = "15m" | "1h" | "daily";
@@ -48,7 +48,7 @@ const FORMATS = ["item", "summary", "both"] as const;
 const INTERVALS = ["15m", "1h", "daily"] as const;
 export const EMAIL = /^[^\s@<>(),;:"\\]+@[^\s@<>(),;:"\\]+\.[^\s@<>(),;:"\\]+$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
-const HOST = /^[A-Za-z0-9._:\-[\]]+$/;
+const HOST = /^(?:[A-Za-z0-9._-]+|\[[0-9A-Fa-f:.]+\])$/;
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
 export function normalizeAddress(v: string): string | null {
@@ -107,7 +107,7 @@ export function parseSettingsBody(raw: unknown): SettingsParse {
   const recipient = s.recipient.trim();
   if (recipient && !EMAIL.test(recipient)) return { ok: false, error: "Recipient must be one e-mail address." };
   const host = s.smtpHost.trim();
-  if (host && (!HOST.test(host) || host.length > 255)) return { ok: false, error: "SMTP server must be a plain host name." };
+  if (host && (!HOST.test(host) || host.length > 255)) return { ok: false, error: "SMTP server must be a plain host name; put the port in the Port field." };
   const user = s.smtpUser.trim();
   if (/[\r\n]/.test(user) || user.length > 255) return { ok: false, error: "User name is not valid." };
   let address = "";
@@ -173,15 +173,23 @@ export function readSmtpPassword(dir: string): string | null {
 
 export const hasSmtpPassword = (dir: string): boolean => readSmtpPassword(dir) !== null;
 
-/** Set (string) or remove (null) the password; other lines in the file are kept. */
-export function writeSmtpPassword(dir: string, value: string | null): void {
+/** Set (string) or remove (null) the password; other lines in the file are kept. Locked like every other state file. */
+export async function writeSmtpPassword(dir: string, value: string | null, lock: Lock = defaultLock): Promise<void> {
   if (value !== null && insideGitRepo(dir)) {
     throw new Error("The WebUI user folder is inside a git repository; refusing to store the password there. Set SHIPWRIGHT_DATA_DIR to a folder outside every repo.");
   }
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const rest = readEnvLines(dir).filter((l) => l !== "" && !l.startsWith(`${PW_KEY}=`));
-  if (value !== null) rest.push(`${PW_KEY}=${JSON.stringify(value)}`);
-  const tmp = `${envFile(dir)}.tmp-${process.pid}`;
-  writeFileSync(tmp, rest.length ? `${rest.join("\n")}\n` : "", { mode: 0o600 });
-  renameSync(tmp, envFile(dir));
+  try {
+    writeFileSync(envFile(dir), "", { mode: 0o600, flag: "wx" }); // the lock needs the file to exist
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+  }
+  const release = await lock(envFile(dir));
+  try {
+    const rest = readEnvLines(dir).filter((l) => l !== "" && !l.startsWith(`${PW_KEY}=`));
+    if (value !== null) rest.push(`${PW_KEY}=${JSON.stringify(value)}`);
+    writeAtomic(envFile(dir), rest.length ? `${rest.join("\n")}\n` : "", 0o600, true);
+  } finally {
+    await release();
+  }
 }

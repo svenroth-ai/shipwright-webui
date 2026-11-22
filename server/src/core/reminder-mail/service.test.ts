@@ -8,6 +8,7 @@ import type { ReminderDueResult } from "../reminder-cli-runner.js";
 import type { ReminderDueItem } from "../reminder-contract.js";
 import { MailLedger, itemKey } from "./ledger.js";
 import { ReminderMailService } from "./service.js";
+import { defaultLock } from "./json-store.js";
 import { DEFAULT_SETTINGS, saveSettings, writeSmtpPassword, type ReminderMailSettings } from "./settings.js";
 import type { MailMessage, TransportFactory } from "./transport.js";
 
@@ -165,7 +166,7 @@ describe("reminder mail service", () => {
 
   it("never lets the SMTP password reach a log line, the status file, the ledger or an error text", async () => {
     await enable();
-    writeSmtpPassword(dir, PASSWORD);
+    await writeSmtpPassword(dir, PASSWORD);
     failWith = new Error(`535 auth failed for ${PASSWORD}`);
     const svc = make();
     await svc.runCheck();
@@ -261,6 +262,41 @@ describe("reminder mail service", () => {
     expect(sent[0].from).toBe("Shipwright Command Center <me@example.org>");
     expect(sent[0].html).toContain("cid:shipwright-logo");
     expect(sent[0].attachments?.[0]).toMatchObject({ cid: "shipwright-logo", contentDisposition: "inline" });
+  });
+
+  it("a good test mail clears the failed-send error", async () => {
+    await enable();
+    failWith = new Error("down");
+    const svc = make();
+    await svc.runCheck();
+    expect(svc.getStatus().error).not.toBeNull();
+    failWith = null;
+    expect(await svc.sendTest()).toEqual({ ok: true });
+    expect(svc.getStatus().error).toBeNull();
+  });
+
+  it("a busy (locked) ledger is reported without the delete-the-file advice", async () => {
+    await enable();
+    const svc = make({ lock: async (f: string) => { if (!f.includes("ledger")) return defaultLock(f); throw Object.assign(new Error("Lock file is already being held"), { code: "ELOCKED" }); } });
+    await svc.runCheck();
+    expect(sent).toHaveLength(0);
+    const m = svc.getStatus().error?.message ?? "";
+    expect(m).toContain("busy");
+    expect(m).not.toContain("Delete");
+  });
+
+  it("a failed summary stays visible in 'both' even when the item mails went out", async () => {
+    await enable({ format: "both", summaryTime: "08:00" });
+    due = [rem("rem-1")];
+    const svc = make();
+    let calls = 0;
+    const flaky = make({
+      makeTransport: () => ({ async send(m) { calls++; if (m.subject.includes("Daily summary")) throw new Error("summary refused"); sent.push(m); } }),
+    });
+    for (let i = 0; i < 4; i++) await flaky.runCheck();
+    expect(calls).toBeGreaterThan(0);
+    expect(flaky.getStatus().error?.message).toContain("summary refused");
+    void svc;
   });
 
   it("test mail goes to the saved recipient and reports what is missing", async () => {

@@ -127,6 +127,10 @@ test.describe("Settings - reminder mail", () => {
       expect(answers.join("\n")).not.toContain(PASSWORD);
     } finally {
       smtp.close();
+      // leave the stack as found: mail off, no saved password
+      await page.request.put("/api/reminder-mail", {
+        data: { enabled: false, recipient: "", format: "both", summaryTime: "08:00", summaryWhenEmpty: false, webuiAddress: "", smtpHost: "", smtpPort: 587, smtpUser: "", checkInterval: "1h", clearPassword: true },
+      });
     }
   });
 

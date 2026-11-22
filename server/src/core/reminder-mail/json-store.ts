@@ -35,9 +35,9 @@ function assertReadable(file: string): void {
   }
 }
 
-function writeAtomic(file: string, data: unknown, mode: number): void {
+export function writeAtomic(file: string, data: unknown, mode: number, raw = false): void {
   const tmp = `${file}.tmp-${process.pid}`;
-  writeFileSync(tmp, JSON.stringify(data, null, 2), { mode });
+  writeFileSync(tmp, raw ? String(data) : JSON.stringify(data, null, 2), { mode });
   // Windows: a concurrent reader can hold the target for a moment (EPERM/EBUSY): retry briefly.
   for (let i = 0; ; i++) {
     try {

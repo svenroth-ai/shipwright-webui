@@ -51,7 +51,7 @@ describe("nodemailer transport (loopback fake SMTP)", () => {
 
   it("test mail through the service: sent, the password reaches only the AUTH exchange", async () => {
     await saveSettings(dir, { ...DEFAULT_SETTINGS, enabled: true, recipient: "you@example.org", smtpHost: "127.0.0.1", smtpPort: smtp.port, smtpUser: "me@example.org", webuiAddress: "http://localhost:3847" });
-    writeSmtpPassword(dir, PASS);
+    await writeSmtpPassword(dir, PASS);
     const svc = new ReminderMailService({ dir, listProjects: () => [], readDue: async () => ({ kind: "failed", reason: "x" }), makeTransport: nodemailerTransport });
     expect(await svc.sendTest()).toEqual({ ok: true });
     expect(smtp.messages[0]).toContain("Subject: [Shipwright] Test mail");

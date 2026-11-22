@@ -72,6 +72,23 @@ describe("reminder-mail routes", () => {
     expect((await put(a, settings({ smtpHost: "other.example.net", clearPassword: true }))).status).toBe(200);
   });
 
+  it("a failed password write changes nothing: the old host stays with the old password", async () => {
+    const a = app();
+    await put(a, settings({ password: PW }));
+    const gitDir = path.join(dir, ".git");
+    (await import("node:fs")).mkdirSync(gitDir); // the data folder now looks like a repo: storing a password is refused
+    const res = await put(a, settings({ smtpHost: "new.example.net", password: PW }));
+    expect(res.status).toBe(500);
+    const j = await (await a.request("/api/reminder-mail")).json();
+    expect(j.settings.smtpHost).toBe("smtp.example.org");
+  });
+
+  it("rejects a host with a port in it", async () => {
+    const res = await put(app(), settings({ smtpHost: "smtp.example.org:2525" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).message).toContain("Port field");
+  });
+
   it("rejects invalid input with a plain message", async () => {
     const res = await put(app(), settings({ smtpPort: 0 }));
     expect(res.status).toBe(400);

@@ -75,7 +75,7 @@ export function ReminderMailFields({
           <option value="both">Both: one mail per item and a daily summary</option>
         </select>
       </Field>
-      <Field label="Daily summary time" htmlFor="reminder-mail-summary-time" helpText={'Only used when "daily summary" or "both" is chosen.'}>
+      <Field label="Daily summary time" htmlFor="reminder-mail-summary-time" helpText={'Only used when "daily summary" or "both" is chosen. The summary goes out at the first check after this time.'}>
         <select id="reminder-mail-summary-time" value={form.summaryTime} disabled={!usesSummary} onChange={(e) => set("summaryTime", e.target.value)} style={{ ...control, maxWidth: "260px" }}>
           {times.map((t) => (
             <option key={t} value={t}>
