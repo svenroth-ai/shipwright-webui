@@ -4,6 +4,7 @@
 <div class="field"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" checked style="width:auto"> Send reminder mail</label>
 <label>Recipient</label><input value="operator@example.org" style="max-width:420px">
 <label>What to send</label><select style="max-width:420px"><option>One mail per due item</option><option>One daily summary</option><option selected>Both: one mail per item and a daily summary</option></select>
+<label>Daily summary time</label><select style="max-width:260px"><option>07:00</option><option selected>08:00</option><option>09:00</option><option>12:00</option><option>18:00</option></select><div class="help">Only used when "daily summary" or "both" is chosen.</div><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" style="width:auto"> Send the summary even when nothing is due</label>
 <label>WebUI address (used for the links in the mail)</label><input value="http://localhost:3847" style="max-width:420px"><div class="help">Filled in from where you opened this page. Change it if you reach the WebUI under another address, for example on your phone.</div>
 <label>SMTP server</label><input value="smtp.example.org" style="max-width:420px">
 <label>Port</label><input value="587" style="max-width:120px">

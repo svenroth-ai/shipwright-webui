@@ -122,3 +122,21 @@ dl.f code,.cmd{background:#25201C;color:#BDF0E6}
 .ct{width:100%;border-collapse:collapse;font-size:13px;background:#14161a;color:#e7e5e4;border-radius:8px;overflow:hidden}
 .ct th,.ct td{padding:6px 10px;border-bottom:1px solid #2a2d33;text-align:left}.ct .sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid #888;vertical-align:middle}
 .ok{color:#6ee7a8;font-weight:700}
+/* ---- rev 4: SOLID WHITE reading cards inside the dark group (same rule the app uses: glass = chrome, solid = reading) ---- */
+.row{background:#fff;color:#1C1917;border:1px solid #D6D3D1}
+.row .top{gap:12px}.row .ttl{font-size:16px;color:#1C1917}
+.row .meta,dl.f dt{color:#57534E}
+dl.f{font-size:14.5px;grid-template-columns:96px 1fr}dl.f dd{color:#1C1917}
+.id{background:#F5F5F4;color:#1C1917;border:1px solid #D6D3D1}
+.openbox{background:#F5F5F4;border:1px dashed #8E847E;color:#1C1917}
+dl.f code,.cmd{background:#F5F5F4;color:#0B5C50;border:1px solid #D6D3D1}
+.link{color:#0B6355}
+.kind.r{background:#E6F3F0;color:#0B5C50;border:1px solid #9fd3ca}
+.kind.t{background:#FFFAEB;color:#93370D;border:1px solid #F79009}
+.kind.s{background:#F5F5F4;color:#44403C;border:1px solid #A8A29E}
+.row .btn{border:1.5px solid #8E847E;color:#1C1917;background:#fff}
+.row .btn-primary{background:#0E7A6B;border-color:#0E7A6B;color:#fff}
+.row input[type=date]{background:#fff;border:1px solid #8E847E;color:#1C1917}
+.row .sev{color:#1C1917}
+.pop{border:1px solid #8E847E}
+
