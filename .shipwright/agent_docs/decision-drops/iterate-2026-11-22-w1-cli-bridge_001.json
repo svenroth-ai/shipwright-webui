@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-22-w1-cli-bridge",
+  "date": "2026-11-22",
+  "section": "Iterate - feature: reminder CLI bridge",
+  "title": "Reminder data only through reminder_cli.py",
+  "context": "The WebUI must show and change reminders, but a Python CLI with its own file lock owns the store and the versioned due contract.",
+  "decision": "Add a runner + contract parser + routes that call reminder_cli.py for every read and write; explicit state per answer; no TypeScript store access.",
+  "consequences": "Two-repo contract to keep pinned; one uv spawn per project per read; refusal text, command text and links are untrusted and inert.",
+  "rationale": "A native reader would duplicate the due merge of reminders and triage parks and drift from the Python lock and contract.",
+  "rejected": "Native TS read of reminders.jsonl; doing nothing server-side.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-11-22-w1-cli-bridge-reminder-cli-bridge.md"
+}

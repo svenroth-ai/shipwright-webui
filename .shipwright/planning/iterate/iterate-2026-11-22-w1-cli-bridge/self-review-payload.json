@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"All 4 ACs: runner uses uv run --no-project --python >=3.11, due route returns pinned contract per project and all projects, done/snooze/add call the CLI only with refusal passthrough, pinned-shape + per-state tests."},
+{"name":"Error Handling","verdict":"pass","note":"Every CLI/contract failure is a named state (engine-unavailable, unreadable, unsupported-version, store-busy, failed, degraded); thrown runner errors map to 502."},
+{"name":"Security Basics","verdict":"pass","note":"No shell, flag=value argv and -- before positionals, JSON content-type required (415), id/day/url-scheme/NUL/size validation, local paths dropped, no writer for reminders.jsonl."},
+{"name":"Test Quality","verdict":"pass","note":"55 unit tests plus a real-CLI round trip incl. leading-dash values and secret refusal."},
+{"name":"Performance Basics","verdict":"pass","note":"All-projects read bounded to 3 concurrent children, 30s timeout, tree-kill via shared helper; no cache yet (noted for W3)."},
+{"name":"Naming & Structure","verdict":"pass","note":"New files all under 300 lines; index.ts mount is 3 lines, stays at its 958 baseline."},
+{"name":"Affected Boundaries","verdict":"pass","note":"Producer reminder_cli.py due --json to consumer reminder-contract.ts; round-tripped for real in the integration test and pinned against reminder_due.py field lists."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"scan_test_hygiene.py --files on the 4 new test files: no findings."}
+]}

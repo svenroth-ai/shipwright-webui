@@ -1,0 +1,93 @@
+{
+  "run_id": "iterate-2026-11-22-w1-cli-bridge",
+  "date": "2026-11-22T17:38:52.322632Z",
+  "event_at": "2026-11-22T17:13:52.757154+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/campaign-reminders-webui--W1",
+  "spec": ".shipwright/planning/iterate/campaigns/reminders-webui/sub-iterates/W1-cli-bridge.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-22-w1-cli-bridge",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "due route returns the contract shape (contractVersion 1, 10 item fields) per project and across all registered projects",
+        "disposition": "tested",
+        "evidence": "reminders.test.ts GET due + reminder-contract.test.ts pinned shape + 108-reminders-bridge.spec.ts + real-CLI integration"
+      },
+      {
+        "behavior": "an unknown contractVersion, unreadable answer, CLI/uv unavailable, store busy, missing project folder and failures are explicit error states, never nothing due",
+        "disposition": "tested",
+        "evidence": "reminder-contract.test.ts it.each + reminder-cli-runner.test.ts + reminders.test.ts error-state table"
+      },
+      {
+        "behavior": "triageError and reminderCorruptLines surface as a degraded state with the data intact",
+        "disposition": "tested",
+        "evidence": "reminders.test.ts degraded state test"
+      },
+      {
+        "behavior": "one failing project does not blank the all-projects answer; one store is listed once; CLI children capped at 3 across requests",
+        "disposition": "tested",
+        "evidence": "reminders.test.ts mixed / throwing / shared-store / cap tests"
+      },
+      {
+        "behavior": "done, snooze and add call the CLI only (from the main checkout) with the right argv and validated input",
+        "disposition": "tested",
+        "evidence": "reminder-cli-runner.test.ts argv pins + reminders.test.ts POST tests + real-CLI round trip + 108 e2e"
+      },
+      {
+        "behavior": "the CLI's secret-refusal text is passed through unchanged with no retry; argparse and uv exit-2 failures are not shown as refusals",
+        "disposition": "tested",
+        "evidence": "reminder-cli-runner.test.ts refusal + usage/uv tests; reminders.test.ts 422; 108 e2e"
+      },
+      {
+        "behavior": "write routes refuse non-JSON content-type and cross-site GETs; bad ids/days, non-http links, NUL and oversized input",
+        "disposition": "tested",
+        "evidence": "reminders.test.ts 415/403/validation tests; 108 e2e 415"
+      },
+      {
+        "behavior": "non-http(s) url link addresses are dropped on the read path",
+        "disposition": "tested",
+        "evidence": "reminder-contract.test.ts link neutralising test"
+      },
+      {
+        "behavior": "the bridge never writes reminders.jsonl or any file",
+        "disposition": "tested",
+        "evidence": "reminder-cli-runner.test.ts static guard"
+      },
+      {
+        "behavior": "non-ASCII, multi-line, quotes, trailing backslashes and option-looking text survive the real argv round trip on Windows",
+        "disposition": "tested",
+        "evidence": "reminder-cli-runner.integration.test.ts probes (no finding)"
+      }
+    ],
+    "counts": {
+      "testable": 10,
+      "tested": 10,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 4,
+      "covered_acs": 4
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "npm.cmd --prefix client run test:e2e -- --reporter=json e2e/flows/108-reminders-bridge.spec.ts",
+    "exit_code": 0,
+    "tests_run": 1,
+    "evidence_path": ".shipwright/runs/iterate-2026-11-22-w1-cli-bridge/surface_verification.log",
+    "timestamp": "2026-11-22T17:38:38.994Z",
+    "attempts": 1
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": [
+    "touches_billing"
+  ]
+}

@@ -1,0 +1,11 @@
+{"section":"W1-cli-bridge","review":[
+{"severity":"medium","category":"correctness","file":"server/src/core/reminder-cli-runner.ts","line":408,"finding":"uv's own exit 2 with a plain error line was read as the CLI's content refusal.","suggestion":"Identify uv errors; test with uv-style stderr. FIXED in 5d9d9343."},
+{"severity":"low","category":"correctness","file":"server/src/routes/reminders.ts","line":1237,"finding":"Two registrations of one repo read the same store twice.","suggestion":"FIXED: read once, second gets shared-root state."},
+{"severity":"low","category":"correctness","file":"server/src/core/reminder-cli-runner.ts","line":368,"finding":"Missing project folder could read as nothing due.","suggestion":"FIXED: named failure."},
+{"severity":"low","category":"correctness","file":"server/src/core/reminder-cli-runner.ts","line":403,"finding":"Write timeout outcome unknown.","suggestion":"FIXED: distinct reason."},
+{"severity":"low","category":"security","file":"server/src/core/reminder-validation.ts","line":794,"finding":"Total-size cap vs Windows quoting.","suggestion":"FIXED: cap lowered to 16000."},
+{"severity":"low","category":"readability","file":"server/src/core/reminder-cli-runner.ts","line":364,"finding":"Unused on parameter and dueResponse export.","suggestion":"FIXED."},
+{"severity":"low","category":"architecture","file":"server/src/core/reminder-fixtures.ts","line":651,"finding":"Test fixture in production src/core.","suggestion":"Accepted: no build-excluded naming that vitest does not collect; noted."},
+{"severity":"low","category":"readability","file":"server/src/core/reminder-contract.test.ts","line":450,"finding":"Sibling-path drift check silently passes.","suggestion":"FIXED: env path + skipIf."},
+{"severity":"low","category":"correctness","file":"server/src/core/reminder-cli-runner.integration.test.ts","line":23,"finding":"git missing errors instead of skipping.","suggestion":"FIXED."}
+]}
