@@ -19,6 +19,9 @@ import { getProjectColor } from "../../lib/projectColor";
 import type { ExternalTask } from "../../lib/externalApi";
 import type { ProjectGroup } from "./types";
 import { InboxCard, inboxItemKey } from "./InboxCard";
+import { ReminderCard } from "./ReminderCard";
+import { sortEntries } from "./reminderModel";
+import type { ReminderUi } from "./useReminderActions";
 
 /** No project colour (the Unassigned bucket): a neutral white tint, like an unowned Triage lane. */
 const NEUTRAL_ACCENT = "rgba(255, 255, 255, 0.35)";
@@ -35,6 +38,7 @@ export function InboxProjectSection({
   isCollapsed = false,
   onToggle,
   reorder,
+  reminderUi,
 }: {
   group: ProjectGroup;
   tasksById: Map<string, ExternalTask>;
@@ -42,6 +46,8 @@ export function InboxProjectSection({
   onToggle?: () => void;
   /** Set only when the groups can be reordered (more than one group). */
   reorder?: InboxGroupReorder;
+  /** Actions of the reminder rows (W3); absent = the rows are read-only. */
+  reminderUi?: ReminderUi;
 }) {
   const isUnassigned = group.projectId === UNASSIGNED_PROJECT_ID;
   const accent = isUnassigned
@@ -127,6 +133,9 @@ export function InboxProjectSection({
 
       {!isCollapsed && (
         <div className="inbox-group-cards" role="list" id={`inbox-group-cards-${group.projectId}`}>
+          {sortEntries(group.reminders ?? []).map((entry) => (
+            <ReminderCard key={entry.key} entry={entry} projectName={group.projectName} ui={reminderUi} />
+          ))}
           {group.sessions.map((sg) => {
             const task = tasksById.get(sg.taskId);
             return (

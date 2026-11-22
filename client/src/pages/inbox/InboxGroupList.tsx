@@ -18,6 +18,7 @@ import {
 import type { ExternalTask } from "../../lib/externalApi";
 import { InboxProjectSection } from "./InboxProjectSection";
 import type { ProjectGroup } from "./types";
+import type { ReminderUi } from "./useReminderActions";
 
 interface Props {
   groups: readonly ProjectGroup[];
@@ -26,6 +27,8 @@ interface Props {
   onToggle: (projectId: string) => void;
   /** Move project `movedId` onto the place of `overId` (both project ids). */
   onReorderProject: (movedId: string, overId: string) => void;
+  /** Actions of the reminder rows (W3). */
+  reminderUi?: ReminderUi;
 }
 
 export function InboxGroupList({
@@ -34,6 +37,7 @@ export function InboxGroupList({
   collapsed,
   onToggle,
   onReorderProject,
+  reminderUi,
 }: Props) {
   // A click on the handle must stay a click; touch needs a press-hold so the page still scrolls.
   const sensors = useSensors(
@@ -57,6 +61,7 @@ export function InboxGroupList({
             tasksById={tasksById}
             isCollapsed={collapsed.has(g.projectId)}
             onToggle={() => onToggle(g.projectId)}
+            reminderUi={reminderUi}
             reorder={
               reorderable
                 ? {

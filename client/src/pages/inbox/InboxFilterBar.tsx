@@ -11,6 +11,8 @@ import type { InboxFilter } from "./inboxRowModel";
 const LABEL: Record<InboxFilter, string> = {
   all: "Open",
   awaiting: "Awaiting reply",
+  reminders: "Reminders due",
+  parked: "Parked triage",
   notices: "Notices",
 };
 
@@ -18,12 +20,15 @@ export function InboxFilterBar({
   counts,
   active,
   onChange,
+  damagedLines = 0,
 }: {
   counts: Record<InboxFilter, number>;
   active: InboxFilter;
   onChange: (f: InboxFilter) => void;
+  /** Damaged lines in the reminder file (a notice pill, not a toggle); shown only above 0. */
+  damagedLines?: number;
 }) {
-  const kinds = (["awaiting", "notices"] as const).filter((k) => counts[k] > 0);
+  const kinds = (["awaiting", "reminders", "parked", "notices"] as const).filter((k) => counts[k] > 0);
   const chips: InboxFilter[] = ["all", ...kinds];
   return (
     <div className="inbox-filter-bar" role="group" aria-label="Filter the Inbox" data-testid="inbox-filter-bar">
@@ -39,6 +44,12 @@ export function InboxFilterBar({
           <b>{counts[f]}</b> {LABEL[f]}
         </button>
       ))}
+      {damagedLines > 0 && (
+        <span className="inbox-filter-warn" data-testid="inbox-filter-damaged">
+          <span aria-hidden="true">{"⚠"}</span>
+          {damagedLines} damaged reminder {damagedLines === 1 ? "line" : "lines"}
+        </span>
+      )}
     </div>
   );
 }

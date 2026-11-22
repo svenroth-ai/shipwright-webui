@@ -8,6 +8,7 @@ import { SceneBackdrop } from '../components/common/SceneBackdrop';
 import { CommandCenter } from '../components/command/CommandCenter';
 import { useExternalInbox } from '../hooks/useExternalInbox';
 import { useTriageCounts } from '../hooks/useTriage';
+import { countDueItems, useRemindersDue } from '../hooks/useReminders';
 import { useIsPhoneViewport } from '../hooks/useIsCompactViewport';
 import { useDensity } from '../hooks/useDensity';
 import { useListKeyboardNav } from '../hooks/useListKeyboardNav';
@@ -39,7 +40,10 @@ export function MainLayout() {
     setDrawerOpen(false);
   }, [location.pathname]);
 
-  const inboxCount = inbox.length;
+  // The alert: waiting entries PLUS due reminders and expired parked triage (reminders-webui W3).
+  const { data: due } = useRemindersDue();
+  const dueReminders = countDueItems(due?.projects);
+  const inboxCount = inbox.length + dueReminders;
   const triageCount = triageCounts?.total ?? 0;
 
   return (

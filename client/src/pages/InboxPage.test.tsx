@@ -51,10 +51,10 @@ vi.mock("../hooks/useExternalTasks", () => ({
   useExternalTasks: vi.fn(),
 }));
 
+vi.mock("../hooks/useReminders", async (o) => ({ ...(await o<typeof import("../hooks/useReminders")>()), useRemindersDue: vi.fn(() => ({ data: { projects: [] }, isLoading: false, isError: false, refetch: vi.fn() })) })); // W3: nothing due
 vi.mock("../hooks/useProjects", () => ({
   useProjects: vi.fn(),
 }));
-
 vi.mock("../hooks/useLaunchTask", () => ({
   useLaunchTask: vi.fn(() => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false })),
 }));

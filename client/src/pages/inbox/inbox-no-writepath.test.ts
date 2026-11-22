@@ -145,9 +145,14 @@ describe("Inbox fence — no control writes into a pty (AC1)", () => {
   // command. Pin that: the row is the only Inbox file using it, and it passes
   // nothing but the session uuid as the copied value.
   it("the only clipboard path is the row's copy-session-id button", () => {
-    expect(scan(/TriageIdCopy/).map((f) => path.basename(f))).toEqual(["InboxRow.tsx"]);
+    // reminders-webui W3: a reminder / parked-triage row has the same copy-id button; it copies
+    // the entry's own id (rem-... / trg-...), never a command, never question text.
+    expect(scan(/TriageIdCopy/).map((f) => path.basename(f)).sort()).toEqual(["InboxRow.tsx", "ReminderRow.tsx"]);
     const row = readFileSync(path.join(SRC, "pages", "inbox", "InboxRow.tsx"), "utf8");
     expect(row).not.toMatch(/copyValue/);
     expect(row).toMatch(/<TriageIdCopy[^>]*id=\{sessionUuid\}/);
+    const rem = readFileSync(path.join(SRC, "pages", "inbox", "ReminderRow.tsx"), "utf8");
+    expect(rem).not.toMatch(/copyValue/);
+    expect(rem).toMatch(/<TriageIdCopy[^>]*id=\{model\.idText\}/);
   });
 });

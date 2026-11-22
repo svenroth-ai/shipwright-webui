@@ -34,6 +34,8 @@ export interface MoreOptionsDisclosureProps {
   children: ReactNode;
   /** Header label. Defaults to "More options". */
   label?: string;
+  /** Muted text after the label while collapsed (default: the task dialogs' wording). */
+  hint?: string;
 }
 
 export function MoreOptionsDisclosure({
@@ -41,6 +43,7 @@ export function MoreOptionsDisclosure({
   onToggle,
   children,
   label = "More options",
+  hint = "options, parameters & command preview",
 }: MoreOptionsDisclosureProps) {
   /*
    * Sven 2026-07-17: the disclosure "had no border" — it did, but in
@@ -81,7 +84,7 @@ export function MoreOptionsDisclosure({
           <span>{label}</span>
           {!open && (
             <span className="font-normal text-[var(--body,#44403c)]">
-              options, parameters &amp; command preview
+              {hint}
             </span>
           )}
         </span>

@@ -21,6 +21,11 @@ import {
 
 vi.mock("../hooks/useExternalInbox", () => ({ useExternalInbox: vi.fn() }));
 vi.mock("../hooks/useExternalTasks", () => ({ useExternalTasks: vi.fn() }));
+// reminders-webui W3: the page also reads what is due; these tests are about the session entries, so nothing is due.
+vi.mock("../hooks/useReminders", async (orig) => ({
+  ...(await orig<typeof import("../hooks/useReminders")>()),
+  useRemindersDue: vi.fn(() => ({ data: { projects: [] }, isLoading: false, isError: false, refetch: vi.fn() })),
+}));
 vi.mock("../hooks/useProjects", () => ({ useProjects: vi.fn() }));
 
 const mockedInbox = vi.mocked(useExternalInbox);

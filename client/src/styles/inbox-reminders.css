@@ -1,0 +1,199 @@
+/*
+ * inbox-reminders.css — reminders and parked triage entries in the Inbox
+ * (campaign reminders-webui, W3; mockups pages 01, 02, 06). Colours follow the
+ * approved contrast table: reminder = green (#A7F3E6 on #134E48, 7.5 : 1),
+ * parked triage = grey (white on #57534E, 7.6 : 1), warning banner = white on
+ * #6A3A0A (9.4 : 1), error banner = white on #7A1F17 (10.3 : 1). Explicit
+ * colours only (never a token that flips under `.on-photo`): the rows and
+ * banners sit on solid surfaces. Plain CSS so the states cannot be reordered
+ * by the utility sorter.
+ */
+
+/* Kind chips: dark row (.inbox-chip) and light dialog (.inbox-dchip) */
+.inbox-chip.is-reminder {
+  background: #134e48;
+  color: #a7f3e6;
+  border: 1px solid #35b8a4;
+}
+.inbox-chip.is-parked {
+  background: #57534e;
+  color: #fff;
+  border: 1px solid #a8a29e;
+}
+.inbox-dchip.is-reminder {
+  background: #ecfdf8;
+  color: #0b5c50;
+  border: 1px solid #35b8a4;
+}
+.inbox-dchip.is-parked {
+  background: #f5f5f4;
+  color: #44403c;
+  border: 1px solid #a8a29e;
+}
+
+/* The row's due text ("due today") sits left of the id in the meta cluster */
+.inbox-row-due {
+  min-width: 3.4rem;
+  white-space: nowrap;
+  text-align: right;
+  font-size: 0.75rem;
+  color: #e7e5e4;
+}
+
+/* A reminder row has up to three buttons: a wider, otherwise empty action zone */
+@media (hover: hover) {
+  @container triage-row (min-width: 54rem) {
+    .inbox-row.is-rem .triage-row-in {
+      grid-template-columns: minmax(0, 1fr) 18.5rem 16.5rem;
+    }
+  }
+  /* Between 48 and 54rem three buttons do not fit beside the title: keep them under it, visible. */
+  @container triage-row (min-width: 48rem) and (max-width: 53.99rem) {
+    .inbox-row.is-rem .triage-row-in {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        "main meta"
+        "actions actions";
+      min-height: 0;
+    }
+    .inbox-row.is-rem .triage-row-actions {
+      justify-content: flex-start;
+      visibility: visible;
+    }
+  }
+}
+
+/* Row action buttons: secondary on the dark row, primary stays the teal button */
+.inbox-row-btn {
+  display: inline-flex;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: var(--radius-button);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  padding: 0 0.875rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+}
+.inbox-row-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.inbox-row-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.inbox-row-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+@media (pointer: coarse) {
+  .inbox-row-btn {
+    min-height: 44px;
+  }
+}
+.inbox-row-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  color: #fecdca;
+}
+
+/* Filter bar: the "damaged lines" notice is a pill, not a toggle */
+.inbox-filter-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  border: 1px solid #f79009;
+  background: #6a3a0a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Banners above the cards (mockup page 06) */
+.inbox-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-button);
+  border: 1px solid;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.inbox-banner.is-warn {
+  background: #6a3a0a;
+  border-color: #f79009;
+}
+.inbox-banner.is-error {
+  background: #7a1f17;
+  border-color: #f97066;
+}
+.inbox-banner-body {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.inbox-banner button {
+  flex: none;
+  border-radius: var(--radius-button);
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  background: transparent;
+  padding: 4px 12px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+}
+.inbox-banner button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* Dialog: the long free-text boxes scroll inside themselves, never push the sheet */
+.inbox-open-box {
+  max-height: 14rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  padding: 0.625rem;
+}
+.inbox-banner.is-ok {
+  background: #14532d;
+  border-color: #4ade80;
+}
+
+/* Dialog bits that need exact contrast-table colours (no arbitrary-hex utility classes) */
+.reminder-link {
+  color: #0b6355;
+}
+.reminder-command {
+  color: #0b5c50;
+}
+.reminder-dialog-icon {
+  background: #fff1dc;
+  color: #93370d;
+}
+.reminder-error-box {
+  background: #7a1f17;
+  border: 1px solid #f97066;
+  color: #fff;
+}
+
+/* Why / Decided: plain text, but a very long one still scrolls instead of stretching the sheet */
+.inbox-long-text {
+  max-height: 14rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

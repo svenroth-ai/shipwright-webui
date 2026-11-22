@@ -10,16 +10,20 @@
 import { extractAskUserPayload } from "../../lib/askUserPayload";
 import type { InboxItemPart } from "../../types/inbox";
 import type { InboxItem } from "../../lib/externalApi";
+import { reminderRowModel, type ReminderFilter } from "./reminderModel";
 import type { ProjectGroup } from "./types";
 
-/** Filter-bar buckets. `all` is the "Open" chip; the others are exclusive. */
-export type InboxFilter = "all" | "awaiting" | "notices";
+/** Buckets of the session entries (Claude questions, Codex notices). */
+export type InboxEntryFilter = "awaiting" | "notices";
+
+/** Filter-bar buckets. `all` is the "Open" chip; the others are exclusive. `reminders` / `parked` hold the due reminders and expired parked-triage entries (W3). */
+export type InboxFilter = "all" | InboxEntryFilter | ReminderFilter;
 
 export type InboxChipTone = "awaiting" | "notice" | "error";
 
 export interface InboxRowModel {
   /** Filter-bar bucket this entry belongs to. */
-  filter: Exclude<InboxFilter, "all">;
+  filter: InboxEntryFilter;
   chip: { label: string; tone: InboxChipTone };
   /** First line of the text, markdown marks removed - the row title. */
   title: string;
@@ -133,13 +137,17 @@ function textRow(text: string, format: "markdown" | "mono"): InboxRowModel {
 
 /** Per-bucket counts across every group (the filter chips). */
 export function countByFilter(groups: readonly ProjectGroup[]): Record<InboxFilter, number> {
-  const c: Record<InboxFilter, number> = { all: 0, awaiting: 0, notices: 0 };
+  const c: Record<InboxFilter, number> = { all: 0, awaiting: 0, notices: 0, reminders: 0, parked: 0 };
   for (const g of groups) {
     for (const s of g.sessions) {
       for (const item of s.items) {
         c.all += 1;
         c[inboxRowModel(item).filter] += 1;
       }
+    }
+    for (const r of g.reminders ?? []) {
+      c.all += 1;
+      c[reminderRowModel(r).filter] += 1;
     }
   }
   return c;
@@ -153,8 +161,14 @@ export function filterGroups(groups: readonly ProjectGroup[], filter: InboxFilte
     const sessions = g.sessions
       .map((s) => ({ ...s, items: s.items.filter((i) => inboxRowModel(i).filter === filter) }))
       .filter((s) => s.items.length > 0);
-    if (sessions.length === 0) continue;
-    out.push({ ...g, sessions, totalItems: sessions.reduce((n, s) => n + s.items.length, 0) });
+    const reminders = (g.reminders ?? []).filter((r) => reminderRowModel(r).filter === filter);
+    if (sessions.length === 0 && reminders.length === 0) continue;
+    out.push({
+      ...g,
+      sessions,
+      reminders,
+      totalItems: sessions.reduce((n, s) => n + s.items.length, 0) + reminders.length,
+    });
   }
   return out;
 }
