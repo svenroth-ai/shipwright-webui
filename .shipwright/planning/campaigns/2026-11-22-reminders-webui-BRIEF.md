@@ -1,13 +1,13 @@
 # Campaign brief: reminders, part 2 of 2 (`reminders-webui`, repo `shipwright-webui`)
 
-Date: 2026-11-22 · Status: rev 1, written from chat, nothing built · Part 1 is `reminders-core` (repo `shipwright`), merged: E1a PR #1092 (`6842e7f38`), E1b PR #1093 (`cd28107be`).
-Branch strategy: `serial`. Units: W0, then W1, W2, W3 (each `depends_on` the one before). The operator starts the campaign from the WebUI.
+Date: 2026-11-22 · Status: rev 2 (operator GO 2026-11-22; mockups approved; W1-W4 re-scoped below), nothing built yet · Part 1 is `reminders-core` (repo `shipwright`), merged: E1a PR #1092 (`6842e7f38`), E1b PR #1093 (`cd28107be`).
+Branch strategy: `serial`. Units: W0 (done, mockups merged), then W1, W2, W3, W4 (each `depends_on` the one before). The operator starts the campaign from the WebUI.
 
 ## 0. Goal
 The WebUI shows what is due (reminders AND parked triage entries whose revisit day has come) as an alert, lets the operator mark a reminder done or snooze it, and sends ONE mail per due item. All data comes from one call to the Shipwright CLI. The WebUI owns no reminder data.
 
-## 1. HARD STOP: mockups first (W0)
-**Nothing is built before the operator has looked at W0 and said "go" in chat.** W0 produces HTML pages the operator opens in a browser. After W0 the run stops with status `needs_operator`; W1-W3 do not start, and a runner never starts them on its own. The operator may change the mockups; W1-W3 are then re-scoped from the approved mockups, and this brief is updated to match before anything is built.
+## 1. Mockups: approved (operator GO 2026-11-22)
+W0 is done and approved. The approved mockups (`.shipwright/planning/campaigns/reminders-webui-mockups/`, open `index.html`) are the SPEC for the UI: W2-W4 build exactly those screens in the real app look (Weather-Deck tokens, sidebar, title bar, Triage-style rows, light dialog sheet). Where this brief and the mockups differ, the mockups win; page 07 lists the decisions. Any later change to the look is shown as a changed mockup first.
 
 ## 2. What exists today (verified 2026-11-22)
 - Shipwright (part 1, merged) has `shared/scripts/tools/reminder_cli.py` with verbs `add`, `list`, `show`, `done`, `snooze`, `due`. Store: `.shipwright/reminders.jsonl` at the MAIN checkout of a project, git-ignored.
@@ -27,27 +27,17 @@ The WebUI shows what is due (reminders AND parked triage entries whose revisit d
 2. No SessionStart hook. If the WebUI server is not running there is no reminder; accepted.
 3. No secrets in any reminder text. The CLI refuses them; the WebUI shows the CLI's plain message and never retries around it.
 
-## 4. Units
+## 4. Units (rev 2, after the approved mockups)
 
-**W0: mockups as HTML. Small. STOP afterwards.**
-Static HTML files (no server, no build), written to `.shipwright/planning/campaigns/reminders-webui-mockups/` and opened by the runner's final message as file paths. Plain language, real-looking sample data (including a very long `open` text, a triage item, a snoozed reminder and a store with a damaged line). Screens:
-1. The alert: where and how "something is due" shows up (header badge, banner, or inbox entry; show the options side by side with a recommendation).
-2. The due list: reminder items and triage items together, with the fields `why`, `decided`, `open`, `command`, `links`; the buttons Done and Snooze (with a date picker).
-3. Creating a reminder from the WebUI (a form that calls `reminder_cli.py add`), including the "secret refused" message.
-4. Settings: mail on/off, recipient, SMTP details (where the password is kept, never in the repo), a "send test mail" button, how often the server checks.
-5. The mail itself, as the recipient sees it (subject, body for one item, escaped text, no local paths).
-6. Error states: CLI missing, `triageError` set, `reminderCorruptLines` > 0, mail send failed.
-Each screen states which CLI call it uses. Open questions for the operator are listed in plain language at the end, with a recommendation each.
-Done when: all six screens exist as HTML, open without a server, and the questions are listed. No production code is touched.
+Operator decisions taken at W0 (all in mockup page 07): reminders live in the **Inbox** (no banner, no bell, no separate page; the alert is the Inbox count in the sidebar plus mail); the **whole Inbox gets the Triage look** (filter bar, one card per project with a coloured top edge, compact rows, hover actions, details in the light dialog sheet), for reminders AND the existing "awaiting reply" entries; colours: reminder = green, awaiting reply = orange, parked triage = grey; reminders have a DAY only (no time); mail is off by default, format (per item / daily summary / both), summary time and "send when nothing due" are Settings; password in `.env.local` in the central WebUI user folder; WebUI address setting drives the mail links; parked triage items mail once at expiry; all registered projects; hourly check plus once at start; snooze = date picker + Tomorrow / Next week; "Start task" works like Fix now in Triage.
 
-**W1: server read and write bridge. Medium. `depends_on: W0` (after the operator's go).**
-A `reminder-cli-runner` next to `triage-cli-runner` (shared spawn helper `cli-child-spawn.ts`), a route that returns the `due` answer for a project and routes for `done` and `snooze`; an unreadable CLI answer or an unknown `contractVersion` is an error state, never "nothing due". A pinned-shape test against the contract in section 2.
+**W1: server read and write bridge. Medium.** A `reminder-cli-runner` next to `triage-cli-runner` (shared spawn helper `cli-child-spawn.ts`), routes that return the `due` answer per project (and across all registered projects) and routes for `done`, `snooze` and `add` (title, due, why required; decided, open, command, link optional). An unreadable CLI answer, an unknown `contractVersion`, `triageError` and `reminderCorruptLines` are surfaced as states, never as "nothing due". The CLI's plain refusal message for a secret is passed through unchanged. Pinned-shape test against the contract in section 2. Check what stored `command` strings look like (a resume command would need a decision).
 
-**W2: alert and actions in the client. Medium. `depends_on: W1`.**
-Built from the approved mockups: alert, due list, Done, Snooze, create form, error states. Escape all text.
+**W2: Inbox in the Triage look (existing entries only, no reminders yet). Medium.** Restyle the existing Inbox page to the approved look: filter bar, project cards, compact rows, hover action (Answer in the terminal, which goes into the task's session terminal), click opens a detail dialog with the full text. No behaviour change for awaiting-reply entries. Keep all existing Inbox tests green; update visual baselines on the Linux flow.
 
-**W3: mail and timer. Medium. `depends_on: W2`.**
-Settings for mail, a server timer that checks `due`, ONE mail per (`kind`, `id`, day) with suppression kept across restarts, a test-mail button. SMTP secrets are kept outside the repo and never logged. If the operator chose "no mail" at W0, this unit is dropped.
+**W3: reminders in the Inbox. Medium.** Reminder and parked-triage rows (green / grey chips), hover actions (Start task = like Fix now, Done, Snooze, Open in Triage), the detail dialog, the "+ New reminder" dialog in the New-Task style (Why visible, rest under More options, project picker when the board shows All projects), error states, the Inbox count in the sidebar includes due reminders and expired parks. Escape ALL text. Built from the approved mockups.
+
+**W4: mail and timer. Medium.** Settings card (mail on/off default off, recipient, format, summary time, send-when-nothing-due, WebUI address, SMTP, test mail, check interval), server timer that checks `due` for all registered projects hourly and at start, repeat suppression kept across restarts (one mail per (`kind`, `id`, day); expired parked triage: once only), mail template per the mockup with links built from the WebUI address, SMTP secrets in `.env.local` in the central user folder, never logged. If the operator later says "no mail", this unit is dropped.
 
 ## 5. Not in this campaign
 Auto-creating reminders, a SessionStart hook, any change to the Shipwright store format or CLI (that is a `shipwright` change and a contract bump), other notification channels.
