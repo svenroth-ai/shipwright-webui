@@ -141,16 +141,82 @@
     },
     "code": {
       "review_type": "code",
-      "status": "not_run",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "server/src/core/reminder-mail/compose.ts",
+          "line": null,
+          "finding": "POSIX_PATH, ANY_ABS_PATH and HOME_PATH only matched after start-of-text or whitespace, quote, parenthesis or equals; backtick-quoted, bracketed, colon- or comma-prefixed paths passed unredacted into text and HTML.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/reminder-mail/service.ts",
+          "line": null,
+          "finding": "failClaim errors swallowed.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/core/reminder-mail/settings.ts",
+          "line": null,
+          "finding": "hand-edited recipient, host, user not validated on load.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client tests",
+          "line": null,
+          "finding": "duplicated covers line.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "transport.integration.test.ts",
+          "line": null,
+          "finding": "no two-mails-in-one-check case.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": null,
+          "line": null,
+          "finding": "status text for daily mode (L5/L6).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "notes",
+          "file": null,
+          "line": null,
+          "finding": "L2, L4, L7, L8 and notes.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-11-22T22:51:11.410016+00:00",
-      "disposition": "closed by reason_code delegated-to-orchestrator",
-      "recorded_by": "sub-iterate-runner",
+      "completed_at": "2026-11-22T23:30:56.771917+00:00",
+      "disposition": "orchestrator fresh review b73b8aa8: 1 medium fixed in 1c4f34c0",
+      "recorded_by": "orchestrator",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "delegated-to-orchestrator"
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "1c4f34c081e59281ac5cde477771e43650a1a64d"
     },
     "doubt": {
       "review_type": "doubt",
