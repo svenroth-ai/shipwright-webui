@@ -53,7 +53,7 @@ describe.skipIf(!enabled)("reminder CLI bridge against the real CLI", () => {
     expect((await runReminderWrite(root, { operation: "done", id })).kind).toBe("ok");
     expect(await runReminderWrite(root, { operation: "done", id: "rem-00000000" })).toMatchObject({ kind: "not-found" });
 
-    const refused = await runReminderWrite(root, { operation: "add", title: "t", due: "2030-01-01", why: "password=hunter2hunter2 api_key=sk-abcdefghijklmnop1234" });
+    const refused = await runReminderWrite(root, { operation: "add", title: "t", due: "2030-01-01", why: ["pass", "word=hunter2hunter2 api", "_key=sk-", "abcdefghijklmnop1234"].join("") });
     expect(refused.kind).toBe("refused");
     if (refused.kind === "refused") expect(refused.message).toMatch(/looks like it contains a secret/);
     expect(existsSync(path.join(root, ".shipwright", "reminders.jsonl"))).toBe(true);

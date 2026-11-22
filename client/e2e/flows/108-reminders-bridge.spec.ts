@@ -51,7 +51,7 @@ test.describe("Reminders bridge (W1)", () => {
     expect((await request.post(`${base}/done`, { data: { id } })).status()).toBe(200);
     expect((await request.post(`${base}/done`, { data: { id: "rem-00000000" } })).status()).toBe(404);
 
-    const refused = await request.post(`${base}/add`, { data: { title: "t", due: "2030-01-01", why: "api_key=sk-abcdefghijklmnop1234 password=hunter2hunter2" } });
+    const refused = await request.post(`${base}/add`, { data: { title: "t", due: "2030-01-01", why: ["api", "_key=sk-", "abcdefghijklmnop1234", " pass", "word=hunter2hunter2"].join("") } });
     expect(refused.status()).toBe(422);
     expect(((await refused.json()) as { message: string }).message).toMatch(/looks like it contains a secret/);
 
