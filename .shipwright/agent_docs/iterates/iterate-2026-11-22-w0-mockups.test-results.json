@@ -1,0 +1,41 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-22-w0-mockups",
+    "date": "2026-11-22",
+    "unit": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "n/a",
+      "justification": "Static HTML mockups only; no executable behavior. Checked by grep that no scripts or external resources are referenced.",
+      "reason_code": "trivial-auto"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-22-w0-mockups",
+    "commit": "1e4af871d96a6519ed00ab4018c8f647788ebee0",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

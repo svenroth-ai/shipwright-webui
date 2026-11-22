@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-22-w0-mockups",
+  "date": "2026-11-22",
+  "section": "Iterate - change: reminders WebUI mockups (W0)",
+  "title": "Reminders UI mockups before any build",
+  "context": "Brief reminders-webui requires the operator to see HTML mockups before W1-W3.",
+  "decision": "Six static HTML screens plus open questions under .shipwright/planning/campaigns/reminders-webui-mockups/; no production code.",
+  "consequences": "Campaign stops at needs_operator until the operator says go; W1-W3 are re-scoped from the approved mockups.",
+  "rationale": "Cheap to change a page, expensive to change a built bridge and mail timer.",
+  "rejected": "Building the server bridge first; clickable React prototype.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

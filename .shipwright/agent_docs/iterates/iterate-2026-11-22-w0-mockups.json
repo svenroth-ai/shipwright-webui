@@ -1,0 +1,26 @@
+{
+  "run_id": "iterate-2026-11-22-w0-mockups",
+  "date": "2026-11-22T14:43:39.921647Z",
+  "event_at": "2026-11-22T14:43:16.571445+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/campaign-reminders-webui--W0",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-22-w0-mockups",
+  "test_completeness": {
+    "status": "n/a",
+    "justification": "Static HTML mockups only; no executable behavior."
+  },
+  "surface_verification": {
+    "surface": "none",
+    "justification": "Static HTML files with no server, build or script; nothing to run."
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}
