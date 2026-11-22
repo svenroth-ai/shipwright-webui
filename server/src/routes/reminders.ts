@@ -28,6 +28,7 @@ import {
   type ReminderDueResult,
   type ReminderWriteResult,
 } from "../core/reminder-cli-runner.js";
+import { resolveMainCheckout } from "../core/reminder-main-root.js";
 import { parseAddBody, parseReminderId, parseSnoozeBody } from "../core/reminder-validation.js";
 
 export interface ReminderProjectMeta {
@@ -54,7 +55,7 @@ const ALL_PROJECTS_CONCURRENCY = 3;
 type DueBody = Record<string, unknown> & { state: string };
 
 /** HTTP status + body for one `due` result. Pure; shared by both read routes. */
-export function dueResponse(result: ReminderDueResult): { status: 200 | 502 | 503; body: DueBody } {
+function dueResponse(result: ReminderDueResult): { status: 200 | 502 | 503; body: DueBody } {
   switch (result.kind) {
     case "ok": {
       const { triageError, reminderCorruptLines } = result.view;
@@ -105,12 +106,26 @@ export function createReminderRoutes(deps: ReminderRoutesDeps): Hono {
 
   app.get("/api/reminders/due", async (c) => {
     const projects = deps.projects.getAll().filter((p) => !p.synthesized);
+    // Two registrations of one repo (main tree + a linked worktree) share ONE store:
+    // read it once, under the first project; the other gets an explicit shared-root state.
+    const firstByRoot = new Map<string, string>();
+    const sharedWith = projects.map((p) => {
+      const root = resolveMainCheckout(p.path);
+      const first = firstByRoot.get(root);
+      if (first === undefined) firstByRoot.set(root, p.id);
+      return first;
+    });
     const entries: Record<string, unknown>[] = Array.from({ length: projects.length });
     let next = 0;
     // `next` is only mutated synchronously (never across an await), so workers cannot share an index.
     const worker = async (): Promise<void> => {
       for (let i = next++; i < projects.length; i = next++) {
         const p = projects[i];
+        const shared = sharedWith[i];
+        if (shared !== undefined) {
+          entries[i] = { projectId: p.id, state: "shared-root", sharedWithProjectId: shared };
+          continue;
+        }
         let body: DueBody;
         try {
           body = dueResponse(await readDue(p.path)).body;

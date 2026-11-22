@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { ReminderDueResult, ReminderWriteResult } from "../core/reminder-cli-runner.js";
@@ -56,6 +59,27 @@ describe("GET due", () => {
     const body = await (await a.request("/api/reminders/due")).json();
     expect(roots.sort()).toEqual(["C:/one", "C:/two"]);
     expect(body.projects.map((p: { projectId: string; state: string }) => [p.projectId, p.state])).toEqual([["p1", "ok"], ["p2", "unreadable"]]);
+  });
+
+  it("two registrations of one repo (main + linked worktree) are read once, the second says shared-root", async () => {
+    const base = mkdtempSync(path.join(os.tmpdir(), "rem-share-"));
+    try {
+      const main = path.join(base, "main");
+      const wt = path.join(base, "wt");
+      mkdirSync(path.join(main, ".git", "worktrees", "wt"), { recursive: true });
+      mkdirSync(wt, { recursive: true });
+      writeFileSync(path.join(wt, ".git"), `gitdir: ${path.join(main, ".git", "worktrees", "wt")}`);
+      const roots: string[] = [];
+      const a = createReminderRoutes({
+        projects: { getAll: () => [{ id: "m", path: main }, { id: "w", path: wt }], getById: () => undefined },
+        runReminderDue: async (root) => { roots.push(root); return okDue(); },
+      });
+      const body = await (await a.request("/api/reminders/due")).json();
+      expect(roots).toEqual([main]);
+      expect(body.projects).toEqual([expect.objectContaining({ projectId: "m", state: "ok" }), { projectId: "w", state: "shared-root", sharedWithProjectId: "m" }]);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
   });
 
   it("a throwing runner becomes a failed state for that project only", async () => {

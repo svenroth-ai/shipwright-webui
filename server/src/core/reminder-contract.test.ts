@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { GOOD_ANSWER } from "./reminder-fixtures.js";
@@ -12,13 +12,15 @@ describe("reminder due contract (pinned, v1)", () => {
     expect([...REMINDER_LINK_FIELDS]).toEqual(["label", "kind", "ref"]);
   });
 
-  it("matches the Shipwright contract source when the sibling clone is present", () => {
-    let src: string;
-    try {
-      src = readFileSync("C:/01_Development/shipwright/shared/scripts/lib/reminder_due.py", "utf-8");
-    } catch {
-      return; // sibling clone absent (CI): the pinned lists above are the guard
-    }
+  // Sibling Shipwright clone: SHIPWRIGHT_MONOREPO_PATH, else the usual dev layout. Absent (CI) = a visible skip;
+  // the pinned lists above are then the guard.
+  const contractSrc = [process.env.SHIPWRIGHT_MONOREPO_PATH, "C:/01_Development/shipwright"]
+    .filter((p): p is string => Boolean(p))
+    .map((p) => `${p}/shared/scripts/lib/reminder_due.py`)
+    .find((p) => existsSync(p));
+
+  it.skipIf(!contractSrc)("matches the Shipwright contract source when the sibling clone is present", () => {
+    const src = readFileSync(contractSrc as string, "utf-8");
     const grab = (name: string): string[] => {
       const m = new RegExp(`${name} = \\(([^)]*)\\)`).exec(src);
       return m ? [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]) : [];

@@ -22,7 +22,7 @@
  * rewords or works around it.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -39,6 +39,8 @@ export interface ReminderCliDeps {
   spawn?: CliChildSpawnFn;
   existsFn?: (p: string) => boolean;
   homeDir?: string;
+  /** Test seam: does the project folder exist? */
+  dirExists?: (p: string) => boolean;
   scriptOverride?: string;
   timeoutMs?: number;
   baseEnv?: NodeJS.ProcessEnv;
@@ -95,20 +97,34 @@ export function resolveReminderCliScript(
 const ENGINE_MISSING = "The reminder engine isn't installed.";
 const UV_MISSING = "uv isn't installed — reminders need it to run in a managed Python 3.11+.";
 
+function isDirectory(p: string): boolean {
+  try {
+    return statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 function unavailable(reason: string): ReminderCliFailure {
   return { kind: "engine-unavailable", reason, repairCommand: READINESS_REPAIR_COMMAND };
 }
 
+const stderrLines = (stderr: string): string[] => stderr.split(/[\r\n]+/).map((l) => l.trim()).filter(Boolean);
+
 /** The CLI prints `error: <message>` on stderr; return the message as it wrote it. */
 function cliMessage(stderr: string): string {
-  const lines = stderr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const lines = stderrLines(stderr);
   const own = [...lines].reverse().find((l) => l.startsWith("error: "));
   // No `error: ` line (a traceback, say): a generic text, never a stack frame.
   return own ? own.slice("error: ".length).slice(0, 1000) : "";
 }
 
+/** `uv` also exits 2 on its own failures and prints a plain `error:` line; those are not refusals. */
+const UV_ERROR = /Caused by:|error: (No interpreter|Failed to|Could not|Requested|Unable to|.*Python (>=|download|interpreter)|.*toolchain)/i;
+
 function isCliRefusal(stderr: string): boolean {
-  const lines = stderr.split(/[\r\n]+/).map((l) => l.trim()).filter(Boolean);
+  const lines = stderrLines(stderr);
+  if (UV_ERROR.test(stderr)) return false;
   return lines.some((l) => l.startsWith("error: ")) && !lines.some((l) => l.startsWith("usage:"));
 }
 
@@ -152,12 +168,12 @@ function commonFailure(code: number, spawnError: string | undefined, stderr: str
 export async function runReminderDue(
   projectRoot: string,
   deps: ReminderCliDeps = {},
-  on?: string,
 ): Promise<ReminderDueResult> {
   const prep = await prepare(deps);
   if (isFailure(prep)) return prep;
-  const args = [...baseArgs(prep.script, resolveMainCheckout(projectRoot)), "due", "--json"];
-  if (on) args.push(`--on=${on}`);
+  const root = resolveMainCheckout(projectRoot);
+  if (!(deps.dirExists ?? isDirectory)(root)) return { kind: "failed", reason: "The project folder no longer exists." };
+  const args = [...baseArgs(prep.script, root), "due", "--json"];
   const spawn = deps.spawn ?? defaultCliChildSpawn;
   const res = await spawn(prep.uv.bin, args, { timeoutMs: deps.timeoutMs ?? REMINDER_CLI_TIMEOUT_MS, env: prep.uv.env });
   const failure = commonFailure(res.code, res.spawnError, res.stderr);
@@ -201,7 +217,11 @@ export async function runReminderWrite(
       ? { kind: "refused", message: cliMessage(res.stderr) }
       : { kind: "failed", reason: "The reminder engine did not understand the request (its version may not match)." };
   }
-  if (res.code === 3) return { kind: "not-found", message: cliMessage(res.stderr) };
+  if (res.code === 3) return { kind: "not-found", message: cliMessage(res.stderr) || "No such reminder." };
+  // A timed-out write may already have been applied before the kill: say so.
+  if (res.spawnError === "timeout") {
+    return { kind: "failed", reason: "The reminder engine took too long; the change may or may not have been saved. Refresh before trying again." };
+  }
   const failure = commonFailure(res.code, res.spawnError, res.stderr);
   if (failure) return failure;
   if (input.operation !== "add") return { kind: "ok", operation: input.operation, output: res.stdout.trim() };

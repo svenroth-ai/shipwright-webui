@@ -15,8 +15,8 @@ import type { ReminderAddInput } from "./reminder-cli-runner.js";
 export const MAX_TITLE = 200;
 export const MAX_TEXT = 2000;
 export const MAX_LINKS = 20;
-/** Windows caps a command line at 32,767 chars; stay well under it for the whole argv. */
-export const MAX_TOTAL_CHARS = 24_000;
+/** Windows caps a command line at 32,767 chars and quoting can double some of them; stay well under it. */
+export const MAX_TOTAL_CHARS = 16_000;
 
 const DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
 const REMINDER_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;

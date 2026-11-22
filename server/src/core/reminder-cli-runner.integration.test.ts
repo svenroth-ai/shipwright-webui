@@ -12,9 +12,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { resolveReminderCliScript, runReminderDue, runReminderWrite } from "./reminder-cli-runner.js";
 
 const script = resolveReminderCliScript();
-let hasUv = true;
-try { execFileSync("uv", ["--version"], { stdio: "ignore" }); } catch { hasUv = false; }
-const enabled = Boolean(script) && hasUv;
+let hasTools = true;
+try {
+  execFileSync("uv", ["--version"], { stdio: "ignore" });
+  execFileSync("git", ["--version"], { stdio: "ignore" });
+} catch { hasTools = false; }
+const enabled = Boolean(script) && hasTools;
 
 describe.skipIf(!enabled)("reminder CLI bridge against the real CLI", () => {
   const root = enabled ? mkdtempSync(path.join(os.tmpdir(), "rem-int-")) : "";

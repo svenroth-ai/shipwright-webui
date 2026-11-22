@@ -11,7 +11,7 @@ const noUv = async () => ({ ok: false, stdout: "", stderr: "" });
 const SCRIPT = "C:/cache/reminder_cli.py";
 
 function deps(spawn: ReminderCliDeps["spawn"], extra: Partial<ReminderCliDeps> = {}): ReminderCliDeps {
-  return { run: runUv, existsFn: () => true, scriptOverride: SCRIPT, spawn, ...extra };
+  return { run: runUv, existsFn: () => true, dirExists: () => true, scriptOverride: SCRIPT, spawn, ...extra };
 }
 
 describe("reminder CLI bridge: due", () => {
@@ -103,6 +103,21 @@ describe("reminder CLI bridge: writes", () => {
     const usage = ["usage: reminder_cli.py [-h] add", "reminder_cli.py: error: unrecognized arguments: --foo"].join(String.fromCharCode(10));
     expect(await runReminderWrite("C:/p", add, deps(async () => ({ code: 2, stdout: "", stderr: usage })))).toMatchObject({ kind: "failed" });
     expect(await runReminderWrite("C:/p", add, deps(async () => ({ code: -1, stdout: "", stderr: "", spawnError: "E2BIG" })))).toMatchObject({ kind: "failed" });
+  });
+
+  it("uv's own exit-2 failures are a failure, never a content refusal; a write timeout says the outcome is unknown", async () => {
+    const add = { operation: "add", title: "t", due: "2026-12-01", why: "w" } as const;
+    const uvErr = "error: No interpreter found for Python >=3.11 in managed installations or search path";
+    expect(await runReminderWrite("C:/p", add, deps(async () => ({ code: 2, stdout: "", stderr: uvErr })))).toMatchObject({ kind: "failed" });
+    const timed = await runReminderWrite("C:/p", add, deps(async () => ({ code: 124, stdout: "", stderr: "", spawnError: "timeout" })));
+    expect(timed).toMatchObject({ kind: "failed", reason: expect.stringMatching(/may or may not have been saved/) });
+  });
+
+  it("a registered project whose folder is gone is a named failure, not 'nothing due'", async () => {
+    let spawned = 0;
+    const r = await runReminderDue("C:/gone", deps(async () => { spawned++; return { code: 0, stdout: "", stderr: "" }; }, { dirExists: () => false }));
+    expect(r).toEqual({ kind: "failed", reason: "The project folder no longer exists." });
+    expect(spawned).toBe(0);
   });
 
   it("maps not-found, busy, unreadable add output and unavailable engine", async () => {
