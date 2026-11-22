@@ -8,7 +8,6 @@ import type { ReminderDueResult } from "../reminder-cli-runner.js";
 import type { ReminderDueItem } from "../reminder-contract.js";
 import { MailLedger, itemKey } from "./ledger.js";
 import { ReminderMailService } from "./service.js";
-import { defaultLock } from "./json-store.js";
 import { DEFAULT_SETTINGS, saveSettings, writeSmtpPassword, type ReminderMailSettings } from "./settings.js";
 import type { MailMessage, TransportFactory } from "./transport.js";
 

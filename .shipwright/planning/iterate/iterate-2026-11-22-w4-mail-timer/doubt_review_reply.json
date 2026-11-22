@@ -1,0 +1,16 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "doubts": [
+    {"severity": "medium", "lens": "reversibility / concurrency", "claim_under_doubt": "the claim-before-send crash window is rare", "disproof_attempt": "the first check ran before the port was bound and shutdown never stopped the timer, so an early exit between claim and send loses the mail", "what_would_resolve_it": "delay the first check and stop the timer on shutdown", "disposition": "fixed in 29d11edc (20 s start delay, stop on SIGINT/SIGTERM); at-most-once stays documented in the ADR"},
+    {"severity": "medium", "lens": "concurrency & ordering", "claim_under_doubt": "the daily summary is sent every day at or after summaryTime", "disproof_attempt": "with 15m/1h checks a summary time inside the last interval of the day can be skipped depending on start minute", "what_would_resolve_it": "treat the summary time as a check trigger at every interval", "disposition": "fixed in 29d11edc with a test (23:30 summary, hourly checks)"},
+    {"severity": "low", "lens": "hidden coupling", "claim_under_doubt": "every due item eventually gets mailed", "disproof_attempt": "daily mode caps at 25 mails per check, the first 25 always win", "disposition": "accepted: the Inbox still shows every item; documented cap"},
+    {"severity": "low", "lens": "secret binding", "claim_under_doubt": "the saved password never follows a changed server", "disproof_attempt": "two separately locked writes leave a millisecond window", "disposition": "accepted as low risk; the PUT guard refuses unretyped passwords on a changed server"},
+    {"severity": "low", "lens": "test determinism", "claim_under_doubt": "the E2E can count smtp messages", "disproof_attempt": "a scheduled summary may also arrive", "disposition": "fixed in 29d11edc: the E2E looks for the test mail instead of counting"},
+    {"severity": "low", "lens": "requirement wording", "claim_under_doubt": "each item is mailed at most once per day", "disproof_attempt": "in both a reminder appears in its own mail and in the summary", "disposition": "rebutted: both means both channels; the once-per-day rule is per channel and parks are excluded from the summary"},
+    {"severity": "low", "lens": "secret at rest", "claim_under_doubt": "the password exists only in .env.local", "disproof_attempt": "a failed rename leaves the temp file", "disposition": "fixed in 29d11edc: the temp file is removed"},
+    {"severity": "low", "lens": "mail hygiene", "claim_under_doubt": "no local paths in a mail", "disproof_attempt": "http(s) link URLs are mailed as given", "disposition": "accepted: the link host is shown next to the label; contents of a web address are the operator's own data"},
+    {"severity": "low", "lens": "once-ever triage", "claim_under_doubt": "parks mail once ever per project and id", "disproof_attempt": "a crash after a summary send, or removing and re-adding a project, can repeat it", "disposition": "accepted and documented"}
+  ],
+  "summary": "0 high, 2 medium, 7 low; mediums fixed"
+}

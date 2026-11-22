@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-22-w4-mail-timer",
+  "date": "2026-11-22",
+  "section": "Iterate - feature: Reminder mail",
+  "title": "Reminder mail: in-process timer, claim-before-send ledger, pinned SMTP library",
+  "context": "Reminders and expired parks only reached the operator through the Inbox count while a tab was open. The operator chose mail as the second channel: off by default, one mail per item per day, parks once, password in .env.local.",
+  "decision": "A server check at start and on a schedule reads due for all projects via the W1 bridge, claims each ledger key under a lock BEFORE sending, mails escaped plain text, and records failures (max 3 tries per item and day). nodemailer 10.6.1 is the only new dependency.",
+  "consequences": "FR-01.77 minted. At-most-once on a crash between claim and SMTP answer (mail stays in the Inbox). STARTTLS is required off loopback. New dependency enters the build graph. A damaged ledger fails closed.",
+  "rationale": "Smallest option that meets the operator decisions: in-process timer plus one small file, a maintained SMTP library instead of owning TLS and auth, the secret in the central user folder outside every repo, write-only in the API.",
+  "rejected": "Separate OS scheduled job; browser-only notifications; hand-written SMTP client; at-least-once send-then-record (repeats mails after a crash); plain SMTP override.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-11-22-w4-mail-timer-reminder-mail.md"
+}

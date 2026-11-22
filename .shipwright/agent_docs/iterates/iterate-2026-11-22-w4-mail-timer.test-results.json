@@ -1,0 +1,125 @@
+{
+  "last_updated": "2026-11-23",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-22-w4-mail-timer",
+    "date": "2026-11-23",
+    "unit": {
+      "status": "passed",
+      "passed": 10439,
+      "skipped": 16,
+      "total": 10455
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0,
+      "total": 2
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "mail is off by default and sends nothing until complete",
+          "disposition": "tested",
+          "evidence": "reminder-mail service.test.ts 'is off by default' + 'does not run while enabled but incomplete' PASSED"
+        },
+        {
+          "behavior": "one mail per (kind,id,day), suppression survives a restart, parallel services mail once",
+          "disposition": "tested",
+          "evidence": "service.test.ts per-day / restart / overlapping checks PASSED"
+        },
+        {
+          "behavior": "parked triage items mail once ever per project+id; summary marks only listed parks",
+          "disposition": "tested",
+          "evidence": "service.test.ts parked-once + same-id-two-projects + summary-marks-listed PASSED"
+        },
+        {
+          "behavior": "at most 3 tries per item and day, exact failure shown, dead server not hammered, good test mail resets",
+          "disposition": "tested",
+          "evidence": "service.test.ts + service.status.test.ts PASSED"
+        },
+        {
+          "behavior": "fail closed on a damaged ledger; a busy ledger gives a retry note without delete advice",
+          "disposition": "tested",
+          "evidence": "service.test.ts damaged ledger + service.status.test.ts busy ledger PASSED"
+        },
+        {
+          "behavior": "SMTP password never reaches logs, status, ledger, error text or any API response",
+          "disposition": "tested",
+          "evidence": "service.test.ts password-leak test + reminder-mail.test.ts route test + E2E answers check PASSED"
+        },
+        {
+          "behavior": "password stored only in .env.local outside any repo, write-only, old password restored when save fails",
+          "disposition": "tested",
+          "evidence": "settings-timer.test.ts + reminder-mail.test.ts failed-password-write test PASSED"
+        },
+        {
+          "behavior": "mail text escaped, 1000-char cut, no local paths, only http(s) links, inert command, logo + sender name",
+          "disposition": "tested",
+          "evidence": "compose.test.ts + service.test.ts sender/logo + transport.integration.test.ts PASSED"
+        },
+        {
+          "behavior": "real nodemailer transport to a loopback SMTP: STARTTLS rule, timeouts, error scrub",
+          "disposition": "tested",
+          "evidence": "transport.integration.test.ts PASSED"
+        },
+        {
+          "behavior": "timer: start delay, 15m/1h/daily, summary slot at any interval, only real runs count, fake clock",
+          "disposition": "tested",
+          "evidence": "settings-timer.test.ts timer block PASSED"
+        },
+        {
+          "behavior": "Settings card: off by default, validation messages, password write-only, test mail result, Remove saved password",
+          "disposition": "tested",
+          "evidence": "ReminderMailCard.test.tsx + E2E reminder-mail-settings.spec.ts PASSED"
+        },
+        {
+          "behavior": "Inbox shows a red failed-send notice that leads to the mail settings",
+          "disposition": "tested",
+          "evidence": "InboxPage reminders tests + E2E second test PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 12,
+        "tested": 12,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 12,
+        "covered_acs": 12
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 2,
+      "exit_code": 0
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
