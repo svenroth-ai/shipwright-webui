@@ -16,6 +16,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+// @covers FR-01.04
 test.describe("Inbox phase gate", () => {
   // @covers FR-01.04
   test("shows a paused guided phase and clears it on resume", async ({ page, request }) => {
@@ -38,10 +39,12 @@ test.describe("Inbox phase gate", () => {
       await expect(page.getByTestId("inbox-page")).toBeVisible();
       const card = page.getByTestId(`inbox-card-${itemKey}`);
       await expect(card).toBeVisible({ timeout: 25_000 });
-      await expect(card).toContainText("Awaiting your reply");
+      await expect(card).toContainText(/awaiting reply/i);
+      await page.getByTestId(`inbox-row-title-${itemKey}`).click();
       await expect(page.getByTestId(`inbox-question-text-${itemKey}`)).toContainText(
         /waits for your answer/i,
       );
+      await page.keyboard.press("Escape");
 
       setLoop("running");
       await page.reload();

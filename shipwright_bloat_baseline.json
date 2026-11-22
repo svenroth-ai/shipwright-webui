@@ -305,7 +305,7 @@
     {
       "path": "client/src/pages/InboxPage.test.tsx",
       "limit": 300,
-      "current": 655,
+      "current": 645,
       "state": "grandfathered",
       "adr": null
     },

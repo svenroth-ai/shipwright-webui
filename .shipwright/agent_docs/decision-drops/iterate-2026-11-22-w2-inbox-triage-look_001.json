@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-22-w2-inbox-triage-look",
+  "date": "2026-11-22",
+  "section": "Iterate — change: Inbox in the Triage look",
+  "title": "Inbox entries as compact Triage rows + detail dialog",
+  "context": "The Inbox showed tall chat-like cards while Triage shows compact rows; reminders (W3) need one row design next to awaiting-reply entries.",
+  "decision": "Replace the four card variants with one InboxRow (Triage row CSS, hover/focus action zone) and one light InboxDetailDialog; add a filter bar; reuse TriageIdCopy.",
+  "consequences": "Client-only. A lead question's answer form now lives in the dialog (one extra click); whole-row click opens the dialog, Open task is explicit.",
+  "rationale": "Brief rev 2 + approved mockups 01/02 make the dialog the home of full text and actions; a compact row has no room for an inline form.",
+  "rejected": "Re-skin the cards shorter (cannot match mockup); make TriageItemRow generic (couples two pages with different actions); do nothing.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

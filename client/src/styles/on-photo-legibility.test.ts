@@ -42,7 +42,7 @@ const TOUCHED = [
   "components/external/BoardStatusFilter.tsx",
   "components/external/TaskBoardColumns.tsx",
   "pages/inbox/InboxProjectSection.tsx",
-  "pages/inbox/InboxCardShell.tsx",
+  "pages/inbox/InboxRow.tsx",
   "pages/InboxPage.tsx",
   "pages/TriagePage.tsx",
   "components/triage/TriageGroupList.tsx",
@@ -66,12 +66,18 @@ describe("on-photo legibility — AC1 flipping-token fence", () => {
     // more. White tints are stable under `.on-photo`; `--ink` / `--muted` would
     // flip, the legacy `--color-*` aliases are re-pointed INSIDE a card by the
     // `.inbox-card` scope only.
-    const section = read("pages/inbox/InboxProjectSection.tsx");
-    expect(section).toMatch(/text-white\//);
-    expect(section).not.toMatch(/color: "var\(--(ink|muted|color-text|color-muted)\)"/);
+    // (iterate-2026-11-22-w2: the cards became compact Triage rows inside one
+    // card per project; the filter chips are solid pills like the Triage summary.)
+    for (const rel of ["pages/inbox/InboxProjectSection.tsx", "pages/inbox/InboxRow.tsx"]) {
+      const src = read(rel);
+      expect(src, rel).toMatch(/text-white\//);
+      expect(src, rel).not.toMatch(/text-\[var\(--(color-text|color-muted|ink|muted|body)\)\]/);
+      expect(src, rel).not.toMatch(/color: "var\(--(ink|muted|color-text|color-muted)\)"/);
+    }
     const css = strip(readFileSync(path.join(SRC, "styles/inbox-cards.css"), "utf8"));
     expect(css).toMatch(/\.inbox-card\s*\{[^}]*--triage-lane-solid/);
-    expect(css).toMatch(/\.inbox-group-head\s*\{[^}]*background:\s*var\(--triage-lane-solid\)/);
+    expect(css).toMatch(/\.inbox-group\s*\{[^}]*--triage-lane-solid/);
+    expect(css).toMatch(/\.inbox-filter-chip\s*\{[^}]*background:\s*var\(--triage-lane-solid\)/);
     expect(css).not.toMatch(/text-shadow/);
   });
 

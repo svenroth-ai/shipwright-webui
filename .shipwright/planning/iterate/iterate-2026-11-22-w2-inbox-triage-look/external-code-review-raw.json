@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "Findings:\n\n- Category: regression\n  Severity: medium\n  File: client/src/pages/inbox/InboxCard.tsx (deleted re-export) + client/src/pages/inbox/phaseMeta.ts (deleted)\n  Finding: `InboxCard` previously re-exported `KNOWN_PHASES` and `PHASE_ICON` (\"Re-exported for existing importers\"), and `phaseMeta.ts` itself is deleted. `InboxCardShell.tsx` (exported `InboxEyebrow`, `InboxCardShell`) is also deleted with its test. Any importer outside the diff (e.g. Triage-side or spec helpers importing `KNOWN_PHASES` from `./InboxCard` or `./phaseMeta`) now fails to compile. The comment even acknowledged external importers existed at some point.\n  Suggestion: Grep the repo for `phaseMeta`, `KNOWN_PHASES`, `PHASE_ICON`, `InboxCardShell`, `InboxEyebrow` imports; if any remain outside the deleted files, re-home or re-export them. Also note `InboxTerminalHonesty` lost its `align` prop \u2014 any remaining caller passing `align` is a type error.\n\n- Category: edge-case\n  Severity: medium\n  File: client/src/styles/inbox-cards.css (`@container triage-row (min-width: 48rem)`)\n  Finding: The hover/focus reveal depends entirely on a container named `triage-row` being declared (e.g. `container: triage-row / inline-size`) in `triage-rows.css`, which is not in the diff. If the Triage row class doesn't set that container name (or the row grid template is overridden in a way that drops the actions area), the desktop action zone never appears (or is permanently hidden), breaking AC \"hover/keyboard-focus action row\". The e2e test would catch it, but only if triage-rows.css already declares the container \u2014 this should be verified explicitly, and the override is fragile against upstream changes to the shared grid template (`grid-template-columns: ... 14rem 13rem` hard-copies Triage's layout).\n  Suggestion: Confirm `container: triage-row` exists in triage-rows.css and consider asserting in the e2e that the button is hidden *because of* the media/container rule (e.g. computed `visibility`), not merely absent.\n\n- Category: bug\n  Severity: low\n  File: client/src/pages/inbox/InboxRow.tsx (`w-[3.4rem]` on the age span)\n  Finding: The age is hard-clamped to a 3.4rem right-aligned box with no truncation handling; `formatRelativeTime` can produce strings wider than that at some locales/fonts (\"yesterday\", \"2 days ago\"), causing overflow or clipping. Triage presumably sized this for its own value set.\n  Suggestion: Use `whitespace-nowrap` plus a sensible min-width, or drop the fixed width and let the meta cluster size naturally.\n\n- Category: test\n  Severity: low\n  File: client/src/pages/inbox/inboxRowModel.test.ts (`firstLine` hostile-text case)\n  Finding: The \"keeps hostile text as text\" test only proves the regex doesn't strip `<script>`; it proves nothing about XSS (React escaping does). Fine as a unit test, but the claim in the test name overstates coverage. Not a defect per se \u2014 noting so it isn't counted as security coverage.\n  Suggestion: None needed beyond renaming; actual XSS coverage comes from the `document.body.querySelector(\"script\")` assertions in InboxPage.test.tsx, which are good.\n\n- Category: bug\n  Severity: low\n  File: client/src/components/triage/TriageIdCopy.tsx (aria-label)\n  Finding: With `display`/`copyValue` set, the copy button's accessible name still reads the full `id` (entire session UUID) while the visible text is 8 chars, and the \"Copied <id>\" message reads the full UUID too. Not wrong (it copies the full UUID) but the name/announcement diverges from what's shown; acceptable.\n  Suggestion: Optionally announce `display ?? id`.\n\nPositives worth noting: the dialog-as-sibling (portaled event bubbling) reasoning is correct and documented; filter fallback-to-all when the active bucket empties is handled and tested; the selection-drag guard on the row click is a nice touch; MarkdownText stays XSS-safe and is only used for the kinds that always had it; the touch path (hover:none shows actions always) and the title-never-reflow test (boundingBox before/after) are real behavioral assertions, not smoke tests.\n\nOverall: solid, spec-faithful implementation with strong tests. The deleted re-exports need a grep-verification pass before merge; everything else is minor.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: client/src/pages/inbox/InboxDetailDialog.tsx:41\n- Finding: The dialog has no `Dialog.Trigger` or explicit focus restoration. Radix therefore has no trigger to focus when Escape or Close dismisses it, leaving keyboard users without focus on the row they opened. The new E2E test comments that focus returns but only checks row visibility.\n- Suggestion: Capture the opening control and restore focus through `onCloseAutoFocus`, or wire the title through `Dialog.Trigger`. Assert that the title is focused after dismissal.\n\n- Category: spec\n- Severity: medium\n- File: client/src/pages/inbox/inboxRowModel.ts:60\n- Finding: AskUserQuestion detail content still uses only `parts[0]`. For a payload containing multiple questions, the new detail dialog omits every subsequent question and its options, failing the requirement to show the full text.\n- Suggestion: Keep the first question for the compact row, but retain and render every payload part in the detail dialog. Add a test with two distinct questions and option sets.\n\n- Category: test\n- Severity: medium\n- File: client/e2e/visual/09-inbox-populated.spec.ts:109\n- Finding: The populated Inbox changes substantially, but the diff contains no updated visual baseline. Changing the mask does not update the expected image, so the existing screenshot assertion will continue comparing against the old card layout.\n- Suggestion: Regenerate and commit the affected baseline through the required Linux flow, then run the visual assertion against it.\n\nShip-with-fixes: the implementation broadly follows the requested layout, but dialog accessibility, complete question content, and visual validation need changes before shipping. Local inspection and test execution were blocked by the environment\u2019s command policy; this assessment is based on the supplied diff.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-22-w2-inbox-triage-look",
+    "at": "2026-11-22T18:12:42.389154+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

@@ -1,38 +1,39 @@
 /*
- * Inbox — read-only list of pending AskUserQuestion bubbles.
+ * Inbox — the entries that wait for the operator (awaiting your reply).
  *
  * C7 split (2026-05-26): page reduced to a thin shell. The logical concerns
  * extracted to client/src/pages/inbox/:
- *   - useInboxData       — session/project grouping + openCount derivation.
- *   - InboxProjectSection — collapsible per-project <details> group.
- *   - InboxCard           — polymorphic dispatcher (with sub-modules
- *                           InboxCard.AskTool + InboxCard.Waiting).
+ *   - useInboxData        — session/project grouping + openCount derivation.
+ *   - InboxFilterBar      — the filter chips (Open / Awaiting reply / Notices).
+ *   - InboxProjectSection — one card per project, foldable + reorderable.
+ *   - InboxCard           — one entry: InboxRow (compact Triage row) + the
+ *                           InboxDetailDialog it opens (full text, actions).
  *   - InboxResumeButton   — "Answer in the terminal" navigation CTA (A19:
  *                           replaced the clipboard-copy path — writes nothing).
  *
- * Iterate 3.7d-b3 (2026-04-22) contract preserved:
- *   - Each card is a LARGER read-only Ask-bubble; option chips display-only.
- *   - No `<textarea>` / freetext input.
- *   - Single brown "Resume/Answer" button per card.
- *   - Whole card click-through → `/tasks/<taskId>`.
- *   - Group-by-project structure + `(N open)` counts preserved.
+ * Compact-row contract (iterate-2026-11-22-w2-inbox-triage-look): one Triage-
+ * style row per entry; its hover / focus action is "Answer in the terminal";
+ * a click opens the full text in a light dialog (the task is one click further:
+ * "Open task"). No `<textarea>` in a row. Group-by-project structure and the
+ * `(N open)` count are preserved.
  *
- * Load-bearing testids (proven by InboxPage.test.tsx 16 cases):
+ * Load-bearing testids:
  *   inbox-page, inbox-empty, inbox-session-<uuid>, inbox-item-<toolUseId>,
- *   inbox-task-context-pill-<toolUseId>, inbox-header-count,
- *   inbox-group-project-label-<sessionUuid>-<itemKey> (the session chip),
+ *   inbox-header-count, inbox-row-<key>-id (the session id),
  *   inbox-project-group-<projectId>, inbox-project-group-toggle-<projectId>,
  *   inbox-group-handle-<projectId>, inbox-group-count-<projectId>,
- *   inbox-group-color-<projectId>, inbox-card-<toolUseId>,
- *   inbox-resume-<toolUseId>.
+ *   inbox-group-color-<projectId>, inbox-card-<key> (the row),
+ *   inbox-resume-<key>, inbox-filter-<all|awaiting|notices>.
  *
  * Triage look (iterate-2026-11-13-inbox-triage-look): dark-glass cards, project
  * groups foldable + reorderable (remembered in localStorage), same body box as
  * the Triage page.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { InboxFilterBar } from "./inbox/InboxFilterBar";
 import { InboxGroupList } from "./inbox/InboxGroupList";
+import { countByFilter, filterGroups, type InboxFilter } from "./inbox/inboxRowModel";
 import { useInboxData } from "./inbox/useInboxData";
 import { PageHead } from "../components/common/PageHead";
 import { useInboxViewState } from "../hooks/useInboxViewState";
@@ -43,15 +44,23 @@ export default function InboxPage() {
   const { projectGroups, openCount, isLoading, tasksById } = useInboxData();
   const navigate = useNavigate();
   const view = useInboxViewState();
+  const [filter, setFilter] = useState<InboxFilter>("all");
+  const counts = useMemo(() => countByFilter(projectGroups), [projectGroups]);
+  // A filter whose last entry just left (polling) falls back to all, never an empty page.
+  const activeFilter: InboxFilter = counts[filter] > 0 ? filter : "all";
+  // ...and the choice itself is reset, so a later notice does not silently narrow the list again.
+  useEffect(() => {
+    if (filter !== activeFilter) setFilter(activeFilter);
+  }, [filter, activeFilter]);
 
   // The groups follow the user's own project order (drag handle on a group).
   const orderedGroups = useMemo(
     () =>
       applyProjectOrder(
-        projectGroups.map((g) => ({ ...g, id: g.projectId })),
+        filterGroups(projectGroups, activeFilter).map((g) => ({ ...g, id: g.projectId })),
         view.projectOrder,
       ),
-    [projectGroups, view.projectOrder],
+    [projectGroups, activeFilter, view.projectOrder],
   );
   const onReorderProject = (movedId: string, overId: string): void => {
     // Move inside the FULL saved order (also projects with no open item today) so they keep their slot.
@@ -77,7 +86,7 @@ export default function InboxPage() {
       {/* Body — the SAME box as the Triage page (same scroller padding, same
           .page-container), so the content's left edge does not jump when the
           operator switches between the two pages. The Inbox is simply narrower:
-          its cards cap at 720px and sit left-aligned. */}
+          its cards use the full page width like the Triage lanes. */}
       <div className="flex-1 overflow-y-auto pt-4 pb-10 md:pt-6">
         <div className="page-container density-surface">
           {isLoading && (
@@ -139,8 +148,10 @@ export default function InboxPage() {
             </div>
           )}
 
-          {/* Dark-glass cards (inbox-cards.css) — they carry their own solid
-              ground, so there is no neutral panel around the list any more. */}
+          {/* Filter chips, then one dark-glass card per project (inbox-cards.css). */}
+          {projectGroups.length > 0 && (
+            <InboxFilterBar counts={counts} active={activeFilter} onChange={setFilter} />
+          )}
           {projectGroups.length > 0 && (
             <InboxGroupList
               groups={orderedGroups}

@@ -20,9 +20,24 @@ function selectNode(node: HTMLElement | null): void {
   sel?.addRange(range);
 }
 
-export function TriageIdCopy({ id }: { id: string }) {
+export interface TriageIdCopyProps {
+  id: string;
+  /** Shown instead of `id` (the Inbox shows 8 characters of a session UUID and copies all of it). */
+  display?: string;
+  /** What the copy button puts on the clipboard (default: `id`). */
+  copyValue?: string;
+  /** Test-id base: `<base>-id` / `<base>-copy` (default `triage-item-<id>`). */
+  testIdBase?: string;
+  title?: string;
+  /** Accessible name of the copy button (default: `Copy <id>`). */
+  label?: string;
+}
+
+export function TriageIdCopy({ id, display, copyValue, testIdBase, title, label }: TriageIdCopyProps) {
+  const base = testIdBase ?? `triage-item-${id}`;
   const [copied, setCopied] = useState(false);
   const codeRef = useRef<HTMLElement>(null);
+  const fullRef = useRef<HTMLElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -33,12 +48,13 @@ export function TriageIdCopy({ id }: { id: string }) {
 
   const copy = async (): Promise<void> => {
     try {
-      await navigator.clipboard.writeText(id);
+      await navigator.clipboard.writeText(copyValue ?? id);
       setCopied(true);
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 1500);
     } catch {
-      selectNode(codeRef.current);
+      // Select the FULL value (the visible text may be a shortened display).
+      selectNode(fullRef.current ?? codeRef.current);
     }
   };
 
@@ -47,16 +63,22 @@ export function TriageIdCopy({ id }: { id: string }) {
       <code
         ref={codeRef}
         className="cursor-text select-all rounded bg-white/10 px-1.5 py-px font-mono text-xs text-white/85"
-        data-testid={`triage-item-${id}-id`}
+        title={title}
+        data-testid={`${base}-id`}
       >
-        {id}
+        {display ?? id}
       </code>
+      {copyValue && copyValue !== display && (
+        <code ref={fullRef} className="sr-only" aria-hidden="true">
+          {copyValue}
+        </code>
+      )}
       <button
         type="button"
         onClick={() => void copy()}
-        aria-label={copied ? `Copied ${id}` : `Copy ${id}`}
+        aria-label={copied ? (label ? "Copied" : `Copied ${id}`) : (label ?? `Copy ${id}`)}
         title={copied ? "Copied" : "Copy ID"}
-        data-testid={`triage-item-${id}-copy`}
+        data-testid={`${base}-copy`}
         className="inline-flex h-6 w-6 items-center justify-center rounded text-white/70 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white"
       >
         {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}

@@ -31,6 +31,7 @@ import { attachWsCapture, outboundDataFrames } from "../helpers/ws-capture";
 
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
+// @covers FR-01.04
 test.describe("Inbox → terminal fallback (A19, FR-01.63)", () => {
   let project: SeededProject;
   let taskId: string;
@@ -111,6 +112,9 @@ test.describe("Inbox → terminal fallback (A19, FR-01.63)", () => {
     await expect(page.getByTestId("inbox-page")).toBeVisible();
 
     const cta = page.getByTestId(`inbox-resume-${toolUseId}`);
+    // The row's action zone shows on hover / focus (always on touch).
+    await expect(page.getByTestId(`inbox-card-${toolUseId}`)).toBeVisible({ timeout: 25_000 });
+    await page.getByTestId(`inbox-card-${toolUseId}`).hover();
     await expect(cta).toBeVisible({ timeout: 25_000 });
     // The CTA says what it does — it navigates, it does not "answer" for you.
     await expect(cta).toContainText(/answer in the terminal/i);

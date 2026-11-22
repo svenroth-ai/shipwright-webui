@@ -12,7 +12,7 @@
  *   - the honesty copy is present (the WebUI does not answer for you).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation, useParams } from "react-router-dom";
 
@@ -65,19 +65,28 @@ const OPT_ASK = makeAskItem({
   },
 });
 
+/** Opens the detail dialog of a row (the full text, honesty line and options live there). */
+function openRow(key: string): void {
+  fireEvent.click(screen.getByTestId(`inbox-row-title-${key}`));
+}
+
 // @covers FR-01.04
 describe("A19 terminal fallback — ask_tool card", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("renders anatomy: context pill + question + read-only Options text", () => {
+  it("renders anatomy: row title, then (dialog) context line + question + read-only Options text", () => {
     renderCard(
       <InboxCard item={OPT_ASK} task={makeTask({ title: "build password reset" })} />,
     );
+    expect(screen.getByTestId("inbox-row-title-tu-fb")).toHaveTextContent(
+      "Reset link expiry — 1 hour or 24 hours?",
+    );
+    openRow("tu-fb");
     expect(
       screen.getByTestId("inbox-task-context-pill-tu-fb"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Reset link expiry — 1 hour or 24 hours?"),
+      within(screen.getByTestId("inbox-question-text-tu-fb")).getByText("Reset link expiry — 1 hour or 24 hours?"),
     ).toBeInTheDocument();
     // Options render as read-only chips (spans), never <button>.
     const chip0 = screen.getByTestId("inbox-option-chip-0");
@@ -98,14 +107,16 @@ describe("A19 terminal fallback — ask_tool card", () => {
 
   it("carries the honesty copy — the WebUI does not answer for you", () => {
     renderCard(<InboxCard item={OPT_ASK} task={makeTask()} />);
+    openRow("tu-fb");
     const honesty = screen.getByTestId("inbox-honesty-tu-fb");
     expect(honesty.textContent ?? "").toMatch(/terminal/i);
     expect(honesty.textContent ?? "").toMatch(/does(n't| not) answer/i);
   });
 
   it("has NO clickable option button that could send into the session", () => {
-    const { container } = renderCard(<InboxCard item={OPT_ASK} task={makeTask()} />);
-    for (const b of Array.from(container.querySelectorAll("button"))) {
+    renderCard(<InboxCard item={OPT_ASK} task={makeTask()} />);
+    openRow("tu-fb");
+    for (const b of Array.from(document.body.querySelectorAll("button"))) {
       const txt = (b.textContent ?? "").trim();
       expect(txt).not.toBe("1 hour");
       expect(txt).not.toBe("24 hours");
@@ -118,6 +129,7 @@ describe("A19 terminal fallback — text_question card", () => {
   it("renders the body + the honesty copy", () => {
     const item = makeTextItem({ questionId: "q-fb", questionText: "Approach A or B?" });
     renderCard(<InboxCard item={item} task={makeTask()} />);
+    openRow("q-fb");
     expect(screen.getByTestId("inbox-question-text-q-fb")).toHaveTextContent(
       "Approach A or B?",
     );
@@ -147,6 +159,7 @@ describe("A19 terminal fallback — terminal_prompt card", () => {
       promptText: "❯ Overwrite existing migration 0007_add_reset_tokens.sql? (y/N)",
     });
     renderCard(<InboxCard item={item} task={makeTask()} />);
+    openRow("tp-task-1");
     expect(
       screen.getByTestId("inbox-question-text-tp-task-1"),
     ).toHaveTextContent("Overwrite existing migration");

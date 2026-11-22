@@ -1,31 +1,28 @@
 /*
- * LeadQuestionCard — FR-04.19's inbox card for a `lead_question` item.
+ * LeadAnswerPanel — FR-04.19's answer form for a `lead_question` item, shown in
+ * the Inbox detail dialog (the row itself is a compact Triage row since
+ * iterate-2026-11-22-w2-inbox-triage-look; the form moved here unchanged).
  *
- * Unlike `AskToolCard`/`WaitingReplyCard` (which only disclaim — the PO
- * answers Claude in the task's own terminal), this card DOES answer for
- * the PO: a lead_question is leadwright's own follow-up, not a live Claude
- * turn, so there is no terminal to type into. Submitting PATCHes the
- * task's `poFeedback` (FR-04.17) and Dismiss suppresses the card without
- * answering (server-side: `dismissedToolUseIds` keyed `lq-<taskId>`).
- *
- * Same chrome family as the sibling cards (amber left strip, context pill,
- * time-ago, click-through to the task) so the Inbox reads as one system.
+ * Unlike the terminal-answered kinds (the PO answers Claude in the task's own
+ * terminal), this DOES answer for the PO: a lead_question is leadwright's own
+ * follow-up, not a live Claude turn, so there is no terminal to type into.
+ * Submitting PATCHes the task's `poFeedback` (FR-04.17) and Dismiss suppresses
+ * the entry without answering (server-side: `dismissedToolUseIds` keyed
+ * `lq-<taskId>`).
  *
  * "Discuss in terminal" / "Take the outcome as the answer" (PO decision
  * 2026-09-07 — no ping-pong: the daemon round-trip is too slow for a real
  * conversation) live in the sibling `InboxCard.LeadQuestion.TerminalDiscuss`
  * component. FR-04.42's round mechanics stay server-side and unused here —
- * this card still sends exactly one answer.
+ * this panel still sends exactly one answer.
+ *
+ * It sits on the LIGHT dialog sheet, so it reads the global light tokens.
  */
-import { useLayoutEffect, useRef, useState, type MouseEvent } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 
-import { MarkdownText } from "../../components/external/MarkdownText";
 import { DESCRIPTION_MAX_LENGTH } from "../../components/external/NewIssueModal/SimpleFields";
 import { useAnswerLeadQuestion, useDismissInboxItem } from "../../hooks/useExternalInbox";
-import type { ExternalTask } from "../../lib/externalApi";
 import type { LeadQuestionInboxItem } from "../../lib/leadQuestionApi";
-import { inboxItemKey, MAX_BODY_PREVIEW_PX } from "./InboxCard";
-import { InboxCardShell, InboxEyebrow } from "./InboxCardShell";
 import { LeadQuestionTerminalDiscussRow } from "./InboxCard.LeadQuestion.TerminalDiscuss";
 
 // The answer marker (`answerLeadQuestion`) appends ~40 chars to the typed
@@ -33,33 +30,17 @@ import { LeadQuestionTerminalDiscussRow } from "./InboxCard.LeadQuestion.Termina
 // cap on `poFeedback` (server/src/external/_shared/helpers.ts) — leave room.
 const ANSWER_MAX_LENGTH = DESCRIPTION_MAX_LENGTH - 100;
 
-export function LeadQuestionCard({
+export function LeadAnswerPanel({
   item,
-  task,
+  itemKey,
 }: {
   item: LeadQuestionInboxItem;
-  task: ExternalTask | undefined;
+  itemKey: string;
 }) {
-  const itemKey = inboxItemKey(item);
   const [answerText, setAnswerText] = useState("");
   const answerMutation = useAnswerLeadQuestion();
   const dismissMutation = useDismissInboxItem();
-
-  const bodyRef = useRef<HTMLDivElement | null>(null);
   const answerRef = useRef<HTMLTextAreaElement | null>(null);
-  const [overflowing, setOverflowing] = useState(false);
-  useLayoutEffect(() => {
-    const el = bodyRef.current;
-    if (!el) return;
-    const measure = () => {
-      setOverflowing(el.scrollHeight - el.clientHeight > 1);
-    };
-    measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [item.questionText]);
 
   const handleSend = (e: MouseEvent) => {
     e.stopPropagation();
@@ -77,48 +58,13 @@ export function LeadQuestionCard({
   };
 
   return (
-    <InboxCardShell
-      testId={`inbox-card-${itemKey}`}
-      itemKey={itemKey}
-      sessionUuid={item.sessionUuid}
-      task={task}
-      focusTerminal={false}
-    >
-      <InboxEyebrow>Lead is asking</InboxEyebrow>
-
-      <div
-        ref={bodyRef}
-        data-testid={`inbox-question-text-${itemKey}`}
-        style={{
-          position: "relative",
-          maxHeight: `${MAX_BODY_PREVIEW_PX}px`,
-          overflow: "hidden",
-        }}
-      >
-        <MarkdownText text={item.questionText} />
-        {overflowing && (
-          <div
-            aria-hidden="true"
-            data-testid={`inbox-question-fade-${itemKey}`}
-            style={{
-              position: "absolute",
-              insetInline: 0,
-              bottom: 0,
-              height: "48px",
-              background:
-                "linear-gradient(to bottom, transparent, var(--inbox-card-bg))",
-              pointerEvents: "none",
-            }}
-          />
-        )}
-      </div>
-
+    <div data-testid={`inbox-lead-panel-${itemKey}`}>
       <LeadQuestionTerminalDiscussRow
         taskId={item.taskId}
         itemKey={itemKey}
         onTakeOutcome={() => {
           answerRef.current?.focus();
-          answerRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+          answerRef.current?.scrollIntoView?.({ block: "center", behavior: "smooth" });
         }}
       />
 
@@ -127,55 +73,31 @@ export function LeadQuestionCard({
         data-testid={`inbox-lead-answer-input-${itemKey}`}
         value={answerText}
         onChange={(e) => setAnswerText(e.target.value)}
-        onClick={(e) => e.stopPropagation()}
+        aria-label="Your answer to the lead"
         placeholder="Type your answer…"
         rows={3}
         maxLength={ANSWER_MAX_LENGTH}
-        style={{
-          width: "100%",
-          marginTop: "12px",
-          padding: "8px 10px",
-          fontSize: "13px",
-          fontFamily: "inherit",
-          color: "var(--color-text)",
-          background: "var(--color-muted-bg)",
-          border: "1px solid var(--color-border)",
-          borderRadius: "8px",
-          resize: "vertical",
-        }}
+        className="mt-3 w-full resize-y rounded-[8px] border border-[var(--color-border)] bg-white px-2.5 py-2 text-[13px] text-[var(--color-text)]"
+        style={{ fontFamily: "inherit" }}
       />
 
       {answerMutation.isError && (
         <p
           role="alert"
           data-testid={`inbox-lead-answer-error-${itemKey}`}
-          style={{
-            marginTop: "6px",
-            fontSize: "12px",
-            color: "var(--color-danger, #c0392b)",
-          }}
+          className="mt-1.5 text-xs text-err"
         >
           Couldn't send your answer — {answerMutation.error.message}
         </p>
       )}
 
-      <div
-        className="flex items-center justify-end gap-2"
-        style={{ marginTop: "10px" }}
-      >
+      <div className="mt-2.5 flex items-center justify-end gap-2">
         <button
           type="button"
           data-testid={`inbox-lead-dismiss-${itemKey}`}
           onClick={handleDismiss}
           disabled={dismissMutation.isPending}
-          className="inline-flex items-center rounded-[var(--radius-button)] pointer-coarse:min-h-[44px] font-medium"
-          style={{
-            padding: "6px 14px",
-            fontSize: "13px",
-            color: "var(--color-muted)",
-            background: "transparent",
-            border: "1px solid var(--color-border)",
-          }}
+          className="inline-flex items-center rounded-[var(--radius-button)] border border-[var(--color-border)] bg-transparent px-3.5 py-1.5 text-[13px] font-medium text-[var(--color-muted)] pointer-coarse:min-h-[44px]"
         >
           Dismiss
         </button>
@@ -184,19 +106,11 @@ export function LeadQuestionCard({
           data-testid={`inbox-lead-answer-send-${itemKey}`}
           onClick={handleSend}
           disabled={!answerText.trim() || answerMutation.isPending}
-          className="inline-flex items-center rounded-[var(--radius-button)] pointer-coarse:min-h-[44px] font-medium"
-          style={{
-            padding: "6px 14px",
-            fontSize: "13px",
-            color: "var(--color-on-primary, #fff)",
-            background: "var(--btn-primary-bg, var(--color-primary))",
-            border: "none",
-            opacity: !answerText.trim() || answerMutation.isPending ? 0.6 : 1,
-          }}
+          className="btn-primary"
         >
           {answerMutation.isPending ? "Sending…" : "Send answer"}
         </button>
       </div>
-    </InboxCardShell>
+    </div>
   );
 }

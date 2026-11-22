@@ -225,7 +225,7 @@ describe("InboxProjectSection — fold + reorder handle (iterate-2026-11-13-inbo
   it("an expanded group shows its cards and each card carries its session chip", () => {
     renderWith({ isCollapsed: false });
     expect(screen.getByTestId("inbox-card-tu-1")).toBeInTheDocument();
-    expect(screen.getByTestId(`inbox-group-project-label-${SESS}-tu-1`)).toHaveTextContent("3f9a1c42");
+    expect(screen.getByTestId("inbox-row-tu-1-id")).toHaveTextContent("3f9a1c42");
     expect(screen.getByTestId("inbox-project-group-toggle-proj-a")).toHaveAttribute("aria-expanded", "true");
   });
 

@@ -24,6 +24,7 @@ import { cleanupTaskCwd, seedTask, type SeededTask } from "../helpers/fixtures";
 
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
+// @covers FR-01.04
 test.describe("Inbox → Terminal focus (iterate-2026-05-18-inbox-terminal-prompts)", () => {
   // @covers FR-01.63
   test("clicking an Inbox card lands on TaskDetail with the terminal focused (AC1)", async ({
@@ -67,7 +68,9 @@ test.describe("Inbox → Terminal focus (iterate-2026-05-18-inbox-terminal-promp
       const card = page.getByTestId(`inbox-card-${questionUuid}`);
       await expect(card).toBeVisible({ timeout: 25_000 });
 
+      // A click opens the detail dialog; "Open task" is the explicit hop to the task.
       await card.click();
+      await page.getByTestId(`inbox-open-task-${questionUuid}`).click();
 
       // Landed on TaskDetail…
       await expect(page.getByTestId("task-detail-page")).toBeVisible({

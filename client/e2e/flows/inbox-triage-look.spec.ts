@@ -1,11 +1,14 @@
 /*
- * Spec — inbox-triage-look (iterate-2026-11-13-inbox-triage-look).
+ * Spec — inbox-triage-look (iterate-2026-11-13-inbox-triage-look, rewritten by
+ * iterate-2026-11-22-w2-inbox-triage-look).
  * Real-browser proof that the Inbox wears the Triage look and keeps its
- * behaviour: dark-glass cards with the project colour as a bar, a header pill
- * per project that folds the group, projects the user can put in their own
- * order (remembered across a reload), and the SAME left edge as the Triage page
- * so the content does not jump when the operator switches pages. jsdom has no
- * layout engine, real computed colours or real pointer drag.
+ * behaviour: one dark-glass card per project with a colour bar, compact rows
+ * (orange AWAITING REPLY chip, first line, id, age), a filter bar, an action
+ * zone that appears on hover / focus without moving the title, a light detail
+ * dialog with the full text, a header pill that folds the group, projects the
+ * user can put in their own order (remembered across a reload), and the SAME
+ * left edge as the Triage page. jsdom has no layout engine, real computed
+ * colours, hover, or real pointer drag.
  *
  * Route-mocks the inbox API so the content is controlled exactly; the Triage
  * page is mocked with zero projects (its body box is what is measured).
@@ -88,48 +91,85 @@ test.describe("Inbox in the Triage look", () => {
     await mockInbox(page, { withProjects: true });
   });
 
-  test("cards are dark glass with a project-colour bar, text is light, markdown survives", async ({ page }) => {
+  test("compact rows on dark project cards: chip, first line, filter bar, hover action that never moves the title", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/inbox");
-    const card = page.getByTestId("inbox-card-q-a");
-    await expect(card).toBeVisible();
+    const row = page.getByTestId("inbox-card-q-a");
+    await expect(row).toBeVisible();
 
-    const bg = await card.evaluate((el) => getComputedStyle(el).backgroundColor);
+    // the project card is dark glass with a coloured bar
+    const group = page.getByTestId("inbox-project-group-proj-a");
+    const bg = await group.evaluate((el) => getComputedStyle(el).backgroundColor);
     const [r, g, b] = bg.match(/\d+(\.\d+)?/g)!.slice(0, 3).map(Number);
     expect(Math.max(r!, g!, b!), `card background ${bg} must be dark`).toBeLessThan(90);
 
-    const bodyColor = await page
-      .getByTestId("inbox-question-text-q-a")
-      .locator("p")
-      .first()
-      .evaluate((el) => getComputedStyle(el).color);
-    const [tr] = bodyColor.match(/\d+(\.\d+)?/g)!.map(Number);
-    expect(tr!, `body text ${bodyColor} must be light`).toBeGreaterThan(200);
+    // the row shows the FIRST LINE as plain text (markdown marks removed) and the orange chip
+    const title = page.getByTestId("inbox-row-title-q-a");
+    await expect(title).toHaveText("Zu Schnitt 2: soll ich ihn jetzt machen?");
+    const chip = page.getByTestId("inbox-chip-q-a");
+    await expect(chip).toHaveText(/awaiting reply/i);
+    const chipBg = await chip.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(chipBg).toBe("rgb(106, 58, 10)");
 
-    // markdown is still rendered (bold + inline code), inline code is not a light chip with white text
-    await expect(page.getByTestId("inbox-question-text-q-a").locator("strong").first()).toBeVisible();
-    const codeBg = await page
-      .getByTestId("inbox-question-text-q-a")
-      .locator("code")
-      .first()
-      .evaluate((el) => getComputedStyle(el).backgroundColor);
-    // translucent white over the dark card is fine (a faint chip); an OPAQUE light chip is the bug
-    const codeParts = codeBg.match(/\d+(\.\d+)?/g)!.map(Number);
-    const codeAlpha = codeParts.length > 3 ? codeParts[3]! : 1;
-    expect(codeAlpha, `inline code background ${codeBg} must not be an opaque light chip`).toBeLessThanOrEqual(0.3);
+    // the filter bar counts both entries
+    await expect(page.getByTestId("inbox-filter-all")).toContainText("2 Open");
+    await expect(page.getByTestId("inbox-filter-awaiting")).toContainText("2 Awaiting reply");
 
-    // a SHORT text must not get the "long text" fade (an inline-code border once switched it on)
-    await expect(page.getByTestId("inbox-question-fade-q-a")).toHaveCount(0);
-    await expect(page.getByTestId("inbox-question-fade-q-b")).toHaveCount(0);
+    // the session id sits on the row, and the row reads as a row (not a 720px card)
+    await expect(page.getByTestId(`inbox-row-q-a-id`)).toHaveText("3f9a1c42");
 
-    // the old white panel around the list is gone
-    await expect(page.getByTestId("inbox-list-panel")).toHaveCount(0);
+    // the action zone is empty until hover / focus, and the title does not move
+    const cta = page.getByTestId("inbox-resume-q-a");
+    await expect(cta).toBeHidden();
+    const before = await title.boundingBox();
+    await row.hover();
+    await expect(cta).toBeVisible();
+    await expect(cta).toContainText(/answer in the terminal/i);
+    const after = await title.boundingBox();
+    expect(after).toEqual(before);
 
-    // the session chip sits on the card, the whole row is the 720px reading width at most
-    await expect(page.getByTestId(`inbox-group-project-label-${SESSION_A}-q-a`)).toHaveText("3f9a1c42");
-    const width = await card.evaluate((el) => el.getBoundingClientRect().width);
-    expect(width).toBeLessThanOrEqual(721);
+    // keyboard focus shows it too
+    await page.mouse.move(0, 0);
+    await expect(cta).toBeHidden();
+    await title.focus();
+    await expect(cta).toBeVisible();
 
     await page.screenshot({ path: "test-results/inbox-triage-look.png", fullPage: true });
+  });
+
+  test("a click opens the light detail dialog with the full text; markdown survives there", async ({ page }) => {
+    await page.goto("/inbox");
+    await page.getByTestId("inbox-card-q-a").click({ position: { x: 60, y: 24 } });
+    const dialog = page.getByTestId("inbox-detail-q-a");
+    await expect(dialog).toBeVisible();
+    const bg = await dialog.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const [r, g, b] = bg.match(/\d+(\.\d+)?/g)!.slice(0, 3).map(Number);
+    expect(Math.min(r!, g!, b!), `dialog background ${bg} must be light`).toBeGreaterThan(200);
+
+    const body = page.getByTestId("inbox-question-text-q-a");
+    await expect(body.locator("strong").first()).toBeVisible();
+    await expect(body.locator("code").first()).toBeVisible();
+    const color = await body.locator("p").first().evaluate((el) => getComputedStyle(el).color);
+    const [tr] = color.match(/\d+(\.\d+)?/g)!.map(Number);
+    expect(tr!, `dialog text ${color} must be dark`).toBeLessThan(90);
+    await expect(page.getByTestId("inbox-honesty-q-a")).toContainText(/does(n't| not) answer/i);
+    await expect(page.getByTestId("inbox-resume-q-a-dialog")).toBeVisible();
+
+    await page.screenshot({ path: "test-results/inbox-triage-look-dialog.png" });
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    // Escape returned focus to where the operator was, and the row is still there
+    await expect(page.getByTestId("inbox-card-q-a")).toBeVisible();
+  });
+
+  test("the filter chips narrow the list", async ({ page }) => {
+    await page.goto("/inbox");
+    await expect(page.getByTestId("inbox-card-q-a")).toBeVisible();
+    await expect(page.getByTestId("inbox-filter-notices")).toHaveCount(0);
+    await expect(page.getByTestId("inbox-filter-awaiting")).toHaveAttribute("aria-pressed", "false");
+    await page.getByTestId("inbox-filter-awaiting").click();
+    await expect(page.getByTestId("inbox-filter-awaiting")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("inbox-card-q-b")).toBeVisible();
   });
 
   test("the project pill folds its group and the fold is remembered across a reload", async ({ page }) => {
@@ -156,12 +196,13 @@ test.describe("Inbox in the Triage look", () => {
     await expect(page.getByTestId("inbox-group-handle-proj-a")).toBeFocused();
   });
 
-  test("a click on a card still opens the task; the answer button does not double-navigate", async ({ page }) => {
+  test("Open task in the dialog goes to the task; the answer button does not double-navigate", async ({ page }) => {
     await page.route("**/api/external/tasks/task-a*", (r) =>
       r.fulfill({ json: { task: task("task-a", SESSION_A, "proj-a", "build / Inbox restyle") } }),
     );
     await page.goto("/inbox");
-    await page.getByTestId("inbox-card-q-a").click({ position: { x: 40, y: 30 } });
+    await page.getByTestId("inbox-card-q-a").click({ position: { x: 60, y: 24 } });
+    await page.getByTestId("inbox-open-task-q-a").click();
     await expect(page).toHaveURL(/\/tasks\/task-a/);
   });
 });
@@ -188,4 +229,59 @@ test("the Inbox content starts at the same left edge as the Triage page (no jump
   expect(inboxLeft).toBe(triageLeft);
   // and the Inbox list begins at the container's padding edge, not further right
   expect(inboxFirst).toBe(triageLeft + 32);
+});
+
+// @covers FR-01.04
+test.describe("Inbox on a touch phone", () => {
+  test.use({ viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true });
+
+  test("the Answer button is always visible (no hover needed) and sits under the title", async ({ page }) => {
+    await mockInbox(page, { withProjects: true });
+    await page.goto("/inbox");
+    const cta = page.getByTestId("inbox-resume-q-a");
+    await expect(cta).toBeVisible();
+    const t = await page.getByTestId("inbox-row-title-q-a").boundingBox();
+    const c = await cta.boundingBox();
+    expect(c!.y).toBeGreaterThan(t!.y);
+    // no horizontal overflow of the page
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+    await page.screenshot({ path: "test-results/inbox-triage-look-phone.png", fullPage: true });
+  });
+});
+
+// @covers FR-01.04
+test("hostile and very long text stays text and never breaks the row or the dialog layout", async ({ page }) => {
+  await mockInbox(page, { withProjects: true });
+  const hostile = `<img src=x onerror="window.__pwned=1"><script>window.__pwned=1</script> ${"AVeryLongUnbrokenToken".repeat(12)}`;
+  await page.route("**/api/external/inbox", (r) =>
+    r.fulfill({
+      json: {
+        items: [
+          {
+            kind: "terminal_prompt",
+            taskId: "task-a",
+            sessionUuid: SESSION_A,
+            taskTitle: "build / Inbox restyle",
+            promptText: hostile,
+            bestEffort: true,
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto("/inbox");
+  const row = page.getByTestId("inbox-card-tp-task-a");
+  await expect(row).toBeVisible();
+  await expect(page.getByTestId("inbox-row-title-tp-task-a")).toContainText("<img src=x");
+  const rowBox = await row.boundingBox();
+  const group = await page.getByTestId("inbox-project-group-proj-a").boundingBox();
+  expect(rowBox!.x + rowBox!.width).toBeLessThanOrEqual(group!.x + group!.width + 1);
+  await row.click({ position: { x: 60, y: 24 } });
+  const dialog = page.getByTestId("inbox-detail-tp-task-a");
+  await expect(dialog).toBeVisible();
+  const d = await dialog.boundingBox();
+  expect(d!.x).toBeGreaterThanOrEqual(0);
+  expect(d!.x + d!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  expect(await page.evaluate(() => (window as unknown as { __pwned?: number }).__pwned)).toBeUndefined();
 });

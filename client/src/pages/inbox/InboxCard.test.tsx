@@ -119,34 +119,40 @@ const LEAD: LeadQuestionInboxItem = {
   questionText: "Are we good to ship?",
 };
 
+// @covers FR-01.04
 describe("InboxCard — polymorphic dispatcher", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   // @covers FR-01.04
-  it("ask_tool routes to AskToolCard variant — inbox-card-<toolUseId> testid", () => {
+  it("ask_tool renders a row — inbox-card-<toolUseId> testid; the dialog has the display-only options", () => {
     renderCard(<InboxCard item={ASK} task={makeTask()} />);
     expect(screen.getByTestId("inbox-card-tu-A")).toBeInTheDocument();
     // Legacy testid wrapper retained.
     expect(screen.getByTestId("inbox-item-tu-A")).toBeInTheDocument();
-    // Option chips render display-only.
+    // Option chips render display-only, in the dialog.
+    fireEvent.click(screen.getByTestId("inbox-row-title-tu-A"));
     expect(screen.getByTestId("inbox-option-chip-0")).toBeInTheDocument();
   });
 
   // @covers FR-01.04
-  it("text_question routes to WaitingReplyCard with markdown rendering (MED #7)", () => {
+  it("text_question renders the row with markdown marks stripped; the dialog renders markdown (MED #7)", () => {
     renderCard(<InboxCard item={TEXT} task={makeTask()} />);
     const card = screen.getByTestId("inbox-card-q-A");
     expect(card).toBeInTheDocument();
+    // Row: plain first line, no markup characters.
+    expect(screen.getByTestId("inbox-row-title-q-A")).toHaveTextContent("bold prose");
+    expect(screen.getByTestId("inbox-chip-q-A")).toHaveTextContent(/awaiting reply/i);
+    fireEvent.click(screen.getByTestId("inbox-row-title-q-A"));
     const body = screen.getByTestId("inbox-question-text-q-A");
     expect(body.querySelector("strong")).not.toBeNull();
-    expect(screen.getByText(/awaiting your reply/i)).toBeInTheDocument();
   });
 
   // @covers FR-01.04
-  it("terminal_prompt routes to WaitingReplyCard with PLAIN text (markdown NOT applied)", () => {
+  it("terminal_prompt dialog shows PLAIN text (markdown NOT applied)", () => {
     renderCard(<InboxCard item={TERM} task={makeTask()} />);
+    fireEvent.click(screen.getByTestId("inbox-row-title-tp-task-A"));
     const body = screen.getByTestId("inbox-question-text-tp-task-A");
     expect(body.querySelector("strong")).toBeNull();
     expect(body.textContent ?? "").toContain("**Pick one**");
@@ -177,12 +183,25 @@ describe("InboxCard — polymorphic dispatcher", () => {
   });
 
   // @covers FR-01.04
-  it("ask_tool card click navigates to /tasks/<taskId> with focusTerminal", () => {
+  it("row click opens the dialog (no navigation); Open task goes to /tasks/<taskId> with focusTerminal", () => {
     renderCard(<InboxCard item={ASK} task={makeTask()} />);
     fireEvent.click(screen.getByTestId("inbox-card-tu-A"));
+    expect(screen.getByTestId("inbox-detail-tu-A")).toBeInTheDocument();
+    expect(screen.queryByTestId("task-detail-stub")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("inbox-open-task-tu-A"));
     const stub = screen.getByTestId("task-detail-stub");
     expect(stub).toHaveAttribute("data-task-id", "task-A");
     expect(stub).toHaveAttribute("data-focus-terminal", "true");
+  });
+
+  // @covers FR-01.04
+  it("the row is keyboard reachable: its title is a real button; Open task from a text_question goes to the task", () => {
+    renderCard(<InboxCard item={TEXT} task={makeTask()} />);
+    const title = screen.getByTestId("inbox-row-title-q-A");
+    expect(title.tagName.toLowerCase()).toBe("button");
+    fireEvent.click(title);
+    fireEvent.click(screen.getByTestId("inbox-open-task-q-A"));
+    expect(screen.getByTestId("task-detail-stub")).toHaveAttribute("data-task-id", "task-A");
   });
 
   // @covers FR-01.04
@@ -197,9 +216,12 @@ describe("InboxCard — polymorphic dispatcher", () => {
   });
 
   // @covers FR-01.72
-  it("lead_question routes to LeadQuestionCard — inbox-card-lq-<taskId> testid, answer form present", () => {
+  it("lead_question renders a row — inbox-card-lq-<taskId> testid; the dialog carries the answer form", () => {
     renderCard(<InboxCard item={LEAD} task={makeTask()} />);
     expect(screen.getByTestId("inbox-card-lq-task-A")).toBeInTheDocument();
+    // No answer form on the row itself.
+    expect(screen.queryByTestId("inbox-lead-answer-input-lq-task-A")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("inbox-row-title-lq-task-A"));
     expect(screen.getByTestId("inbox-question-text-lq-task-A")).toHaveTextContent(
       "Are we good to ship?",
     );
@@ -209,6 +231,7 @@ describe("InboxCard — polymorphic dispatcher", () => {
   });
 });
 
+// @covers FR-01.04
 describe("InboxCard / inboxItemKey — exhaustiveness guard (FR-04.19 trap 3/4)", () => {
   it("inboxItemKey returns lq-<taskId> for a lead_question item", () => {
     expect(inboxItemKey(LEAD)).toBe("lq-task-A");

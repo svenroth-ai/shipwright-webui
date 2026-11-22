@@ -23,6 +23,7 @@
 import { test, expect } from "@playwright/test";
 import { homedir } from "node:os";
 
+// @covers FR-01.04
 test.describe("Inbox lead-question → Discuss in terminal", () => {
   test("opens a working terminal session for the card's task via the existing spawn route", async ({
     page,
@@ -47,8 +48,10 @@ test.describe("Inbox lead-question → Discuss in terminal", () => {
 
       const card = page.getByTestId(`inbox-card-${itemKey}`);
       await expect(card).toBeVisible({ timeout: 25_000 });
+      // The answer form lives in the detail dialog the row opens.
+      await page.getByTestId(`inbox-row-title-${itemKey}`).click();
 
-      // The caveat is on the card's own surface, not a tooltip.
+      // The caveat is on the dialog's own surface, not a tooltip.
       await expect(page.getByTestId(`inbox-lead-terminal-caveat-${itemKey}`)).toContainText(
         /isn't the lead/i,
       );

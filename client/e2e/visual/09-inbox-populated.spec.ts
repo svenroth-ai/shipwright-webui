@@ -29,6 +29,7 @@ import { freezeClock, settle } from "./stabilize";
 
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
+// @covers FR-01.04
 test.describe("visual: inbox populated", () => {
   let project: SeededProject;
   let taskId: string;
@@ -109,7 +110,7 @@ test.describe("visual: inbox populated", () => {
     await expect(page).toHaveScreenshot("inbox-populated.png", {
       fullPage: true,
       // The only non-deterministic region: the server-generated session-UUID chip.
-      mask: [page.locator('[data-testid^="inbox-group-project-label-"]')],
+      mask: [page.locator('[data-testid^="inbox-row-"][data-testid$="-id"]')],
     });
   });
 });

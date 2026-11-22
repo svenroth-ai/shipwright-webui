@@ -4,7 +4,7 @@
  * card with the terminal-honesty line, keyed `pg-<taskId>`.
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 
@@ -29,6 +29,7 @@ const item: InboxItem = {
   bestEffort: true,
 };
 
+// @covers FR-01.04
 describe("InboxCard phase_gate", () => {
   // @covers FR-01.04
   it("keys the item pg-<taskId>", () => {
@@ -46,7 +47,8 @@ describe("InboxCard phase_gate", () => {
       </QueryClientProvider>,
     );
     expect(screen.getByTestId("inbox-card-pg-t-pg")).toBeTruthy();
-    expect(screen.getByText("Awaiting your reply")).toBeTruthy();
+    expect(screen.getByTestId("inbox-chip-pg-t-pg").textContent).toBe("awaiting reply");
+    fireEvent.click(screen.getByTestId("inbox-row-title-pg-t-pg"));
     expect(screen.getByTestId("inbox-question-text-pg-t-pg").textContent).toContain(
       "waits for your answer",
     );
