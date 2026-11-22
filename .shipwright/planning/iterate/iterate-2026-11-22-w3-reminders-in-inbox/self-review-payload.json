@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Each W3 acceptance criterion maps to code and a test (rows/dialog/actions, Done+Snooze routes, Start task pre-fill, error banners, hostile text, sidebar count, real-browser E2E)."},
+{"name":"Error Handling","verdict":"pass","note":"Unavailable tool, failed request, triageError and damaged lines each show a banner and suppress the inbox-is-clear card; failed Done/Snooze/Add show the tool message and keep the row or form."},
+{"name":"Security Basics","verdict":"pass","note":"All reminder text is a React text node; only http(s) url links are anchors; the stored command is inert text and never read by Start task; the WebUI writes no reminder file."},
+{"name":"Test Quality","verdict":"pass","note":"Model, problems, count, page, dialog, layout count and two real-browser specs (mocked tool, real tool); hostile text proven in jsdom and Chromium."},
+{"name":"Performance Basics","verdict":"pass","note":"One shared 120 s query for page and sidebar; no per-row polling; background refetch off."},
+{"name":"Naming & Structure","verdict":"pass","note":"New files under 300 lines; baselined InboxPage.test.tsx kept at its 645-line baseline; inputs live outside the Inbox no-write-path tree."},
+{"name":"Affected Boundaries","verdict":"pass","note":"Server due answer to client contract probed with the real reminder tool end to end (create, snooze, done, secret refusal) and with mocked unavailable/degraded states."}
+]}

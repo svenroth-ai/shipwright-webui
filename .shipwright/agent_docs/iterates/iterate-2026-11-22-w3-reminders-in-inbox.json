@@ -1,0 +1,86 @@
+{
+  "run_id": "iterate-2026-11-22-w3-reminders-in-inbox",
+  "date": "2026-11-22T20:36:18.585872Z",
+  "event_at": "2026-11-22T20:36:10.174989+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/campaign-reminders-webui--W3",
+  "spec": ".shipwright/planning/iterate/campaigns/reminders-webui/sub-iterates/W3-reminders-in-inbox.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-22-w3-reminders-in-inbox",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 9,
+      "tested": 9,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 6,
+      "covered_acs": 6
+    },
+    "behaviors": [
+      {
+        "behavior": "reminder and parked-triage rows with chips, due text, filters and counts",
+        "disposition": "tested",
+        "evidence": "reminderModel.test.ts + InboxPage.reminders.test.tsx + inbox-reminders.spec.ts"
+      },
+      {
+        "behavior": "Done and Snooze call the W1 routes, keep the row on refusal, lock per row until re-read",
+        "disposition": "tested",
+        "evidence": "InboxPage.reminders.test.tsx + inbox-reminders-real-cli.spec.ts (real tool)"
+      },
+      {
+        "behavior": "Start task pre-fills the New Task dialog for the clicked project and never passes the stored command",
+        "disposition": "tested",
+        "evidence": "InboxPage.reminders.test.tsx + inbox-reminders.spec.ts"
+      },
+      {
+        "behavior": "unavailable tool, unknown version, store busy, failed request, triageError and damaged lines are banners, never nothing-due",
+        "disposition": "tested",
+        "evidence": "reminderProblems.test.ts + InboxPage.reminders.test.tsx + inbox-reminders.spec.ts"
+      },
+      {
+        "behavior": "hostile text (script tags) renders as plain text in rows and dialog",
+        "disposition": "tested",
+        "evidence": "InboxPage.reminders.test.tsx + inbox-reminders.spec.ts (real Chromium)"
+      },
+      {
+        "behavior": "sidebar Inbox count includes due reminders and expired parks, only for readable projects",
+        "disposition": "tested",
+        "evidence": "MainLayout.reminders.test.tsx + reminderProblems.test.ts (countDueItems)"
+      },
+      {
+        "behavior": "New reminder dialog creates through the tool, shows its refusal and keeps the form",
+        "disposition": "tested",
+        "evidence": "InboxPage.newReminder.test.tsx + inbox-reminders-real-cli.spec.ts"
+      },
+      {
+        "behavior": "reminder form files have no terminal-write path",
+        "disposition": "tested",
+        "evidence": "inbox-no-writepath.test.ts"
+      },
+      {
+        "behavior": "narrow screen: actions under the title, no horizontal scroll",
+        "disposition": "tested",
+        "evidence": "inbox-reminders.spec.ts (narrow)"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "npm.cmd --prefix client run test:e2e -- --reporter=json e2e/flows/inbox-reminders.spec.ts e2e/flows/inbox-reminders-real-cli.spec.ts",
+    "exit_code": 0,
+    "tests_run": 4,
+    "evidence_path": ".shipwright/runs/iterate-2026-11-22-w3-reminders-in-inbox/surface_verification.log",
+    "timestamp": "2026-11-22T20:29:59.241Z",
+    "attempts": 1
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

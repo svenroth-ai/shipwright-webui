@@ -1,0 +1,305 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-22-w3-reminders-in-inbox",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T20:24:21.297396+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The plan does not specify how successful mutations refresh the shared due query and existing task queries. With a 120-second poll, Done or Snooze could leave rows and the sidebar count stale; Start task could create a task that does not appear immediately.",
+          "suggestion": "Explicitly invalidate the relevant queries after successful mutations. Keep dialogs open on failure, show the route error, and disable repeated submission while requests are pending.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Unknown `contractVersion` is an explicit acceptance criterion, but the proposed problem model only names unavailable, `triageError`, and damaged lines. Treating an unsupported response as an empty collection would incorrectly show zero due items.",
+          "suggestion": "Validate the response version before interpreting entries. Represent unsupported versions explicitly, show the required error state, and prevent incompatible data from driving actions. Add a test proving this never renders as “nothing due.”",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "“Tomorrow,” “Next week,” and date-picker submissions lack a stated date/time convention. Browser, server, and project timezone differences can produce the wrong due date or make a snoozed item immediately due again.",
+          "suggestion": "Follow the W1 contract’s date semantics consistently for creation, snoozing, and display. Define the shortcuts precisely and test a timezone boundary and invalid date submission.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "Counting only successfully read projects produces a partial count during failures. Suppressing “Your inbox is clear” helps, but a sidebar displaying `0` can still suggest that nothing requires attention when reminder data is unavailable.",
+          "suggestion": "Carry completeness/error status alongside the count and define the sidebar’s degraded state. Test both total failure and partial project failure so an unread store is distinguishable from an empty one.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The creation step does not explicitly include the required project picker for All projects or explain how the selected project reaches the create route. This is essential when no single project context exists.",
+          "suggestion": "Include the picker, require a valid project before submission, and test that creation targets the selected project and refreshes the correct Inbox group.  The approach fits the change and sensibly reuses the existing Inbox and task dialog. The mutation lifecycle, incomplete-data behavior, and creation/date contracts need to be explicit before implementation; the referenced files could not be inspected because filesystem execution was blocked.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-22T20:23:58.493398+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] **Findings**\n\n- **Category: edge-case / Severity: medium** — Mutation failure handling for Done/Snooze is unspecified. The plan lists the action hook but not what happens when the W1 route returns an error (network, CLI hiccup): the row should stay (optimistic removal needs rollback) and a per-row or banner error must appear, otherwise a click that silently does nothing reads as \"done\" and the user loses the reminder. Suggestion: state explicitly — no optimistic removal, or optimistic + rollback on error, with a test.\n\n- **Category: edge-case / Severity: medium** — \"Start task resolves the project's action catalog\" — what if the reminder's project has no action catalog, or the reminder references a project not in the currently loaded boards (e.g., viewing filtered, or a deleted project)? The dialog prefill path needs a defined fallback (disable the button with a reason, or open the dialog with project unset). Same for `Start task` when the reminder's kind/id doesn't match any known catalog entry.\n\n- **Category: edge-case / Severity: low** — Snooze date semantics: date-only vs datetime, timezone of \"Tomorrow\"/\"Next week\" (client clock vs server due-date computation in W1). If W1 expects a UTC date, client-local \"tomorrow\" can land a day off. Confirm the W1 contract and test boundary cases (snooze to today, past date rejected?).\n\n- **Category: risk / Severity: low** — Adding `reminders?` to `ProjectGroup` touches the shared Inbox model that W2 built (`countByFilter`/`filterGroups` gain buckets). Verify existing W2 tests for counts (\"Your inbox is clear\", sidebar count) are updated — a `reminders` bucket added to `countByFilter` will change the \"clear\" determination and could regress the empty-state test if not intentional.\n\n- **Category: dependency / Severity: medium** — The sidebar count \"counts only projects that were actually read\" — confirm the sidebar actually triggers the query for all projects. If the query is keyed per-project and the sidebar only […truncated]\n\n[openai] 1. **Category: dependency · Severity: medium**  \n   **Finding:** The plan does not specify how successful mutations refresh the shared due query and existing task queries. With a 120-second poll, Done or Snooze could leave rows and the sidebar count stale; Start task could create a task that does not appear immediately.  \n   **Suggestion:** Explicitly invalidate the relevant queries after successful mutations. Keep dialogs open on failure, show the route error, and disable repeated submission while requests are pending.\n\n2. **Category: edge-case · Severity: medium**  \n   **Finding:** Unknown `contractVersion` is an explicit acceptance criterion, but the proposed problem model only names unavailable, `triageError`, and damaged lines. Treating an unsupported response as an empty collection would incorrectly show zero due items.  \n   **Suggestion:** Validate the response version before interpreting entries. Represent unsupported versions explicitly, show the required error state, and prevent incompatible data from driving actions. Add a test proving this never renders as “nothing due.”\n\n3. **Category: edge-case · Severity: medium**  \n   **Finding:** “Tomorrow,” “Next week,” and date-picker submissions lack a stated date/time convention. Browser, server, and project timezone differences can produce the wrong due date or make a snoozed item immediately due again.  \n   **Suggestion:** Follow the W1 contract’s date semantics consistently for creation, snoozing, and display. Define the shortcuts precisely and test a timezone boundary and invalid date submission.\n\n4. **Category: risk · Severity: medium**  \n   **Finding:** Counting only successfully read projects produces a partial count during failures. Suppressing “Your inbox is clear” helps, but a sidebar displaying `0` can still suggest that nothing requires attention when reminder data is unavailable.  \n   **Suggestion:** Carry completeness/error status alongside the count and define the sidebar’s degraded s […truncated]",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/hooks/useReminders.ts",
+          "line": 51,
+          "finding": "Row lock released before the list was re-read after Done/Snooze (fixed: invalidate promise is returned).",
+          "suggestion": "fixed",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/pages/inbox/ReminderBanners.tsx",
+          "line": 56,
+          "finding": "One red sentence for every non-data state (fixed: store-busy gets its own wording; stale-list note added).",
+          "suggestion": "fixed",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "multiple",
+          "line": null,
+          "finding": "Low findings: error per row not per action (fixed: cleared on snooze open), null JSON body guard (fixed), Try again cancelRefetch (fixed), refresh after refused write (fixed). Open: Start task spinner, UTC vs local min day, duplicate ids key, Open in Triage focus.",
+          "suggestion": "follow-ups",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-22T20:31:34.123233+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "ca75ee67129c9b960b7227d7cf9f5a9525070307"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "coupling",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Parked triage shows once and counts once. — The same repo registered twice shows the same trg row under two project groups and counts it twice in the sidebar (server/src/routes/reminders.ts:149). Accepted: rare, follow-up.",
+          "suggestion": "Deduplicate parked-triage entries per store on the client.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: No reminder text reaches the launch command. — why/decided/open reach the New Task description (like Fix now); only the stored command is excluded. Rejected: same as Fix now, the operator sees and edits it, the launcher shell-quotes it.",
+          "suggestion": "Wording of the code comments only.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "coupling",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: A reminder added to a project shows under that project. — With a store shared between two registrations it shows under the first one on its day. Rejected: correct by store, rare.",
+          "suggestion": "A hint in the success banner.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Unknown project ids are labelled consistently. — Groups say Unassigned, banners show the raw id. Rejected: cosmetic, actions still use the real id.",
+          "suggestion": "Share one label function.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-22T20:35:56.053137+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "0c7a4c407c05a29a50c1afd5549299bfb6f2c080"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/e2e/flows/inbox-reminders.spec.ts — `shot()` helper / `E2E_SHOTS",
+          "line": null,
+          "finding": "The AC asks for \"visual baselines through the Linux flow\", but screenshots are only written when `E2E_SHOTS` is set and there is no comparison against any baseline — they're manual artifacts. Nothing in the diff pins the approved mockup look (beyond two hard-coded chip background colours).",
+          "suggestion": "Either wire the shots into the project's existing visual-baseline flow (compare against committed baselines, fail on diff) or explicitly note in the campaign that baselines land in a later work item.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/pages/inbox/ReminderBanners.tsx — unavailable banner copy",
+          "line": null,
+          "finding": "The banner says \"Reminder entries are switched off until this is fixed\", but it renders whenever any project is unreadable while other readable projects' reminder rows are shown below it — the copy contradicts what's on screen in the mixed-state case.",
+          "suggestion": "Scope the wording (\"Reminder entries for: X, Y are switched off\") when only a subset of projects failed.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/pages/inbox/reminderModel.ts — `entriesForProject` key fallback `` `n${i}`",
+          "line": null,
+          "finding": "Items with a null id get an index-based key; if the server reorders items between polls (or a write invalidates mid-list), React reuses state (open dialogs, snooze popover state in `ReminderCard`) across different logical items. Null-id items also can't be acted on, so impact is limited to dialog/popover state bleeding.",
+          "suggestion": "Include `item.due` and `item.title` hash, or the project-relative index plus a stable field, in the fallback key.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/layouts/MainLayout.reminders.test.tsx — second test",
+          "line": null,
+          "finding": "expect(screen.queryByText(\"0\")).toBeNull()` / `queryByText(\"1\")` is a weak negative assertion: it would pass even if the count badge were never rendered at all, so a broken implementation (e.g. count always hidden) passes.",
+          "suggestion": "Query the Inbox nav element itself and assert its badge is absent or shows only the waiting-entry count.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/inbox-reminders.spec.ts — `page.getByTestId(/inbox-card-reminder-.-rem-1/)",
+          "line": null,
+          "finding": "The mock assigns created ids `rem-103`, `rem-104`, …; the regex `-rem-1` prefix-matches every `rem-1xx` id, so a second created reminder would make this locator resolve to two elements and fail in strict mode (latent, order-dependent).",
+          "suggestion": "Target the exact id (`rem-103`) or use the row located via the visible title, as done elsewhere in the file.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/pages/inbox/useReminderActions.ts — `useProjectActions(pending?.projectId ?? intent?.projectId ?? null)",
+          "line": null,
+          "finding": "After a Start-task dialog is closed, `intent` persists, so the hook keeps the previous project's catalog fetched; combined with the effect firing only on `pending`, a stale-catalog race is guarded, but if `useProjectActions` returns `isLoading:false, data:undefined` for a project with no catalog (error path), the operator gets the generic \"catalog not loaded\" error with no retry — acceptable, but there's no way to retry Start task other than re-clicking, which does work. No fix strictly needed; noting the closed-dialog catalog retention as a minor cleanup.  Everything else checks out: the W1 routes are the only write path, the stored `command` is display-only and Start task rebuilds a launch from kind/id via the Fix-now machinery, hostile text is proven inert in both unit and real-browser tests (script/img assertions), error states never render the \"inbox is clear\" empty state (guarded by `!reminders.problems.any`), the sidebar and page share one query key, and the no-terminal-writepath fence test was extended rather than loosened.  SHIPWRIGHT_VERDICT: approve",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/pages/inbox/useReminderActions.ts",
+          "line": 80,
+          "finding": "A single `busyKey` cannot track concurrent row mutations. Start Done on row A, then Snooze on row B: B replaces the key, enabling A’s controls while its request is pending. When either request finishes, it clears the key and enables both rows. This permits duplicate or conflicting writes, with completion order determining the final reminder state.",
+          "suggestion": "Track pending operations per entry and reject another mutation for an entry already pending. Clear only the completed entry’s pending state.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/inbox-reminders.spec.ts",
+          "line": 68,
+          "finding": "The visual acceptance criterion is not implemented here. `shot()` optionally saves screenshots but never compares them with approved baselines, so layout regressions pass even when screenshot output is enabled.",
+          "suggestion": "Add deterministic Playwright screenshot assertions with committed baselines and run them through the required Linux flow.  Overall assessment: ship-with-fixes. The diff covers the main workflows and hostile-text rendering, but concurrent mutation handling and the required visual regression checks need changes before shipping.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-22T20:28:01.846227+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: spec\n  Severity: medium\n  File: client/e2e/flows/inbox-reminders.spec.ts — `shot()` helper / `E2E_SHOTS`\n  Finding: The AC asks for \"visual baselines through the Linux flow\", but screenshots are only written when `E2E_SHOTS` is set and there is no comparison against any baseline — they're manual artifacts. Nothing in the diff pins the approved mockup look (beyond two hard-coded chip background colours).\n  Suggestion: Either wire the shots into the project's existing visual-baseline flow (compare against committed baselines, fail on diff) or explicitly note in the campaign that baselines land in a later work item.\n\n- Category: bug\n  Severity: low\n  File: client/src/pages/inbox/ReminderBanners.tsx — unavailable banner copy\n  Finding: The banner says \"Reminder entries are switched off until this is fixed\", but it renders whenever *any* project is unreadable while other readable projects' reminder rows are shown below it — the copy contradicts what's on screen in the mixed-state case.\n  Suggestion: Scope the wording (\"Reminder entries for: X, Y are switched off\") when only a subset of projects failed.\n\n- Category: bug\n  Severity: low\n  File: client/src/pages/inbox/reminderModel.ts — `entriesForProject` key fallback `` `n${i}` ``\n  Finding: Items with a null id get an index-based key; if the server reorders items between polls (or a write invalidates mid-list), React reuses state (open dialogs, snooze popover state in `ReminderCard`) across different logical items. Null-id items also can't be acted on, so impact is limited to dialog/popover state bleeding.\n  Suggestion: Include `item.due` and `item.title` hash, or the project-relative index plus a stable field, in the fallback key.\n\n- Category: test\n  Severity: low\n  File: client/src/layouts/MainLayout.reminders.test.tsx — second test\n  Finding: `expect(screen.queryByText(\"0\")).toBeNull()` / `queryByText(\"1\")` is a weak negative assertion: it would pass even if the count badge were n […truncated]\n\n[openai] - Category: bug\n- Severity: medium\n- File: client/src/pages/inbox/useReminderActions.ts:80\n- Finding: A single `busyKey` cannot track concurrent row mutations. Start Done on row A, then Snooze on row B: B replaces the key, enabling A’s controls while its request is pending. When either request finishes, it clears the key and enables both rows. This permits duplicate or conflicting writes, with completion order determining the final reminder state.\n- Suggestion: Track pending operations per entry and reject another mutation for an entry already pending. Clear only the completed entry’s pending state.\n\n- Category: test\n- Severity: medium\n- File: client/e2e/flows/inbox-reminders.spec.ts:68\n- Finding: The visual acceptance criterion is not implemented here. `shot()` optionally saves screenshots but never compares them with approved baselines, so layout regressions pass even when screenshot output is enabled.\n- Suggestion: Add deterministic Playwright screenshot assertions with committed baselines and run them through the required Linux flow.\n\nOverall assessment: ship-with-fixes. The diff covers the main workflows and hostile-text rendering, but concurrent mutation handling and the required visual regression checks need changes before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T20:28:01.711840+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "956ab3da7694190ca3c9041be18a33bfae18eae3"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T20:24:37.694722+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-22T20:23:52.882695+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-22-w3-reminders-in-inbox",
+  "date": "2026-11-22",
+  "section": "Iterate - feature: Reminders in the Inbox",
+  "title": "Reminders and expired parks live in the Inbox; the sidebar count is the alert",
+  "context": "Reminders need an alert surface. The operator chose the Inbox (no banner, bell or page); W1 gave the server bridge, W2 the Triage-look Inbox.",
+  "decision": "Reminder and parked-triage rows join the project groups; one shared 120 s due query feeds page and sidebar count; Done/Snooze call the W1 routes; Start task pre-fills the New Task dialog; any unreadable answer is a banner, never 'nothing due'.",
+  "consequences": "FR-01.76 minted. Reminder inputs live in components/reminders (outside the Inbox no-write fence, pinned by a test). Unreadable projects add 0 to the badge; the Inbox page shows the red banner.",
+  "rationale": "Smallest option that meets the operator decision: presentation over existing routes, no new storage, stored command stays inert text, hostile text only as React text nodes.",
+  "rejected": "Separate Reminders page or sidebar entry; header banner or bell; badge marker for unreadable projects (left for the operator to decide).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

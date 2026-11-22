@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "**Findings**\n\n- **Category: edge-case / Severity: medium** \u2014 Mutation failure handling for Done/Snooze is unspecified. The plan lists the action hook but not what happens when the W1 route returns an error (network, CLI hiccup): the row should stay (optimistic removal needs rollback) and a per-row or banner error must appear, otherwise a click that silently does nothing reads as \"done\" and the user loses the reminder. Suggestion: state explicitly \u2014 no optimistic removal, or optimistic + rollback on error, with a test.\n\n- **Category: edge-case / Severity: medium** \u2014 \"Start task resolves the project's action catalog\" \u2014 what if the reminder's project has no action catalog, or the reminder references a project not in the currently loaded boards (e.g., viewing filtered, or a deleted project)? The dialog prefill path needs a defined fallback (disable the button with a reason, or open the dialog with project unset). Same for `Start task` when the reminder's kind/id doesn't match any known catalog entry.\n\n- **Category: edge-case / Severity: low** \u2014 Snooze date semantics: date-only vs datetime, timezone of \"Tomorrow\"/\"Next week\" (client clock vs server due-date computation in W1). If W1 expects a UTC date, client-local \"tomorrow\" can land a day off. Confirm the W1 contract and test boundary cases (snooze to today, past date rejected?).\n\n- **Category: risk / Severity: low** \u2014 Adding `reminders?` to `ProjectGroup` touches the shared Inbox model that W2 built (`countByFilter`/`filterGroups` gain buckets). Verify existing W2 tests for counts (\"Your inbox is clear\", sidebar count) are updated \u2014 a `reminders` bucket added to `countByFilter` will change the \"clear\" determination and could regress the empty-state test if not intentional.\n\n- **Category: dependency / Severity: medium** \u2014 The sidebar count \"counts only projects that were actually read\" \u2014 confirm the sidebar actually triggers the query for all projects. If the query is keyed per-project and the sidebar only mounts for visited projects, due reminders in unvisited projects won't be counted and the count will under-report. Consider a single all-projects due query if W1 supports it, or explicitly document the under-count as accepted.\n\n- **Category: security / Severity: low** \u2014 The \"only http(s) url links are live\" rule is good; make sure linkification can't be tricked by e.g. `javascript:` in a URL-shaped string and that links open with `rel=\"noopener\"` / new tab. Also ensure the title attribute/tooltips on truncated rows escape too (tooltip injection is a common miss).\n\n- **Category: approach / Severity: low** \u2014 The \"New reminder\" dialog is placed outside the Inbox no-write-path fence. That's fine (REST, not pty), but add a test or comment asserting it doesn't import anything inside the fence \u2014 otherwise a future refactor could silently drag the write path in. One line in the plan's fence-check test suffices.\n\n- **Category: edge-case / Severity: low** \u2014 120 s poll: a reminder marked Done may reappear for up to 120 s if the mutation response doesn't invalidate `[\"reminders-due\"]`. Confirm the action hook invalidates/refetches on success (standard react-query behavior \u2014 just make it explicit).\n\n**Overall assessment**: Sound, well-scoped plan that correctly reuses W1/W2 primitives and respects the write fence; the main gaps are failure-path specifics (mutation errors, missing action catalog) and the sidebar-count coverage question, all cheaply addressable in the plan text.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category: dependency \u00b7 Severity: medium**  \n   **Finding:** The plan does not specify how successful mutations refresh the shared due query and existing task queries. With a 120-second poll, Done or Snooze could leave rows and the sidebar count stale; Start task could create a task that does not appear immediately.  \n   **Suggestion:** Explicitly invalidate the relevant queries after successful mutations. Keep dialogs open on failure, show the route error, and disable repeated submission while requests are pending.\n\n2. **Category: edge-case \u00b7 Severity: medium**  \n   **Finding:** Unknown `contractVersion` is an explicit acceptance criterion, but the proposed problem model only names unavailable, `triageError`, and damaged lines. Treating an unsupported response as an empty collection would incorrectly show zero due items.  \n   **Suggestion:** Validate the response version before interpreting entries. Represent unsupported versions explicitly, show the required error state, and prevent incompatible data from driving actions. Add a test proving this never renders as \u201cnothing due.\u201d\n\n3. **Category: edge-case \u00b7 Severity: medium**  \n   **Finding:** \u201cTomorrow,\u201d \u201cNext week,\u201d and date-picker submissions lack a stated date/time convention. Browser, server, and project timezone differences can produce the wrong due date or make a snoozed item immediately due again.  \n   **Suggestion:** Follow the W1 contract\u2019s date semantics consistently for creation, snoozing, and display. Define the shortcuts precisely and test a timezone boundary and invalid date submission.\n\n4. **Category: risk \u00b7 Severity: medium**  \n   **Finding:** Counting only successfully read projects produces a partial count during failures. Suppressing \u201cYour inbox is clear\u201d helps, but a sidebar displaying `0` can still suggest that nothing requires attention when reminder data is unavailable.  \n   **Suggestion:** Carry completeness/error status alongside the count and define the sidebar\u2019s degraded state. Test both total failure and partial project failure so an unread store is distinguishable from an empty one.\n\n5. **Category: dependency \u00b7 Severity: medium**  \n   **Finding:** The creation step does not explicitly include the required project picker for All projects or explain how the selected project reaches the create route. This is essential when no single project context exists.  \n   **Suggestion:** Include the picker, require a valid project before submission, and test that creation targets the selected project and refreshes the correct Inbox group.\n\nThe approach fits the change and sensibly reuses the existing Inbox and task dialog. The mutation lifecycle, incomplete-data behavior, and creation/date contracts need to be explicit before implementation; the referenced files could not be inspected because filesystem execution was blocked.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-22-w3-reminders-in-inbox",
+    "at": "2026-11-22T20:23:00.835638+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

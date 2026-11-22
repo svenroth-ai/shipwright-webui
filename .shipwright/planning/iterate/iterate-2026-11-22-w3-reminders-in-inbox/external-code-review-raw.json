@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: client/src/pages/inbox/useReminderActions.ts:80\n- Finding: A single `busyKey` cannot track concurrent row mutations. Start Done on row A, then Snooze on row B: B replaces the key, enabling A\u2019s controls while its request is pending. When either request finishes, it clears the key and enables both rows. This permits duplicate or conflicting writes, with completion order determining the final reminder state.\n- Suggestion: Track pending operations per entry and reject another mutation for an entry already pending. Clear only the completed entry\u2019s pending state.\n\n- Category: test\n- Severity: medium\n- File: client/e2e/flows/inbox-reminders.spec.ts:68\n- Finding: The visual acceptance criterion is not implemented here. `shot()` optionally saves screenshots but never compares them with approved baselines, so layout regressions pass even when screenshot output is enabled.\n- Suggestion: Add deterministic Playwright screenshot assertions with committed baselines and run them through the required Linux flow.\n\nOverall assessment: ship-with-fixes. The diff covers the main workflows and hostile-text rendering, but concurrent mutation handling and the required visual regression checks need changes before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n- Category: spec\n  Severity: medium\n  File: client/e2e/flows/inbox-reminders.spec.ts \u2014 `shot()` helper / `E2E_SHOTS`\n  Finding: The AC asks for \"visual baselines through the Linux flow\", but screenshots are only written when `E2E_SHOTS` is set and there is no comparison against any baseline \u2014 they're manual artifacts. Nothing in the diff pins the approved mockup look (beyond two hard-coded chip background colours).\n  Suggestion: Either wire the shots into the project's existing visual-baseline flow (compare against committed baselines, fail on diff) or explicitly note in the campaign that baselines land in a later work item.\n\n- Category: bug\n  Severity: low\n  File: client/src/pages/inbox/ReminderBanners.tsx \u2014 unavailable banner copy\n  Finding: The banner says \"Reminder entries are switched off until this is fixed\", but it renders whenever *any* project is unreadable while other readable projects' reminder rows are shown below it \u2014 the copy contradicts what's on screen in the mixed-state case.\n  Suggestion: Scope the wording (\"Reminder entries for: X, Y are switched off\") when only a subset of projects failed.\n\n- Category: bug\n  Severity: low\n  File: client/src/pages/inbox/reminderModel.ts \u2014 `entriesForProject` key fallback `` `n${i}` ``\n  Finding: Items with a null id get an index-based key; if the server reorders items between polls (or a write invalidates mid-list), React reuses state (open dialogs, snooze popover state in `ReminderCard`) across different logical items. Null-id items also can't be acted on, so impact is limited to dialog/popover state bleeding.\n  Suggestion: Include `item.due` and `item.title` hash, or the project-relative index plus a stable field, in the fallback key.\n\n- Category: test\n  Severity: low\n  File: client/src/layouts/MainLayout.reminders.test.tsx \u2014 second test\n  Finding: `expect(screen.queryByText(\"0\")).toBeNull()` / `queryByText(\"1\")` is a weak negative assertion: it would pass even if the count badge were never rendered at all, so a broken implementation (e.g. count always hidden) passes.\n  Suggestion: Query the Inbox nav element itself and assert its badge is absent or shows only the waiting-entry count.\n\n- Category: test\n  Severity: low\n  File: client/e2e/flows/inbox-reminders.spec.ts \u2014 `page.getByTestId(/inbox-card-reminder-.*-rem-1/)`\n  Finding: The mock assigns created ids `rem-103`, `rem-104`, \u2026; the regex `-rem-1` prefix-matches every `rem-1xx` id, so a second created reminder would make this locator resolve to two elements and fail in strict mode (latent, order-dependent).\n  Suggestion: Target the exact id (`rem-103`) or use the row located via the visible title, as done elsewhere in the file.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/pages/inbox/useReminderActions.ts \u2014 `useProjectActions(pending?.projectId ?? intent?.projectId ?? null)`\n  Finding: After a Start-task dialog is closed, `intent` persists, so the hook keeps the previous project's catalog fetched; combined with the effect firing only on `pending`, a stale-catalog race is guarded, but if `useProjectActions` returns `isLoading:false, data:undefined` for a project with no catalog (error path), the operator gets the generic \"catalog not loaded\" error with no retry \u2014 acceptable, but there's no way to retry Start task other than re-clicking, which does work. No fix strictly needed; noting the closed-dialog catalog retention as a minor cleanup.\n\nEverything else checks out: the W1 routes are the only write path, the stored `command` is display-only and Start task rebuilds a launch from kind/id via the Fix-now machinery, hostile text is proven inert in both unit and real-browser tests (script/img assertions), error states never render the \"inbox is clear\" empty state (guarded by `!reminders.problems.any`), the sidebar and page share one query key, and the no-terminal-writepath fence test was extended rather than loosened.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-22-w3-reminders-in-inbox",
+    "at": "2026-11-22T20:26:05.697780+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}
