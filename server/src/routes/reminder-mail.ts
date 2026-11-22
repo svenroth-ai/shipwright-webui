@@ -17,7 +17,7 @@
 import { Hono } from "hono";
 
 import type { ReminderMailService } from "../core/reminder-mail/service.js";
-import { hasSmtpPassword, loadSettings, parseSettingsBody, saveSettings, writeSmtpPassword } from "../core/reminder-mail/settings.js";
+import { hasSmtpPassword, loadSettings, readSmtpPassword, parseSettingsBody, saveSettings, writeSmtpPassword } from "../core/reminder-mail/settings.js";
 
 const TEST_MIN_GAP_MS = 3000;
 
@@ -58,14 +58,20 @@ export function createReminderMailRoutes(deps: { dir: string; service: ReminderM
     if (serverChanged && parsed.password.kind === "keep" && hasSmtpPassword(deps.dir)) {
       return c.json({ error: "invalid_body", message: "You changed the SMTP server or user name. Enter the password again for the new server (or remove the saved one)." }, 400);
     }
+    const previousPassword = readSmtpPassword(deps.dir);
+    let passwordChanged = false;
     try {
-      // Password FIRST: if it cannot be stored nothing else changes, so the old password can never end up paired with a new server.
+      // Password FIRST: if it cannot be stored nothing else changes, and if the settings then fail the old password is put back, so old and new never mix.
       if (parsed.password.kind === "set") await writeSmtpPassword(deps.dir, parsed.password.value);
       else if (parsed.password.kind === "clear") await writeSmtpPassword(deps.dir, null);
+      passwordChanged = parsed.password.kind !== "keep";
       await saveSettings(deps.dir, parsed.settings);
       // A stale failure must not outlive "mail off" or a changed server / password: the next check says the truth again.
-      if (!parsed.settings.enabled || serverChanged || parsed.password.kind !== "keep") await deps.service.clearError();
+      if (!parsed.settings.enabled) await deps.service.clearError();
+      else if (serverChanged || parsed.password.kind !== "keep") await deps.service.retryNow();
     } catch (err) {
+      // Settings failed after the password was written: put the old password back so old and new never mix.
+      if (passwordChanged) await writeSmtpPassword(deps.dir, previousPassword).catch(() => undefined);
       // The message of OUR errors (repo refusal) is safe; nothing here ever holds the password text.
       const message = err instanceof Error && err.message.startsWith("The WebUI user folder") ? err.message : "The settings could not be saved.";
       return c.json({ error: "save_failed", message }, 500);

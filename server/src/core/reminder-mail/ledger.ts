@@ -92,6 +92,13 @@ export class MailLedger {
     return won;
   }
 
+  /** Today's failed tries are forgotten (the operator fixed the cause), so the next check really retries. */
+  async resetTries(): Promise<void> {
+    await updateJson(this.file, normalize, (cur) => {
+      cur.tries = {};
+    }, this.lock, { strict: true });
+  }
+
   /** The send failed: give the key back and count the try (at most MAX_TRIES_PER_DAY per day). */
   async failClaim(key: string, day: string): Promise<void> {
     await updateJson(this.file, normalize, (cur) => {

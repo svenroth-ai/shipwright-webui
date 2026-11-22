@@ -119,6 +119,12 @@ export class ReminderMailService {
     });
   }
 
+  /** The cause was fixed (good test mail, changed server or password): drop the error AND today's used-up tries. */
+  async retryNow(): Promise<void> {
+    await this.ledger.resetTries().catch(() => undefined);
+    await this.clearError();
+  }
+
   /** The "Send test mail" button: one fixed sample mail to the saved recipient. */
   async sendTest(): Promise<{ ok: true } | { ok: false; error: string }> {
     const s = loadSettings(this.deps.dir);
@@ -128,7 +134,7 @@ export class ReminderMailService {
     try {
       const mail = composeTestMail(s.webuiAddress);
       await this.deps.makeTransport(cfg).send(this.message(s, mail));
-      await this.clearError(); // the operator just proved the settings work
+      await this.retryNow(); // the operator just proved the settings work
       return { ok: true };
     } catch (err) {
       return { ok: false, error: describeSendError(err, cfg) };

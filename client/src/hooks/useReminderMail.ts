@@ -37,5 +37,6 @@ export function useSaveReminderMail() {
 }
 
 export function useSendReminderTestMail() {
-  return useMutation({ mutationFn: sendReminderTestMail });
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: sendReminderTestMail, onSettled: () => qc.invalidateQueries({ queryKey: REMINDER_MAIL_KEY }) });
 }
