@@ -1,12 +1,12 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>3 Create a reminder</title><link rel="stylesheet" href="mock.css"></head><body>
 <div class="top"><b>Shipwright Command Center</b><span class="mock">MOCKUP - static HTML, no server, sample data only</span><nav><a href="index.html">All screens</a></nav></div><main>
 <h1>3. Create a reminder from the WebUI</h1>
-<span class="cli">CLI call: reminder_cli.py add --title ... --due YYYY-MM-DD --why ... --decided ... --open ... --command ... --link ...</span>
+<span class="cli">CLI call: reminder_cli.py add "<title>" --due YYYY-MM-DD --why ... --decided ... --open ... --command ... --link LABEL=KIND=REF (repeatable)</span>
 <p class="mock">Only when you press Create. Nothing creates reminders on its own.</p>
 <div class="grid"><div class="card"><label>Title</label><input value="Re-check the mail relay after the provider change">
-<label>Due day</label><input type="date" value="2026-12-03"><label>Why</label><textarea rows="2">The provider announced new sender rules.</textarea>
+<label>Due day</label><input type="date" value="2026-12-03"><label>Why (required)</label><textarea rows="2">The provider announced new sender rules.</textarea>
 <label>Decided</label><input value="Keep the current relay until then"><label>Still open</label><textarea rows="3">Do we need a second sender address?</textarea>
-<label>Command to run when due (optional)</label><input value="/shipwright-iterate check mail relay"><label>Link (optional)</label><input value="https://example.org/provider-notice">
+<label>Command to run when due (optional)</label><input value="/shipwright-iterate check mail relay"><label>Link (optional; label, kind, reference)</label><input value="Provider notice = url = https://example.org/provider-notice">
 <p><button class="btn btn-primary">Create</button> <button class="btn">Cancel</button></p></div>
 <div class="card"><h2>If the text contains a secret</h2><div class="alert bad"><b>Not saved.</b> The reminder text looks like it contains a secret (for example a password or token). Remove it and try again. <span class="mock">(This message is the CLI's own wording, shown as is. The WebUI does not retry or work around it.)</span></div>
 <h2>If it worked</h2><div class="alert" style="background:var(--accent-tint);border-color:#9fd3ca;color:var(--accent)">Reminder created for 2026-12-03.</div></div></div>
