@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"All 4 ACs of W1-cli-bridge are present, do what they say and stay in scope; every error state is explicit. Code-reviewer may run."}

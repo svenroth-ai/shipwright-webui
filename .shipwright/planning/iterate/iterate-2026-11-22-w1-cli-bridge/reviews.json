@@ -69,51 +69,247 @@
     },
     "code": {
       "review_type": "code",
-      "status": "pending",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/reminder-cli-runner.ts",
+          "line": 408,
+          "finding": "uv's own exit 2 with a plain error line was read as the CLI's content refusal.",
+          "suggestion": "Identify uv errors; test with uv-style stderr. FIXED in 5d9d9343.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/routes/reminders.ts",
+          "line": 1237,
+          "finding": "Two registrations of one repo read the same store twice.",
+          "suggestion": "FIXED: read once, second gets shared-root state.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/reminder-cli-runner.ts",
+          "line": 368,
+          "finding": "Missing project folder could read as nothing due.",
+          "suggestion": "FIXED: named failure.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/reminder-cli-runner.ts",
+          "line": 403,
+          "finding": "Write timeout outcome unknown.",
+          "suggestion": "FIXED: distinct reason.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/core/reminder-validation.ts",
+          "line": 794,
+          "finding": "Total-size cap vs Windows quoting.",
+          "suggestion": "FIXED: cap lowered to 16000.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/reminder-cli-runner.ts",
+          "line": 364,
+          "finding": "Unused on parameter and dueResponse export.",
+          "suggestion": "FIXED.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "server/src/core/reminder-fixtures.ts",
+          "line": 651,
+          "finding": "Test fixture in production src/core.",
+          "suggestion": "Accepted: no build-excluded naming that vitest does not collect; noted.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/reminder-contract.test.ts",
+          "line": 450,
+          "finding": "Sibling-path drift check silently passes.",
+          "suggestion": "FIXED: env path + skipIf.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/reminder-cli-runner.integration.test.ts",
+          "line": 23,
+          "finding": "git missing errors instead of skipping.",
+          "suggestion": "FIXED.",
+          "source": "code-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-11-22T17:21:49.489077+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "code-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "79ea0c6d808d711c19804af0947fac8e4b4ebf0f"
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "pending",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "hidden coupling",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the all-projects read deduplicates registrations that share one reminder store — The dedupe key resolveMainCheckout only recognises a linked-worktree .git file; nested registrations or differently-cased paths read the same store twice.",
+          "suggestion": "Dedupe reminder items by the CLI's reminderStore field.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency & ordering",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the all-projects read spawns at most 3 children — The limit is per request; several tabs or a cross-site GET multiply spawns.",
+          "suggestion": "Process-wide semaphore, in-flight coalescing, refuse cross-site GET.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: untrusted text cannot become a live link — The read path passes javascript: url refs and file refs through.",
+          "suggestion": "Neutralise non-http(s) url refs in the contract parser.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: exit-2 is classified correctly — A blocklist of uv phrasings is fragile; a distinct CLI exit code would be better.",
+          "suggestion": "Positive marker from the CLI.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: argv survives Node, uv and python on Windows — Embedded quotes, trailing backslashes and a lone -- title not probed.",
+          "suggestion": "Add round-trip cases.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: no state reads as nothing due — Non-Shipwright projects are permanently degraded; one bad item makes the whole project unreadable.",
+          "suggestion": "Client-side handling in W2/W3.",
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-11-22T17:28:15.890273+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "5d9d93433a45108c7167df6626aa519bb5716e90"
     },
     "external_code": {
       "review_type": "external_code",
-      "status": "pending",
-      "findings_count": 0,
-      "findings": [],
-      "provider": null,
-      "completed_at": null,
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "spec |",
+          "file": "(whole diff)",
+          "line": null,
+          "finding": "The spec's operational deliverable \"Check what stored command strings look like in real data and note resume-style commands for the operator\" is only exercised as a test fixture (`claude --resume 1234`); no operator note or surfaced annotation about resume-style commands exists in the shipped code or docs.",
+          "suggestion": "Add the note (a short section in the route/runner doc comment or a hand-off note for W2) describing that stored commands can be `claude --resume <id>` resume strings and how the UI should present them.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug |",
+          "file": "server/src/routes/reminders.ts:132 (`const entries ... let next = 0; const worker = ...`)",
+          "line": null,
+          "finding": "The shared-counter worker loop is correct only because `next++` never happens across an `await`. That invariant is implicit; a future `await` added inside the loop header region or a refactor to a different queue would corrupt indices silently (entries written to wrong slots / holes left as `undefined` in the JSON).",
+          "suggestion": "Either add a one-line comment pinning the invariant (\"next is only mutated synchronously\"), or pre-chunk the indices before spawning workers.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test |",
+          "file": "server/src/core/reminder-cli-runner.integration.test.ts:53–64 (second `it`)",
+          "line": null,
+          "finding": "The second integration test depends on `root` being git-initialized by the first test; if the first test fails early (before `git init`) or tests are reordered/filter-run in isolation, the second fails for environmental rather than behavioral reasons — contradicting the file's own \"can never fail for environment reasons\" contract.",
+          "suggestion": "Move `git init`/commit into a `beforeAll`, or re-init defensively in each test.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": "server/src/core/reminder-cli-runner.ts:96–100 (`cliMessage`)",
+          "line": null,
+          "finding": "When stderr has no `error: ` line, `lines.pop()` takes the last non-empty line, which for a traceback is a Python frame, not a message — the surfaced `reason` will be noise like `File \"reminder_cli.py\", line 88, in main`. Not wrong per contract, but unhelpful; the code-1 test only asserts `kind: \"failed\"`, so this isn't caught.",
+          "suggestion": "Prefer the first line for non-`error:` stderr, or just use a generic message when no `error: ` line exists.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/core/reminder-cli-runner.ts",
+          "line": 13,
+          "finding": "The bridge assumes the registered project path is the main checkout instead of ensuring it. Both due routes pass that path directly, so a project registered at a linked worktree reads triage from the worktree while reminders come from the main checkout, as the comment itself acknowledges. This violates the main-checkout acceptance criterion and can omit due triage items.",
+          "suggestion": "Resolve the project’s main checkout before invoking the CLI, use it for `--project-root` and the child’s working directory, and add a linked-worktree test covering both read routes.  Overall assessment: ship-with-fixes. The diff otherwise provides explicit error states and meaningful tests, but main-checkout handling needs correction. Local inspection was blocked by execution policy, so the referenced brief and surrounding implementation could not be verified.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-11-22T17:18:32.399523+00:00",
       "disposition": null,
-      "recorded_by": null,
-      "parse_status": null,
-      "raw_excerpt": null
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review\n\nThe change is well-built: pinned contract tests, explicit error states for every failure mode, no shell, `--` guards against option injection, JSON content-type gate against cross-site simple POSTs, and the CLI's refusal text passed through untouched. I looked hard for real defects; findings are minor.\n\n### Findings\n\n- Category: spec | Severity: low\n  File: (whole diff)\n  Finding: The spec's operational deliverable \"Check what stored command strings look like in real data and note resume-style commands for the operator\" is only exercised as a test fixture (`claude --resume 1234`); no operator note or surfaced annotation about resume-style commands exists in the shipped code or docs.\n  Suggestion: Add the note (a short section in the route/runner doc comment or a hand-off note for W2) describing that stored commands can be `claude --resume <id>` resume strings and how the UI should present them.\n\n- Category: bug | Severity: low\n  File: server/src/routes/reminders.ts:132 (`const entries ... let next = 0; const worker = ...`)\n  Finding: The shared-counter worker loop is correct only because `next++` never happens across an `await`. That invariant is implicit; a future `await` added inside the loop header region or a refactor to a different queue would corrupt indices silently (entries written to wrong slots / holes left as `undefined` in the JSON).\n  Suggestion: Either add a one-line comment pinning the invariant (\"next is only mutated synchronously\"), or pre-chunk the indices before spawning workers.\n\n- Category: test | Severity: low\n  File: server/src/core/reminder-cli-runner.integration.test.ts:53–64 (second `it`)\n  Finding: The second integration test depends on `root` being git-initialized by the *first* test; if the first test fails early (before `git init`) or tests are reordered/filter-run in isolation, the second fails for environmental rather than behavioral reasons — contradicting the file's own \"can never fail for environment reasons […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: server/src/core/reminder-cli-runner.ts:13\n- Finding: The bridge assumes the registered project path is the main checkout instead of ensuring it. Both due routes pass that path directly, so a project registered at a linked worktree reads triage from the worktree while reminders come from the main checkout, as the comment itself acknowledges. This violates the main-checkout acceptance criterion and can omit due triage items.\n- Suggestion: Resolve the project’s main checkout before invoking the CLI, use it for `--project-root` and the child’s working directory, and add a linked-worktree test covering both read routes.\n\nOverall assessment: ship-with-fixes. The diff otherwise provides explicit error states and meaningful tests, but main-checkout handling needs correction. Local inspection was blocked by execution policy, so the referenced brief and surrounding implementation could not be verified.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
     },
     "spec": {
       "review_type": "spec",
-      "status": "pending",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-11-22T17:18:32.256909+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "0c831919e9eb940ce2efd0686ed3ea6e7d71f1ba"
     },
     "plan_internal": {
       "review_type": "plan_internal",

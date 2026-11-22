@@ -14,3 +14,12 @@ External (glm + openai, run via codex driver): both approve option A (thin runne
 - W3 should add a short single-flight/TTL memo for `due` (one uv spawn per project per read today, concurrency 3).
 - done/snooze apply to kind=reminder only; W3 must hide them on triage rows.
 - Real data: no reminders exist in any registered project on this machine, so no stored `command` strings were observed.
+
+## External-Code-Review-Findings
+| Finding | Disposition |
+|---|---|
+| openai medium: project path assumed to be the main checkout | accepted-and-fixed: linked-worktree paths resolve to the main checkout before every CLI call (reminder-main-root.ts) |
+| glm low: stderr fallback showed a stack frame; worker index invariant; integration git setup; no resume-command note | accepted-and-fixed (generic text, comment, beforeAll); the resume-command note is in this ADR (no stored commands exist on this machine) |
+
+## Internal cascade (spec PASS, code approve-with-changes, doubt 0 high / 3 medium)
+All code-review and doubt mediums were fixed: uv exit 2 is not a refusal; registrations reaching one store list its reminders once; process-wide cap of 3 CLI children + shared in-flight all-projects read + cross-site GET refused; non-http(s) url link addresses dropped on read. Carried forward: ask Shipwright for a distinct exit code for ReminderError (the uv-error blocklist is a heuristic); non-Shipwright projects always read `degraded`; `file` link refs are local paths (W4 must not mail them).
