@@ -140,3 +140,32 @@ dl.f code,.cmd{background:#F5F5F4;color:#0B5C50;border:1px solid #D6D3D1}
 .row .sev{color:#1C1917}
 .pop{border:1px solid #8E847E}
 
+/* ---- rev 5: the Triage look for the Inbox: chips bar, project group cards with colored top edge, compact rows; details in a solid sheet ---- */
+.bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.grp{background:#3A312A;border:1px solid #6b5e54;border-top:3px solid var(--gc,#A8A29E);border-radius:12px;margin:0 0 20px;box-shadow:0 8px 16px rgba(0,0,0,.25);overflow:hidden}
+.grp .gh{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;font-weight:600;font-size:18px;color:#fff}
+.grp .gh .grip{color:#A8A29E;letter-spacing:-2px;font-size:14px}.grp .gh .chev{color:#D6D3D1;font-size:13px}
+.grp .gh .gd{width:11px;height:11px;border-radius:50%;background:var(--gc,#A8A29E)}
+.trow{display:flex;align-items:center;gap:14px;margin:0 12px 10px;padding:12px 16px;border:1px solid #6b5e54;border-radius:10px;background:#4A3F37;color:#fff;font-size:15px;line-height:1.35}
+.trow:last-child{margin-bottom:12px}
+.trow .t{flex:1;min-width:0;overflow-wrap:anywhere}
+.trow .r{display:flex;align-items:center;gap:12px;color:#E7E5E4;font-size:14px;white-space:nowrap;flex:none}
+.trow .cp{font-size:13px;color:#D6D3D1}
+.trow .kd{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:1px 9px;margin-right:8px;vertical-align:1px;display:inline-block}
+.kd.r{background:#134E48;color:#A7F3E6;border:1px solid #35B8A4}.kd.t{background:#6A3A0A;color:#FDE2B3;border:1px solid #F79009}.kd.q{background:#57534E;color:#fff;border:1px solid #A8A29E}
+.trow .sevc{width:26px;height:26px;border-radius:50%;border:2px solid #F79009;color:#fff;font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.trow .idm{font:12.5px var(--mono);background:#2E2723;color:#fff;border-radius:4px;padding:2px 8px}
+.sheetgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:26px;align-items:start}
+.sheetgrid .sheet{max-width:none;margin:0}
+.sheet .sub{font-size:13px;color:#44403C;margin:0}
+dl.s{display:grid;grid-template-columns:104px 1fr;gap:9px 14px;font-size:14.5px;margin:14px 0 4px}
+dl.s dt{color:#57534E}dl.s dd{margin:0;color:#1C1917;min-width:0;overflow-wrap:anywhere}
+dl.s code{font:13px var(--mono);background:#fff;border:1px solid #C3B8AE;border-radius:5px;padding:2px 8px;color:#0B5C50}
+.ob{max-height:110px;overflow:auto;background:#fff;border:1px solid #8E847E;border-radius:8px;padding:8px 10px;white-space:pre-wrap}
+.sheet .alink{color:#0B6355}
+.sheet .acts{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid #C3B8AE;flex-wrap:wrap}
+.sheet .btn{border:1.5px solid #8E847E;color:#1C1917;background:#fff}.sheet .btn-primary{background:#0E7A6B;border-color:#0E7A6B;color:#fff}
+.snz{background:#fff;border:1px solid #8E847E;border-radius:10px;padding:10px 12px;margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13.5px}
+.snz input{height:34px;border:1px solid #8E847E;border-radius:8px;padding:0 8px;font:inherit}
+.sheet .why{font-size:13px;color:#57534E;margin-top:10px}
+
