@@ -19,6 +19,7 @@ import { cleanupProject, cleanupTask, seedProject, type SeededProject } from "..
 
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
+// @covers FR-01.04
 test.describe("Inbox awaiting-user (plain-text question)", () => {
   let project: SeededProject;
   const taskIds: string[] = [];

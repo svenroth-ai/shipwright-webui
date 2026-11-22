@@ -31,6 +31,7 @@ import { attachWsCapture, outboundDataFrames } from "../helpers/ws-capture";
 
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
+// @covers FR-01.04
 test.describe("Inbox → terminal fallback (A19, FR-01.63)", () => {
   let project: SeededProject;
   let taskId: string;

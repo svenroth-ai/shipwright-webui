@@ -42,9 +42,7 @@ import type {
 } from "../lib/externalApi";
 import type { Project } from "../types";
 
-// Hoisted mocks must be declared before the imports that consume them.
-// Vitest lifts vi.mock to the top of the file so these factories run
-// before the real hook modules resolve.
+// Hoisted mocks must be declared before the imports that consume them. Vitest lifts vi.mock to the top of the file so these factories run before the real hook modules resolve.
 vi.mock("../hooks/useExternalInbox", () => ({
   useExternalInbox: vi.fn(),
 }));
@@ -229,6 +227,7 @@ const ITEM_B = makeAskItem({
 const PROJECT_A = makeProject({ id: "proj-a", name: "Project A" });
 const PROJECT_B = makeProject({ id: "proj-b", name: "Project B" });
 
+// @covers FR-01.04
 describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
   beforeEach(() => {
     mockedInbox.mockReset();
@@ -340,8 +339,7 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
     // Launch-in-Terminal button from v2 is GONE.
     expect(screen.queryByTestId("inbox-launch-tu-A")).not.toBeInTheDocument();
 
-    // Freetext input + send button from v2 are GONE (no answer POST,
-    // webui never answers Claude — external-launch invariant).
+    // Freetext input + send button from v2 are GONE (no answer POST, webui never answers Claude — external-launch invariant).
     expect(screen.queryByTestId("inbox-freetext-input")).not.toBeInTheDocument();
     expect(screen.queryByTestId("inbox-freetext-send")).not.toBeInTheDocument();
   });
@@ -425,6 +423,7 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
 });
 
 // ---------- iterate 2026-05-15 inbox-awaiting-user ----------
+// @covers FR-01.04
 describe("InboxPage — text_question cards", () => {
   beforeEach(() => {
     mockedInbox.mockReset();
@@ -558,6 +557,7 @@ describe("InboxPage — text_question cards", () => {
 });
 
 // ---------- iterate-2026-05-18-inbox-terminal-prompts ----------
+// @covers FR-01.04
 describe("InboxPage — terminal_prompt cards", () => {
   beforeEach(() => {
     mockedInbox.mockReset();

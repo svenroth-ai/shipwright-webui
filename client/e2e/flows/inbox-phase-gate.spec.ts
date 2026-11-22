@@ -16,6 +16,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+// @covers FR-01.04
 test.describe("Inbox phase gate", () => {
   // @covers FR-01.04
   test("shows a paused guided phase and clears it on resume", async ({ page, request }) => {

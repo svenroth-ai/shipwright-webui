@@ -24,6 +24,7 @@ import { cleanupTaskCwd, seedTask, type SeededTask } from "../helpers/fixtures";
 
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
+// @covers FR-01.04
 test.describe("Inbox → Terminal focus (iterate-2026-05-18-inbox-terminal-prompts)", () => {
   // @covers FR-01.63
   test("clicking an Inbox card lands on TaskDetail with the terminal focused (AC1)", async ({

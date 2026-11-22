@@ -54,6 +54,7 @@ function renderCard(node: React.ReactElement) {
   );
 }
 
+// @covers FR-01.04
 describe("LeadAnswerPanel", () => {
   afterEach(() => vi.restoreAllMocks());
 

@@ -119,6 +119,7 @@ const LEAD: LeadQuestionInboxItem = {
   questionText: "Are we good to ship?",
 };
 
+// @covers FR-01.04
 describe("InboxCard — polymorphic dispatcher", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -230,6 +231,7 @@ describe("InboxCard — polymorphic dispatcher", () => {
   });
 });
 
+// @covers FR-01.04
 describe("InboxCard / inboxItemKey — exhaustiveness guard (FR-04.19 trap 3/4)", () => {
   it("inboxItemKey returns lq-<taskId> for a lead_question item", () => {
     expect(inboxItemKey(LEAD)).toBe("lq-task-A");

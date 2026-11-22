@@ -23,6 +23,7 @@
 import { test, expect } from "@playwright/test";
 import { homedir } from "node:os";
 
+// @covers FR-01.04
 test.describe("Inbox lead-question → Discuss in terminal", () => {
   test("opens a working terminal session for the card's task via the existing spawn route", async ({
     page,

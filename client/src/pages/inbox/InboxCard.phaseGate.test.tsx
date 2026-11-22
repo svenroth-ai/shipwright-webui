@@ -29,6 +29,7 @@ const item: InboxItem = {
   bestEffort: true,
 };
 
+// @covers FR-01.04
 describe("InboxCard phase_gate", () => {
   // @covers FR-01.04
   it("keys the item pg-<taskId>", () => {

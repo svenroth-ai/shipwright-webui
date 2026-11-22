@@ -53,6 +53,7 @@ function renderCard(node: React.ReactElement) {
   );
 }
 
+// @covers FR-01.04
 describe("InboxCard — codex_approval (Codex Light §5.3)", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -81,6 +82,7 @@ describe("InboxCard — codex_approval (Codex Light §5.3)", () => {
   });
 });
 
+// @covers FR-01.04
 describe("InboxCard — codex_error (Codex Light §5.3)", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -101,6 +103,7 @@ describe("InboxCard — codex_error (Codex Light §5.3)", () => {
   });
 });
 
+// @covers FR-01.04
 describe("InboxCard — codex_watcher (Codex Light AC6)", () => {
   beforeEach(() => vi.clearAllMocks());
 

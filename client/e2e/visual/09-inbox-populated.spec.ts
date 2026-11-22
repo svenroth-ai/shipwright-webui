@@ -29,6 +29,7 @@ import { freezeClock, settle } from "./stabilize";
 
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
+// @covers FR-01.04
 test.describe("visual: inbox populated", () => {
   let project: SeededProject;
   let taskId: string;

@@ -72,6 +72,7 @@ const MD_QUESTION = [
 
 const TP_TEXT = "**Pick one**\n  1. Board\n  2. Detail\nEnter to select";
 
+// @covers FR-01.04
 test.describe("Inbox markdown rendering (iterate-2026-05-19)", () => {
   test("text_question renders markdown; terminal_prompt stays plain", async ({
     page,
