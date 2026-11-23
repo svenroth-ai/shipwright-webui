@@ -27,6 +27,9 @@ import { dirname } from "node:path";
 import { resolveOrgAllowlistedTarget } from "./_helpers.js";
 import { claimRecordLockOptions } from "../../core/claim-record-lock.js";
 
+// Proposed-entry grammar (both header forms) lives in its own module (W1).
+export { parseProposedEntries, toLoggedBlock, type ProposedEntry } from "./proposed-entry-format.js";
+
 // ---------------------------------------------------------------------------
 // Entry format — strict, anchored, full-line header shapes (plan-review
 // fix, deepseek LOW: a loose "line starts with ##" match could misclassify
@@ -42,18 +45,7 @@ import { claimRecordLockOptions } from "../../core/claim-record-lock.js";
 // splice on those offsets directly).
 // ---------------------------------------------------------------------------
 
-const PROPOSED_HEADER_RE = /^## \[([^\]]+)\] (.+?)\r?$/;
 const LOGGED_HEADER_RE = /^## ADR-(\d{4}) \[([^\]]+)\] (.+?)\r?$/;
-
-export interface ProposedEntry {
-  timestamp: string;
-  leadId: string;
-  /** Full block text (header line + body), from this header up to the next
-   *  header or EOF. Opaque — never parsed beyond the header line. */
-  block: string;
-  startIndex: number;
-  endIndex: number;
-}
 
 export interface LoggedEntry {
   number: number;
@@ -93,17 +85,6 @@ function splitBlocks(
   });
 }
 
-/** Parse `decisions-proposed.md` into its opaque, header-delimited entries. */
-export function parseProposedEntries(raw: string): ProposedEntry[] {
-  return splitBlocks(raw, PROPOSED_HEADER_RE).map(({ match, startIndex, endIndex, block }) => ({
-    timestamp: match[1],
-    leadId: match[2],
-    block,
-    startIndex,
-    endIndex,
-  }));
-}
-
 /** Parse `decision_log.md` into its numbered, header-delimited entries. */
 export function parseLoggedEntries(raw: string): LoggedEntry[] {
   return splitBlocks(raw, LOGGED_HEADER_RE).map(({ match, block }) => ({
@@ -125,25 +106,6 @@ export function findLoggedEntry(
 export function nextLoggedNumber(entries: LoggedEntry[]): number {
   if (entries.length === 0) return 1;
   return Math.max(...entries.map((e) => e.number)) + 1;
-}
-
-/**
- * Rewrite a proposed entry's block into logged form: same body, header line
- * becomes `## ADR-<NNNN> [<timestamp>] <leadId>`. Byte-preserving beyond the
- * header line — this route never parses or understands the body prose.
- */
-export function toLoggedBlock(proposedBlock: string, number: number): string {
-  const newlineIdx = proposedBlock.indexOf("\n");
-  const headerLine = newlineIdx === -1 ? proposedBlock : proposedBlock.slice(0, newlineIdx);
-  const rest = newlineIdx === -1 ? "" : proposedBlock.slice(newlineIdx);
-  const m = PROPOSED_HEADER_RE.exec(headerLine);
-  if (!m) {
-    throw new Error(
-      `toLoggedBlock: block does not start with a proposed-entry header: ${headerLine.slice(0, 80)}`,
-    );
-  }
-  const adr = `ADR-${String(number).padStart(4, "0")}`;
-  return `## ${adr} [${m[1]}] ${m[2]}${rest}`;
 }
 
 // ---------------------------------------------------------------------------

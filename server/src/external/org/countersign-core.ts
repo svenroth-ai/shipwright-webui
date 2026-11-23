@@ -120,7 +120,8 @@ export async function performCountersign(
         // a possible, not merely theoretical, collision — would be
         // silently deleted here and reported as "already countersigned"
         // under the OLD entry's ADR number, with no trace left anywhere.
-        if (bodyAfterHeader(stillProposed.block) !== bodyAfterHeader(existing.block)) {
+        if (bodyAfterHeader(toLoggedBlock(stillProposed.block, existing.number)).trimEnd() !==
+          bodyAfterHeader(existing.block).trimEnd()) {
           return { status: "duplicate_identity", count: 2 };
         }
         const nextProposed =

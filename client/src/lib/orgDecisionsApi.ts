@@ -21,7 +21,52 @@
 import { ApiError } from "./externalApi";
 import { ORG_API, fetchOrgFileText } from "./orgApi";
 
-const PROPOSED_HEADER_RE = /^## \[([^\]]+)\] (.+?)\r?$/;
+// Both header forms (W1) - verbatim mirror of server `proposed-entry-format.ts`
+// (CLAUDE.md rule 7: no cross-package import). Contract:
+// `docs/org-proposed-entry-contract.md`.
+const WEBUI_HEADER_RE = /^## \[([^\]]+)\] (.+?)\r?$/;
+const DAEMON_HEADER_RE = /^## Proposed (\S+) — (.+?)\r?$/;
+const DAEMON_MARKER_RE = /^<!--\s*decisionKey:\s*.*?\s*-->\r?$/;
+const FENCE_LINE_RE = /^⟦SHIPWRIGHT-FENCE:[0-9a-f]+⟧\r?$/;
+const LEAD_BULLET_RE = /^-[ \t]*\*\*Lead:\*\*[ \t]*(.+?)\r?$/;
+const EVIDENCE_BULLET_RE = /^-[ \t]*\*\*Evidence:\*\*[ \t]*(.+?)\r?$/;
+
+const isBlank = (line: string): boolean => line.trim() === "";
+
+/** Lines inside a fenced region (a fence counts only when its identical
+ *  closing line exists later) - header lines there are quoted text. */
+function fencedLineSet(lines: string[]): Set<number> {
+  const fenced = new Set<number>();
+  let i = 0;
+  while (i < lines.length) {
+    if (FENCE_LINE_RE.test(lines[i])) {
+      const close = lines.indexOf(lines[i], i + 1);
+      if (close !== -1) {
+        for (let k = i; k <= close; k++) fenced.add(k);
+        i = close + 1;
+        continue;
+      }
+    }
+    i++;
+  }
+  return fenced;
+}
+
+/** Lines after a daemon entry's closing fence line (whole block if no fence). */
+function daemonTail(blockLines: string[]): string[] {
+  const open = blockLines.findIndex((l) => FENCE_LINE_RE.test(l));
+  if (open === -1) return blockLines;
+  const close = blockLines.indexOf(blockLines[open], open + 1);
+  return close === -1 ? blockLines : blockLines.slice(close + 1);
+}
+
+function firstBullet(lines: string[], re: RegExp): string | null {
+  for (const l of lines) {
+    const m = re.exec(l);
+    if (m) return m[1].trim();
+  }
+  return null;
+}
 
 export interface ProposedDecisionEntry {
   timestamp: string;
@@ -41,7 +86,11 @@ export interface ProposedDecisionEntry {
 
 const EVIDENCE_LINE_RE = /^-\s*\*\*Evidence:\*\*\s*(.+?)\r?$/m;
 
-function extractEvidence(block: string): string | null {
+function extractEvidence(block: string, daemonForm: boolean): string | null {
+  if (daemonForm) {
+    // Only the bullet AFTER the closing fence counts - never one in the quote.
+    return firstBullet(daemonTail(block.split("\n")), EVIDENCE_BULLET_RE);
+  }
   const m = EVIDENCE_LINE_RE.exec(block);
   return m ? m[1].trim() : null;
 }
@@ -51,28 +100,44 @@ function extractEvidence(block: string): string | null {
  *  panel's "no decisions waiting" state, never a parse error. */
 export function parseProposedDecisions(raw: string): ProposedDecisionEntry[] {
   const lines = raw.split("\n");
-  const headerLineIdx: number[] = [];
-  const matches: RegExpMatchArray[] = [];
+  const fenced = fencedLineSet(lines);
+  interface Head { startLine: number; headerLine: number; timestamp: string; leadId: string | null }
+  const heads: Head[] = [];
   lines.forEach((line, idx) => {
-    const m = PROPOSED_HEADER_RE.exec(line);
-    if (m) {
-      headerLineIdx.push(idx);
-      matches.push(m);
+    if (fenced.has(idx)) return;
+    const w = WEBUI_HEADER_RE.exec(line);
+    if (w) {
+      heads.push({ startLine: idx, headerLine: idx, timestamp: w[1], leadId: w[2] });
+      return;
+    }
+    const d = DAEMON_HEADER_RE.exec(line);
+    if (d) {
+      let m = idx - 1;
+      while (m >= 0 && isBlank(lines[m])) m--;
+      const marker = m >= 0 && !fenced.has(m) && DAEMON_MARKER_RE.test(lines[m]);
+      heads.push({ startLine: marker ? m : idx, headerLine: idx, timestamp: d[1], leadId: null });
     }
   });
 
-  return headerLineIdx.map((lineIdx, i) => {
-    const nextIdx = headerLineIdx[i + 1] ?? lines.length;
-    const block = lines.slice(lineIdx, nextIdx).join("\n");
-    const body = lines.slice(lineIdx + 1, nextIdx).join("\n");
-    return {
-      timestamp: matches[i][1],
-      leadId: matches[i][2],
+  const out: ProposedDecisionEntry[] = [];
+  heads.forEach((h, i) => {
+    const endLine = heads[i + 1]?.startLine ?? lines.length;
+    const block = lines.slice(h.startLine, endLine).join("\n");
+    const daemonForm = h.leadId === null;
+    // Daemon form: the FIRST `- **Lead:**` bullet after the closing fence line
+    // (a quote above or an evidence pointer below can never win). No bullet =
+    // no identity, so the entry is not listed.
+    const leadId = h.leadId ?? firstBullet(daemonTail(block.split("\n")), LEAD_BULLET_RE);
+    if (leadId === null) return;
+    out.push({
+      timestamp: h.timestamp,
+      leadId,
       block,
-      body,
-      evidence: extractEvidence(block),
-    };
+      body: lines.slice(h.headerLine + 1, endLine).join("\n"),
+      evidence: extractEvidence(block, daemonForm),
+    });
   });
+  return out;
 }
 
 /** `GET /api/org/file?path=decisions-proposed.md`, parsed. Same 404-on-
