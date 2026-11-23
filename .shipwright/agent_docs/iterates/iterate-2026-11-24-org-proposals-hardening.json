@@ -1,0 +1,20 @@
+{
+  "run_id": "iterate-2026-11-24-org-proposals-hardening",
+  "date": "2026-11-23T23:47:48.317595Z",
+  "event_at": "2026-11-23T23:20:10.376596+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/org-proposals-hardening",
+  "spec": ".shipwright/planning/iterate/2026-11-24-org-proposals-hardening.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-24-org-proposals-hardening",
+  "risk_flags": [
+    "touches_public_api",
+    "touches_io_boundary"
+  ],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  }
+}
