@@ -152,3 +152,32 @@ which the shared adversarial corpus holds in step.
   entry as itself (the Lead id is self-reported by the lead; the daemon does not
   verify it against the beat's real lead). Leadwright must verify leadId and
   reject newlines in evidencePointer, decisionKey and leadId (S1-E).
+
+## Display convention (W2, read-only, client only)
+
+The operator window shows each entry as: proposed line, lead, beat, evidence
+pointer and each quote as its own element (`client/src/lib/orgProposedView.ts`).
+Nothing here changes identity, listing or countersign.
+
+- **Beat** comes from the fence label (`origin: <lead> beat <beatId>,`); absent = not shown.
+- **Proposed line** = the fenced lines that do not start with `>`; **a quote** = one
+  fenced line starting with `>`, optionally ending ` — <pointer>` (split at the LAST
+  ` — `). A quote without its own pointer inherits the entry's Evidence pointer.
+- **Pointer** is `session:time:number` (the S1-E format) or the legacy
+  `session <id> at <ISO time>, message <n>`. Anything else (empty, free text) is shown
+  as **unknown source** (with the raw text), never hidden.
+- One line per quote (a continuation line counts as part of the proposed line). A quote whose
+  ` — ` suffix is not a valid pointer shows the raw suffix beside "unknown source" (nothing is
+  dropped); an absent pointer shows "unknown source (none given)". An entry that is not
+  fenced falls back to the sanitised markdown body.
+- Quote and pointer text is rendered as plain text only (never markdown/HTML).
+- No "Open source session" link: a pointer's session id has no resolvable target in the
+  WebUI yet (short ids are not mapped to tasks); it is added only where a target exists.
+- **PROPOSAL, needs leadwright sign-off in S1-E:** quotes as `> text — pointer` lines inside the
+  fence. Until agreed and pinned as a fixture in both repos, entries show no quotes unless the lead
+  already writes this shape. Tracked next to the other S1-E preconditions.
+- A suffix after ` — ` is split off only when it looks like a pointer attempt (`session …` or
+  `<id of 4+ characters>:…`); otherwise the whole line is quote text and shows the entry's evidence pointer,
+  labelled "(entry evidence)". Empty `>` lines are skipped.
+- Unfenced (marker-less) bodies stay sanitised Markdown with no quote extraction.
+- W4 must move this line/quote classification into the mirrored grammar, not reimplement it.

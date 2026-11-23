@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Two quotes with own pointers, unknown source for malformed pointers, keyboard/screen-reader E2E; row split into Row+Detail+view lib."},
+{"name":"Error Handling","verdict":"pass","note":"Unparseable/unfenced blocks fall back to markdown body; malformed pointers shown as unknown source, never hidden."},
+{"name":"Security Basics","verdict":"pass","note":"Quote, pointer, beat and line are React text nodes only; E2E proves an injected img/onerror stays inert text."},
+{"name":"Test Quality","verdict":"pass","note":"Unit tests for the view model and row, real-browser E2E with injection and focus-order checks."},
+{"name":"Performance Basics","verdict":"pass","note":"Cheap per-entry string parse; no memo needed at this size."},
+{"name":"Naming & Structure","verdict":"pass","note":"All files under 300 lines; grammar mirror untouched."},
+{"name":"Affected Boundaries","verdict":"pass","note":"Reads the daemon entry format read-only; real fixture-shaped entries probed in the browser E2E; quote convention documented as proposal."},
+{"name":"Test Hygiene Probe","verdict":"n/a","note":"No skip/only added."}
+]}

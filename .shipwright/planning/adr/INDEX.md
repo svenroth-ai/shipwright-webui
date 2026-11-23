@@ -72,3 +72,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Triage page: one aggregated list, include-set filters, saved view](iterate-2026-11-08-triage-page-redesign-triage-page-model.md)
 - [Reminder CLI bridge (reminders W1)](iterate-2026-11-22-w1-cli-bridge-reminder-cli-bridge.md)
 - [Reminder mail: in-process timer, persisted ledger, pinned SMTP library](iterate-2026-11-22-w4-mail-timer-reminder-mail.md)
+- [ADR: Structured proposal view in the proposed-decisions window (W2)](iterate-2026-11-23-w2-entry-view-structured-proposal-view.md)

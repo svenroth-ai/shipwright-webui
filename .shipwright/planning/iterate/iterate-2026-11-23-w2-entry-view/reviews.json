@@ -1,0 +1,308 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-23-w2-entry-view",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T20:27:48.342376+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The parse logic (fence region detection, `>` quote lines, ` — pointer` suffix split, two pointer grammars) lives in a new client-side module, but the source text is produced by leadwright and the format is explicitly \"not yet defined\" (S1-E). This means the client is inferring structure from an unstable convention, and the drift risk is untracked — the server mirror has a drift guard, but this new parse has none.",
+          "suggestion": "Define the convention in the W2 contract doc first and treat it as the spec for leadwright (even if aspirational), so W2's parser targets a documented contract rather than reverse-engineering current output. If possible, have leadwright's output validated against that grammar in its own tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Parsing prose for structure has known failure modes the plan doesn't enumerate: a `>` line inside prose that isn't a quote; an em-dash appearing inside a quote so ` — pointer` splits at the wrong position; multi-line quotes; entries with zero quotes (is the quotes region hidden from screen readers, or an empty list?); an entry whose entire body fails to parse (should degrade to showing the raw text, not blank fields).",
+          "suggestion": "Specify the fallback explicitly: any unparseable region renders as the raw text, and list the degenerate cases (0 quotes, 1 quote, pointer missing entirely vs. malformed) in the unit tests. A pointer that's absent should be a distinct state from a malformed pointer (\"unknown source\").",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The `session:time:number` grammar plus a legacy long form means the \"unknown source\" path needs a precise definition: does trailing whitespace, uppercase session IDs, or a 4th colon-separated segment count as malformed? Ambiguity here becomes a flaky test suite.",
+          "suggestion": "Pin the grammar (regex) in the contract doc section and test the boundary cases directly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Splitting the row and modal \"to stay under 300 lines\" is fine, but the row's button descriptive name change affects existing E2E tests and any screen-reader/string assertions elsewhere in the suite.",
+          "suggestion": "Grep the existing E2E/unit tests for the current row button labels before renaming; update them in the same change, not as a follow-up.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan defers the \"Open source session\" link because no target exists — reasonable, but the acceptance criterion implies pointers are actionable information. If a later iterate adds the route, the view-model should carry the parsed pointer fields (not a pre-formatted string) so the link is additive.",
+          "suggestion": "Have the view-model expose `{ session, time, number, raw }` per quote rather than a formatted label; rendering decides presentation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "Rendering leadwright-generated text client-side — the plan says \"renders as plain text,\" which is the correct call; just confirm no `dangerouslySetInnerHTML` sneaks in for the quote markdown, and that the E2E test includes an injection-text case (it's mentioned — good).",
+          "suggestion": "Ensure the injection test covers both field values and quote bodies, since quotes pass through the new parser and could be a spot where someone later adds rich rendering.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The quote format depends on unfinished S1-E work. Documenting a client convention alone does not establish that producer output will match it; valid proposals could lose their quote structure or display incorrect attribution.",
+          "suggestion": "Agree the format with S1-E before finalizing the parser, and use producer-approved fixtures covering two quotes and their individual pointers.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The proposed `>` line and ` — pointer` parsing leaves attribution ambiguous for multiline quotes, quote text containing an em dash, and missing or malformed pointer suffixes. Failed parsing must not silently remove evidence or attach another quote’s pointer.",
+          "suggestion": "Define continuation and suffix rules explicitly. Preserve unrecognized text, display “unknown source” for invalid pointers, and test these cases alongside both supported pointer formats.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "The row/detail extraction mentions labels and focus order, but does not explicitly cover the existing modal interaction lifecycle. Accessible names and role assertions alone cannot establish keyboard or screen-reader acceptance.",
+          "suggestion": "Preserve the existing dialog primitive and verify initial focus, focus containment, Escape dismissal, focus restoration to the invoking row, and screen-reader association of each quote with its pointer. Include a manual screen-reader check.  The read-only display model and plain-text rendering are sound choices that preserve the guarded parser contract. Resolve the producer-format dependency and make parsing fallback and dialog verification explicit before implementation.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-23T20:27:31.406331+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] # Review: W2 — Structured entry view\n\n## Findings\n\n**Category: approach — Severity: medium**\n**Finding:** The parse logic (fence region detection, `>` quote lines, ` — pointer` suffix split, two pointer grammars) lives in a new client-side module, but the source text is produced by leadwright and the format is explicitly \"not yet defined\" (S1-E). This means the client is inferring structure from an unstable convention, and the drift risk is untracked — the server mirror has a drift guard, but this new parse has none.\n**Suggestion:** Define the convention in the W2 contract doc *first* and treat it as the spec for leadwright (even if aspirational), so W2's parser targets a documented contract rather than reverse-engineering current output. If possible, have leadwright's output validated against that grammar in its own tests.\n\n**Category: edge-case — Severity: medium**\n**Finding:** Parsing prose for structure has known failure modes the plan doesn't enumerate: a `>` line inside prose that isn't a quote; an em-dash appearing inside a quote so ` — pointer` splits at the wrong position; multi-line quotes; entries with zero quotes (is the quotes region hidden from screen readers, or an empty list?); an entry whose *entire* body fails to parse (should degrade to showing the raw text, not blank fields).\n**Suggestion:** Specify the fallback explicitly: any unparseable region renders as the raw text, and list the degenerate cases (0 quotes, 1 quote, pointer missing entirely vs. malformed) in the unit tests. A pointer that's *absent* should be a distinct state from a *malformed* pointer (\"unknown source\").\n\n**Category: edge-case — Severity: low**\n**Finding:** The `session:time:number` grammar plus a legacy long form means the \"unknown source\" path needs a precise definition: does trailing whitespace, uppercase session IDs, or a 4th colon-separated segment count as malformed? Ambiguity here becomes a flaky test suite.\n**Suggestion:** Pin the grammar (regex) in the  […truncated]\n\n[openai] Review limited to the supplied plan: local command execution was blocked, so I could not verify the brief or existing components.\n\n1. **Category: dependency · Severity: high**  \n   **Finding:** The quote format depends on unfinished S1-E work. Documenting a client convention alone does not establish that producer output will match it; valid proposals could lose their quote structure or display incorrect attribution.  \n   **Suggestion:** Agree the format with S1-E before finalizing the parser, and use producer-approved fixtures covering two quotes and their individual pointers.\n\n2. **Category: edge-case · Severity: medium**  \n   **Finding:** The proposed `>` line and ` — pointer` parsing leaves attribution ambiguous for multiline quotes, quote text containing an em dash, and missing or malformed pointer suffixes. Failed parsing must not silently remove evidence or attach another quote’s pointer.  \n   **Suggestion:** Define continuation and suffix rules explicitly. Preserve unrecognized text, display “unknown source” for invalid pointers, and test these cases alongside both supported pointer formats.\n\n3. **Category: risk · Severity: medium**  \n   **Finding:** The row/detail extraction mentions labels and focus order, but does not explicitly cover the existing modal interaction lifecycle. Accessible names and role assertions alone cannot establish keyboard or screen-reader acceptance.  \n   **Suggestion:** Preserve the existing dialog primitive and verify initial focus, focus containment, Escape dismissal, focus restoration to the invoking row, and screen-reader association of each quote with its pointer. Include a manual screen-reader check.\n\nThe read-only display model and plain-text rendering are sound choices that preserve the guarded parser contract. Resolve the producer-format dependency and make parsing fallback and dialog verification explicit before implementation.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "client/e2e/flows/org-page.decisions-proposed-entry-view.spec.ts",
+          "line": 35,
+          "finding": "Fixture setup and teardown remove the leads directory under the home folder recursively. If run outside the isolated temp-HOME harness it would delete real leads data. Existing convention shared by 11 other specs, not a regression.",
+          "suggestion": "Follow-up: a shared guard that refuses to delete unless HOME sits under the OS temp dir, covering all specs at once.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/org/DecisionEntryDetail.tsx",
+          "line": 137,
+          "finding": "Muted colour applied through an inline style constant while the sibling row uses the Tailwind arbitrary-value class.",
+          "suggestion": "Use the Tailwind class like the row and drop the constant.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/org/DecisionEntryDetail.tsx",
+          "line": 143,
+          "finding": "SourceLabel is exported but only used inside its file.",
+          "suggestion": "Drop the export keyword.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/org/DecisionEntryRow.test.tsx",
+          "line": 1238,
+          "finding": "A truthiness assertion on an element that getByTestId already throws for asserts nothing; the accessible name of the quotes group is never checked.",
+          "suggestion": "Assert the group by role and accessible name.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": ".shipwright/planning/adr/iterate-2026-11-23-w2-entry-view-structured-proposal-view.md",
+          "line": 186,
+          "finding": "The ADR wording says the beat regex is anchored and fixed, but it is only bound to the origin clause of the label line; behaviour is correct.",
+          "suggestion": "Reword the ADR.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-23T21:03:17.907463+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "reviewer_notes": "Verdict: no HIGH or MEDIUM remains. Lead-written text is rendered only as React text nodes, no raw-HTML injection and no link built from lead text; unit and real-browser injection probes pass. Pointer parsers are anchored and linear and total on garbage. The mirrored grammar file is untouched. No animation added. Files under 300 lines. Tests tagged FR-01.71, E2E is real-browser and checks roles, names, tab order, Escape and focus restore. Accessibility label-in-name holds. No architecture-rules block exists in conventions.md."
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T20:33:44.110271+00:00",
+      "disposition": "Stage 3 not applicable: display-only client change, no migration, concurrency, cross-package import or irreversible operation",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "diff-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/org/OrgDecisionsProposedModal.tsx (not in diff)",
+          "line": null,
+          "finding": "The scope says \"Split the row and modal to stay under 300 lines.\" The diff splits the row into `DecisionEntryDetail` but touches the modal only via its props interface; no modal split is present. If the modal is still over 300 lines (or grows with the W2 a11y additions), the unit is only half done.",
+          "suggestion": "Verify the modal's line count; if it's near/over 300, split its row-list body out in this unit or note explicitly that it's deferred.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/src/lib/orgProposedView.ts:60 (`POINTER_ATTEMPT_RE`)",
+          "line": null,
+          "finding": "A quote whose text legitimately ends in something matching `[A-Za-z0-9_-]+:\\S` loses that suffix from its text and shows it as \"unknown source (…)\". E.g. `> ship ratio target — 2:1` splits to text \"ship ratio target\" + \"unknown source (2:1)\". The doc contract says \"split only when it looks like a pointer attempt\", so this is spec'd, but the heuristic `2:1` matching is a real text-corruption case a lead can hit.",
+          "suggestion": "Tighten the heuristic (e.g. require the pre-colon segment to be ≥4 chars and the post-colon segment to start with a digit/ISO date), or accept and document the truncation behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/org-page.decisions-proposed-entry-view.spec.ts:24-25 (`writeFixture` / `afterEach`)",
+          "line": null,
+          "finding": "The spec does `rmSync(~/.claude/leads, {recursive: true})` in `beforeEach`/`afterEach` — it deletes the developer's real home-directory data on every run. If this is an established repo convention, fine; if not, a single run on a dev machine destroys real leads data.",
+          "suggestion": "Confirm this matches the existing e2e harness convention (env-pinned `LEADS_ROOT`); if the other flows do the same, ignore.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/org-page.decisions-proposed-entry-view.spec.ts:105-106",
+          "line": null,
+          "finding": "The focus-trap assertion `expect(dialog.locator(\":focus\")).toHaveCount(1)` only asserts some element inside the dialog has focus — it would pass even if the trap cycled to an unexpected element or if tabbing escaped into a dialog child. It does not actually prove focus didn't leave the dialog (escaping focus would give count 0, which is caught, but a wrong-order trap passes).",
+          "suggestion": "Assert the focused element's identity after the third Tab (e.g. it's the Close button again, or the first focusable), which pins the cycle behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/org/DecisionEntryDetail.tsx:36-39",
+          "line": null,
+          "finding": "For unfenced (legacy) entries, `view.beat` is null and `view.source` is parsed from `entry.evidence`, so a legacy entry whose evidence was free-form prose (previously shown as plain \"Evidence: <text>\") now renders as \"unknown source (…prose…)\". This is per the new contract, but it is a behavior change for all existing entries not shown in the diff — worth confirming with the brief that legacy evidence prose is meant to be re-labelled as \"unknown source\".",
+          "suggestion": "If legacy prose evidence should remain verbatim, special-case `fenced === false` to render `entry.evidence` as-is.  Otherwise the change looks solid: the parser is pure and tested against both pointer shapes plus malformed inputs; quote text is React text nodes only (the XSS assertions in both unit and e2e tests are real behavioral checks); row split keeps identity/countersign untouched; the focus-restore handoff (`requestAnimationFrame` → opener button) correctly compensates for Radix's unmount-on-close. Tests cover happy path, malformed pointers, missing pointers, unfenced fallback, and keyboard flow.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "bug",
+          "file": "client/e2e/flows/org-page.decisions-proposed-entry-view.spec.ts",
+          "line": 32,
+          "finding": "writeFixture()` recursively deletes the real `~/.claude/leads` directory, and teardown deletes it again. Running this test on a developer machine can permanently erase existing lead data.",
+          "suggestion": "Run the application and tests against an isolated temporary leads directory. Remove only that test-owned directory during cleanup.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/lib/orgProposedView.ts",
+          "line": 60,
+          "finding": "A malformed quote pointer such as `> quick turnaround — ???` inherits the entry’s evidence instead of showing “unknown source.” With valid entry evidence, this incorrectly attributes the quote to that source. The E2E fixture masks the defect because its entry evidence is also malformed.",
+          "suggestion": "Make explicit malformed quote pointers distinguishable from ordinary quote text and render them as unknown sources. Add a test combining valid entry evidence with a malformed quote pointer.  Overall assessment: ship-with-fixes. Isolate the destructive test fixture and correct malformed quote attribution before shipping.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-23T20:30:23.222560+00:00",
+      "disposition": "glm+openai revise: destructive-fixture finding rejected (existing specs share the temp-HOME convention); malformed-pointer-vs-em-dash trade-off decided by design; ratio-suffix heuristic tightened; focus assertion pinned; modal is 211 lines, no split needed",
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review findings\n\n- Category: spec\n  Severity: medium\n  File: client/src/components/org/OrgDecisionsProposedModal.tsx (not in diff)\n  Finding: The scope says \"Split the row **and modal** to stay under 300 lines.\" The diff splits the row into `DecisionEntryDetail` but touches the modal only via its props interface; no modal split is present. If the modal is still over 300 lines (or grows with the W2 a11y additions), the unit is only half done.\n  Suggestion: Verify the modal's line count; if it's near/over 300, split its row-list body out in this unit or note explicitly that it's deferred.\n\n- Category: edge-case\n  Severity: medium\n  File: client/src/lib/orgProposedView.ts:60 (`POINTER_ATTEMPT_RE`)\n  Finding: A quote whose text legitimately ends in something matching `[A-Za-z0-9_-]+:\\S` loses that suffix from its text and shows it as \"unknown source (…)\". E.g. `> ship ratio target — 2:1` splits to text \"ship ratio target\" + \"unknown source (2:1)\". The doc contract says \"split only when it looks like a pointer attempt\", so this is spec'd, but the heuristic `2:1` matching is a real text-corruption case a lead can hit.\n  Suggestion: Tighten the heuristic (e.g. require the pre-colon segment to be ≥4 chars and the post-colon segment to start with a digit/ISO date), or accept and document the truncation behavior.\n\n- Category: test\n  Severity: medium\n  File: client/e2e/flows/org-page.decisions-proposed-entry-view.spec.ts:24-25 (`writeFixture` / `afterEach`)\n  Finding: The spec does `rmSync(~/.claude/leads, {recursive: true})` in `beforeEach`/`afterEach` — it deletes the developer's real home-directory data on every run. If this is an established repo convention, fine; if not, a single run on a dev machine destroys real leads data.\n  Suggestion: Confirm this matches the existing e2e harness convention (env-pinned `LEADS_ROOT`); if the other flows do the same, ignore.\n\n- Category: test\n  Severity: low\n  File: client/e2e/flows/org-page.decisions-proposed-entry-vie […truncated]\n\n[openai] Repository reads were blocked by the execution policy, so I could not inspect the referenced brief or run tests. This review is based on the supplied specification and diff.\n\n- Category: bug\n- Severity: high\n- File: client/e2e/flows/org-page.decisions-proposed-entry-view.spec.ts:32\n- Finding: `writeFixture()` recursively deletes the real `~/.claude/leads` directory, and teardown deletes it again. Running this test on a developer machine can permanently erase existing lead data.\n- Suggestion: Run the application and tests against an isolated temporary leads directory. Remove only that test-owned directory during cleanup.\n\n- Category: spec\n- Severity: medium\n- File: client/src/lib/orgProposedView.ts:60\n- Finding: A malformed quote pointer such as `> quick turnaround — ???` inherits the entry’s evidence instead of showing “unknown source.” With valid entry evidence, this incorrectly attributes the quote to that source. The E2E fixture masks the defect because its entry evidence is also malformed.\n- Suggestion: Make explicit malformed quote pointers distinguishable from ordinary quote text and render them as unknown sources. Add a test combining valid entry evidence with a malformed quote pointer.\n\nOverall assessment: ship-with-fixes. Isolate the destructive test fixture and correct malformed quote attribution before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T21:03:02.573817+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T20:27:31.607774+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T20:27:31.795099+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

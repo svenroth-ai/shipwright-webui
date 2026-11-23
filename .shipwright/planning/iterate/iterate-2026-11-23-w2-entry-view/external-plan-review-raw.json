@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "# Review: W2 \u2014 Structured entry view\n\n## Findings\n\n**Category: approach \u2014 Severity: medium**\n**Finding:** The parse logic (fence region detection, `>` quote lines, ` \u2014 pointer` suffix split, two pointer grammars) lives in a new client-side module, but the source text is produced by leadwright and the format is explicitly \"not yet defined\" (S1-E). This means the client is inferring structure from an unstable convention, and the drift risk is untracked \u2014 the server mirror has a drift guard, but this new parse has none.\n**Suggestion:** Define the convention in the W2 contract doc *first* and treat it as the spec for leadwright (even if aspirational), so W2's parser targets a documented contract rather than reverse-engineering current output. If possible, have leadwright's output validated against that grammar in its own tests.\n\n**Category: edge-case \u2014 Severity: medium**\n**Finding:** Parsing prose for structure has known failure modes the plan doesn't enumerate: a `>` line inside prose that isn't a quote; an em-dash appearing inside a quote so ` \u2014 pointer` splits at the wrong position; multi-line quotes; entries with zero quotes (is the quotes region hidden from screen readers, or an empty list?); an entry whose *entire* body fails to parse (should degrade to showing the raw text, not blank fields).\n**Suggestion:** Specify the fallback explicitly: any unparseable region renders as the raw text, and list the degenerate cases (0 quotes, 1 quote, pointer missing entirely vs. malformed) in the unit tests. A pointer that's *absent* should be a distinct state from a *malformed* pointer (\"unknown source\").\n\n**Category: edge-case \u2014 Severity: low**\n**Finding:** The `session:time:number` grammar plus a legacy long form means the \"unknown source\" path needs a precise definition: does trailing whitespace, uppercase session IDs, or a 4th colon-separated segment count as malformed? Ambiguity here becomes a flaky test suite.\n**Suggestion:** Pin the grammar (regex) in the contract doc section and test the boundary cases directly.\n\n**Category: risk \u2014 Severity: low**\n**Finding:** Splitting the row and modal \"to stay under 300 lines\" is fine, but the row's button descriptive name change affects existing E2E tests and any screen-reader/string assertions elsewhere in the suite.\n**Suggestion:** Grep the existing E2E/unit tests for the current row button labels before renaming; update them in the same change, not as a follow-up.\n\n**Category: dependency \u2014 Severity: low**\n**Finding:** The plan defers the \"Open source session\" link because no target exists \u2014 reasonable, but the acceptance criterion implies pointers are actionable information. If a later iterate adds the route, the view-model should carry the parsed pointer fields (not a pre-formatted string) so the link is additive.\n**Suggestion:** Have the view-model expose `{ session, time, number, raw }` per quote rather than a formatted label; rendering decides presentation.\n\n**Category: security \u2014 Severity: low**\n**Finding:** Rendering leadwright-generated text client-side \u2014 the plan says \"renders as plain text,\" which is the correct call; just confirm no `dangerouslySetInnerHTML` sneaks in for the quote markdown, and that the E2E test includes an injection-text case (it's mentioned \u2014 good).\n**Suggestion:** Ensure the injection test covers both field values and quote bodies, since quotes pass through the new parser and could be a spot where someone later adds rich rendering.\n\n## Overall assessment\n\nSound approach with the right instinct to avoid touching the drift-guarded parser; the main gap is that it builds a parser for an undocumented format \u2014 the contract doc needs to be authored as the source of truth, and the degradation paths (unparseable body, 0 quotes, absent vs. malformed pointer) need explicit spec and tests.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "Review limited to the supplied plan: local command execution was blocked, so I could not verify the brief or existing components.\n\n1. **Category: dependency \u00b7 Severity: high**  \n   **Finding:** The quote format depends on unfinished S1-E work. Documenting a client convention alone does not establish that producer output will match it; valid proposals could lose their quote structure or display incorrect attribution.  \n   **Suggestion:** Agree the format with S1-E before finalizing the parser, and use producer-approved fixtures covering two quotes and their individual pointers.\n\n2. **Category: edge-case \u00b7 Severity: medium**  \n   **Finding:** The proposed `>` line and ` \u2014 pointer` parsing leaves attribution ambiguous for multiline quotes, quote text containing an em dash, and missing or malformed pointer suffixes. Failed parsing must not silently remove evidence or attach another quote\u2019s pointer.  \n   **Suggestion:** Define continuation and suffix rules explicitly. Preserve unrecognized text, display \u201cunknown source\u201d for invalid pointers, and test these cases alongside both supported pointer formats.\n\n3. **Category: risk \u00b7 Severity: medium**  \n   **Finding:** The row/detail extraction mentions labels and focus order, but does not explicitly cover the existing modal interaction lifecycle. Accessible names and role assertions alone cannot establish keyboard or screen-reader acceptance.  \n   **Suggestion:** Preserve the existing dialog primitive and verify initial focus, focus containment, Escape dismissal, focus restoration to the invoking row, and screen-reader association of each quote with its pointer. Include a manual screen-reader check.\n\nThe read-only display model and plain-text rendering are sound choices that preserve the guarded parser contract. Resolve the producer-format dependency and make parsing fallback and dialog verification explicit before implementation.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-23-w2-entry-view",
+    "at": "2026-11-23T20:23:47.533458+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}
