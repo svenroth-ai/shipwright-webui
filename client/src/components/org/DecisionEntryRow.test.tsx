@@ -21,6 +21,7 @@ function renderRow(e: ProposedDecisionEntry) {
 }
 
 describe("DecisionEntryRow structured view", () => {
+  // @covers FR-01.71
   it("shows two quotes separately with their pointers, in a labelled list", () => {
     const row = renderRow(entry(["Digest.", "> one — a1b2c3d4:2026-11-19T16:02:11Z:14", "> two — a1b2c3d4:2026-11-19T16:05:00Z:21"], "a1b2c3d4:2026-11-19T16:02:11Z:14"));
     const list = within(row).getByTestId("org-decisions-proposed-quotes-k0");
@@ -31,18 +32,21 @@ describe("DecisionEntryRow structured view", () => {
     expect(within(row).getByRole("heading", { name: /Quotes from the lead \(2\)/ })).toBeInTheDocument();
   });
 
+  // @covers FR-01.71
   it("shows a malformed pointer as unknown source", () => {
     const row = renderRow(entry(["Digest.", "> q — 7c1e:badtime:1"], "garbage too"));
     expect(within(row).getByTestId("org-decisions-proposed-evidence-k0")).toHaveTextContent("unknown source");
     expect(within(row).getByTestId("org-decisions-proposed-quote-source-k0-0")).toHaveTextContent("unknown source");
   });
 
+  // @covers FR-01.71
   it("renders quote text as plain text, never markup", () => {
     const row = renderRow(entry(["Digest.", `> ${HTML} — a1b2c3d4:2026-11-19T16:02:11Z:14`], "a1b2c3d4:2026-11-19T16:02:11Z:14"));
     expect(row.querySelector("img")).toBeNull();
     expect(within(row).getByTestId("org-decisions-proposed-quote-k0-0")).toHaveTextContent("**bold**");
   });
 
+  // @covers FR-01.71
   it("exposes the entry as a named list item and the button with a descriptive name", () => {
     renderRow(entry(["Digest."], "a1b2c3d4:2026-11-19T16:02:11Z:14"));
     expect(screen.getByRole("listitem", { name: /Proposal from 2026-11-20T09:15:00.000Z — acme-lead/ })).toBeInTheDocument();
