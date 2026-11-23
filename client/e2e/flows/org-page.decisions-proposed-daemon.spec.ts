@@ -6,11 +6,11 @@
  * (WebUI header form). Contract: docs/org-proposed-entry-contract.md.
  */
 import { test, expect } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import { homedir } from "node:os";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const PROPOSED_PATH = path.join(LEADS_ROOT, "decisions-proposed.md");
 const LOGGED_PATH = path.join(LEADS_ROOT, "decision_log.md");
 const LEAD_ID = "acme-lead";
@@ -28,7 +28,7 @@ const DAEMON_ENTRY =
   "- **Evidence:** session 7c1e2f40 at 2026-11-19T16:02:11Z, message 14\n";
 
 function writeFixture() {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
   mkdirSync(path.join(LEADS_ROOT, LEAD_ID), { recursive: true });
   writeFileSync(
     path.join(LEADS_ROOT, "org-chart.json"),
@@ -47,7 +47,7 @@ function writeFixture() {
 
 test.describe("Org page — daemon-form proposal", () => {
   test.beforeEach(() => writeFixture());
-  test.afterEach(() => rmSync(LEADS_ROOT, { recursive: true, force: true }));
+  test.afterEach(() => removeLeadsPath(LEADS_ROOT));
 
   // @covers FR-01.71
   test("is listed with its lead and evidence, and Countersign moves it into decision_log.md exactly once", async ({ page }) => {

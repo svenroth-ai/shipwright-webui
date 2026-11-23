@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-24-test-hardening-crlf-leads-guard",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T23:08:03.680961+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T23:19:18.635182+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/e2e/flows/105-org-audit-timeline.spec.ts",
+          "line": 79,
+          "finding": "The guard only protects deletes; in most specs a write (writeChart etc.) runs first in beforeEach, so a real ~/.claude/leads/org-chart.json is overwritten before the guard fires in afterEach. Affected: 105, 106, lead-board-surface, triage-fix-now, triage-fix-now-more-options-clip, org-page.decisions-proposed, org-page.register, org-page, leadwright-gate-org-presence.",
+          "suggestion": "Export a guarded leads-root accessor from leads-home-guard.ts that calls assertHomeIsUnderTemp() and replace every LEADS_ROOT definition so the spec fails at module load.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": "client/e2e/helpers/leads-home-guard.ts",
+          "line": 17,
+          "finding": "Duplicates the under-tmpdir check of temp-dir.ts assertTempPath (which uses realpathSync.native); three diverging copies of a safety rule.",
+          "suggestion": "Build on a shared helper using realpathSync.native.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/e2e/helpers/leads-home-guard.ts",
+          "line": 11,
+          "finding": "@covers FR-01.45 is an unrelated FR (design-gate hosting).",
+          "suggestion": "Drop or retag with FR-01.71.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/orgDecisionsApi.daemon-header.test.ts",
+          "line": 481,
+          "finding": "replace on adversarial-corpus.json before JSON.parse is a no-op (CRLF only between tokens); only the .md reads need it.",
+          "suggestion": "Operator explicitly requested the replace on the corpus; keep for parity or remove.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/test/e2e-leads-rm-guard.test.ts",
+          "line": 30,
+          "finding": "Ratchet evasions: only .ts scanned, wrapper parameters, aliased imports, stripComments treats /* in a string as comment, parent dir deletion.",
+          "suggestion": "Scan .mjs/.js, flag aliased rm imports and rm -rf shell strings; document wrapper limit.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/e2e/helpers/leads-home-guard.ts",
+          "line": 45,
+          "finding": "removeLeadsRoot also deletes single files and only checks inside HOME.",
+          "suggestion": "Tighten to inside HOME/.claude/leads.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/test/e2e-leads-rm-guard.test.ts",
+          "line": 92,
+          "finding": "mkdtemp HOME never removed.",
+          "suggestion": "rmSync in finally.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-23T23:17:22.147695+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "reviewer_notes": "No bypass found in isUnder: /tmp vs /tmpfoo, other drives, HOME==temp, symlinked leads all refuse. Guard trusts os.tmpdir(); isolated-stack sets HOME/USERPROFILE under tmpdir. Files under 300 lines."
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/test/e2e-leads-rm-guard.test.ts",
+          "line": null,
+          "finding": "Claim under doubt: the ratchet cannot be evaded — Lexical scan evaded by wrapper parameter, aliased import (rmSync as del), shell-out rm -rf, .mjs/.js files not scanned, leads path built without a matching token.",
+          "suggestion": "Narrow the documented claim or tighten the scan (aliases, execSync rm -rf, .mjs/.js); runtime guard is the real protection.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "reversibility",
+          "file": "client/e2e/helpers/leads-home-guard.ts",
+          "line": null,
+          "finding": "Claim under doubt: removeLeadsRoot refuses unless HOME is really an isolated temp home — Guard trusts os.tmpdir(): TMPDIR=/ or TEMP=C:\\ makes any home pass; SHIPWRIGHT_E2E_ISOLATED=1 not required; realOrSelf swallows realpath errors and fails open.",
+          "suggestion": "Also require SHIPWRIGHT_E2E_ISOLATED=1; refuse when tmpdir is a filesystem root; rethrow realpath errors for existing paths.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling & blast radius",
+          "file": "client/e2e/flows/lead-inventory-page.spec.ts",
+          "line": null,
+          "finding": "Claim under doubt: specs behave identically under isolated-stack — lead-inventory-page.spec.ts SHIPWRIGHT_LEADS_ROOT override under tmpdir but outside HOME now throws (fails closed, documented override narrowed).",
+          "suggestion": "Update the spec comment or allow an explicit allowed root.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-23T23:17:22.414829+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T23:19:18.635182+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T23:13:41.549049+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T23:19:18.635182+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T23:19:18.635182+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

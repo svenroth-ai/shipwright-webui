@@ -5,11 +5,11 @@
  * same key is shown as a repeat.
  */
 import { test, expect } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { homedir } from "node:os";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const PROPOSED_PATH = path.join(LEADS_ROOT, "decisions-proposed.md");
 const AUDIT_PATH = path.join(LEADS_ROOT, "acme-lead", "audit.jsonl");
 const LEAD_ID = "acme-lead";
@@ -27,7 +27,7 @@ function entry(ts: string, nonce: string): string {
 }
 
 function writeFixture() {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
   mkdirSync(path.join(LEADS_ROOT, LEAD_ID), { recursive: true });
   writeFileSync(
     path.join(LEADS_ROOT, "org-chart.json"),
@@ -44,7 +44,7 @@ function writeFixture() {
 
 test.describe("Org page - reject a proposal", () => {
   test.beforeEach(() => writeFixture());
-  test.afterEach(() => rmSync(LEADS_ROOT, { recursive: true, force: true }));
+  test.afterEach(() => removeLeadsPath(LEADS_ROOT));
 
   // @covers FR-01.71
   test("rejects once (double click), records the audit entry without the quote, and flags a repeat", async ({ page }) => {

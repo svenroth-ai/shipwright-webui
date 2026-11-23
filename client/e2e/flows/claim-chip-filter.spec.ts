@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 import path from "node:path";
 import { assertTempPath } from "../helpers/temp-dir";
 import {
@@ -55,7 +55,7 @@ async function seedClaim(
 
 // The Claim toggle is hidden while no org chart is installed (useOrgChartPresence),
 // so the filter axis needs a chart under the isolated stack's temporary HOME.
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 // Hard-abort unless HOME is a temp dir: this spec writes and deletes a file there.
 const CHART_PATH = assertTempPath(path.join(LEADS_ROOT, "org-chart.json"));
 
@@ -74,7 +74,7 @@ test.describe("Claim chip + filter (FR-04.22)", () => {
   });
 
   test.afterEach(async ({ request }) => {
-    rmSync(CHART_PATH, { force: true });
+    removeLeadsPath(CHART_PATH);
     for (const id of taskIds) await cleanupTask(request, id);
     taskIds.length = 0;
     await cleanupProject(request, project);

@@ -5,11 +5,11 @@
  * original wording appears in either file.
  */
 import { test, expect } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { homedir } from "node:os";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const PROPOSED_PATH = path.join(LEADS_ROOT, "decisions-proposed.md");
 const LOG_PATH = path.join(LEADS_ROOT, "decision_log.md");
 const AUDIT_PATH = path.join(LEADS_ROOT, "acme-lead", "audit.jsonl");
@@ -21,7 +21,7 @@ const QUOTE = "the customer wrote: stop the noisy pings QUOTE-SECRET-E2E";
 const NONCE = "3f9a1c0e5b7d42a8916c0d2e4f6a8b1c";
 
 function writeFixture() {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
   mkdirSync(path.join(LEADS_ROOT, LEAD_ID), { recursive: true });
   writeFileSync(
     path.join(LEADS_ROOT, "org-chart.json"),
@@ -44,7 +44,7 @@ function writeFixture() {
 
 test.describe("Org page - edit before approving", () => {
   test.beforeEach(() => writeFixture());
-  test.afterEach(() => rmSync(LEADS_ROOT, { recursive: true, force: true }));
+  test.afterEach(() => removeLeadsPath(LEADS_ROOT));
 
   // @covers FR-01.71
   test("countersigns the edited line; log and audit hold no quote and no original text", async ({ page }) => {

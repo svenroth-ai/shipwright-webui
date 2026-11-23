@@ -1,0 +1,1 @@
+Goal: Make the W1 fixture tests pass on CRLF checkouts and guard the Org/Lead e2e specs against wiping a real home | Reason: Leftover test hardening from the shadow-proposals campaign: 5 server tests fail on autocrlf Windows, and 15 e2e specs delete ~/.claude/leads without a safety check | Reference: operator brief, campaign shadow-proposals-webui

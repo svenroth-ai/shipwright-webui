@@ -1,0 +1,67 @@
+{
+  "run_id": "iterate-2026-11-24-test-hardening-crlf-leads-guard",
+  "date": "2026-11-23T23:20:09.416237Z",
+  "event_at": "2026-11-23T21:56:13.507806+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "default",
+  "branch": "iterate/test-hardening-crlf-leads-guard",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-24-test-hardening-crlf-leads-guard",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "daemon fixture and adversarial corpus read LF-normalised so the W1 tests pass on autocrlf Windows checkouts",
+        "disposition": "tested",
+        "evidence": "proposed-entry-format*.test.ts 422 server org tests + orgDecisionsApi.daemon-header.test.ts PASSED; sha256 pin test still hashes LF content"
+      },
+      {
+        "behavior": "guard refuses a HOME outside the OS temp dir, a missing isolated-stack marker and a root temp dir",
+        "disposition": "tested",
+        "evidence": "e2e-leads-rm-guard.test.ts guard refusal test PASSED; real-home probe refused"
+      },
+      {
+        "behavior": "guard accepts an isolated temp HOME and deletes only inside its leads tree",
+        "disposition": "tested",
+        "evidence": "e2e-leads-rm-guard.test.ts accept test PASSED"
+      },
+      {
+        "behavior": "ratchet fails on a bare rm of a leads path, derived identifiers, aliased imports, shell rm",
+        "disposition": "tested",
+        "evidence": "e2e-leads-rm-guard.test.ts scan + self-check PASSED"
+      },
+      {
+        "behavior": "guarded specs still pass under the isolated stack",
+        "disposition": "tested",
+        "evidence": "isolated-stack playwright: 6 specs, 13 tests PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 0,
+      "covered_acs": 0
+    }
+  },
+  "surface_verification": {
+    "surface": "none",
+    "runner": "",
+    "exit_code": 0,
+    "tests_run": 0,
+    "evidence_path": "",
+    "timestamp": "2026-11-23T23:19:23.465Z",
+    "justification": "Test infrastructure only: LF-normalised fixture reads in unit tests and an e2e safety guard plus ratchet; no product surface changed. 6 guarded specs (13 tests) were also driven through isolated-stack and passed.",
+    "reason_code": "test-only"
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

@@ -25,14 +25,15 @@
 import { test, expect } from "@playwright/test";
 import { mkdirSync, rmSync, writeFileSync, mkdtempSync } from "node:fs";
 import path from "node:path";
-import { tmpdir, homedir } from "node:os";
+import { tmpdir } from "node:os";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
 // iterate-2026-09-09-leadwright-gate-org-presence — the Tags field this spec
 // measures lives inside LeadwrightFieldsFragment, which renders only when an
 // org chart is present. Without this, the isolated stack's empty-registry
 // default (no `~/.claude/leads/org-chart.json`) reads as "absent" and the
 // field this regression test measures wouldn't be there at all.
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const CHART_PATH = path.join(LEADS_ROOT, "org-chart.json");
 function writeChart() {
   mkdirSync(LEADS_ROOT, { recursive: true });
@@ -43,7 +44,7 @@ function writeChart() {
   );
 }
 function removeChart() {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
 }
 
 // @covers FR-01.30
