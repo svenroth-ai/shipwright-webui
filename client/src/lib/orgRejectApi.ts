@@ -43,11 +43,17 @@ export interface RejectedKey {
   entryTimestamp: string;
 }
 
+const BATCH = 50; // the server reads at most this many leads per request
+
 /** Per lead, the decision keys the operator already rejected. */
 export async function fetchRejectedKeys(leadIds: string[]): Promise<Record<string, RejectedKey[]>> {
-  if (leadIds.length === 0) return {};
-  const r = await fetch(`${ORG_API}/decisions/rejected-keys?leadIds=${encodeURIComponent(leadIds.join(","))}`);
-  if (!r.ok) return {}; // a missing repeat hint must never hide the proposals
-  const body = (await r.json()) as { byLead?: Record<string, RejectedKey[]> };
-  return body.byLead ?? {};
+  const out: Record<string, RejectedKey[]> = {};
+  for (let i = 0; i < leadIds.length; i += BATCH) {
+    const batch = leadIds.slice(i, i + BATCH);
+    const r = await fetch(`${ORG_API}/decisions/rejected-keys?leadIds=${encodeURIComponent(batch.join(","))}`);
+    if (!r.ok) continue; // a missing repeat hint must never hide the proposals
+    const body = (await r.json()) as { byLead?: Record<string, RejectedKey[]> };
+    Object.assign(out, body.byLead ?? {});
+  }
+  return out;
 }

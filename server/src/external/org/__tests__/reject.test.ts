@@ -81,6 +81,7 @@ describe("reject a proposed entry (W3)", () => {
     expect([r1.status, r2.status]).toEqual([200, 200]);
     const bodies = [await r1.json(), await r2.json()];
     expect(bodies.filter((b) => b.alreadyRejected === false)).toHaveLength(1);
+    expect(readFileSync(proposed, "utf8")).not.toContain("use-weekly-digest");
     expect(auditLines()).toHaveLength(1);
   });
 
