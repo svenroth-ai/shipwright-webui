@@ -123,6 +123,7 @@ which the shared adversarial corpus holds in step.
   one), non-ISO daemon timestamps, structural lines in a WebUI body, and
   WebUI-form headers directly after an unlisted marker-owned entry. A skipped
   signal is a follow-up.
+- **Marker grammar:** exactly `<!--[ \t]*decisionKey:...-->` (plain space/tab only); leadwright must match it, or reject anything looser, when deduplicating.
 - **Upstream requirement (leadwright):** the per-entry fence nonce must be
   random, generated AFTER the quote is known, and the quote must not contain it.
   The reader's close rule (first identical fence line followed by the

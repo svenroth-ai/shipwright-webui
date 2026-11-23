@@ -183,14 +183,18 @@ body
   // @covers FR-01.71
   it("pathological lines parse in linear time (no regex backtracking blow-up)", () => {
     const owner = "<!-- decisionKey: k -->\n## Proposed 2026-11-17T00:00:00.000Z — k\n\n";
+    const fence = "\u27e6SHIPWRIGHT-FENCE:aa\u27e7";
+    const fenced = owner + fence + "\n[FENCED DATA x]\nq\n" + fence + "\n\n";
     const inputs = [
-      "<!-- decisionKey:" + " ".repeat(20000) + "\n" + owner,
-      "<!-- decisionKey:" + " ".repeat(20000) + "x\n" + owner,
-      owner + "\n".repeat(20000) + "## [2026-11-18T00:00:00.000Z] a\n",
-      "- **Lead:**" + " ".repeat(20000) + "\n- **Evidence:**" + " ".repeat(20000) + "\n",
+      "<!-- decisionKey:" + " ".repeat(50000) + "\n" + owner,
+      "<!-- decisionKey:" + " ".repeat(50000) + "x\n" + owner,
+      owner + "\n".repeat(50000) + "## [2026-11-18T00:00:00.000Z] a\n",
+      "- **Lead:**" + " ".repeat(50000) + "\n- **Evidence:**" + " ".repeat(50000) + "\n",
+      fenced + "- **Lead:**" + " ".repeat(50000) + "\u2028\n- **Evidence:** e\n",
+      fenced + "- **Lead:** a\n- **Evidence:**" + " ".repeat(50000) + "\rx\n",
     ];
     const t0 = Date.now();
     for (const raw of inputs) parseProposedEntries(raw);
-    expect(Date.now() - t0).toBeLessThan(500);
+    expect(Date.now() - t0).toBeLessThan(1500);
   });
 });
