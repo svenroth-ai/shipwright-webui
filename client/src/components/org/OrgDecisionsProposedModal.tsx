@@ -27,55 +27,23 @@
  *     closed, instead of vanishing mid-render.
  */
 
-import { useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AlertCircle, CheckCircle2, FileQuestion, Inbox, Loader2, X } from "lucide-react";
 
-import { fetchProposedDecisions, countersignDecision, type ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
-import { rejectDecision, fetchRejectedKeys } from "../../lib/orgRejectApi";
+import { fetchProposedDecisions, type ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
+import { fetchRejectedKeys } from "../../lib/orgRejectApi";
 import { decisionKeyOf } from "../../lib/orgDecisionKey";
 import { ApiError } from "../../lib/externalApi";
-import { DecisionEntryRow, type EntryStatus } from "./DecisionEntryRow";
+import { DecisionEntryRow } from "./DecisionEntryRow";
+import { useDecisionActions, entryKey } from "./useDecisionActions";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-// Index is part of the key — the server allows two distinct proposals to
-// share (timestamp, leadId) (409 duplicate_proposal_identity), and without
-// the index such entries would collide on both the React list `key` and the
-// `statuses` map slot.
-//
-// Doubt-review rebuttal (LOW): the key is positional, so a refetch that
-// removes/reorders entries (a successful countersign always does — the
-// entry disappears) can orphan an UNRELATED row's non-idle `statuses` entry
-// under a now-stale index, silently resetting that row's error/duplicate
-// banner back to idle. This is a cosmetic staleness, not data loss: the
-// underlying file state is always correct (the lock + core own that), and
-// the affected row's banner reappears the moment the PO retries the action
-// it was showing. Fixing it precisely (e.g. keying by a content hash) adds
-// a second key scheme for a scenario — a stale banner racing a SIBLING
-// row's independent success — that requires the PO to be mid-error on one
-// proposal while successfully countersigning another in the same instant.
-// Deferred rather than fixed; revisit if this proves confusing in practice.
-const entryKey = (e: ProposedDecisionEntry, i: number) => `${e.timestamp}|${e.leadId}|${i}`;
-
 export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
-  const queryClient = useQueryClient();
-  const [statuses, setStatuses] = useState<Record<string, EntryStatus>>({});
-  // E2E-fix: entries this modal instance has itself countersigned, kept
-  // pinned so their "done" banner stays observable even after the refetch
-  // below removes them from the server's own list (they really are gone
-  // from decisions-proposed.md). Reset naturally on close — OrgSharedDocs
-  // unmounts this component when the tile's modal closes, so a fresh open
-  // starts with an empty map, never a stale success from a prior session.
-  const [notice, setNotice] = useState<string | null>(null);
-  const [settled, setSettled] = useState<Record<string, { entry: ProposedDecisionEntry; status: EntryStatus }>>({});
-  // Rows with a request in flight: a double click must send ONE request.
-  const inFlight = useRef(new Set<string>());
-
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["org", "decisions-proposed"],
     queryFn: fetchProposedDecisions,
@@ -96,88 +64,7 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
   };
 
   const notFound = error instanceof ApiError && error.status === 404;
-
-  async function handleReject(entry: ProposedDecisionEntry, index: number, reason: string) {
-    const key = entryKey(entry, index);
-    const flightKey = `${entry.timestamp}|${entry.leadId}`; // not positional: survives a sibling's refetch
-    if (inFlight.current.has(flightKey)) return;
-    inFlight.current.add(flightKey);
-    setStatuses((prev) => ({ ...prev, [key]: { kind: "pending" } }));
-    try {
-      const result = await rejectDecision(entry.timestamp, entry.leadId, reason);
-      let status: EntryStatus;
-      if (result.ok) status = { kind: "rejected", alreadyRejected: result.alreadyRejected };
-      else if (result.reason === "duplicate") status = { kind: "duplicate", count: result.count };
-      else if (result.reason === "already-countersigned") status = { kind: "done", alreadyCountersigned: true, adr: `ADR-${String(result.adr).padStart(4, "0")}` };
-      else if (result.reason === "lead-unknown") status = { kind: "blocked", message: "Can't reject: this lead has no folder." };
-      else status = { kind: "resolved-elsewhere" };
-      setStatuses((prev) => ({ ...prev, [key]: status }));
-      // The rejected row leaves the list (it is filtered below); the notice carries no quote text.
-      if (status.kind === "rejected") setNotice(`Rejected: ${entry.leadId}, ${entry.timestamp}. Recorded in the audit log.`);
-      if (status.kind !== "duplicate") {
-        await Promise.all([
-          refetch(),
-          queryClient.invalidateQueries({ queryKey: ["org", "decisions-rejected-keys"] }),
-        ]);
-      }
-    } catch (err) {
-      setStatuses((prev) => ({
-        ...prev,
-        [key]: { kind: "error", message: err instanceof Error ? err.message : "unknown error" },
-      }));
-    } finally {
-      inFlight.current.delete(flightKey);
-    }
-  }
-
-  async function handleCountersign(entry: ProposedDecisionEntry, index: number) {
-    const key = entryKey(entry, index);
-    const flightKey = `${entry.timestamp}|${entry.leadId}`; // not positional: survives a sibling's refetch
-    if (inFlight.current.has(flightKey)) return;
-    inFlight.current.add(flightKey);
-    setStatuses((prev) => ({ ...prev, [key]: { kind: "pending" } }));
-    try {
-      const result = await countersignDecision(entry.timestamp, entry.leadId);
-      if (!result.ok && result.reason === "duplicate") {
-        setStatuses((prev) => ({ ...prev, [key]: { kind: "duplicate", count: result.count } }));
-        return;
-      }
-      if (!result.ok && result.reason === "reject-pending") {
-        setStatuses((prev) => ({ ...prev, [key]: { kind: "blocked", message: "This proposal was rejected but not removed. Use Reject to finish." } }));
-        return;
-      }
-      if (!result.ok && result.reason === "not-found") {
-        setStatuses((prev) => ({ ...prev, [key]: { kind: "resolved-elsewhere" } }));
-        await refetch();
-        return;
-      }
-      if (result.ok) {
-        setStatuses((prev) => ({
-          ...prev,
-          [key]: { kind: "done", alreadyCountersigned: result.alreadyCountersigned, adr: result.adr },
-        }));
-        setSettled((prev) => ({
-          ...prev,
-          [key]: { entry, status: { kind: "done", alreadyCountersigned: result.alreadyCountersigned, adr: result.adr } },
-        }));
-        // Both surfaces observe the same countersign action's effect —
-        // refresh the proposed list (the entry is gone) and the
-        // decision_log.md tile (the new entry is there), without the PO
-        // re-opening either.
-        await Promise.all([
-          refetch(),
-          queryClient.invalidateQueries({ queryKey: ["org", "shared-doc", "decision_log.md"] }),
-        ]);
-      }
-    } catch (err) {
-      setStatuses((prev) => ({
-        ...prev,
-        [key]: { kind: "error", message: err instanceof Error ? err.message : "unknown error" },
-      }));
-    } finally {
-      inFlight.current.delete(flightKey);
-    }
-  }
+  const { statuses, settled, notice, handleReject, handleCountersign } = useDecisionActions(refetch);
 
   const allEntries = data ?? [];
   const liveKeys = new Set(allEntries.map((e, i) => entryKey(e, i)));
@@ -248,7 +135,7 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
                     rowKey={entryKey(entry, index)}
                     entry={entry}
                     status={statuses[entryKey(entry, index)] ?? { kind: "idle" }}
-                    onCountersign={() => void handleCountersign(entry, index)}
+                    onCountersign={(line) => void handleCountersign(entry, index, line)}
                     onReject={(reason) => void handleReject(entry, index, reason)}
                     isRepeat={isRepeat(entry)}
                   />

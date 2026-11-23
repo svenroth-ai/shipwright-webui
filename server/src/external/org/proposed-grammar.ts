@@ -177,3 +177,48 @@ export function firstBullet(lines: string[], re: RegExp): string | null {
   }
   return null;
 }
+
+// ---- W4: proposed line / quote classification and evidence pointer ----
+
+export type SourceRef =
+  | { kind: "known"; session: string; time: string; message: string }
+  | { kind: "unknown"; raw: string | null };
+
+const POINTER_ISO = String.raw`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z`;
+const SHORT_POINTER_RE = new RegExp(String.raw`^([A-Za-z0-9_-]{1,64}):(${POINTER_ISO}):(\d{1,9})$`);
+const LONG_POINTER_RE = new RegExp(String.raw`^session ([A-Za-z0-9_-]{1,64}) at (${POINTER_ISO}), message (\d{1,9})$`);
+
+/** `session:time:number` or `session <id> at <time>, message <n>`; anything else is unknown. */
+export function parseSourceRef(raw: string | null): SourceRef {
+  const t = raw?.trim() ?? "";
+  if (t === "") return { kind: "unknown", raw: null };
+  const m = SHORT_POINTER_RE.exec(t) ?? LONG_POINTER_RE.exec(t);
+  if (!m) return { kind: "unknown", raw: t };
+  return { kind: "known", session: m[1], time: m[2], message: m[3] };
+}
+
+export interface FencedParts {
+  /** The fence label line (carries the beat). */
+  label: string;
+  /** Fenced lines that are not quotes: the proposed line. */
+  proposed: string[];
+  /** Fenced lines starting with `>`, verbatim. */
+  quotes: string[];
+}
+
+/** The ONE rule that splits a fenced region into proposed line and quotes: a
+ *  line starting with `>` is a quote, every other line is the proposed line.
+ *  `null` when the block has no fence where the daemon puts it. */
+export function fencedParts(blockLines: string[]): FencedParts | null {
+  const lines = blockLines.map((l) => l.replace(/\r$/, ""));
+  const open = lines.findIndex((l, i) => FENCE_LINE_RE.test(l) && (lines[i + 1] ?? "").startsWith(FENCE_LABEL_PREFIX));
+  const close = open === -1 ? -1 : findClose(lines, open);
+  if (open === -1 || close === -1) return null;
+  const inside = lines.slice(open + 2, close);
+  return { label: lines[open + 1], proposed: inside.filter((l) => !l.trimStart().startsWith(">")), quotes: inside.filter((l) => l.trimStart().startsWith(">")) };
+}
+
+/** One line for the log: control characters (newlines too) and runs of blanks become one space. */
+export function normalizeLine(text: string): string {
+  return text.replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, " ").replace(/ {2,}/g, " ").trim();
+}

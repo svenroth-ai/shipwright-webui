@@ -35,6 +35,7 @@ import { dirname, basename, join } from "node:path";
 import { randomBytes } from "node:crypto";
 
 import { decisionKeyOf } from "./proposed-decision-key.js";
+import { proposalFacts, proposalFingerprint, checkEditedLine, checkOriginalLine, toLoggedLineBlock, loggedLineOf, loggedFingerprintOf, isEdited, type ProposalFacts } from "./proposed-line.js";
 import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, type DecisionAuditDeps } from "./decisions-audit.js";
 import {
   withDecisionsLock,
@@ -75,10 +76,11 @@ export function atomicWrite(target: string, content: string): void {
 }
 
 export type CountersignOutcome =
-  | { status: "countersigned"; number: number }
+  | { status: "countersigned"; number: number; edited: boolean }
   | { status: "already_countersigned"; number: number }
   | { status: "not_found" }
   | { status: "reject_pending" }
+  | { status: "line_rejected"; error: "line_empty" | "line_too_long" | "line_contains_quote" | "edit_not_supported" }
   | { status: "duplicate_identity"; count: number };
 
 export interface CountersignCoreDeps extends DecisionsLockDeps, Partial<Omit<DecisionAuditDeps, "leadsRoot">> {
@@ -92,10 +94,14 @@ export async function performCountersign(
   deps: CountersignCoreDeps,
   timestamp: string,
   leadId: string,
+  /** The operator's edited proposed line (fenced entries only); absent = approve as proposed. */
+  editedLine?: string | null,
 ): Promise<CountersignOutcome> {
   const lockFn = deps.withDecisionsLock ?? withDecisionsLock;
-  const audit = (ts: string, lead: string, block: string, number: number): void => {
+  const audit = (ts: string, lead: string, block: string, number: number, edited: boolean, facts: ProposalFacts | null): void => {
     ensureDecisionAudit(deps, {
+      edited,
+      evidence: facts?.evidence ?? null,
       kind: "decision_countersigned",
       leadId: lead,
       author: deps.author ?? "operator",
@@ -135,13 +141,19 @@ export async function performCountersign(
         // a possible, not merely theoretical, collision — would be
         // silently deleted here and reported as "already countersigned"
         // under the OLD entry's ADR number, with no trace left anywhere.
-        if (bodyAfterHeader(toLoggedBlock(stillProposed.block, existing.number)).trimEnd() !==
-          bodyAfterHeader(existing.block).trimEnd()) {
-          return { status: "duplicate_identity", count: 2 };
-        }
+        const facts = proposalFacts(stillProposed.block);
+        // A fenced entry's log holds only the (possibly edited) line plus a fingerprint of the proposed
+        // block: identity is told apart by that fingerprint, whatever line this retry sends. A log block
+        // written before W4 (whole entry) is compared the old way.
+        const fingerprint = loggedFingerprintOf(existing.block);
+        const loggedLine = facts === null ? null : loggedLineOf(existing.block);
+        const sameProposal = fingerprint !== null
+          ? fingerprint === proposalFingerprint(stillProposed.block)
+          : bodyAfterHeader(toLoggedBlock(stillProposed.block, existing.number)).trimEnd() === bodyAfterHeader(existing.block).trimEnd();
+        if (!sameProposal) return { status: "duplicate_identity", count: 2 };
         // Crash between the log write and the audit line: complete it (once).
         try {
-          audit(timestamp, leadId, stillProposed.block, existing.number);
+          audit(timestamp, leadId, stillProposed.block, existing.number, facts !== null && loggedLine !== null && isEdited(facts, loggedLine), facts);
         } catch {
           // The log is the source of truth: a broken audit file must not keep an approved entry listed.
         }
@@ -175,8 +187,19 @@ export async function performCountersign(
     // Fail before anything changes when the audit file cannot be read (symlink, not a file).
     assertAuditAppendable(deps, leadId);
 
+    const facts = proposalFacts(target.block);
+    let finalLine: string | null = null;
+    if (facts === null) {
+      if (editedLine != null) return { status: "line_rejected", error: "edit_not_supported" };
+    } else {
+      const verdict = editedLine != null ? checkEditedLine(editedLine, facts) : checkOriginalLine(facts);
+      if (!verdict.ok) return { status: "line_rejected", error: verdict.error };
+      finalLine = verdict.line;
+    }
+    const edited = facts !== null && finalLine !== null && isEdited(facts, finalLine);
+
     const number = nextLoggedNumber(loggedEntries);
-    const loggedBlock = toLoggedBlock(target.block, number);
+    const loggedBlock = facts === null || finalLine === null ? toLoggedBlock(target.block, number) : toLoggedLineBlock(target, number, finalLine);
     const separator = loggedRaw.length > 0 && !loggedRaw.endsWith("\n") ? "\n" : "";
     const nextLogged = loggedRaw + separator + loggedBlock;
     const nextProposed =
@@ -185,9 +208,9 @@ export async function performCountersign(
     // Log FIRST (durable), then remove from proposed — the idempotent-retry
     // check above trusts decision_log.md as "already done".
     atomicWrite(ctx.loggedPath, nextLogged);
-    audit(timestamp, leadId, target.block, number);
+    audit(timestamp, leadId, target.block, number, edited, facts);
     atomicWrite(ctx.proposedPath, nextProposed);
 
-    return { status: "countersigned", number };
+    return { status: "countersigned", number, edited };
   });
 }

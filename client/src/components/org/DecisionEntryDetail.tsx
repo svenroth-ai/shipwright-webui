@@ -6,6 +6,7 @@
  * (React text nodes, never markdown/HTML). Split out of DecisionEntryRow to
  * stay under the 300-line convention.
  */
+import type { ReactNode } from "react";
 import type { ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
 import { buildEntryView, type SourceRef } from "../../lib/orgProposedView";
 import { DocumentMarkdown } from "../external/SmartViewer/DocumentMarkdown";
@@ -27,13 +28,13 @@ export function SourceLabel({ source, testId }: { source: SourceRef; testId: str
   );
 }
 
-export function DecisionEntryDetail({ rowKey, entry, labelId }: { rowKey: string; entry: ProposedDecisionEntry; labelId: string }) {
+export function DecisionEntryDetail({ rowKey, entry, labelId, lineSlot }: { rowKey: string; entry: ProposedDecisionEntry; labelId: string; /** Replaces the proposed line (the line editor). */ lineSlot?: ReactNode }) {
   const view = buildEntryView(entry.block, entry.evidence);
   const quotesId = `${labelId}-quotes`;
 
   return (
     <div className="mt-2 flex flex-col gap-2" data-testid={`org-decisions-proposed-detail-${rowKey}`}>
-      {view.fenced ? (view.proposedLine === "" ? null : (
+      {lineSlot ?? (view.fenced ? (view.proposedLine === "" ? null : (
         <p className="whitespace-pre-wrap break-words text-[12px] font-medium" data-testid={`org-decisions-proposed-line-${rowKey}`}>
           {view.proposedLine}
         </p>
@@ -41,7 +42,7 @@ export function DecisionEntryDetail({ rowKey, entry, labelId }: { rowKey: string
         <div className="text-[11px] leading-relaxed">
           <DocumentMarkdown text={entry.body} />
         </div>
-      )}
+      ))}
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px]" style={MUTED}>
         <dt>Lead</dt>

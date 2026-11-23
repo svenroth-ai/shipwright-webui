@@ -118,7 +118,8 @@ export async function fetchProposedDecisions(): Promise<ProposedDecisionEntry[]>
 }
 
 export type CountersignResult =
-  | { ok: true; alreadyCountersigned: boolean; number: number; adr: string }
+  | { ok: true; alreadyCountersigned: boolean; number: number; adr: string; /** the operator's own line was logged */ edited: boolean }
+  | { ok: false; reason: "line-rejected"; code: string }
   | { ok: false; reason: "not-found" }
   | { ok: false; reason: "duplicate"; count: number }
   | { ok: false; reason: "reject-pending" };
@@ -135,11 +136,13 @@ export type CountersignResult =
 export async function countersignDecision(
   timestamp: string,
   leadId: string,
+  /** The operator's edited proposed line; omit to approve as proposed. */
+  line?: string,
 ): Promise<CountersignResult> {
   const r = await fetch(`${ORG_API}/decisions/countersign`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ timestamp, leadId }),
+    body: JSON.stringify(line === undefined ? { timestamp, leadId } : { timestamp, leadId, line }),
   });
   let body: Record<string, unknown> = {};
   try {
@@ -154,6 +157,10 @@ export async function countersignDecision(
     return { ok: false, reason: "duplicate", count: typeof body.count === "number" ? body.count : 0 };
   }
   if (r.status === 409 && body.error === "reject_pending") return { ok: false, reason: "reject-pending" };
+  if (r.status === 400 && typeof body.error === "string" && body.error.startsWith("line_")) {
+    return { ok: false, reason: "line-rejected", code: body.error };
+  }
+  if (r.status === 400 && body.error === "edit_not_supported") return { ok: false, reason: "line-rejected", code: body.error };
   if (!r.ok) {
     const code = typeof body.error === "string" ? body.error : `http_${r.status}`;
     throw new ApiError(code, r.status, body);
@@ -163,5 +170,6 @@ export async function countersignDecision(
     alreadyCountersigned: body.alreadyCountersigned === true,
     number: typeof body.number === "number" ? body.number : 0,
     adr: typeof body.adr === "string" ? body.adr : "",
+    edited: body.edited === true,
   };
 }

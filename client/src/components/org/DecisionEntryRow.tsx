@@ -2,16 +2,19 @@
  * DecisionEntryRow — one `decisions-proposed.md` entry row, split out of
  * `OrgDecisionsProposedModal.tsx` to stay under the 300-line convention.
  */
+import { useState } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 import type { ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
+import { buildEntryView } from "../../lib/orgProposedView";
 import { DecisionEntryDetail } from "./DecisionEntryDetail";
+import { DecisionLineEditor } from "./DecisionLineEditor";
 import { DecisionRejectControl } from "./DecisionRejectControl";
 
 export type EntryStatus =
   | { kind: "idle" }
   | { kind: "pending" }
-  | { kind: "done"; alreadyCountersigned: boolean; adr: string }
+  | { kind: "done"; alreadyCountersigned: boolean; adr: string; edited?: boolean }
   | { kind: "rejected"; alreadyRejected: boolean }
   | { kind: "blocked"; message: string }
   | { kind: "duplicate"; count: number }
@@ -33,13 +36,18 @@ export function DecisionEntryRow({
   rowKey: string;
   entry: ProposedDecisionEntry;
   status: EntryStatus;
-  onCountersign: () => void;
+  /** `line` is the operator's edited proposed line; absent = approve as proposed. */
+  onCountersign: (line?: string) => void;
   onReject: (reason: string) => void;
   /** The lead proposed a decision key the operator already rejected. */
   isRepeat: boolean;
 }) {
   const pending = status.kind === "pending";
   const settled = status.kind === "done";
+  const original = buildEntryView(entry.block, entry.evidence).proposedLine;
+  const canEdit = original !== null && original !== "" && !settled;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(original ?? "");
   const labelId = `org-proposed-label-${rowKey.replace(/[^A-Za-z0-9_-]/g, "_")}`;
 
   return (
@@ -67,15 +75,33 @@ export function DecisionEntryRow({
             data-testid={`org-decisions-proposed-countersign-${rowKey}`}
             disabled={pending}
             aria-label={`${pending ? "Countersigning" : "Countersign"} proposal from ${entry.leadId} at ${entry.timestamp}`}
-            onClick={onCountersign}
+            onClick={() => onCountersign(editing ? draft : undefined)}
             className="rounded-[6px] border border-[var(--color-border,#e0dbd4)] px-2 py-1 text-[11px] hover:bg-[var(--color-muted-bg,#ede8e1)] disabled:opacity-50"
           >
             {pending ? "Countersigning…" : "Countersign"}
           </button>
         )}
+        {canEdit && (
+          <button
+            type="button"
+            data-testid={`org-decisions-proposed-edit-${rowKey}`}
+            disabled={pending}
+            aria-pressed={editing}
+            aria-label={`${editing ? "Stop editing" : "Edit"} the line of the proposal from ${entry.leadId} at ${entry.timestamp}`}
+            onClick={() => setEditing((on) => !on)}
+            className="rounded-[6px] border border-[var(--color-border,#e0dbd4)] px-2 py-1 text-[11px] hover:bg-[var(--color-muted-bg,#ede8e1)] disabled:opacity-50"
+          >
+            {editing ? "Stop editing" : "Edit line"}
+          </button>
+        )}
         {!settled && <DecisionRejectControl rowKey={rowKey} pending={pending} onReject={onReject} />}
       </div>
-      <DecisionEntryDetail rowKey={rowKey} entry={entry} labelId={labelId} />
+      <DecisionEntryDetail
+        rowKey={rowKey}
+        entry={entry}
+        labelId={labelId}
+        lineSlot={canEdit && editing ? <DecisionLineEditor rowKey={rowKey} value={draft} original={original ?? ""} disabled={pending} onChange={setDraft} /> : undefined}
+      />
 
       {status.kind === "done" && (
         <div
@@ -86,7 +112,7 @@ export function DecisionEntryRow({
           <CheckCircle2 size={12} aria-hidden="true" />
           {status.alreadyCountersigned
             ? `Already countersigned as ${status.adr}.`
-            : `Countersigned as ${status.adr}.`}
+            : `Countersigned as ${status.adr}${status.edited ? " with your edited line" : ""}.`}
         </div>
       )}
       {status.kind === "blocked" && (

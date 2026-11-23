@@ -123,7 +123,7 @@ describe("countersign - both forms move exactly once", () => {
   it("WebUI-header entry: countersigned once, retry is already_countersigned", async () => {
     writeFileSync(proposed(), WEBUI_ENTRY);
     const ts = "2026-08-17T09:00:00.000Z";
-    expect(await performCountersign({ leadsRoot }, ts, "acme-lead")).toEqual({ status: "countersigned", number: 1 });
+    expect(await performCountersign({ leadsRoot }, ts, "acme-lead")).toEqual(expect.objectContaining({ status: "countersigned", number: 1 }));
     expect(await performCountersign({ leadsRoot }, ts, "acme-lead")).toEqual({ status: "already_countersigned", number: 1 });
     expect(readFileSync(proposed(), "utf8")).toBe("");
     expect(parseLoggedEntries(readFileSync(logged(), "utf8"))).toHaveLength(1);
@@ -132,7 +132,7 @@ describe("countersign - both forms move exactly once", () => {
   // @covers FR-01.71
   it("daemon-header entry: moves once, marker leaves with it, neighbour untouched", async () => {
     writeFileSync(proposed(), DAEMON_SAMPLE);
-    expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "countersigned", number: 1 });
+    expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual(expect.objectContaining({ status: "countersigned", number: 1 }));
     expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "already_countersigned", number: 1 });
 
     const left = readFileSync(proposed(), "utf8");
@@ -158,7 +158,7 @@ describe("countersign - both forms move exactly once", () => {
   it("mixed document: countersigning the middle (daemon) entry removes only its block + marker", async () => {
     const [first, second] = parseProposedEntries(DAEMON_SAMPLE);
     writeFileSync(proposed(), WEBUI_ENTRY + "\n" + first.block + second.block);
-    expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "countersigned", number: 1 });
+    expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual(expect.objectContaining({ status: "countersigned", number: 1 }));
     const left = readFileSync(proposed(), "utf8");
     expect(parseProposedEntries(left).map((e) => e.timestamp)).toEqual(["2026-08-17T09:00:00.000Z", T2]);
     expect(left).toContain("<!-- decisionKey: keep-reviews-under-two-days -->");
@@ -178,7 +178,7 @@ describe("countersign - both forms move exactly once", () => {
   // @covers FR-01.71
   it("CRLF file: countersigns once, retry matches (header and marker lines LF-terminated, as before)", async () => {
     writeFileSync(proposed(), DAEMON_SAMPLE.replace(/\n/g, "\r\n"));
-    expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "countersigned", number: 1 });
+    expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual(expect.objectContaining({ status: "countersigned", number: 1 }));
     const log = readFileSync(logged(), "utf8");
     expect(log.startsWith(`## ADR-0001 [${T1}] acme-lead\n<!-- decisionKey: use-weekly-digest-for-status -->\n`)).toBe(true);
     expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "already_countersigned", number: 1 });

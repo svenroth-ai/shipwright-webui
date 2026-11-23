@@ -180,4 +180,33 @@ Nothing here changes identity, listing or countersign.
   `<id of 4+ characters>:…`); otherwise the whole line is quote text and shows the entry's evidence pointer,
   labelled "(entry evidence)". Empty `>` lines are skipped.
 - Unfenced (marker-less) bodies stay sanitised Markdown with no quote extraction.
-- W4 must move this line/quote classification into the mirrored grammar, not reimplement it.
+- The line/quote classification (`fencedParts`) and the pointer parser (`parseSourceRef`) live in the
+  mirrored grammar (W4); the server countersign and the client view use the same rule.
+
+## Countersign with an edited line (W4)
+
+- Request: `POST .../decisions/countersign` takes an optional `line` (the operator's wording). The server
+  normalises it to one line (control characters become a space, max 2000 characters) and decides itself
+  whether it differs from the proposed line (`edited` in the response); the client sends no flag.
+- Refused with 400 and nothing changed: `line_empty`, `line_too_long`, `line_contains_quote` (the edited
+  line contains a quote of the entry, 20+ characters, case-insensitive), `edit_not_supported` (an entry
+  without a fence has no line to edit; its plain countersign is unchanged).
+- **A fenced entry never carries its fence, quotes, Lead/Evidence bullets or original wording into
+  `decision_log.md`**, edited or not. The log block is `## ADR-NNNN [<timestamp>] <leadId>`, the decisionKey
+  marker (only when the key is a plain identifier), `<!-- proposal: <32 hex> -->` (a sha256 prefix of the
+  proposed block; the random fence nonce makes it leak nothing; it tells crash residue from a different proposal
+  with the same identity), a blank line and `- <line>`. The list prefix keeps any text
+  of the line from becoming a header, marker or fence.
+- Audit (`decision_countersigned`, additive fields): `data.edit` = `edited` | `approved_as_proposed`,
+  `data.evidence` = `{session, time, message}` when the entry's pointer has a known shape, else `null`
+  (free text is never copied). The summary ends `(edited)` / `(approved as proposed)`. No quote, no original text.
+- A fenced line that starts with `>` after optional blanks is a quote. An UNEDITED line goes through the same
+  checks (empty, too long, repeats a quote) and the operator must edit it when it fails. Quote needles include
+  the text without its ` — <pointer>` suffix. Evidence pointer fields are bounded (session 1-64 chars, message
+  up to 9 digits). Quotes under 20 characters are not guarded. decisionKey is lead-written and may carry wording.
+- Accepted limits (tracked follow-ups, not built): the client does not send a fingerprint of what it displayed, so a
+  same-identity rewrite between view and click is approved as it then reads; a lead can pre-plant a
+  `decision_countersigned` line in its own audit.jsonl; a missing lead folder skips the audit line.
+- Retry after a crash between log write and removal compares the rest of the block with the line the log
+  already holds (or with the retry's own line); a log block in the pre-W4 shape (whole entry) still matches.
+
