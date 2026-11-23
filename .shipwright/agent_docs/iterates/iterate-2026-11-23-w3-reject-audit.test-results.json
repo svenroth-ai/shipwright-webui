@@ -87,17 +87,17 @@
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/org-page.decisions-proposed-reject.spec.ts e2e/flows/org-page.decisions-proposed-daemon.spec.ts e2e/flows/org-page.decisions-proposed.spec.ts",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium --reporter=json client/e2e/flows/org-page.decisions-proposed-reject.spec.ts client/e2e/flows/org-page.decisions-proposed-daemon.spec.ts client/e2e/flows/org-page.decisions-proposed.spec.ts",
       "exit_code": 0,
       "tests_run": 4,
       "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-shadow-proposals-webui--W3\\.shipwright\\runs\\iterate-2026-11-23-w3-reject-audit\\surface_verification.log",
-      "timestamp": "2026-11-23T20:39:44.373Z"
+      "timestamp": "2026-11-23T20:55:53.054Z"
     }
   },
   "source_state": {
     "run_id": "iterate-2026-11-23-w3-reject-audit",
-    "commit": "8556ba6cdd59bba42473971bcc7a14a645e6f259",
-    "dirty": true,
+    "commit": "f8937ae4bf484e81b4dddd564db02180cfe39520",
+    "dirty": false,
     "base": null,
     "release": null
   }

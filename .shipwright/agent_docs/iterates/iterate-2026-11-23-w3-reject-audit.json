@@ -1,7 +1,7 @@
 {
   "run_id": "iterate-2026-11-23-w3-reject-audit",
-  "date": "2026-11-23T20:47:55.623985Z",
-  "event_at": "2026-11-23T17:03:52.643139+00:00",
+  "date": "2026-11-23T20:56:03.878257Z",
+  "event_at": "2026-11-23T20:47:55.836553+00:00",
   "type": "feature",
   "complexity": "medium",
   "prior_source": "history",
@@ -67,10 +67,10 @@
   },
   "surface_verification": {
     "surface": "web",
-    "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/org-page.decisions-proposed-reject.spec.ts e2e/flows/org-page.decisions-proposed-daemon.spec.ts e2e/flows/org-page.decisions-proposed.spec.ts",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium --reporter=json client/e2e/flows/org-page.decisions-proposed-reject.spec.ts client/e2e/flows/org-page.decisions-proposed-daemon.spec.ts client/e2e/flows/org-page.decisions-proposed.spec.ts",
     "exit_code": 0,
     "tests_run": 4,
     "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-shadow-proposals-webui--W3\\.shipwright\\runs\\iterate-2026-11-23-w3-reject-audit\\surface_verification.log",
-    "timestamp": "2026-11-23T20:39:44.373Z"
+    "timestamp": "2026-11-23T20:55:53.054Z"
   }
 }
