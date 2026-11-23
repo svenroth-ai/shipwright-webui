@@ -10,19 +10,24 @@
  * is a plain identifier (`decisionKeyOf`). The line is written as a list item
  * on its own line, so no text of it can ever start a header, marker or fence.
  *
- * The classification of fenced lines (line vs quote) is the mirrored grammar's
- * `fencedParts`; this module only decides what to write.
+ * The classification of fenced lines (line vs quote) and the quote split are the
+ * mirrored grammar's `fencedParts` / `splitQuote`; this module only decides what
+ * to write.
  */
 
 import { createHash } from "node:crypto";
 
-import { fencedParts, normalizeLine, parseSourceRef, firstBullet, daemonTail, EVIDENCE_BULLET_RE } from "./proposed-grammar.js";
+import {
+  fencedParts, normalizeLine, foldForCompare, splitQuote, parseSourceRef, firstBullet, daemonTail,
+  EVIDENCE_BULLET_RE, QUOTE_PREFIX_RE,
+} from "./proposed-grammar.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
 import type { ProposedEntry } from "./proposed-entry-format.js";
 
 export const LINE_MAX = 2000;
-/** A quote shorter than this is too likely to occur in an honest sentence to count as copied. */
-const QUOTE_GUARD_MIN = 20;
+/** A shared run of this many (folded) characters between a line and a quote counts as a copy. A quote shorter than
+ *  this is never guarded: it is too likely to occur in an honest sentence. */
+export const QUOTE_GUARD_MIN = 20;
 
 export interface EvidencePointer {
   session: string;
@@ -33,26 +38,24 @@ export interface EvidencePointer {
 export interface ProposalFacts {
   /** The proposed line as the lead wrote it, normalised to one line. */
   original: string;
-  /** Normalised quote texts (without the `>`), used only to refuse a copy. */
+  /** Folded quote texts (with and without the pointer suffix), used only to refuse a copy. */
   quotes: string[];
   /** The entry's evidence pointer when it has the known shape; `null` otherwise. */
   evidence: EvidencePointer | null;
 }
 
-const QUOTE_SEP = " — ";
-const POINTER_ATTEMPT_RE = /^(?:session\b|[A-Za-z0-9_-]{4,}:\S|[A-Za-z0-9_-]+:\d{4}-\d{2})/;
-
-/** Texts a pasted quote can show up as: with and without its ` — <pointer>` suffix (the view shows it without). */
 function quoteNeedles(raw: string): string[] {
-  const body = normalizeLine(raw.replace(/^\s*>[ \t]?/, ""));
-  const at = body.lastIndexOf(QUOTE_SEP);
-  if (at !== -1 && POINTER_ATTEMPT_RE.test(body.slice(at + QUOTE_SEP.length).trim())) return [body, body.slice(0, at).trim()];
-  return [body];
+  return [foldForCompare(raw.replace(QUOTE_PREFIX_RE, "")), foldForCompare(splitQuote(raw).text)];
 }
 
-/** A non-text fingerprint of the proposed block (the fence nonce is random, so it leaks nothing): same
- *  identity + different block is told apart from crash residue by this, since the log keeps no original. */
-export function proposalFingerprint(block: string): string {
+const FENCE_NONCE_RE = /^⟦SHIPWRIGHT-FENCE:([0-9a-f]+)⟧\r?$/m;
+
+/** A non-text fingerprint of the proposed block: same identity + different block is told apart from crash
+ *  residue by it, since the log keeps no original. It hides the block only because the fence nonce is random:
+ *  a block whose nonce is shorter than 128 bits (32 hex) gets NO fingerprint (`null`) and is never trusted as residue. */
+export function proposalFingerprint(block: string): string | null {
+  const nonce = FENCE_NONCE_RE.exec(block)?.[1];
+  if (nonce === undefined || nonce.length < 32) return null;
   return createHash("sha256").update(block.replace(/\r/g, "").trimEnd()).digest("hex").slice(0, 32);
 }
 
@@ -71,15 +74,24 @@ export function proposalFacts(block: string): ProposalFacts | null {
 
 export type LineVerdict = { ok: true; line: string } | { ok: false; error: "line_empty" | "line_too_long" | "line_contains_quote" };
 
-/** Validate the operator's edited line against the entry's quotes. */
+/** True when `line` and any guarded quote share a run of QUOTE_GUARD_MIN or more folded characters. */
+function sharesQuoteRun(line: string, quotes: string[]): boolean {
+  const folded = foldForCompare(line);
+  if (folded.length < QUOTE_GUARD_MIN) return false;
+  const grams = new Set<string>();
+  for (let i = 0; i + QUOTE_GUARD_MIN <= folded.length; i++) grams.add(folded.slice(i, i + QUOTE_GUARD_MIN));
+  return quotes.some((q) => {
+    for (let i = 0; i + QUOTE_GUARD_MIN <= q.length; i++) if (grams.has(q.slice(i, i + QUOTE_GUARD_MIN))) return true;
+    return false;
+  });
+}
+
+/** Validate the line the operator saw (edited or not) against the entry's quotes. */
 export function checkEditedLine(raw: string, facts: ProposalFacts): LineVerdict {
   const line = normalizeLine(raw);
   if (line === "") return { ok: false, error: "line_empty" };
   if (line.length > LINE_MAX) return { ok: false, error: "line_too_long" };
-  const lower = line.toLowerCase();
-  if (facts.quotes.some((q) => q.length >= QUOTE_GUARD_MIN && lower.includes(q.toLowerCase()))) {
-    return { ok: false, error: "line_contains_quote" };
-  }
+  if (sharesQuoteRun(line, facts.quotes)) return { ok: false, error: "line_contains_quote" };
   return { ok: true, line };
 }
 
@@ -88,23 +100,26 @@ export function checkOriginalLine(facts: ProposalFacts): LineVerdict {
   return checkEditedLine(facts.original, facts);
 }
 
-/** The log block of a fenced entry: header, key marker (identifier keys only), the line. */
+/** The log block of a fenced entry: header, key marker (identifier keys only), block fingerprint, the line. */
 export function toLoggedLineBlock(entry: ProposedEntry, number: number, line: string): string {
   const adr = `ADR-${String(number).padStart(4, "0")}`;
   const key = decisionKeyOf(entry.block);
+  const fp = proposalFingerprint(entry.block);
   const marker = key !== null ? `<!-- decisionKey: ${key} -->\n` : "";
-  return `## ${adr} [${entry.timestamp}] ${entry.leadId}\n${marker}<!-- proposal: ${proposalFingerprint(entry.block)} -->\n\n- ${line}\n\n`;
+  const print = fp !== null ? `<!-- proposal: ${fp} -->\n` : "";
+  return `## ${adr} [${entry.timestamp}] ${entry.leadId}\n${marker}${print}\n- ${line}\n\n`;
 }
 
-/** The line of a block written by `toLoggedLineBlock`, or `null` for any other shape. */
-export function loggedLineOf(loggedBlock: string): string | null {
-  const m = /^## [^\n]*\n(?:<!--[^\n]*-->\n){0,2}\n- ([^\n]+)\n/.exec(loggedBlock.replace(/\r/g, ""));
-  return m ? m[1] : null;
-}
+// The EXACT shape `toLoggedLineBlock` writes and nothing else: the fingerprint is read only at its fixed place
+// (right after the header and the optional key marker) of a block with nothing after the line. Any other block - a
+// pre-W4 whole entry, a body that merely contains such a line somewhere - is not a line block.
+const LOGGED_LINE_BLOCK_RE =
+  /^## ADR-\d{4,} \[[^\]\n]+\] [^\n]+\n(?:<!-- decisionKey: [^\n]*-->\n)?(?:<!-- proposal: ([0-9a-f]{32}) -->\n)?\n- ([^\n]+)\n\s*$/;
 
-/** The fingerprint a block written by `toLoggedLineBlock` carries, or `null` for any other shape. */
-export function loggedFingerprintOf(loggedBlock: string): string | null {
-  return /^<!-- proposal: ([0-9a-f]{32}) -->$/m.exec(loggedBlock.replace(/\r/g, ""))?.[1] ?? null;
+/** The line and fingerprint of a block written by `toLoggedLineBlock`, or `null` for any other shape. */
+export function parseLoggedLineBlock(loggedBlock: string): { line: string; fingerprint: string | null } | null {
+  const m = LOGGED_LINE_BLOCK_RE.exec(loggedBlock.replace(/\r/g, ""));
+  return m ? { line: m[2], fingerprint: m[1] ?? null } : null;
 }
 
 export function isEdited(facts: ProposalFacts, finalLine: string): boolean {

@@ -3,6 +3,8 @@
  * (campaign shadow-proposals-webui, W4). Only this line goes to the decisions log; the
  * original wording is not kept and quotes are never copied. Plain text only.
  */
+import { useEffect, useRef } from "react";
+
 const BTN =
   "rounded-[6px] border border-[var(--color-border,#e0dbd4)] px-2 py-1 text-[11px] hover:bg-[var(--color-muted-bg,#ede8e1)] disabled:opacity-50";
 
@@ -22,12 +24,15 @@ export function DecisionLineEditor({
 }) {
   const id = `org-proposed-edit-${rowKey.replace(/[^A-Za-z0-9_-]/g, "_")}`;
   const hintId = `${id}-hint`;
+  const field = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => field.current?.focus(), []); // opening the editor moves focus into it
   return (
     <div className="flex flex-col gap-1" data-testid={`org-decisions-proposed-editor-${rowKey}`}>
       <label htmlFor={id} className="text-[11px] font-medium">
         Line for the decisions log
       </label>
       <textarea
+        ref={field}
         id={id}
         value={value}
         rows={3}

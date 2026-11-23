@@ -118,7 +118,7 @@ export async function fetchProposedDecisions(): Promise<ProposedDecisionEntry[]>
 }
 
 export type CountersignResult =
-  | { ok: true; alreadyCountersigned: boolean; number: number; adr: string; /** the operator's own line was logged */ edited: boolean }
+  | { ok: true; alreadyCountersigned: boolean; number: number; adr: string; /** the operator's own line was logged */ edited: boolean; /** this request named a line other than the logged one (already countersigned) */ loggedLineDiffers?: boolean }
   | { ok: false; reason: "line-rejected"; code: string }
   | { ok: false; reason: "not-found" }
   | { ok: false; reason: "duplicate"; count: number }
@@ -171,5 +171,6 @@ export async function countersignDecision(
     number: typeof body.number === "number" ? body.number : 0,
     adr: typeof body.adr === "string" ? body.adr : "",
     edited: body.edited === true,
+    loggedLineDiffers: body.loggedLineDiffers === true,
   };
 }

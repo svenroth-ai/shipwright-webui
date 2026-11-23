@@ -106,6 +106,7 @@ export async function handleCountersignRequest(
       alreadyCountersigned: outcome.status === "already_countersigned",
       number: outcome.number,
       edited: outcome.status === "countersigned" ? outcome.edited : undefined,
+      loggedLineDiffers: outcome.status === "already_countersigned" && outcome.loggedLineDiffers === true ? true : undefined,
       adr: `ADR-${String(outcome.number).padStart(4, "0")}`,
     },
   };

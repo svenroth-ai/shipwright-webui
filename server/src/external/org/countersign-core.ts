@@ -32,10 +32,11 @@
 
 import { writeFileSync, renameSync, existsSync, unlinkSync } from "node:fs";
 import { dirname, basename, join } from "node:path";
+import { normalizeLine } from "./proposed-grammar.js";
 import { randomBytes } from "node:crypto";
 
 import { decisionKeyOf } from "./proposed-decision-key.js";
-import { proposalFacts, proposalFingerprint, checkEditedLine, checkOriginalLine, toLoggedLineBlock, loggedLineOf, loggedFingerprintOf, isEdited, type ProposalFacts } from "./proposed-line.js";
+import { proposalFacts, proposalFingerprint, checkEditedLine, checkOriginalLine, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
 import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, type DecisionAuditDeps } from "./decisions-audit.js";
 import {
   withDecisionsLock,
@@ -77,7 +78,7 @@ export function atomicWrite(target: string, content: string): void {
 
 export type CountersignOutcome =
   | { status: "countersigned"; number: number; edited: boolean }
-  | { status: "already_countersigned"; number: number }
+  | { status: "already_countersigned"; number: number; /** this request named a line other than the logged one */ loggedLineDiffers?: boolean }
   | { status: "not_found" }
   | { status: "reject_pending" }
   | { status: "line_rejected"; error: "line_empty" | "line_too_long" | "line_contains_quote" | "edit_not_supported" }
@@ -116,6 +117,8 @@ export async function performCountersign(
 
     const existing = findLoggedEntry(loggedEntries, timestamp, leadId);
     if (existing) {
+      const loggedLine = parseLoggedLineBlock(existing.block)?.line ?? null;
+      const differs = editedLine != null && loggedLine !== null && normalizeLine(editedLine) !== loggedLine;
       const proposedRaw = ctx.readProposed();
       // External-review fix (MEDIUM, edge-case): two genuinely-distinct
       // proposals can share the same (timestamp, leadId) pair (the ADR that
@@ -145,8 +148,8 @@ export async function performCountersign(
         // A fenced entry's log holds only the (possibly edited) line plus a fingerprint of the proposed
         // block: identity is told apart by that fingerprint, whatever line this retry sends. A log block
         // written before W4 (whole entry) is compared the old way.
-        const fingerprint = loggedFingerprintOf(existing.block);
-        const loggedLine = facts === null ? null : loggedLineOf(existing.block);
+        // The fingerprint counts only inside an exact line block (fixed place, nothing after the line).
+        const fingerprint = parseLoggedLineBlock(existing.block)?.fingerprint ?? null;
         const sameProposal = fingerprint !== null
           ? fingerprint === proposalFingerprint(stillProposed.block)
           : bodyAfterHeader(toLoggedBlock(stillProposed.block, existing.number)).trimEnd() === bodyAfterHeader(existing.block).trimEnd();
@@ -162,7 +165,7 @@ export async function performCountersign(
           proposedRaw.slice(stillProposed.endIndex);
         atomicWrite(ctx.proposedPath, nextProposed);
       }
-      return { status: "already_countersigned", number: existing.number };
+      return { status: "already_countersigned", number: existing.number, ...(differs ? { loggedLineDiffers: true } : {}) };
     }
 
     const proposedRaw = ctx.readProposed();

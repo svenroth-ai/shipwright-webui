@@ -26,6 +26,7 @@ export const LEAD_BULLET_RE = /^-[ \t]*\*\*Lead:\*\*([^\r\n]*)\r?$/;
 export const EVIDENCE_BULLET_RE = /^-[ \t]*\*\*Evidence:\*\*([^\r\n]*)\r?$/;
 export const FENCE_LABEL_PREFIX = "[FENCED DATA";
 const LOGGED_HEADER_LINE_RE = /^## ADR-\d{4,} \[/;
+const PROPOSAL_MARKER_RE = /^<!--[ \t]*proposal:/; // only countersign writes it (the log's block fingerprint)
 export const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/; // same rule as the countersign route
 
 export const stripBom = (s: string): string => (s.charCodeAt(0) === 0xfeff ? s.slice(1) : s);
@@ -58,7 +59,7 @@ export function markerAbove(lines: string[], idx: number): boolean {
 function isStructural(line: string): boolean {
   return (
     FENCE_LINE_RE.test(line) || DAEMON_MARKER_RE.test(line) || WEBUI_HEADER_RE.test(line) ||
-    DAEMON_HEADER_RE.test(line) || LOGGED_HEADER_LINE_RE.test(line)
+    DAEMON_HEADER_RE.test(line) || LOGGED_HEADER_LINE_RE.test(line) || PROPOSAL_MARKER_RE.test(line)
   );
 }
 
@@ -216,6 +217,26 @@ export function fencedParts(blockLines: string[]): FencedParts | null {
   if (open === -1 || close === -1) return null;
   const inside = lines.slice(open + 2, close);
   return { label: lines[open + 1], proposed: inside.filter((l) => !l.trimStart().startsWith(">")), quotes: inside.filter((l) => l.trimStart().startsWith(">")) };
+}
+
+export const QUOTE_PREFIX_RE = /^\s*>[ \t]?/;
+const QUOTE_SEP = " — ";
+const POINTER_ATTEMPT_RE = /^(?:session\b|[A-Za-z0-9_-]{4,}:\S|[A-Za-z0-9_-]+:\d{4}-\d{2})/;
+
+/** ONE quote line -> its text and, when the suffix after the LAST ` — ` looks like a pointer attempt, that pointer.
+ *  An em dash inside the quote text stays in it. */
+export function splitQuote(line: string): { text: string; pointer: string | null } {
+  const body = line.replace(QUOTE_PREFIX_RE, "");
+  const at = body.lastIndexOf(QUOTE_SEP);
+  const suffix = at === -1 ? "" : body.slice(at + QUOTE_SEP.length).trim();
+  if (at === -1 || !POINTER_ATTEMPT_RE.test(suffix)) return { text: body.trim(), pointer: null };
+  return { text: body.slice(0, at).trim(), pointer: suffix };
+}
+
+/** Comparison form of a text: Unicode-folded (NFKC, so NBSP and wide forms), format characters (zero width) removed,
+ *  one line, lower case. Never written anywhere. */
+export function foldForCompare(text: string): string {
+  return normalizeLine(text.normalize("NFKC").replace(/\p{Cf}/gu, "")).toLowerCase();
 }
 
 /** One line for the log: control characters (newlines too) and runs of blanks become one space. */

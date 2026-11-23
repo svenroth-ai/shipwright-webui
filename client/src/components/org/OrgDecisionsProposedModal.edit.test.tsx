@@ -48,7 +48,7 @@ describe("edit before approving (W4)", () => {
     mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001", edited: false });
     renderModal();
     fireEvent.click(await screen.findByTestId(id("countersign")));
-    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", undefined));
+    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", LINE)); // always the line the operator saw
   });
 
   // @covers FR-01.71
@@ -100,6 +100,32 @@ describe("edit before approving (W4)", () => {
     fireEvent.change(screen.getByLabelText("Line for the decisions log"), { target: { value: "Written by the operator." } });
     fireEvent.click(screen.getByTestId(id("countersign")));
     await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", "Written by the operator."));
+  });
+
+  // @covers FR-01.71
+  it("opening the editor moves focus into it; the toggle keeps one name and reports its state; blocked results are alerts", async () => {
+    mockedFetch.mockResolvedValue([FENCED]);
+    mockedCountersign.mockResolvedValue({ ok: false, reason: "line-rejected", code: "line_empty" });
+    renderModal();
+    const toggle = await screen.findByTestId(id("edit"));
+    const name = toggle.getAttribute("aria-label");
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(toggle);
+    expect(screen.getByLabelText("Line for the decisions log")).toHaveFocus();
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(toggle.getAttribute("aria-label")).toBe(name);
+    expect(name).toContain("Edit line");
+    fireEvent.click(screen.getByTestId(id("countersign")));
+    expect(await screen.findByRole("alert")).toHaveTextContent("The line is empty");
+  });
+
+  // @covers FR-01.71
+  it("a retry answered with another wording than the one sent says so", async () => {
+    mockedFetch.mockResolvedValue([FENCED]);
+    mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: true, number: 4, adr: "ADR-0004", edited: false, loggedLineDiffers: true });
+    renderModal();
+    fireEvent.click(await screen.findByTestId(id("countersign")));
+    expect(await screen.findByTestId(id("result"))).toHaveTextContent("Already countersigned as ADR-0004 with an earlier wording.");
   });
 
   // @covers FR-01.71

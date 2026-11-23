@@ -95,7 +95,7 @@ export function useDecisionActions(refetch: () => Promise<unknown>) {
       if (result.ok) {
         setStatuses((prev) => ({
           ...prev,
-          [key]: { kind: "done", alreadyCountersigned: result.alreadyCountersigned, adr: result.adr, edited: result.edited },
+          [key]: { kind: "done", alreadyCountersigned: result.alreadyCountersigned, adr: result.adr, edited: result.edited, loggedLineDiffers: result.loggedLineDiffers },
         }));
         setSettled((prev) => ({
           ...prev,

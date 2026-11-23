@@ -14,7 +14,7 @@
  * The line/quote split (`fencedParts`) and the pointer parser live in the mirrored grammar, so the
  * server countersign uses the very same rule (W4).
  */
-import { fencedParts, parseSourceRef, type SourceRef } from "./orgProposedGrammar";
+import { fencedParts, parseSourceRef, splitQuote, type SourceRef } from "./orgProposedGrammar";
 
 export { parseSourceRef };
 export type { SourceRef };
@@ -37,16 +37,10 @@ export interface EntryView {
 }
 
 const BEAT_RE = /origin: \S+ beat ([^,\s]+),/;
-const POINTER_ATTEMPT_RE = /^(?:session\b|[A-Za-z0-9_-]{4,}:\S|[A-Za-z0-9_-]+:\d{4}-\d{2})/;
-const QUOTE_SEP = " — ";
 
 function parseQuote(line: string, fallback: SourceRef): QuoteView {
-  const body = line.replace(/^>[ \t]?/, "");
-  const at = body.lastIndexOf(QUOTE_SEP);
-  const suffix = at === -1 ? "" : body.slice(at + QUOTE_SEP.length).trim();
-  // Only a suffix that looks like a pointer is split off: an em-dash inside the quote text stays in it.
-  if (at === -1 || !POINTER_ATTEMPT_RE.test(suffix)) return { text: body.trim(), source: fallback, inherited: true };
-  return { text: body.slice(0, at).trim(), source: parseSourceRef(suffix), inherited: false };
+  const { text, pointer } = splitQuote(line);
+  return pointer === null ? { text, source: fallback, inherited: true } : { text, source: parseSourceRef(pointer), inherited: false };
 }
 
 export function buildEntryView(block: string, evidence: string | null): EntryView {

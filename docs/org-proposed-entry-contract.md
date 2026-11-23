@@ -189,13 +189,15 @@ Nothing here changes identity, listing or countersign.
   normalises it to one line (control characters become a space, max 2000 characters) and decides itself
   whether it differs from the proposed line (`edited` in the response); the client sends no flag.
 - Refused with 400 and nothing changed: `line_empty`, `line_too_long`, `line_contains_quote` (the edited
-  line contains a quote of the entry, 20+ characters, case-insensitive), `edit_not_supported` (an entry
+  line shares a run of 20 or more characters with a quote of the entry, compared case-insensitively after Unicode folding: NFKC, so non-breaking and wide forms, and zero-width format characters removed), `edit_not_supported` (an entry
   without a fence has no line to edit; its plain countersign is unchanged).
 - **A fenced entry never carries its fence, quotes, Lead/Evidence bullets or original wording into
   `decision_log.md`**, edited or not. The log block is `## ADR-NNNN [<timestamp>] <leadId>`, the decisionKey
   marker (only when the key is a plain identifier), `<!-- proposal: <32 hex> -->` (a sha256 prefix of the
-  proposed block; the random fence nonce makes it leak nothing; it tells crash residue from a different proposal
-  with the same identity), a blank line and `- <line>`. The list prefix keeps any text
+  proposed block, written only when the fence nonce has at least 128 bits (32 hex) - it hides the block only
+  because that nonce is unguessable; a shorter nonce gets no fingerprint and crash residue is then refused; it tells
+  crash residue from a different proposal with the same identity, and is read only at its fixed place in a block
+  of exactly this shape), a blank line and `- <line>`. The list prefix keeps any text
   of the line from becoming a header, marker or fence.
 - Audit (`decision_countersigned`, additive fields): `data.edit` = `edited` | `approved_as_proposed`,
   `data.evidence` = `{session, time, message}` when the entry's pointer has a known shape, else `null`
@@ -203,10 +205,10 @@ Nothing here changes identity, listing or countersign.
 - A fenced line that starts with `>` after optional blanks is a quote. An UNEDITED line goes through the same
   checks (empty, too long, repeats a quote) and the operator must edit it when it fails. Quote needles include
   the text without its ` — <pointer>` suffix. Evidence pointer fields are bounded (session 1-64 chars, message
-  up to 9 digits). Quotes under 20 characters are not guarded. decisionKey is lead-written and may carry wording.
-- Accepted limits (tracked follow-ups, not built): the client does not send a fingerprint of what it displayed, so a
-  same-identity rewrite between view and click is approved as it then reads; a lead can pre-plant a
+  up to 9 digits). Quotes under 20 characters are not guarded, and a paraphrase or translation of a quote is not detected (documented limits). decisionKey is lead-written and may carry wording.
+- Accepted limits (tracked follow-ups, not built): the client always sends the line it displayed, so only seen text is logged and a changed line is audited as edited, but
+  it sends no fingerprint of the quotes/evidence it displayed, so a same-identity rewrite of those between view and click is approved; a lead can pre-plant a
   `decision_countersigned` line in its own audit.jsonl; a missing lead folder skips the audit line.
 - Retry after a crash between log write and removal compares the rest of the block with the line the log
-  already holds (or with the retry's own line); a log block in the pre-W4 shape (whole entry) still matches.
+  already holds (a retry that names another line than the logged one is answered `loggedLineDiffers: true`); a log block in the pre-W4 shape (whole entry) still matches.
 

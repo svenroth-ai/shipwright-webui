@@ -120,7 +120,7 @@ describe("countersignDecision", () => {
       json: async () => ({ countersigned: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001" }),
     });
     const result = await countersignDecision(TS, "acme-lead");
-    expect(result).toEqual({ ok: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001", edited: false });
+    expect(result).toEqual({ ok: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001", edited: false, loggedLineDiffers: false });
     expect(fetchMock).toHaveBeenCalledWith(
       `${ORG_API}/decisions/countersign`,
       expect.objectContaining({
@@ -138,7 +138,7 @@ describe("countersignDecision", () => {
       json: async () => ({ countersigned: true, alreadyCountersigned: true, number: 1, adr: "ADR-0001" }),
     });
     const result = await countersignDecision(TS, "acme-lead");
-    expect(result).toEqual({ ok: true, alreadyCountersigned: true, number: 1, adr: "ADR-0001", edited: false });
+    expect(result).toEqual({ ok: true, alreadyCountersigned: true, number: 1, adr: "ADR-0001", edited: false, loggedLineDiffers: false });
   });
 
   it("404 (proposal_not_found) reads as a typed not-found result, not a thrown error", async () => {

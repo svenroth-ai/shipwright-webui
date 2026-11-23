@@ -95,12 +95,18 @@ test.describe("Org page — structured proposal view", () => {
 
     const c1 = page.getByRole("button", { name: `Countersign proposal from ${LEAD_ID} at ${TS1}` });
     const c2 = page.getByRole("button", { name: `Countersign proposal from ${LEAD_ID} at ${TS2}` });
-    // focus order inside the dialog: Close, then the countersign buttons in list order
+    // focus order inside the dialog: Close, then each row in list order (Countersign, Edit line, Reject)
     await page.getByRole("button", { name: "Close" }).focus();
     await page.keyboard.press("Tab");
     await expect(c1).toBeFocused();
     await page.keyboard.press("Tab");
+    await expect(row.getByRole("button", { name: /^Edit line of the proposal/ })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(row.getByRole("button", { name: "Reject" })).toBeFocused();
+    await page.keyboard.press("Tab");
     await expect(c2).toBeFocused();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await expect(page.getByRole("button", { name: "Close" })).toBeFocused(); // the trap wraps back to Close
     // Escape closes the window
