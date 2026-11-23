@@ -20,6 +20,7 @@ import { useProjects } from "../hooks/useProjects";
 import { useProjectActions } from "../hooks/useProjectActions";
 import { useProjectFilter } from "../hooks/useProjectFilter";
 import { useAllTriageItems } from "../hooks/useTriage";
+import { useTriageSelection } from "../hooks/useTriageDeepLink";
 import { useTriageTaskLinks } from "../hooks/useTriageTaskLinks";
 import { useTriageViewState } from "../hooks/useTriageViewState";
 import { NewIssueModal } from "../components/external/NewIssueModal";
@@ -37,7 +38,6 @@ import { SEARCH_MIN_ITEMS, TriageSearch } from "../components/triage/TriageSearc
 import { TriageTiles, type TriageTile } from "../components/triage/TriageTiles";
 import { TriageGroupMenu, TriageSortMenu } from "../components/triage/TriageViewMenus";
 import type { FixNowIntent } from "../components/triage/fixNowIntent";
-import type { TriageEntry } from "../lib/triageFilterSort";
 import { applyProjectOrder, moveProject } from "../lib/triageProjectOrder";
 import { buildBoardModel, type TriageTileFilter } from "../lib/triageBoardModel";
 import { getProjectColor } from "../lib/projectColor";
@@ -53,7 +53,7 @@ interface FixNowModalState {
 const FIX_NOW_INITIAL: FixNowModalState = { open: false, projectId: null, intent: null };
 
 export default function TriagePage() {
-  const { data: projects = [] } = useProjects();
+  const { data: projects = [], isSuccess: projectsLoaded } = useProjects();
   const navigate = useNavigate();
   const [activeProjectId, setScopeProjectId] = useState<string | null>(null); // own scope, not the Board's
   const { setActiveProjectId } = useProjectFilter();
@@ -66,7 +66,7 @@ export default function TriagePage() {
   const taskLinks = useTriageTaskLinks(true);
   const linked = useMemo(() => new Set(taskLinks.keys()), [taskLinks]);
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<TriageEntry | null>(null);
+  const [selected, setSelected] = useTriageSelection(allEntries, statuses, projectsLoaded);
   const [fixNowModal, setFixNowModal] = useState<FixNowModalState>(FIX_NOW_INITIAL);
   const fixNowProjectActions = useProjectActions(fixNowModal.projectId);
 

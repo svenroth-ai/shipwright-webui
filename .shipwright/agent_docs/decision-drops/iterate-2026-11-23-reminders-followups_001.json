@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-23-reminders-followups",
+  "date": "2026-11-23",
+  "section": "Iterate â€” change: reminders follow-ups (badge, deep link, no triage log)",
+  "title": "Inbox reminders follow-ups: unreadable badge, exact Triage deep link, no-triage-log is not an error",
+  "context": "The W3 review found three gaps in FR-01.76: an unreadable reminder answer looked like an empty inbox on every page but the Inbox, Open in Triage only opened the general list, and a project without a triage log showed the orange banner for ever.",
+  "decision": "The sidebar badge shows a '!' when part of the answer could not be read; Open in Triage links /triage?project=<id>&item=<id> and useTriageDeepLink opens that entry once; parseDueAnswer maps a triage message ending '(FileNotFoundError)' to no error.",
+  "consequences": "Unreadable answers are visible everywhere. Known limit: no-triage-log keys on the CLI message text, so a wrong triage root or a rare FileNotFoundError mid-read is hidden too and the reminder mail drops its note. Ask the CLI for a structured code later.",
+  "rationale": "Smallest change that fixes all three: reuse reminderProblems for the badge, a one-shot query-consuming hook for the link, and a narrow end-anchored match so every other exception name stays a real error.",
+  "rejected": "A cross-package CLI change now (out of scope, needs a Shipwright release); a persistent ?item= selection (reopens on reload and Back); an aria-label on the badge span (not reliably announced).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

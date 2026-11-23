@@ -18,6 +18,8 @@ export const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shipwright:sidebar-collapsed';
 
 interface SidebarNavProps {
   inboxCount: number;
+  /** Some reminders could not be read (shows a "!" on the Inbox badge). */
+  inboxProblem?: boolean;
   triageCount: number;
   /**
    * Phone overlay-drawer mode (iterate-2026-06-14-phone-responsive-view AC-2).
@@ -52,7 +54,7 @@ function useMediaCollapse() {
   return [collapsed, setCollapsed] as const;
 }
 
-export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate }: SidebarNavProps) {
+export function SidebarNav({ inboxCount, inboxProblem = false, triageCount, drawer = false, onNavigate }: SidebarNavProps) {
   const [mediaCollapsed, setMediaCollapsed] = useMediaCollapse();
   // Desktop rail preference — user-toggleable, persisted (default expanded).
   const [userCollapsed, setUserCollapsed] = useLocalStorage<boolean>(
@@ -136,7 +138,7 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
           icon={Inbox}
           label="Inbox"
           to="/inbox"
-          badge={<InboxBadge count={inboxCount} />}
+          badge={<InboxBadge count={inboxCount} problem={inboxProblem} />}
           collapsed={railed}
           onSelect={onNavigate}
         />

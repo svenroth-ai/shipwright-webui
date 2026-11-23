@@ -18,6 +18,11 @@ export interface ReminderProblems {
   /** The whole request failed (the server did not answer): the same "unavailable". */
   requestFailed: boolean;
   any: boolean;
+  /**
+   * Part of the answer is missing (a project unreadable, the request failed, or parked triage not checked), so the
+   * count is only what WAS read: the sidebar badge shows a "!" for it. Damaged lines alone do not (the rest was read).
+   */
+  cannotRead: boolean;
 }
 
 export function reminderProblems(
@@ -41,5 +46,6 @@ export function reminderProblems(
     corruptLines,
     requestFailed,
     any: requestFailed || unavailable.length > 0 || triageErrors.length > 0 || corruptLines > 0,
+    cannotRead: requestFailed || unavailable.length > 0 || triageErrors.length > 0,
   };
 }

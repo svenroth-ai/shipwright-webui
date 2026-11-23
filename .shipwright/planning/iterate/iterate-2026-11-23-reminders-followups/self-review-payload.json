@@ -1,0 +1,10 @@
+{"items": [
+ {"name": "Spec Compliance", "verdict": "pass", "note": "Badge '!' , deep link and no-triage-log rule all implemented as the three frozen ACs; nothing extra added."},
+ {"name": "Error Handling", "verdict": "pass", "note": "Deep link tolerates stale or unknown project/item (consumed once, list stays); isNoTriageLog only matches the exact FileNotFoundError suffix, every other exception name stays an error."},
+ {"name": "Security Basics", "verdict": "pass", "note": "project/item query values are only compared against loaded entries and encodeURIComponent-built on the way out; no HTML sinks, no secrets."},
+ {"name": "Test Quality", "verdict": "pass", "note": "Unit tests per behavior (badge, cannotRead, deep link hook, openTriage, server parse incl. PermissionError error path) plus a 3-test real-browser E2E."},
+ {"name": "Performance Basics", "verdict": "pass", "note": "reminderProblems is a cheap pure pass over the already-fetched answer in MainLayout; the hook effect is keyed on stable values and only acts when both params are present."},
+ {"name": "Naming & Structure", "verdict": "pass", "note": "TriagePage.tsx grows by 2 lines (263, baseline limit 300); new hook in hooks/, files under 300 lines."},
+ {"name": "Affected Boundaries", "verdict": "pass", "note": "HTTP/CLI contract parse changed (triageError normalised to null for the no-log case); producer wording pinned by the new server test, consumer covered by the client tests."},
+ {"name": "Test Hygiene Probe", "verdict": "pass", "note": "scan_test_hygiene --diff: no findings."}
+]}

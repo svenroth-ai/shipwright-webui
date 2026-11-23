@@ -1,0 +1,93 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-23-reminders-followups",
+    "date": "2026-11-23",
+    "unit": {
+      "status": "passed",
+      "passed": 10463,
+      "skipped": 16,
+      "total": 10479
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 15,
+      "skipped": 0,
+      "total": 15
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Sidebar badge shows '!' (alone at zero count) with screen-reader text when reminders could not be read",
+          "disposition": "tested",
+          "evidence": "InboxBadge.test.tsx + reminderProblems.test.ts + E2E inbox-reminders-followups 'unreadable project puts a ! on the sidebar badge' PASSED"
+        },
+        {
+          "behavior": "Clean answer and damaged-lines-only show no '!'",
+          "disposition": "tested",
+          "evidence": "reminderProblems.test.ts + E2E 'a clean answer has no !' PASSED"
+        },
+        {
+          "behavior": "Open in Triage opens the exact parked entry's detail by project and id, link consumed once",
+          "disposition": "tested",
+          "evidence": "useTriageDeepLink.test.tsx + useReminderActions.openTriage.test.tsx + E2E 'Open in Triage opens that item' PASSED"
+        },
+        {
+          "behavior": "Stale or unknown deep link leaves the normal list and is dropped once lists are loaded",
+          "disposition": "tested",
+          "evidence": "useTriageDeepLink.test.tsx stale-link case PASSED"
+        },
+        {
+          "behavior": "Project with no triage log (FileNotFoundError) is not a triage error; other exception names stay errors",
+          "disposition": "tested",
+          "evidence": "server reminder-contract.test.ts new cases (FileNotFoundError null; PermissionError/JSONDecodeError kept) PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/inbox-reminders-followups.spec.ts e2e/flows/inbox-reminders.spec.ts e2e/flows/inbox-triage-look.spec.ts",
+      "exit_code": 0,
+      "tests_run": 15,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\reminders-followups\\.shipwright\\runs\\iterate-2026-11-23-reminders-followups\\surface_verification.log",
+      "timestamp": "2026-11-23T07:02:55.277Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-23-reminders-followups",
+    "commit": "bdda219b78a197458df04d2605206e267744caa6",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

@@ -1,0 +1,1 @@
+{"v":1,"id":"evt-dc53f365e0c7434f","ts":"2026-11-23T07:04:50.934187+00:00","type":"grade_snapshot","session":"9d4443e1-9960-48c0-8095-87b8f1add9a5","grade":"A","score":98.4,"dirty":true,"lineage":"branch","branch":"iterate/reminders-followups","base":"bdda219b78a197458df04d2605206e267744caa6","run":"_branch-iterate-reminders-followups"}

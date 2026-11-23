@@ -107,6 +107,21 @@ function parseItem(raw: unknown): ReminderDueItem | null {
   };
 }
 
+/**
+ * The CLI words "this project has no triage log at all" (no `.shipwright` folder) as
+ * `the triage log could not be read (FileNotFoundError)`. That is not a read failure:
+ * there is simply nothing parked to check, so it must not raise the "could not be checked"
+ * warning for ever. Any other exception name (PermissionError, ...) stays a real error.
+ * Known limit: it keys on the CLI's message text, so a rare FileNotFoundError raised
+ * while reading an existing log reads the same (transient; self-heals on the next poll).
+ * A structured code from the CLI would make this exact. A wrong triage root (the CLI checks the
+ * nearest .git ancestor) reads the same and is hidden too. The reminder-mail note is dropped
+ * for such a project as well, consistently (it shares this parse).
+ */
+function isNoTriageLog(triageError: string | null): boolean {
+  return triageError !== null && /\(FileNotFoundError\)\s*$/.test(triageError);
+}
+
 /** Parse the CLI's stdout. Never throws; anything off-contract is a named state. */
 export function parseDueAnswer(stdout: string): ReminderDueParse {
   let raw: unknown;
@@ -141,7 +156,13 @@ export function parseDueAnswer(stdout: string): ReminderDueParse {
   const storeKey = typeof raw.reminderStore === "string" ? raw.reminderStore : null;
   return {
     kind: "ok",
-    view: { contractVersion: 1, on, reminderCorruptLines, triageError, items: parsed },
+    view: {
+      contractVersion: 1,
+      on,
+      reminderCorruptLines,
+      triageError: isNoTriageLog(triageError) ? null : triageError,
+      items: parsed,
+    },
     storeKey,
   };
 }

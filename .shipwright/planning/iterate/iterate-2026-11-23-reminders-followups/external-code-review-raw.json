@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "- Category: edge-case\n  Severity: low\n  File: client/src/hooks/useTriageDeepLink.ts:34 (with client/src/pages/TriagePage.tsx:71)\n  Finding: When `projectIds` is empty (projects list not yet loaded, or no projects at all), `settled` stays `false` forever in the no-projects case, so a stale deep link's `project`/`item` params are never consumed and linger in the URL. With zero registered projects this is harmless, but if the projects query errors out (not loading, but empty), the link is also never cleaned, and a \"not found\" is never final.\n  Suggestion: Treat settled as true when the projects query itself has finished (loaded or errored), not only when `projectIds.length > 0`.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/sidebar/InboxBadge.tsx:30\n  Finding: With `count === 0 && problem`, the accessible text is `\", some reminders could not be read\"` \u2014 a leading comma with no number, which reads oddly (\"comma, some reminders\u2026\"). The count>0 case reads fine (\"3!, some reminders\u2026\").\n  Suggestion: Use a conditional sr-only string (no leading comma when count is 0), e.g. `{count > 0 ? ', some reminders could not be read' : 'some reminders could not be read'}`.\n\n- Category: bug\n  Severity: low\n  File: client/src/hooks/useTriageDeepLink.ts:27\n  Finding: The effect's dependency list includes `entries` and `open`; in TriagePage `open` is `setSelected` (stable), but if any caller passes an inline arrow function the effect re-runs on every render. With the params already cleared it's a no-op, so this is only wasted work \u2014 not a correctness break today. Flagging only in case another call site appears.\n  Suggestion: No change needed now; if another consumer appears, wrap the callback or drop `open` from deps via a ref.\n\n- Category: test\n  Severity: low\n  File: client/src/components/sidebar/InboxBadge.test.tsx:40\n  Finding: `expect(badge).not.toHaveAttribute('aria-label')` asserts an implementation detail (that a11y is done via sr-only spans, not aria-label). That's fine, but the e2e's link-name check `/Inbox.*could not be read/` is the real behavior gate; the unit test alone wouldn't catch a regression where the sr-only span is dropped while the visual \"!\" remains.\n  Suggestion: Add an assertion on the element's accessible name (e.g. `toHaveAccessibleName(/could not be read/)`), which is implementation-agnostic.\n\nPositive notes: the AC trio is fully covered \u2014 badge with SR text, exact-entry deep link consumed once, and the FileNotFoundError carve-out on the server with a contract test pinning it. The deep-link hook's semantics (wait while loading, drop stale once settled, single consumption with `replace: true`) match the AC exactly, and both `openTriage` call sites were migrated to the new signature.\n\nOverall: solid, spec-complete, well-tested change; the findings above are refinements, none block shipping.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "- Category: edge-case\n- Severity: medium\n- File: client/src/pages/TriagePage.tsx:71\n- Finding: With zero registered projects, `projectIds.length > 0` remains false, so the deep-link hook never considers loading settled. A stale link therefore keeps its query parameters indefinitely, including after reload, instead of being consumed as required.\n- Suggestion: Derive settlement from completion of the projects request and the per-project requests. A successfully loaded empty project list should count as settled; add a test verifying that an unknown link is removed in this state.\n\nOverall assessment: ship-with-fixes. The main behavior matches the specification, but deep-link consumption needs to handle an empty project registry. Local inspection was blocked by the environment\u2019s execution policy, so this review is based on the supplied diff.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-23-reminders-followups",
+    "at": "2026-11-23T06:58:18.507580+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}
