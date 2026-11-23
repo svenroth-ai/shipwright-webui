@@ -1,0 +1,1 @@
+Proposals window: edit the proposed line before countersigning; only your line goes to the decisions log, the audit record says edited or approved as proposed and points to the observation, and quotes are never copied

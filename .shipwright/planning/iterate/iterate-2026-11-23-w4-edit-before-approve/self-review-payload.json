@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"AC1 edited line logged without quotes and AC2 unedited audited as approved as proposed: server tests with real files and adversarial quotes, component tests, real-browser E2E"},
+{"name":"Error Handling","verdict":"pass","note":"400 line_empty/line_too_long/line_contains_quote/edit_not_supported/line_invalid with nothing changed; 409 for a different proposal with the same identity; plain-language messages in the window"},
+{"name":"Security Basics","verdict":"pass","note":"one-line list item cannot forge header/marker/fence; quotes and original wording never written; audit holds only a bounded structured pointer; unedited line is checked too; accepted limits written in the contract doc"},
+{"name":"Test Quality","verdict":"pass","note":"real files, crash residue, double click, forged same-identity entry, indented quote, pointer-suffix paste"},
+{"name":"Performance Basics","verdict":"pass","note":"same audit reads as W3; accepted"},
+{"name":"Naming & Structure","verdict":"pass","note":"all touched files under 300 lines; modal handlers split into useDecisionActions; grammar mirror drift-tested"},
+{"name":"Affected Boundaries","verdict":"pass","note":"decision_log.md block shape and audit.jsonl fields round-tripped by the E2E and server tests; pre-W4 log blocks still match on retry"}
+]}

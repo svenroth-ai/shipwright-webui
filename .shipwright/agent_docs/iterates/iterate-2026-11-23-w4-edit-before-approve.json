@@ -1,0 +1,86 @@
+{
+  "run_id": "iterate-2026-11-23-w4-edit-before-approve",
+  "date": "2026-11-23T21:56:03.431514Z",
+  "event_at": "2026-11-23T20:47:55.836553+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "history",
+  "branch": "iterate/campaign-shadow-proposals-webui--W4",
+  "spec": ".shipwright/planning/iterate/campaigns/shadow-proposals-webui/sub-iterates/W4-edit-before-approve.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-23-w4-edit-before-approve",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "An edited line is logged and no quote, original wording or evidence text reaches the log or audit entry",
+        "disposition": "tested",
+        "evidence": "countersign-edit.test.ts::an edited line is logged; neither the original, nor any quote...; org-page.decisions-proposed-edit.spec.ts"
+      },
+      {
+        "behavior": "An unedited line is logged as proposed (still without quotes) and audited as approved as proposed",
+        "disposition": "tested",
+        "evidence": "countersign-edit.test.ts::an unedited line is logged as proposed and audited as approved as proposed; E2E second test"
+      },
+      {
+        "behavior": "An edit cannot smuggle structure (header, marker, fence lines) into the log",
+        "disposition": "tested",
+        "evidence": "countersign-edit.test.ts::an edit cannot smuggle structure"
+      },
+      {
+        "behavior": "Empty, too long, quote-copying (incl. whitespace/case, pointer suffix, one-char session) and non-string lines are refused with nothing changed; an unedited line that repeats a quote needs an edit",
+        "disposition": "tested",
+        "evidence": "countersign-edit.test.ts::refuses an edited line...; a copied quote is caught...; an unedited line that repeats a quote...; a pasted quote is caught even when..."
+      },
+      {
+        "behavior": "Free-text evidence pointers never reach the audit; unfenced entries cannot be edited and keep the old countersign",
+        "disposition": "tested",
+        "evidence": "countersign-edit.test.ts::an unknown or free-text evidence pointer never reaches the audit"
+      },
+      {
+        "behavior": "Double click logs once; crash residue heals (same proposal, any line); a different proposal with the same identity is refused",
+        "disposition": "tested",
+        "evidence": "countersign-edit.test.ts::a double click...; a copied quote is caught...retry with a DIFFERENT edit"
+      },
+      {
+        "behavior": "CRLF + BOM proposed file edits and countersigns the same way",
+        "disposition": "tested",
+        "evidence": "countersign-edit.test.ts::boundary probe"
+      },
+      {
+        "behavior": "The line/quote split and pointer parser live in the mirrored grammar (drift guard)",
+        "disposition": "tested",
+        "evidence": "orgDecisionsApi.daemon-header.test.ts::verbatim mirror; countersign-edit.test.ts::the grammar splits"
+      },
+      {
+        "behavior": "The window offers Edit line (also for an empty line), sends the edited text, explains refusals in plain words, resets a stale draft",
+        "disposition": "tested",
+        "evidence": "OrgDecisionsProposedModal.edit.test.tsx (6 tests); orgDecisionsApi.test.ts (W4 block)"
+      }
+    ],
+    "counts": {
+      "testable": 9,
+      "tested": 9,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 2,
+      "covered_acs": 2
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "npm.cmd --prefix client run test:e2e:chromium -- --reporter=json client/e2e/flows/org-page.decisions-proposed-edit.spec.ts client/e2e/flows/org-page.decisions-proposed-reject.spec.ts client/e2e/flows/org-page.decisions-proposed.spec.ts",
+    "exit_code": 0,
+    "tests_run": 5,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-shadow-proposals-webui--W4\\.shipwright\\runs\\iterate-2026-11-23-w4-edit-before-approve\\surface_verification.log",
+    "timestamp": "2026-11-23T21:51:08.000Z"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

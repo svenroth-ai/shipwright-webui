@@ -2,7 +2,7 @@
  * DecisionEntryRow — one `decisions-proposed.md` entry row, split out of
  * `OrgDecisionsProposedModal.tsx` to stay under the 300-line convention.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 import type { ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
@@ -45,9 +45,14 @@ export function DecisionEntryRow({
   const pending = status.kind === "pending";
   const settled = status.kind === "done";
   const original = buildEntryView(entry.block, entry.evidence).proposedLine;
-  const canEdit = original !== null && original !== "" && !settled;
+  const canEdit = original !== null && !settled; // an empty line is editable too: the server asks for one
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(original ?? "");
+  // The row key is positional: when a refetch puts a different proposal under this instance, drop the old draft.
+  useEffect(() => {
+    setEditing(false);
+    setDraft(original ?? "");
+  }, [entry.block]); // eslint-disable-line react-hooks/exhaustive-deps
   const labelId = `org-proposed-label-${rowKey.replace(/[^A-Za-z0-9_-]/g, "_")}`;
 
   return (

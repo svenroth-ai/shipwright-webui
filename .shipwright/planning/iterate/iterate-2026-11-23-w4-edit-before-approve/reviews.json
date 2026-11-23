@@ -1,0 +1,288 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-23-w4-edit-before-approve",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T21:47:54.659941+00:00",
+      "disposition": null,
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The audit entry must never contain quote text, but the edited line itself is operator-controlled free text that flows into the audit entry and the log block. If quotes can appear inside the fenced block (the very thing `fencedParts` splits), an operator could type quote text (or maliciously crafted content resembling a quote marker) into the edited line, reintroducing leak/log-corruption paths. \"Must not repeat a quote\" is a substring check — define it precisely (normalized whitespace? case-sensitive?) or it will be bypassable or over-broad.",
+          "suggestion": "Specify the leak test as adversarial in the plan (it's only \"adversarial quotes\" for parsing, not for the edited-line path). Validate the edited line against the same quote-detection logic used for parsing, and add tests where the edited line contains quote markers, the key marker string, or log-header-like lines.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Rebuilding the log block as `header + key marker + \"- <line>\"` creates a log-injection surface: a multi-line edited line (or one starting with `- ` / header syntax) can alter the log's structure. The plan validates non-empty and ≤2000 chars but doesn't state newline/CR rejection or structural-character rejection.",
+          "suggestion": "Reject newlines, control chars, and any line-leading syntax that collides with the log format (or escape it deterministically). State this in the validation step of the plan.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Moving `fencedParts` and the pointer parser \"verbatim\" into a mirrored grammar changes shared parsing on both server and client. Old unfenced entries and pre-W4 residue comparison depend on the old behavior. A verbatim move plus drift test is good, but the plan doesn't say whether pre-W4 log blocks are covered by regression tests after the rebuild-path change.",
+          "suggestion": "Add an explicit acceptance item or test list: parse + countersign-retry against a pre-W4 fixture file (the plan mentions \"residue compare uses the line already logged\" but no concrete fixture test is named).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "performCountersign(…, editedLine?)` deciding \"edited vs. approved_as_proposed itself\" is good, but the decision boundary needs a definition: is whitespace-normalized-equal \"unedited\"? Trailing whitespace from a textarea is the classic case where a user clicks edit, changes nothing, and the entry flips to `edited` spuriously.",
+          "suggestion": "Normalize (trim) before comparing and document it.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The 2000-char max and the line-with-newline refusal messages are \"plain-language\" client-side, but the plan doesn't mention server-side error surfacing — if the client validation and server validation diverge (client allows, server refuses), what does the operator see on countersign failure? Crash/retry semantics on refusal also matter (does a refused countersign leave residue?).",
+          "suggestion": "Confirm refusal is atomic — no partial log write or residue on validation failure — and that server refusals render in the same refusal UI path.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "useDecisionActions` extraction is bundled into this change; that's fine, but it widens the diff surface of a change whose core risk is correctness of leak prevention. Not blocking.",
+          "suggestion": "Consider landing the handler extraction as a separate no-behavior commit within the same unit so the E2E diff isolates the W4 behavior.  Overall assessment: The approach is sound and the audit-leak design (pointer, never text) is the right shape, but the edited line is a new operator-controlled input into the log and audit, and the plan's validation spec is under-specified against injection of quote markers and log-structure characters — fix those specifics before building.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security ·",
+          "file": null,
+          "line": null,
+          "finding": "Non-empty, length, and quote checks do not prevent an edited textarea value from injecting additional log lines, headers, or key markers through embedded newlines.",
+          "suggestion": "Validate the request value as a string and enforce a single logical line server-side, rejecting CR/LF and other delimiters recognized by the log parser before constructing the block.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Comparing retry residue against the already logged line establishes content consistency, but does not explain how to recover the correct `edited` classification after a crash between log append and audit write. A retry could also submit a different edit.",
+          "suggestion": "Specify recovery under the existing countersign lock: use the committed line, derive classification against the pending proposal before removing it, and reject conflicting retry content. Test crashes between each persistent write and concurrent submissions with different edits.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security ·",
+          "file": null,
+          "line": null,
+          "finding": "“Must not repeat a quote” leaves the privacy boundary underspecified. Exact matching can miss a copied quote whose whitespace or line endings changed. Preserving unfenced blocks unchanged also needs an explicit compatibility check against the no-quote requirement.",
+          "suggestion": "Define quote comparison normalization and supported legacy behavior. Test copied quotes with formatting changes, malformed fences, and unfenced entries containing evidence. Reject entries that cannot be safely separated instead of copying ambiguous content into the log.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The plan changes the service signature and audit event, but does not explicitly cover the HTTP request validator, client API types, or historical audit readers. A strict validator could discard `editedLine`; readers could reject older events lacking the new fields.",
+          "suggestion": "Include the transport/schema changes and backward-compatible audit parsing. Add a route-level test proving that the edited value reaches countersign and that historical events still load.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "“Decides edited/unedited itself” needs a defined equality rule. Opening the editor without changing anything, reverting an edit, or submitting whitespace-only changes could otherwise produce misleading audit classifications.",
+          "suggestion": "Define one canonicalization rule for validation, storage, and comparison. Classify by the resulting line’s equality with the proposed line, and distinguish an omitted edit from an explicitly empty submission.  The approach is broadly sound and appropriately scoped. Specify input boundaries, recovery semantics, and compatibility behavior before implementation.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-23T21:41:12.730140+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] **Findings**\n\n- **Category: security — Severity: high**\n  Finding: The audit entry must never contain quote text, but the edited line itself is operator-controlled free text that flows into the audit entry and the log block. If quotes can appear inside the fenced block (the very thing `fencedParts` splits), an operator could type quote text (or maliciously crafted content resembling a quote marker) into the edited line, reintroducing leak/log-corruption paths. \"Must not repeat a quote\" is a substring check — define it precisely (normalized whitespace? case-sensitive?) or it will be bypassable or over-broad.\n  Suggestion: Specify the leak test as adversarial in the plan (it's only \"adversarial quotes\" for parsing, not for the edited-line path). Validate the edited line against the same quote-detection logic used for parsing, and add tests where the edited line contains quote markers, the key marker string, or log-header-like lines.\n\n- **Category: edge-case — Severity: medium**\n  Finding: Rebuilding the log block as `header + key marker + \"- <line>\"` creates a log-injection surface: a multi-line edited line (or one starting with `- ` / header syntax) can alter the log's structure. The plan validates non-empty and ≤2000 chars but doesn't state newline/CR rejection or structural-character rejection.\n  Suggestion: Reject newlines, control chars, and any line-leading syntax that collides with the log format (or escape it deterministically). State this in the validation step of the plan.\n\n- **Category: risk — Severity: medium**\n  Finding: Moving `fencedParts` and the pointer parser \"verbatim\" into a mirrored grammar changes shared parsing on both server and client. Old unfenced entries and pre-W4 residue comparison depend on the old behavior. A verbatim move plus drift test is good, but the plan doesn't say whether pre-W4 log blocks are covered by regression tests after the rebuild-path change.\n  Suggestion: Add an explicit acceptance item or test list: parse  […truncated]\n\n[openai] The environment blocked file reads, so I could not verify the referenced brief or existing implementation. These findings concern the supplied mini-plan.\n\n1. **Category: security · Severity: high**  \n   **Finding:** Non-empty, length, and quote checks do not prevent an edited textarea value from injecting additional log lines, headers, or key markers through embedded newlines.  \n   **Suggestion:** Validate the request value as a string and enforce a single logical line server-side, rejecting CR/LF and other delimiters recognized by the log parser before constructing the block.\n\n2. **Category: edge-case · Severity: high**  \n   **Finding:** Comparing retry residue against the already logged line establishes content consistency, but does not explain how to recover the correct `edited` classification after a crash between log append and audit write. A retry could also submit a different edit.  \n   **Suggestion:** Specify recovery under the existing countersign lock: use the committed line, derive classification against the pending proposal before removing it, and reject conflicting retry content. Test crashes between each persistent write and concurrent submissions with different edits.\n\n3. **Category: security · Severity: medium**  \n   **Finding:** “Must not repeat a quote” leaves the privacy boundary underspecified. Exact matching can miss a copied quote whose whitespace or line endings changed. Preserving unfenced blocks unchanged also needs an explicit compatibility check against the no-quote requirement.  \n   **Suggestion:** Define quote comparison normalization and supported legacy behavior. Test copied quotes with formatting changes, malformed fences, and unfenced entries containing evidence. Reject entries that cannot be safely separated instead of copying ambiguous content into the log.\n\n4. **Category: dependency · Severity: medium**  \n   **Finding:** The plan changes the service signature and audit event, but does not explicitly cover the HTTP req […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T21:50:18.552875+00:00",
+      "disposition": "Coordinator instruction: the campaign orchestrator runs the real spec/code/doubt cascade on the PR head and replaces this row (3f-bis); not attested by the runner",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "delegated-to-orchestrator"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T21:50:18.703851+00:00",
+      "disposition": "Coordinator instruction: the campaign orchestrator runs the real spec/code/doubt cascade on the PR head and replaces this row (3f-bis); not attested by the runner",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "delegated-to-orchestrator"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "bug",
+          "file": "client/src/components/org/DecisionEntryRow.tsx:39-43 (the `useState(false)` / `useState(original ?? \"\")` lines)",
+          "line": null,
+          "finding": "The `editing` flag and `draft` text are per-component-instance state, but the row key (`entryKey`) is positional (`timestamp|leadId|index`). On any refetch that removes or reorders entries (a sibling row's countersign always removes one), the same row instance is re-rendered with a different proposal while keeping the old row's `editing=true` and `draft`. Clicking Countersign then sends the previous proposal's draft text to the new proposal's identity, permanently logging a line written for a different decision. The old code only risked a stale banner; this change turns that known positional-key staleness into silent wrong-data being written.",
+          "suggestion": "Reset `draft`/`editing` whenever the entry's content changes (e.g. key the draft by `entry.block`, or `useEffect` on a content hash), or key the row list by a content-derived key so a changed entry remounts the row.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/external/org/countersign-core.ts:141-155 (healing branch)",
+          "line": null,
+          "finding": "On the crash-heal path, `isEdited(facts, loggedLine)` reads the line back from the log, but for a pre-W4 log block (`loggedFingerprintOf` returns `null`, whole-entry shape) with a fenced proposal, `facts !== null` and `loggedLine === null`, so `edited` evaluates to `false` and the audit is written `approved_as_proposed` even when the log block is the pre-W4 whole-entry shape where no line was ever extracted. That's arguably correct-ish, but more importantly the same expression `facts !== null && loggedLine !== null && isEdited(...)` is a long compound read of a partial heal — if `loggedLineOf`'s regex ever fails on a slightly different block (e.g. two markers plus CRLF already handled, but a future third marker line), the audit silently records `approved_as_proposed` for an edited decision. The `edit` field in the audit is the spec's core deliverable; deriving it by regex-parsing the log rather than from any durable record of the original edit is fragile.",
+          "suggestion": "Acceptable for now, but add a test for the heal path asserting the exact `data.edit` value (currently only the crash test asserts log/audit line counts, not `edit`), and consider storing the fingerprint→edit mapping or failing closed when `facts !== null && loggedLine === null` on the heal path.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/external/org/__tests__/countersign-edit.test.ts:100-118 (double-click test) and the \"crash residue\" heal test",
+          "line": null,
+          "finding": "The concurrency test calls `post()` twice via `Promise.all` on two separate `app()` instances; it does not actually prove one lock-serialized double-submit (two Hono apps on the same tmpdir share the file lock, so it's OK, but nothing asserts one 200 + one already_countersigned shape). More importantly, the heal test asserts `healed.status === 200` but never asserts `edited` in the response or `data.edit` in the audit for the healed record — the AC's audit wording (\"says edited\") is untested on this path, and a broken implementation (always `approved_as_proposed` after a crash) would pass.",
+          "suggestion": "Assert `(await healed.json()).edited` (or `alreadyCountersigned`) and `auditLines()[0].data.edit` on the heal path.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/org-page.decisions-proposed-edit.spec.ts:17-20 (`writeFixture`, `rmSync(LEADS_ROOT, {recursive, true})`)",
+          "line": null,
+          "finding": "The e2e test recursively deletes `~/.claude/leads` — the real user home directory — before and after each run. If a developer runs Playwright on a machine with real lead data, it is destroyed. If this is the established repo convention (W3 tests appear to do the same) it's a known hazard, but it is still a destructive operation against a non-sandboxed path.",
+          "suggestion": "Gate on an env var (e.g. skip unless `SHIPWRIGHT_E2E=1`) or point `LEADS_ROOT` at a temp dir via injected config.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/org/DecisionEntryRow.tsx:66-74 (`onClick={() => onCountersign(editing ? draft : undefined)}`)",
+          "line": null,
+          "finding": "If the operator opens the editor, edits, then clicks \"Stop editing\", the row silently reverts to approving as proposed — but the draft is kept. Re-opening the editor restores the stale draft, and the countersign button gives no hint which text will be sent (edited vs proposed) while the editor is closed. Combined with the positional-key issue above, this makes it easy to countersign unintended text. The `aria-pressed` state helps but the button label (\"Countersign\") never reflects the pending action.",
+          "suggestion": "When editing stops with a non-empty divergent draft, either send the draft regardless, or clear it; at minimum show which text will be sent on the countersign button.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "regression",
+          "file": "client/src/lib/orgProposedGrammar.ts:184-186 vs the removed code in orgProposedView.ts",
+          "line": null,
+          "finding": "Two behavior changes are bundled into the \"mirror\" refactor without migration notes: (1) quote detection changed from `startsWith(\">\")` to `trimStart().startsWith(\">\")` — indented `>` lines that previously rendered as part of the proposed line are now quotes; (2) `parseSourceRef` session minimum length changed from 4 chars to 1. Both are mirrored server-side and documented, so they're intentional, but any other existing consumer of `parseSourceRef`/`buildEntryView` (e.g. the inbox/beat views, if any import it) will see the relaxed pointer shape (1-char sessions now parse as \"known\").",
+          "suggestion": "Verify no other client surface relies on the old 4-char minimum for rendering \"unknown\" pointers; if it exists, align the bound.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/org/DecisionEntryRow.tsx",
+          "line": 48,
+          "finding": "canEdit` excludes empty proposed lines. The server explicitly rejects these with `line_empty` and asks the operator to write a line, but the UI offers no editor, leaving the proposal impossible to approve through the WebUI.",
+          "suggestion": "Allow editing whenever a fenced proposed line exists, including an empty string. Add a test that fills an initially empty line and countersigns it.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security",
+          "file": "server/src/external/org/proposed-line.ts",
+          "line": 48,
+          "finding": "Quote detection strips pointer suffixes only when the session ID has at least four characters, while `parseSourceRef` accepts one-character IDs. For `> confidential customer observation — abc:2026-11-19T16:02:11Z:14`, the client displays the quote without its pointer, but submitting that displayed text passes validation and writes the quote into the log.",
+          "suggestion": "Strip suffixes recognized by `parseSourceRef`, alongside the existing malformed-pointer detection. Test copying a displayed quote with a one-to-three-character session ID.  Ship-with-fixes: these gaps prevent recovery from empty proposals and violate the no-quotes logging requirement. Review was limited to the supplied diff because local access was blocked; the referenced brief and tests could not be checked.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-23T21:50:18.272463+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ### Findings\n\n- Category: bug\n  Severity: high\n  File: client/src/components/org/DecisionEntryRow.tsx:39-43 (the `useState(false)` / `useState(original ?? \"\")` lines)\n  Finding: The `editing` flag and `draft` text are per-component-instance state, but the row key (`entryKey`) is positional (`timestamp|leadId|index`). On any refetch that removes or reorders entries (a sibling row's countersign always removes one), the same row instance is re-rendered with a *different* proposal while keeping the old row's `editing=true` and `draft`. Clicking Countersign then sends the previous proposal's draft text to the new proposal's identity, permanently logging a line written for a different decision. The old code only risked a stale banner; this change turns that known positional-key staleness into silent wrong-data being written.\n  Suggestion: Reset `draft`/`editing` whenever the entry's content changes (e.g. key the draft by `entry.block`, or `useEffect` on a content hash), or key the row list by a content-derived key so a changed entry remounts the row.\n\n- Category: bug\n  Severity: medium\n  File: server/src/external/org/countersign-core.ts:141-155 (healing branch)\n  Finding: On the crash-heal path, `isEdited(facts, loggedLine)` reads the line back from the log, but for a pre-W4 log block (`loggedFingerprintOf` returns `null`, whole-entry shape) with a fenced proposal, `facts !== null` and `loggedLine === null`, so `edited` evaluates to `false` and the audit is written `approved_as_proposed` even when the log block is the pre-W4 whole-entry shape where no line was ever extracted. That's arguably correct-ish, but more importantly the same expression `facts !== null && loggedLine !== null && isEdited(...)` is a long compound read of a partial heal — if `loggedLineOf`'s regex ever fails on a slightly different block (e.g. two markers plus CRLF already handled, but a future third marker line), the audit silently records `approved_as_proposed` for an edited decision.  […truncated]\n\n[openai] - Category: bug\n- Severity: medium\n- File: client/src/components/org/DecisionEntryRow.tsx:48\n- Finding: `canEdit` excludes empty proposed lines. The server explicitly rejects these with `line_empty` and asks the operator to write a line, but the UI offers no editor, leaving the proposal impossible to approve through the WebUI.\n- Suggestion: Allow editing whenever a fenced proposed line exists, including an empty string. Add a test that fills an initially empty line and countersigns it.\n\n- Category: security\n- Severity: high\n- File: server/src/external/org/proposed-line.ts:48\n- Finding: Quote detection strips pointer suffixes only when the session ID has at least four characters, while `parseSourceRef` accepts one-character IDs. For `> confidential customer observation — abc:2026-11-19T16:02:11Z:14`, the client displays the quote without its pointer, but submitting that displayed text passes validation and writes the quote into the log.\n- Suggestion: Strip suffixes recognized by `parseSourceRef`, alongside the existing malformed-pointer detection. Test copying a displayed quote with a one-to-three-character session ID.\n\nShip-with-fixes: these gaps prevent recovery from empty proposals and violate the no-quotes logging requirement. Review was limited to the supplied diff because local access was blocked; the referenced brief and tests could not be checked.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T21:50:18.420987+00:00",
+      "disposition": "Coordinator instruction: the campaign orchestrator runs the real spec/code/doubt cascade on the PR head and replaces this row (3f-bis); not attested by the runner",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "delegated-to-orchestrator"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T21:47:54.819680+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T21:42:00.656567+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

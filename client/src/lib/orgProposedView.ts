@@ -37,7 +37,7 @@ export interface EntryView {
 }
 
 const BEAT_RE = /origin: \S+ beat ([^,\s]+),/;
-const POINTER_ATTEMPT_RE = /^(?:session\b|[A-Za-z0-9_-]{4,}:\S)/;
+const POINTER_ATTEMPT_RE = /^(?:session\b|[A-Za-z0-9_-]{4,}:\S|[A-Za-z0-9_-]+:\d{4}-\d{2})/;
 const QUOTE_SEP = " — ";
 
 function parseQuote(line: string, fallback: SourceRef): QuoteView {

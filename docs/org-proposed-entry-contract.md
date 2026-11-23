@@ -177,7 +177,7 @@ Nothing here changes identity, listing or countersign.
   fence. Until agreed and pinned as a fixture in both repos, entries show no quotes unless the lead
   already writes this shape. Tracked next to the other S1-E preconditions.
 - A suffix after ` — ` is split off only when it looks like a pointer attempt (`session …` or
-  `<id of 4+ characters>:…`); otherwise the whole line is quote text and shows the entry's evidence pointer,
+  `<id>:…`); otherwise the whole line is quote text and shows the entry's evidence pointer,
   labelled "(entry evidence)". Empty `>` lines are skipped.
 - Unfenced (marker-less) bodies stay sanitised Markdown with no quote extraction.
 - The line/quote classification (`fencedParts`) and the pointer parser (`parseSourceRef`) live in the

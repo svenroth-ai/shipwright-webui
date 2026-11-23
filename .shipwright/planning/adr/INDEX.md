@@ -73,3 +73,5 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Reminder CLI bridge (reminders W1)](iterate-2026-11-22-w1-cli-bridge-reminder-cli-bridge.md)
 - [Reminder mail: in-process timer, persisted ledger, pinned SMTP library](iterate-2026-11-22-w4-mail-timer-reminder-mail.md)
 - [ADR: Structured proposal view in the proposed-decisions window (W2)](iterate-2026-11-23-w2-entry-view-structured-proposal-view.md)
+- [Reject a proposed entry, with an audit record (W3, campaign shadow-proposals-webui)](iterate-2026-11-23-w3-reject-audit-reject-with-record.md)
+- [Edit the proposed line before countersigning](iterate-2026-11-23-w4-edit-before-approve-edit-line.md)

@@ -90,6 +90,19 @@ describe("edit before approving (W4)", () => {
   });
 
   // @covers FR-01.71
+  it("an empty proposed line can still be edited, so the proposal can be approved", async () => {
+    const empty = { ...FENCED, block: FENCED.block.replace(`${LINE}
+`, "") };
+    mockedFetch.mockResolvedValue([empty]);
+    mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: false, number: 3, adr: "ADR-0003", edited: true });
+    renderModal();
+    fireEvent.click(await screen.findByTestId(id("edit")));
+    fireEvent.change(screen.getByLabelText("Line for the decisions log"), { target: { value: "Written by the operator." } });
+    fireEvent.click(screen.getByTestId(id("countersign")));
+    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", "Written by the operator."));
+  });
+
+  // @covers FR-01.71
   it("an entry without a fenced line offers no edit button", async () => {
     mockedFetch.mockResolvedValue([{ timestamp: TS, leadId: "acme-lead", block: `## [${TS}] acme-lead\n- **Context:** a\n`, body: "- **Context:** a\n", evidence: null }]);
     renderModal();

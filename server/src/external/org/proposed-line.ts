@@ -40,7 +40,7 @@ export interface ProposalFacts {
 }
 
 const QUOTE_SEP = " — ";
-const POINTER_ATTEMPT_RE = /^(?:session\b|[A-Za-z0-9_-]{4,}:\S)/;
+const POINTER_ATTEMPT_RE = /^(?:session\b|[A-Za-z0-9_-]{4,}:\S|[A-Za-z0-9_-]+:\d{4}-\d{2})/;
 
 /** Texts a pasted quote can show up as: with and without its ` — <pointer>` suffix (the view shows it without). */
 function quoteNeedles(raw: string): string[] {

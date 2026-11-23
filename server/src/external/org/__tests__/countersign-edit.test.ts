@@ -200,6 +200,28 @@ describe("countersign with an edited line (W4)", () => {
   });
 
   // @covers FR-01.71
+  it("a pasted quote is caught even when its pointer has a one-character session id; healing records the edit state", async () => {
+    const e = entry([LINE, "> confidential customer observation about the budget — a:2026-11-19T16:02:11Z:14"]);
+    writeFileSync(proposed, e);
+    expect((await (await post({ line: "We heard: confidential customer observation about the budget" })).json()).error).toBe("line_contains_quote");
+    expect((await post({ line: "Digest weekly." })).status).toBe(200);
+    writeFileSync(proposed, e);
+    writeFileSync(audit, ""); // the audit line is missing: the heal completes it
+    expect((await post({})).status).toBe(200);
+    expect(auditLines()[0].data.edit).toBe("edited");
+  });
+
+  // @covers FR-01.71
+  it("boundary probe: a CRLF proposed file and a BOM-prefixed file edit and countersign the same way", async () => {
+    writeFileSync(proposed, String.fromCharCode(0xfeff) + entry([LINE, QUOTES[0]]).split(String.fromCharCode(10)).join(String.fromCharCode(13, 10)));
+    const res = await post({ line: "Weekly digest only." });
+    expect(res.status).toBe(200);
+    expect(readFileSync(logged, "utf8")).toContain("- Weekly digest only.");
+    expect(readFileSync(logged, "utf8")).not.toContain("QUOTE-SECRET");
+    expect(auditLines()[0].data.edit).toBe("edited");
+  });
+
+  // @covers FR-01.71
   it("the grammar splits a fenced region into proposed line and quotes with one rule", () => {
     const parts = fencedParts(entry([LINE, "second line", ...QUOTES]).split("\n"))!;
     expect(parts.proposed).toEqual([LINE, "second line"]);
