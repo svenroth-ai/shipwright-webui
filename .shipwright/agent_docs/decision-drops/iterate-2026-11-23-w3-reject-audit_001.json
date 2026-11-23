@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-23-w3-reject-audit",
+  "date": "2026-11-23",
+  "section": "Iterate - feature: reject a proposed entry with an audit record",
+  "title": "Reject proposals under the decisions lock, with an audit line",
+  "context": "Campaign shadow-proposals-webui W3: a proposal could only be countersigned; nothing recorded who decided, and a rejected key could be proposed again unnoticed.",
+  "decision": "POST /api/org/decisions/reject removes the entry under the FR-04.28 lock and appends one decision_rejected line (author, lead, key, optional reason; no quote) to the lead's audit.jsonl first; countersign appends decision_countersigned. Retries and double clicks record once.",
+  "consequences": "Both kinds show in the audit view; a repeat of a rejected key is badged. Author is the server's OS account; audit.jsonl is lead-writable and not fsynced (accepted, see ADR file).",
+  "rationale": "Smallest mechanism: reuses the existing lock, atomic write and audit file; audit-first ordering makes the retry idempotent; cross-action guards stop reject and countersign contradicting each other.",
+  "rejected": "A WebUI-owned decisions-audit file (second store, dual audit view); client-only hiding (no record); editing the file by hand.",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-11-23-w3-reject-audit-reject-with-record.md"
+}

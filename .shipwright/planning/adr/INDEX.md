@@ -72,3 +72,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Triage page: one aggregated list, include-set filters, saved view](iterate-2026-11-08-triage-page-redesign-triage-page-model.md)
 - [Reminder CLI bridge (reminders W1)](iterate-2026-11-22-w1-cli-bridge-reminder-cli-bridge.md)
 - [Reminder mail: in-process timer, persisted ledger, pinned SMTP library](iterate-2026-11-22-w4-mail-timer-reminder-mail.md)
+- [Reject a proposed entry, with an audit record (W3, campaign shadow-proposals-webui)](iterate-2026-11-23-w3-reject-audit-reject-with-record.md)

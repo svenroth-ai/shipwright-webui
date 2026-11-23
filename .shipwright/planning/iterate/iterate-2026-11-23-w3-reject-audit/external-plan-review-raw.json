@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n- **Category: edge-case** \u2014 **Severity: medium** \u2014 The retry logic keys on finding a `decision_rejected` line in the audit log, but the plan doesn't specify what makes a line match a retry vs. a genuine prior rejection of a *different* proposal of the same key. A lead can propose the same decisionKey twice legitimately (or after rejection \u2014 that's exactly what \"repeat\" detection in AC-2 requires). If matching is done by `(lead, decisionKey)` alone, a re-proposed key will look \"already rejected\" and either block reject or the repeat-badge logic. Match on `(lead, entryTimestamp, decisionKey)` \u2014 the same tuple used to parse the entry \u2014 and document that explicitly.\n\n- **Category: risk** \u2014 **Severity: medium** \u2014 Step 3 says countersign \"finishes (does not approve) an entry whose reject was recorded,\" but doesn't state that the countersign route and reject route hold the *same* lock instance. If countersign runs under a different lock (or the existing countersign route isn't currently under `decisions-lock.ts`), there's a check-then-act race between \"check audit for reject\" and \"append countersign line.\" Verify and state that both routes serialize on the same lock; if countersign isn't locked today, that's a prerequisite change, not an optional one.\n\n- **Category: edge-case** \u2014 **Severity: medium** \u2014 Parsing the proposal by `(timestamp, leadId)` assumes the timestamp in `decisions-proposed.md` is unique per entry and stable across writes. Confirm how proposals are actually written \u2014 if timestamps are second-granular or reused on re-propose, (timestamp, leadId) can match two entries. If the format doesn't carry a unique id, this is the time to add one for rejected-entry audit records; otherwise the retry-once rule and repeat detection both degrade.\n\n- **Category: approach** \u2014 **Severity: low** \u2014 \"Countersign checks the audit file is usable before it writes the log\" is vague. What does \"usable\" mean \u2014 exists, writable, valid JSONL? A malformed or read-only audit file should fail loudly on *both* paths, and the check should happen inside the lock, immediately before the append, not as a preflight outside it. Otherwise a preflight-check-then-append race produces the exact crash-unsafe double-write the design is trying to prevent.\n\n- **Category: edge-case** \u2014 **Severity: low** \u2014 The reject path writes the audit line, then removes the entry from `decisions-proposed.md`. Crash between the two leaves a visible proposal with a logged rejection. That's fine (retry completes it), but the plan should state that the retry is triggered by re-clicking Reject on the still-visible entry \u2014 i.e., the client's \"reject refuses an already-logged entry\" guard must apply only to a *different* entry, not the half-rejected one. Spell out this distinction or step 3's guard will block recovery.\n\n- **Category: security** \u2014 **Severity: low** \u2014 \"Never quote text\" is a good rule; also apply it to the operator-supplied optional reason (it's user input going into a log that other operators read). Store the reason verbatim but never echo proposal/lead prose into it, and validate a max length so an operator can't use the reason to spoof the audit format.\n\n- **Category: edge-case** \u2014 **Severity: low** \u2014 `GET /api/org/decisions/rejected-keys`: specify whether it returns all-time rejected keys per lead or time-windowed, and how big that set can get. If it scans every lead's audit.jsonl on each request, that's fine at small scale but note the intended read path (in-memory under the lock vs. re-read per request) so client badge rendering isn't based on a stale snapshot with no refresh story.\n\n- **Category: approach** \u2014 **Severity: low** \u2014 The plan is otherwise appropriately sized: reuse of the existing lock, one route, one client action, no new abstraction. No over-production concerns.\n\n## Overall Assessment\n\nThe approach is sound \u2014 audit-before-remove with retry-completion is the right crash-safe pattern \u2014 but the proposal-matching tuple and the lock shared with countersign need to be nailed down explicitly, since both directly determine whether \"exactly once\" and the cross-action guard actually hold.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "The environment blocked file access, so I could not read the referenced brief or verify the existing code. This review covers the supplied specification and mini-plan.\n\n1. **Category:** edge-case \u00b7 **Severity:** high  \n   **Finding:** Countersign\u2019s recovery sequence is underspecified. Checking that the audit file is usable does not prevent approval succeeding and the audit append subsequently failing. Conversely, an audit-first implementation needs to recover approval without duplicating it.  \n   **Suggestion:** Define the countersign write order and retry behavior across audit append, approval logging, and proposal removal. Test failures between each write and ensure retries produce one approval and one audit event.\n\n2. **Category:** risk \u00b7 **Severity:** high  \n   **Finding:** \u201cExactly once, crash safe\u201d requires more than appending before removal. A partial JSONL append or interrupted proposal-file rewrite could leave an unreadable audit record or damage unrelated proposals.  \n   **Suggestion:** Specify handling for incomplete trailing audit records and use the existing atomic file-replacement mechanism for proposal removal. Distinguish process-interruption recovery from durable storage guarantees, and test the claimed failure boundaries.\n\n3. **Category:** edge-case \u00b7 **Severity:** medium  \n   **Finding:** The cross-action guards leave recovery and conflict precedence ambiguous. Reject must recognize its existing audit record even after the proposal has disappeared; otherwise a retry cannot reliably return success. A recorded rejection must also take precedence over countersign approval.  \n   **Suggestion:** Under the same lock, check existing outcomes before requiring a pending entry. Define explicit behavior for repeated reject, repeated countersign, and both cross-action orders, including interruption after recording rejection but before removal.\n\n4. **Category:** dependency \u00b7 **Severity:** medium  \n   **Finding:** \u201cOld entries keep working\u201d lacks a concrete rule for entries missing author or decision-key metadata. Rejecting these could fail validation or generate misleading audit data; inconsistent key normalization could also miss repeat badges.  \n   **Suggestion:** Define legacy parsing and honest fallback values, and reuse the proposal producer\u2019s key derivation and normalization. Test legacy entries and a newly proposed entry sharing a previously rejected key.\n\n5. **Category:** security \u00b7 **Severity:** medium  \n   **Finding:** The new routes do not specify authorization or how audit identity is obtained. Accepting author or filesystem lead paths from request data would allow forged attribution or unintended file access.  \n   **Suggestion:** Reuse existing decision-route authorization, validate and resolve lead IDs through trusted lookup, and derive proposal author from the stored entry. Serialize reasons as bounded JSON strings and apply equivalent access controls to rejected-key reads.\n\nThe audit-first rejection approach is reasonable and appropriately scoped. The plan needs explicit countersign recovery, cross-action semantics, and legacy metadata handling before implementation.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-23-w3-reject-audit",
+    "at": "2026-11-23T20:45:21.528621+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

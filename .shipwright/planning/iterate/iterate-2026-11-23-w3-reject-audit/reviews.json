@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-23-w3-reject-audit",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T20:47:12.862677+00:00",
+      "disposition": null,
+      "recorded_by": "sub-iterate-runner",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Countersign’s recovery sequence is underspecified. Checking that the audit file is usable does not prevent approval succeeding and the audit append subsequently failing. Conversely, an audit-first implementation needs to recover approval without duplicating it.",
+          "suggestion": "Define the countersign write order and retry behavior across audit append, approval logging, and proposal removal. Test failures between each write and ensure retries produce one approval and one audit event.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "“Exactly once, crash safe” requires more than appending before removal. A partial JSONL append or interrupted proposal-file rewrite could leave an unreadable audit record or damage unrelated proposals.",
+          "suggestion": "Specify handling for incomplete trailing audit records and use the existing atomic file-replacement mechanism for proposal removal. Distinguish process-interruption recovery from durable storage guarantees, and test the claimed failure boundaries.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The cross-action guards leave recovery and conflict precedence ambiguous. Reject must recognize its existing audit record even after the proposal has disappeared; otherwise a retry cannot reliably return success. A recorded rejection must also take precedence over countersign approval.",
+          "suggestion": "Under the same lock, check existing outcomes before requiring a pending entry. Define explicit behavior for repeated reject, repeated countersign, and both cross-action orders, including interruption after recording rejection but before removal.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "“Old entries keep working” lacks a concrete rule for entries missing author or decision-key metadata. Rejecting these could fail validation or generate misleading audit data; inconsistent key normalization could also miss repeat badges.",
+          "suggestion": "Define legacy parsing and honest fallback values, and reuse the proposal producer’s key derivation and normalization. Test legacy entries and a newly proposed entry sharing a previously rejected key.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security ·",
+          "file": null,
+          "line": null,
+          "finding": "The new routes do not specify authorization or how audit identity is obtained. Accepting author or filesystem lead paths from request data would allow forged attribution or unintended file access.",
+          "suggestion": "Reuse existing decision-route authorization, validate and resolve lead IDs through trusted lookup, and derive proposal author from the stored entry. Serialize reasons as bounded JSON strings and apply equivalent access controls to rejected-key reads.  The audit-first rejection approach is reasonable and appropriately scoped. The plan needs explicit countersign recovery, cross-action semantics, and legacy metadata handling before implementation.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-11-23T20:47:13.125343+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ## Findings\n\n- **Category: edge-case** — **Severity: medium** — The retry logic keys on finding a `decision_rejected` line in the audit log, but the plan doesn't specify what makes a line match a retry vs. a genuine prior rejection of a *different* proposal of the same key. A lead can propose the same decisionKey twice legitimately (or after rejection — that's exactly what \"repeat\" detection in AC-2 requires). If matching is done by `(lead, decisionKey)` alone, a re-proposed key will look \"already rejected\" and either block reject or the repeat-badge logic. Match on `(lead, entryTimestamp, decisionKey)` — the same tuple used to parse the entry — and document that explicitly.\n\n- **Category: risk** — **Severity: medium** — Step 3 says countersign \"finishes (does not approve) an entry whose reject was recorded,\" but doesn't state that the countersign route and reject route hold the *same* lock instance. If countersign runs under a different lock (or the existing countersign route isn't currently under `decisions-lock.ts`), there's a check-then-act race between \"check audit for reject\" and \"append countersign line.\" Verify and state that both routes serialize on the same lock; if countersign isn't locked today, that's a prerequisite change, not an optional one.\n\n- **Category: edge-case** — **Severity: medium** — Parsing the proposal by `(timestamp, leadId)` assumes the timestamp in `decisions-proposed.md` is unique per entry and stable across writes. Confirm how proposals are actually written — if timestamps are second-granular or reused on re-propose, (timestamp, leadId) can match two entries. If the format doesn't carry a unique id, this is the time to add one for rejected-entry audit records; otherwise the retry-once rule and repeat detection both degrade.\n\n- **Category: approach** — **Severity: low** — \"Countersign checks the audit file is usable before it writes the log\" is vague. What does \"usable\" mean — exists, writable, valid JSONL? A malformed or  […truncated]\n\n[openai] The environment blocked file access, so I could not read the referenced brief or verify the existing code. This review covers the supplied specification and mini-plan.\n\n1. **Category:** edge-case · **Severity:** high  \n   **Finding:** Countersign’s recovery sequence is underspecified. Checking that the audit file is usable does not prevent approval succeeding and the audit append subsequently failing. Conversely, an audit-first implementation needs to recover approval without duplicating it.  \n   **Suggestion:** Define the countersign write order and retry behavior across audit append, approval logging, and proposal removal. Test failures between each write and ensure retries produce one approval and one audit event.\n\n2. **Category:** risk · **Severity:** high  \n   **Finding:** “Exactly once, crash safe” requires more than appending before removal. A partial JSONL append or interrupted proposal-file rewrite could leave an unreadable audit record or damage unrelated proposals.  \n   **Suggestion:** Specify handling for incomplete trailing audit records and use the existing atomic file-replacement mechanism for proposal removal. Distinguish process-interruption recovery from durable storage guarantees, and test the claimed failure boundaries.\n\n3. **Category:** edge-case · **Severity:** medium  \n   **Finding:** The cross-action guards leave recovery and conflict precedence ambiguous. Reject must recognize its existing audit record even after the proposal has disappeared; otherwise a retry cannot reliably return success. A recorded rejection must also take precedence over countersign approval.  \n   **Suggestion:** Under the same lock, check existing outcomes before requiring a pending entry. Define explicit behavior for repeated reject, repeated countersign, and both cross-action orders, including interruption after recording rejection but before removal.\n\n4. **Category:** dependency · **Severity:** medium  \n   **Finding:** “Old entries keep working” lacks a […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T20:44:42.870192+00:00",
+      "disposition": "the reviewer ran on an earlier state of the diff; its findings were fixed afterwards in ace6cd909; the orchestrator re-reviews the final commit at 3f-bis (campaign mode, ADR-029)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "delegated-to-orchestrator"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T20:44:42.999676+00:00",
+      "disposition": "the reviewer ran on an earlier state of the diff; its findings were fixed afterwards in ace6cd909; the orchestrator re-reviews the final commit at 3f-bis (campaign mode, ADR-029)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "delegated-to-orchestrator"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "test / edge-case",
+          "file": "client/e2e/flows/org-page.decisions-proposed-reject.spec.ts:24-25 (`writeFixture`, `afterEach`)",
+          "line": null,
+          "finding": "The e2e test `rmSync`s and recreates the real `~/.claude/leads` directory on the developer's machine. `beforeEach`/`afterEach` wipe whatever leads data actually lives there, destroying real state, and the test then reads/writes the production paths of any locally running server. Other suites in this codebase presumably use an injected temp `leadsRoot` via env/config.",
+          "suggestion": "Point `LEADS_ROOT` at a temp directory (e.g. `mkdtempSync(tmpdir())`) and configure the server under test to use it; never `rmSync` a path under `homedir()`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug / edge-case",
+          "file": "server/src/external/org/reject-core.ts:48-56 (`rejectedEarlier`)",
+          "line": null,
+          "finding": "already_rejected` is decided by entryTimestamp alone. If a lead later proposes a different entry that reuses the timestamp of a previously rejected one (the same scenario the diff explicitly tests and handles for countersign — \"countersign does not swallow a NEW proposal that merely reuses the timestamp\"), reject of the new entry wrongly returns `already_rejected`: the new proposal is neither removed nor recorded. The in-code comment acknowledges the assumption but the countersign side of this diff already proves timestamps can be reused.",
+          "suggestion": "Compare the decision key too when the audit record has one (as `hasDecisionAudit` already supports), falling back to timestamp-only only for key-less entries; add a test mirroring the countersign one.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/external/org/__tests__/reject.test.ts:92-99 (\"a double click\")",
+          "line": null,
+          "finding": "The double-click test does not assert the entry was actually removed or that the second request saw the first's result deterministically — it only checks `alreadyRejected===false` count and audit length. Given the lock serializes them, a buggy implementation that returned `rejected:false` twice while skipping the audit would still fail, but one that removed the entry twice or returned 200/404 in either order partially passes. It's mostly adequate; the main gap is no assertion on the proposed file after the race.",
+          "suggestion": "Add `expect(readFileSync(proposed, \"utf8\")).not.toContain(\"use-weekly-digest\")` after the concurrent pair.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/components/org/DecisionRejectControl.tsx:38-44",
+          "line": null,
+          "finding": "pending` is a shared row-level flag, but the reject confirm button and the countersign button disable on the same `pending`; a reject in flight disables nothing about the reject button's own re-entry beyond the modal's `inFlight` set — which is fine — but the reverse case: while a countersign is pending, the row still shows the \"Reject\" button as `disabled` yet the \"ask first\" panel can already be open with an enabled Confirm (since `pending` propagates — actually it does propagate). Minor: after a reject succeeds and the modal refetches, the confirming panel's local `confirming` state can persist for a row whose entry reappears (duplicate identity case leaves the row with the confirm panel open and reason text retained). Cosmetic; not blocking.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "regression",
+          "file": "server/src/external/org/countersign-core.ts:141-144 and 187",
+          "line": null,
+          "finding": "Countersign now writes an audit line on every success. Any existing test or consumer that asserts the lead's `audit.jsonl` content after countersign (outside the diff) would break; more importantly, the retry path's audit failure is silently swallowed (`try { audit(...) } catch {}`) — the commented rationale (\"log is source of truth\") is reasonable, but note that the reject path does the opposite (`assertAuditAppendable` fails the action). The asymmetry means an unreadable audit file blocks reject but not countersign-completion; intentional but worth a test, which the diff doesn't have for the swallowed-catch branch.",
+          "suggestion": "Add a test where the audit file is a symlink during the countersign retry path to pin the documented behavior.  Everything else checks out: the exactly-once audit logic (check-then-append under the lock), quote-free audit records, reason normalization stripping control characters/JSONL-breaking chars, path guard on the audit file, lead-folder existence check preventing creation from lead-written filenames, and the repeat-badge `entryTimestamp !== e.timestamp` guard all look correct and well-tested. Spec ACs (removal + one audit entry, repeat display, double-click-once) are all covered server-side and client-side.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "bug",
+          "file": "server/src/external/org/countersign-core.ts",
+          "line": 142,
+          "finding": "The countersign recovery path swallows audit-write failures and then removes the proposed entry. If the log write succeeds but auditing fails, a retry can report success without an audit record. Once the proposal is removed, this recovery path can no longer reconstruct that record.",
+          "suggestion": "Preserve a recoverable pending state until the audit write succeeds. Propagate the failure instead of removing the proposal and reporting successful recovery.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/routes/org-writes.ts",
+          "line": 107,
+          "finding": "The rejected-keys endpoint silently processes only the first 50 lead IDs, while the client sends all proposing leads in one request. With proposals from 51 or more leads, previously rejected keys belonging to omitted leads never receive repeat badges, violating the repeat acceptance criterion.",
+          "suggestion": "Batch client requests into groups of 50 and merge their results, or implement pagination that the client follows.  Overall assessment: ship-with-fixes. This review is limited to the supplied diff because environment policy blocked local reads; the referenced brief and tests could not be checked.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-11-23T20:47:13.429710+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] **Findings**\n\n- Category: test / edge-case\n- Severity: high\n- File: client/e2e/flows/org-page.decisions-proposed-reject.spec.ts:24-25 (`writeFixture`, `afterEach`)\n- Finding: The e2e test `rmSync`s and recreates the **real** `~/.claude/leads` directory on the developer's machine. `beforeEach`/`afterEach` wipe whatever leads data actually lives there, destroying real state, and the test then reads/writes the production paths of any locally running server. Other suites in this codebase presumably use an injected temp `leadsRoot` via env/config.\n- Suggestion: Point `LEADS_ROOT` at a temp directory (e.g. `mkdtempSync(tmpdir())`) and configure the server under test to use it; never `rmSync` a path under `homedir()`.\n\n- Category: bug / edge-case\n- Severity: medium\n- File: server/src/external/org/reject-core.ts:48-56 (`rejectedEarlier`)\n- Finding: `already_rejected` is decided by **entryTimestamp alone**. If a lead later proposes a *different* entry that reuses the timestamp of a previously rejected one (the same scenario the diff explicitly tests and handles for countersign — \"countersign does not swallow a NEW proposal that merely reuses the timestamp\"), reject of the new entry wrongly returns `already_rejected`: the new proposal is neither removed nor recorded. The in-code comment acknowledges the assumption but the countersign side of this diff already proves timestamps can be reused.\n- Suggestion: Compare the decision key too when the audit record has one (as `hasDecisionAudit` already supports), falling back to timestamp-only only for key-less entries; add a test mirroring the countersign one.\n\n- Category: test\n- Severity: low\n- File: server/src/external/org/__tests__/reject.test.ts:92-99 (\"a double click\")\n- Finding: The double-click test does not assert the entry was actually removed or that the second request saw the first's result deterministically — it only checks `alreadyRejected===false` count and audit length. Given the lock serializes them, a bu […truncated]\n\n[openai] - Category: bug\n- Severity: high\n- File: server/src/external/org/countersign-core.ts:142\n- Finding: The countersign recovery path swallows audit-write failures and then removes the proposed entry. If the log write succeeds but auditing fails, a retry can report success without an audit record. Once the proposal is removed, this recovery path can no longer reconstruct that record.\n- Suggestion: Preserve a recoverable pending state until the audit write succeeds. Propagate the failure instead of removing the proposal and reporting successful recovery.\n\n- Category: spec\n- Severity: medium\n- File: server/src/routes/org-writes.ts:107\n- Finding: The rejected-keys endpoint silently processes only the first 50 lead IDs, while the client sends all proposing leads in one request. With proposals from 51 or more leads, previously rejected keys belonging to omitted leads never receive repeat badges, violating the repeat acceptance criterion.\n- Suggestion: Batch client requests into groups of 50 and merge their results, or implement pagination that the client follows.\n\nOverall assessment: **ship-with-fixes**. This review is limited to the supplied diff because environment policy blocked local reads; the referenced brief and tests could not be checked.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T20:44:42.719756+00:00",
+      "disposition": "the reviewer ran on an earlier state of the diff; its findings were fixed afterwards in ace6cd909; the orchestrator re-reviews the final commit at 3f-bis (campaign mode, ADR-029)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "delegated-to-orchestrator"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T20:44:43.299092+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T20:44:43.152832+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}
