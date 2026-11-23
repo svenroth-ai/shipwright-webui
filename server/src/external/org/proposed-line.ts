@@ -71,7 +71,11 @@ export function proposalFacts(block: string): ProposalFacts | null {
   return {
     original: normalizeLine(parts.proposed.join("\n")),
     // each quote line, plus the whole quote region joined (a sentence can be pasted across two quote lines)
-    quotes: [...parts.quotes.flatMap(quoteNeedles), foldForCompare(parts.quotes.map((q) => q.replace(QUOTE_PREFIX_RE, "")).join(" "))].filter((q) => q !== ""),
+    quotes: [
+      ...parts.quotes.flatMap(quoteNeedles),
+      foldForCompare(parts.quotes.map((q) => q.replace(QUOTE_PREFIX_RE, "")).join(" ")),
+      foldForCompare(parts.quotes.map((q) => splitQuote(q).text).join(" ")), // joined, pointers left out
+    ].filter((q) => q !== ""),
     evidence: pointer.kind === "known" ? { session: pointer.session, time: pointer.time, message: pointer.message } : null,
   };
 }

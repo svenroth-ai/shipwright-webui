@@ -50,7 +50,7 @@ export function buildEntryView(block: string, evidence: string | null): EntryVie
   const quotes = parts.quotes.map((l) => parseQuote(l, source)).filter((q) => q.text !== "");
   return {
     fenced: true,
-    proposedLine: stripInvisible(parts.proposed.join("\n")).trim(), // exactly what the server will log
+    proposedLine: stripInvisible(parts.proposed.join("\n")).trim(), // invisible characters removed as on the server; whitespace is collapsed on write
     beat: BEAT_RE.exec(parts.label)?.[1] ?? null,
     source,
     quotes,

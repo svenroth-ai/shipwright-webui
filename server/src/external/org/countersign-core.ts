@@ -118,7 +118,7 @@ export async function performCountersign(
     const existing = findLoggedEntry(loggedEntries, timestamp, leadId);
     if (existing) {
       const loggedLine = parseLoggedLineBlock(existing.block)?.line ?? null;
-      const differs = editedLine != null && loggedLine !== null && normalizeLine(editedLine) !== loggedLine;
+      const differs = editedLine != null && loggedLine !== null && normalizeLine(editedLine) !== normalizeLine(loggedLine);
       const proposedRaw = ctx.readProposed();
       // External-review fix (MEDIUM, edge-case): two genuinely-distinct
       // proposals can share the same (timestamp, leadId) pair (the ADR that

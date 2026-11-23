@@ -106,17 +106,30 @@ describe("countersign edit hardening (W4 fix round)", () => {
 
   // @covers FR-01.71
   it("invisible format characters and C1 controls never reach the log, in an unedited or an edited line", async () => {
-    const tag = String.fromCodePoint(0xe0049, 0xe0067, 0xe006e) + "‮​";
+    const tag = String.fromCodePoint(0xe0049, 0xe0067, 0xe006e, 0xe0100) + "\u202e\u200b\u0085\u009b\u009f\ufe0f\u034f\u3164\u17b4";
     writeFileSync(proposed, entry([`Ship${tag} weekly${tag} digests.`]));
     expect((await post({})).status).toBe(200);
     const log = readFileSync(logged, "utf8");
     expect(log).toContain("- Ship weekly digests.");
-    expect(/[\p{Cf}-]/u.test(log)).toBe(false);
+    expect(/[\p{Cf}\p{Default_Ignorable_Code_Point}\u0080-\u009f]/u.test(log)).toBe(false);
     rmSync(logged);
     writeFileSync(proposed, entry([LINE]));
     expect((await post({ line: `Edited${tag} wording.` })).status).toBe(200);
-    expect(/[\p{Cf}-]/u.test(readFileSync(logged, "utf8"))).toBe(false);
+    expect(/[\p{Cf}\p{Default_Ignorable_Code_Point}\u0080-\u009f]/u.test(readFileSync(logged, "utf8"))).toBe(false);
     expect(readFileSync(logged, "utf8")).toContain("- Edited wording.");
+  });
+
+  // @covers FR-01.71
+  it("a quote interleaved with variation selectors every 19 characters is still refused", async () => {
+    writeFileSync(proposed, entry([LINE, `> ${LONG_QUOTE}`]));
+    const pasted = LONG_QUOTE.replace(/(.{19})/g, "$1\ufe0f" + String.fromCodePoint(0xe0100));
+    expect((await post({ line: `Note: ${pasted}` })).status).toBe(400);
+  });
+
+  // @covers FR-01.71
+  it("a pointer on the first quote line does not hide a sentence that spans two quote lines", async () => {
+    writeFileSync(proposed, entry([LINE, "> the migration to the new billing \u2014 acme:2026-11-19T16:02:11Z:14", "> platform was postponed again"]));
+    expect((await post({ line: "We noted the migration to the new billing platform was postponed." })).status).toBe(400);
   });
 
   // @covers FR-01.71

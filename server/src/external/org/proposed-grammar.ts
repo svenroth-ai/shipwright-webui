@@ -237,13 +237,13 @@ export function splitQuote(line: string): { text: string; pointer: string | null
 /** Comparison form of a text: Unicode-folded (NFKC, so NBSP and wide forms), format characters (zero width) removed,
  *  one line, lower case. Never written anywhere. */
 export function foldForCompare(text: string): string {
-  return normalizeLine(text.normalize("NFKC").replace(/\p{Cf}/gu, "")).toLowerCase();
+  return normalizeLine(text.normalize("NFKC").replace(/[\p{Cf}\p{Default_Ignorable_Code_Point}\u0080-\u009f]/gu, "")).toLowerCase();
 }
 
 /** Invisible characters removed from anything shown as, or written as, the line: Unicode format characters
  *  (tag characters, bidi overrides, zero width, ...) and C1 controls. The log is read by agents as authority. */
 export function stripInvisible(text: string): string {
-  return text.replace(/[\p{Cf}-]/gu, "");
+  return text.replace(/[\p{Cf}\p{Default_Ignorable_Code_Point}\u0080-\u009f]/gu, "");
 }
 
 /** One line for the log: control characters (newlines too) and runs of blanks become one space. */
