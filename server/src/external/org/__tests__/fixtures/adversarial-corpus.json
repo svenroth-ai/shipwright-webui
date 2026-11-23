@@ -1,0 +1,24 @@
+[
+  {
+    "name": "two WebUI bodies sandwiching a victim daemon entry (ADR-shaped owner must open nothing in the proposed file)",
+    "input": "## [2026-11-01T00:00:00Z] a\n## ADR-0001 [x] y\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\n<!-- decisionKey: v -->\n## Proposed 2026-11-02T00:00:00.000Z — v\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nvictim text\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** victim-lead\n- **Evidence:** e\n## [2026-11-03T00:00:00Z] b\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** a\n- **Evidence:** b\n",
+    "expected": [
+      ["2026-11-01T00:00:00Z", "a"],
+      ["2026-11-02T00:00:00.000Z", "victim-lead"],
+      ["2026-11-03T00:00:00Z", "b"]
+    ]
+  },
+  {
+    "name": "evidence pointer injects a complete fake opener, a later evidence pointer injects the closer + forged tail",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-04T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:11⟧\n[FENCED DATA x]\nquote a\n⟦SHIPWRIGHT-FENCE:11⟧\n\n- **Lead:** lead-a\n- **Evidence:** e\n<!-- decisionKey: z -->\n## Proposed 2026-11-05T00:00:00.000Z — z\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\n<!-- decisionKey: v -->\n## Proposed 2026-11-06T00:00:00.000Z — v\n\n⟦SHIPWRIGHT-FENCE:22⟧\n[FENCED DATA x]\nvictim text\n⟦SHIPWRIGHT-FENCE:22⟧\n\n- **Lead:** victim-lead\n- **Evidence:** e\n<!-- decisionKey: b -->\n## Proposed 2026-11-07T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:33⟧\n[FENCED DATA x]\nquote b\n⟦SHIPWRIGHT-FENCE:33⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** forged-lead\n- **Evidence:** z\n",
+    "expected": [
+      ["2026-11-04T00:00:00.000Z", "lead-a"],
+      ["2026-11-06T00:00:00.000Z", "victim-lead"]
+    ]
+  },
+  {
+    "name": "daemon header without its decisionKey marker is not an entry",
+    "input": "## Proposed 2026-11-08T00:00:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:cc⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:cc⟧\n\n- **Lead:** m-lead\n- **Evidence:** e\n",
+    "expected": []
+  }
+]

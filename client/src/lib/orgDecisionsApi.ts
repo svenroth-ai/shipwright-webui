@@ -28,8 +28,6 @@ const EVIDENCE_BULLET_RE = /^-[ \t]*\*\*Evidence:\*\*[ \t]*(.+?)\r?$/;
 
 const isBlank = (line: string): boolean => line.trim() === "";
 
-/** A header the daemon renders directly above its quote. */
-const FENCE_OWNER_RE = /^## (?:Proposed \S+ — |ADR-\d{4} \[)/;
 const FENCE_LABEL_PREFIX = "[FENCED DATA";
 
 /** After a closing fence line the daemon writes: blank, Lead bullet, Evidence
@@ -54,7 +52,12 @@ function markerAbove(lines: string[], idx: number): boolean {
  *  non-canonical: not listed, so never countersigned into the log. */
 function isCanonicalDaemonBlock(blockLines: string[]): boolean {
   let j = 0;
-  while (j < blockLines.length && (isBlank(blockLines[j]) || DAEMON_MARKER_RE.test(blockLines[j]))) j++;
+  let sawMarker = false;
+  while (j < blockLines.length && (isBlank(blockLines[j]) || DAEMON_MARKER_RE.test(blockLines[j]))) {
+    if (!isBlank(blockLines[j])) sawMarker = true;
+    j++;
+  }
+  if (!sawMarker) return false; // listing and masking use one rule: a daemon entry has its marker
   if (!DAEMON_HEADER_RE.test(blockLines[j] ?? "")) return false;
   j++;
   while (j < blockLines.length && isBlank(blockLines[j])) j++;
@@ -65,21 +68,36 @@ function isCanonicalDaemonBlock(blockLines: string[]): boolean {
   return end !== -1 && blockLines.slice(end).every(isBlank);
 }
 
+/** A fence-open pair (fence line + label) or a marker directly above a daemon
+ *  header: what only a real entry (or an injected fake one) contains. */
+function hasNestedOpener(lines: string[], from: number, to: number): boolean {
+  for (let k = from; k < to; k++) {
+    if (FENCE_LINE_RE.test(lines[k]) && (lines[k + 1] ?? "").startsWith(FENCE_LABEL_PREFIX)) return true;
+    if (DAEMON_MARKER_RE.test(lines[k])) {
+      let n = k + 1;
+      while (n < to && isBlank(lines[n])) n++;
+      if (DAEMON_HEADER_RE.test(lines[n] ?? "")) return true;
+    }
+  }
+  return false;
+}
 
-/** Lines inside a fenced region. A fence opens ONLY where the daemon puts it
- *  (first line after an entry header, marker/blank skipped, fence line then
- *  `[FENCED DATA` label) and closes at the next identical line; a fence-like
- *  line anywhere else opens nothing. Header lines inside are quoted text. */
+/** Lines inside a fenced region (mirror of the server's "proposed" kind). A
+ *  fence opens ONLY after a `## Proposed` header with its marker above (fence
+ *  line then label), closes at the next identical line followed by the
+ *  canonical Lead/Evidence tail, and is NOT applied when the region contains
+ *  a fence-open pair or marker + daemon header (injection / swallowed real
+ *  entries): nested real entries then parse normally, the fake is dropped. */
 function fencedLineSet(lines: string[]): Set<number> {
   const fenced = new Set<number>();
   let i = 0;
   while (i < lines.length) {
-    if (FENCE_OWNER_RE.test(lines[i]) && (!lines[i].startsWith("## Proposed") || markerAbove(lines, i))) {
+    if (/^## Proposed \S+ — /.test(lines[i]) && markerAbove(lines, i)) {
       let j = i + 1;
       while (j < lines.length && (isBlank(lines[j]) || DAEMON_MARKER_RE.test(lines[j]))) j++;
-      if (j + 1 < lines.length && FENCE_LINE_RE.test(lines[j]) && lines[j + 1].startsWith("[FENCED DATA")) {
+      if (j + 1 < lines.length && FENCE_LINE_RE.test(lines[j]) && lines[j + 1].startsWith(FENCE_LABEL_PREFIX)) {
         const close = lines.indexOf(lines[j], j + 1);
-        if (close !== -1 && canonicalTailEnd(lines, close) !== -1) {
+        if (close !== -1 && canonicalTailEnd(lines, close) !== -1 && !hasNestedOpener(lines, j + 2, close)) {
           for (let k = j; k <= close; k++) fenced.add(k);
           i = close + 1;
           continue;
@@ -96,7 +114,7 @@ function daemonTail(blockLines: string[]): string[] {
   let j = 0;
   while (j < blockLines.length && (isBlank(blockLines[j]) || DAEMON_MARKER_RE.test(blockLines[j]) || blockLines[j].startsWith("## "))) j++;
   // No fence where the daemon puts it: no quote to skip, the rest is the tail.
-  if (!(FENCE_LINE_RE.test(blockLines[j] ?? "") && (blockLines[j + 1] ?? "").startsWith("[FENCED DATA"))) return blockLines.slice(j);
+  if (!(FENCE_LINE_RE.test(blockLines[j] ?? "") && (blockLines[j + 1] ?? "").startsWith(FENCE_LABEL_PREFIX))) return blockLines.slice(j);
   const close = blockLines.indexOf(blockLines[j], j + 1);
   return close === -1 ? [] : blockLines.slice(close + 1); // unclosed fence = corrupt: no identity
 }

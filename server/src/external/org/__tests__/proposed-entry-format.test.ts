@@ -15,6 +15,19 @@ const WEBUI_ENTRY = "## [2026-08-17T09:00:00.000Z] acme-lead\n\nBody line.\n\n- 
 const T1 = "2026-11-20T09:15:00.000Z";
 const T2 = "2026-11-20T10:30:00.000Z";
 
+const CORPUS = JSON.parse(
+  readFileSync(path.join(import.meta.dirname, "fixtures", "adversarial-corpus.json"), "utf8"),
+) as Array<{ name: string; input: string; expected: Array<[string, string]> }>;
+
+describe("adversarial corpus (shared with the client suite)", () => {
+  for (const c of CORPUS) {
+    // @covers FR-01.71
+    it(c.name, () => {
+      expect(parseProposedEntries(c.input).map((e) => [e.timestamp, e.leadId])).toEqual(c.expected);
+    });
+  }
+});
+
 describe("proposed entry format - both header forms (W1)", () => {
   // @covers FR-01.71
   it("lists a WebUI-header entry as before", () => {

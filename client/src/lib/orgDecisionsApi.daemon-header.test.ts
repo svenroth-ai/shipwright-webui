@@ -15,6 +15,22 @@ const SAMPLE = readFileSync(
 ).replace(/\r\n/g, "\n");
 const WEBUI = "## [2026-08-17T09:00:00.000Z] other-lead\n\nBody.\n\n- **Evidence:** card 12\n";
 
+const CORPUS = JSON.parse(
+  readFileSync(
+    path.resolve(__dirname, "../../../server/src/external/org/__tests__/fixtures/adversarial-corpus.json"),
+    "utf8",
+  ),
+) as Array<{ name: string; input: string; expected: Array<[string, string]> }>;
+
+describe("adversarial corpus (shared with the server suite)", () => {
+  for (const c of CORPUS) {
+    // @covers FR-01.71
+    it(c.name, () => {
+      expect(parseProposedDecisions(c.input).map((e) => [e.timestamp, e.leadId])).toEqual(c.expected);
+    });
+  }
+});
+
 describe("parseProposedDecisions - both header forms (W1)", () => {
   // @covers FR-01.71
   it("lists the pinned daemon sample with the same fields as a WebUI entry", () => {
@@ -61,9 +77,9 @@ describe("parseProposedDecisions - both header forms (W1)", () => {
     const client = read("./orgDecisionsApi.ts");
     for (const name of [
       "WEBUI_HEADER_RE", "DAEMON_HEADER_RE", "DAEMON_MARKER_RE", "FENCE_LINE_RE",
-      "LEAD_ID_RE", "LEAD_BULLET_RE", "FENCE_OWNER_RE",
+      "LEAD_ID_RE", "LEAD_BULLET_RE", "EVIDENCE_BULLET_RE", "FENCE_LABEL_PREFIX",
     ]) {
-      const re = new RegExp(`const ${name} = (/.*/);`);
+      const re = new RegExp(`const ${name} = (.+?);`);
       const s = re.exec(server)?.[1];
       expect(s, `${name} in server`).toBeTruthy();
       expect(re.exec(client)?.[1], `${name} in client`).toBe(s);

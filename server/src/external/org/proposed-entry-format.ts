@@ -46,8 +46,6 @@ export interface ProposedEntry {
 
 const isBlank = (line: string): boolean => line.trim() === "";
 
-/** A header the daemon renders (and the log keeps) directly above its quote. */
-const FENCE_OWNER_RE = /^## (?:Proposed \S+ — |ADR-\d{4} \[)/;
 const FENCE_LABEL_PREFIX = "[FENCED DATA";
 /** After a closing fence line the daemon writes: blank, Lead bullet, Evidence
  *  bullet. Returns the index just past the Evidence bullet, or -1. */
@@ -71,7 +69,12 @@ function markerAbove(lines: string[], idx: number): boolean {
  *  non-canonical: not listed, so never countersigned into the log. */
 function isCanonicalDaemonBlock(blockLines: string[]): boolean {
   let j = 0;
-  while (j < blockLines.length && (isBlank(blockLines[j]) || DAEMON_MARKER_RE.test(blockLines[j]))) j++;
+  let sawMarker = false;
+  while (j < blockLines.length && (isBlank(blockLines[j]) || DAEMON_MARKER_RE.test(blockLines[j]))) {
+    if (!isBlank(blockLines[j])) sawMarker = true;
+    j++;
+  }
+  if (!sawMarker) return false; // listing and masking use one rule: a daemon entry has its marker
   if (!DAEMON_HEADER_RE.test(blockLines[j] ?? "")) return false;
   j++;
   while (j < blockLines.length && isBlank(blockLines[j])) j++;
@@ -82,28 +85,49 @@ function isCanonicalDaemonBlock(blockLines: string[]): boolean {
   return end !== -1 && blockLines.slice(end).every(isBlank);
 }
 
+/** Which file is being read. A proposed file only knows daemon entries (a
+ *  `## Proposed` header with its marker above); decision_log.md only knows
+ *  `## ADR-` headers. A header of the other kind opens nothing. */
+export type FenceFileKind = "proposed" | "logged";
+
+const OWNER_RE: Record<FenceFileKind, RegExp> = {
+  proposed: /^## Proposed \S+ — /,
+  logged: /^## ADR-\d{4} \[/,
+};
+
+/** A fence-open pair (fence line + label) or a marker directly above a daemon
+ *  header: what only a real entry (or an injected fake one) contains. */
+function hasNestedOpener(lines: string[], from: number, to: number): boolean {
+  for (let k = from; k < to; k++) {
+    if (FENCE_LINE_RE.test(lines[k]) && (lines[k + 1] ?? "").startsWith(FENCE_LABEL_PREFIX)) return true;
+    if (DAEMON_MARKER_RE.test(lines[k])) {
+      let n = k + 1;
+      while (n < to && isBlank(lines[n])) n++;
+      if (DAEMON_HEADER_RE.test(lines[n] ?? "")) return true;
+    }
+  }
+  return false;
+}
 
 /** Line indexes that lie inside a fenced region (open line, label, text and
  *  close line). A fence opens ONLY where the daemon puts it: the first line
- *  after an entry header (marker/blank lines skipped) that is a fence line
- *  followed by the `[FENCED DATA` label; it closes at the next identical
- *  line. A fence-looking line anywhere else (e.g. smuggled through the
- *  evidence pointer) opens nothing, so it can never mask other entries. */
-export function fencedLineSet(lines: string[]): Set<number> {
+ *  after an owner header (marker/blank lines skipped) that is a fence line
+ *  followed by the label; it closes at the next identical line, which must be
+ *  followed by the canonical Lead/Evidence tail. A fence-looking line anywhere
+ *  else opens nothing. Fail-safe: a region that itself contains a fence-open
+ *  pair or a marker + daemon header is an injection (or swallows real
+ *  entries) - it is NOT masked, so nested real entries parse normally and the
+ *  fake one is dropped later as non-canonical. */
+export function fencedLineSet(lines: string[], kind: FenceFileKind): Set<number> {
   const fenced = new Set<number>();
   let i = 0;
   while (i < lines.length) {
-    // A daemon header only owns a fence when its decisionKey marker sits above
-    // it (the daemon always writes one); a logged header has no marker.
-    if (FENCE_OWNER_RE.test(lines[i]) && (!lines[i].startsWith("## Proposed") || markerAbove(lines, i))) {
+    if (OWNER_RE[kind].test(lines[i]) && (kind === "logged" || markerAbove(lines, i))) {
       let j = i + 1;
       while (j < lines.length && (isBlank(lines[j]) || DAEMON_MARKER_RE.test(lines[j]))) j++;
       if (j + 1 < lines.length && FENCE_LINE_RE.test(lines[j]) && lines[j + 1].startsWith(FENCE_LABEL_PREFIX)) {
         const close = lines.indexOf(lines[j], j + 1);
-        // The closing line must be followed by the canonical Lead/Evidence
-        // tail, so a look-alike marker smuggled into an evidence pointer
-        // cannot stretch a fence over other entries.
-        if (close !== -1 && canonicalTailEnd(lines, close) !== -1) {
+        if (close !== -1 && canonicalTailEnd(lines, close) !== -1 && !hasNestedOpener(lines, j + 2, close)) {
           for (let k = j; k <= close; k++) fenced.add(k);
           i = close + 1;
           continue;
@@ -121,7 +145,7 @@ function daemonTail(blockLines: string[]): string[] {
   let j = 0;
   while (j < blockLines.length && (isBlank(blockLines[j]) || DAEMON_MARKER_RE.test(blockLines[j]) || blockLines[j].startsWith("## "))) j++;
   // No fence where the daemon puts it: no quote to skip, the rest is the tail.
-  if (!(FENCE_LINE_RE.test(blockLines[j] ?? "") && (blockLines[j + 1] ?? "").startsWith("[FENCED DATA"))) return blockLines.slice(j);
+  if (!(FENCE_LINE_RE.test(blockLines[j] ?? "") && (blockLines[j + 1] ?? "").startsWith(FENCE_LABEL_PREFIX))) return blockLines.slice(j);
   const close = blockLines.indexOf(blockLines[j], j + 1);
   return close === -1 ? [] : blockLines.slice(close + 1); // unclosed fence = corrupt: no identity
 }
@@ -144,7 +168,7 @@ export function parseProposedEntries(raw: string): ProposedEntry[] {
     lineStarts.push(offset);
     offset += line.length + 1;
   }
-  const fenced = fencedLineSet(lines);
+  const fenced = fencedLineSet(lines, "proposed");
 
   interface Head { startLine: number; timestamp: string; leadFromHeader: string | null }
   const heads: Head[] = [];

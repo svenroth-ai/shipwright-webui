@@ -69,7 +69,7 @@ function splitBlocks(
 
   const headerLineIdx: number[] = [];
   const matches: RegExpMatchArray[] = [];
-  const fenced = fencedLineSet(lines); // ADR-shaped lines inside a quoted fence are text, not headers
+  const fenced = fencedLineSet(lines, "logged"); // ADR-shaped lines inside a quoted fence are text, not headers
   lines.forEach((line, idx) => {
     const m = fenced.has(idx) ? null : headerRe.exec(line);
     if (m) {

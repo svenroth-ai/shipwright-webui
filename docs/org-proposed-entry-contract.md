@@ -67,12 +67,22 @@ and `client/src/lib/orgDecisionsApi.ts` (`parseProposedDecisions`).
   moves its marker (kept as `<!-- decisionKey: ... -->`, first body line) into
   `decision_log.md`, so the daemon would accept the same key again unless it
   also scans the log or the WebUI leaves a tombstone. Not changed in W1.
-- **A fence opens only where the daemon puts it:** the first line after an
-  entry header (marker and blank lines skipped) that is a
-  `⟦SHIPWRIGHT-FENCE:<nonce>⟧` line followed by the `[FENCED DATA` label; it
-  closes at the next identical line. A fence-looking line anywhere else (e.g.
-  smuggled through the evidence pointer) opens nothing, so it cannot mask other
-  entries. The same rule applies when reading `decision_log.md`.
+- **A fence opens only where the daemon puts it, and only for the right
+  file:** in `decisions-proposed.md` only a `## Proposed` header with its
+  decisionKey marker above it can own a fence (a `## ADR-` line in a WebUI-form
+  body opens nothing); in `decision_log.md` only `## ADR-` headers can. The
+  fence is the first line after the owner header (marker and blank lines
+  skipped): a `⟦SHIPWRIGHT-FENCE:<nonce>⟧` line followed by the `[FENCED DATA`
+  label, closing at the next identical line that is followed by the blank /
+  Lead / Evidence tail. Fail-safe, not a guarantee: a fenced region that itself
+  contains a fence-open pair or a marker + daemon header is NOT masked (so real
+  entries nested inside it parse normally and the injected fake is dropped as
+  non-canonical). A lead can therefore at worst get its own (or an adjacent)
+  entry unlisted; it cannot hide other leads' entries. The upstream fix
+  (reject CR/LF in evidencePointer / decisionKey / leadId) is still required.
+- **Adversarial corpus:** `__tests__/fixtures/adversarial-corpus.json` (input +
+  expected `[timestamp, leadId]` list) is read by both the server and the
+  client suites; leadwright should pin it as well.
 - **Listed means countersignable:** a daemon entry whose Lead is not a valid
   lead id (`^[a-z0-9][a-z0-9-]*$`, the countersign route's rule) is not listed.
 - **Open item for leadwright (S1-E):** `evidencePointer` and `decisionKey` are
