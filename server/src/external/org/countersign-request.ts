@@ -7,6 +7,8 @@
  * be free to duplicate (and silently drift on) this body.
  */
 
+import { userInfo } from "node:os";
+
 import { performCountersign, type CountersignCoreDeps, type CountersignOutcome } from "./countersign-core.js";
 import { OrgSymlinkEscapeError } from "./decisions-lock.js";
 import { LEAD_ID_RE } from "./_helpers.js";
@@ -16,6 +18,14 @@ import { LEAD_ID_RE } from "./_helpers.js";
 const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 
 export type HandleCountersignRequestDeps = CountersignCoreDeps;
+
+function osAuthor(): string {
+  try {
+    return userInfo().username || "operator";
+  } catch {
+    return "operator";
+  }
+}
 
 export interface CountersignRequestResult {
   status: 200 | 400 | 403 | 404 | 409;
@@ -58,7 +68,7 @@ export async function handleCountersignRequest(
 
   let outcome: CountersignOutcome;
   try {
-    outcome = await performCountersign(deps, timestamp, leadId);
+    outcome = await performCountersign({ ...deps, author: deps.author ?? osAuthor() }, timestamp, leadId);
   } catch (err) {
     // Code-review fix: without this, a symlinked decisions-proposed.md /
     // decision_log.md fell through to the generic 500 error handler

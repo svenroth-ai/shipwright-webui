@@ -27,12 +27,14 @@
  *     closed, instead of vanishing mid-render.
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AlertCircle, CheckCircle2, FileQuestion, Inbox, Loader2, X } from "lucide-react";
 
 import { fetchProposedDecisions, countersignDecision, type ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
+import { rejectDecision, fetchRejectedKeys } from "../../lib/orgRejectApi";
+import { decisionKeyOf } from "../../lib/orgDecisionKey";
 import { ApiError } from "../../lib/externalApi";
 import { DecisionEntryRow, type EntryStatus } from "./DecisionEntryRow";
 
@@ -69,9 +71,9 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
   // from decisions-proposed.md). Reset naturally on close — OrgSharedDocs
   // unmounts this component when the tile's modal closes, so a fresh open
   // starts with an empty map, never a stale success from a prior session.
-  const [settled, setSettled] = useState<
-    Record<string, { entry: ProposedDecisionEntry; alreadyCountersigned: boolean; adr: string }>
-  >({});
+  const [settled, setSettled] = useState<Record<string, { entry: ProposedDecisionEntry; status: EntryStatus }>>({});
+  // Rows with a request in flight: a double click must send ONE request.
+  const inFlight = useRef(new Set<string>());
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["org", "decisions-proposed"],
@@ -80,10 +82,56 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
     retry: false,
   });
 
+  const leadIds = [...new Set((data ?? []).map((e) => e.leadId))];
+  const { data: rejectedByLead } = useQuery({
+    queryKey: ["org", "decisions-rejected-keys", leadIds.join(",")],
+    queryFn: () => fetchRejectedKeys(leadIds),
+    enabled: open && leadIds.length > 0,
+    retry: false,
+  });
+  const isRepeat = (e: ProposedDecisionEntry) => {
+    const key = decisionKeyOf(e.block);
+    return key !== null && (rejectedByLead?.[e.leadId] ?? []).some((r) => r.key === key && r.entryTimestamp !== e.timestamp);
+  };
+
   const notFound = error instanceof ApiError && error.status === 404;
+
+  async function handleReject(entry: ProposedDecisionEntry, index: number, reason: string) {
+    const key = entryKey(entry, index);
+    const flightKey = `${entry.timestamp}|${entry.leadId}`; // not positional: survives a sibling's refetch
+    if (inFlight.current.has(flightKey)) return;
+    inFlight.current.add(flightKey);
+    setStatuses((prev) => ({ ...prev, [key]: { kind: "pending" } }));
+    try {
+      const result = await rejectDecision(entry.timestamp, entry.leadId, reason);
+      let status: EntryStatus;
+      if (result.ok) status = { kind: "rejected", alreadyRejected: result.alreadyRejected };
+      else if (result.reason === "duplicate") status = { kind: "duplicate", count: result.count };
+      else if (result.reason === "already-countersigned") status = { kind: "done", alreadyCountersigned: true, adr: `ADR-${String(result.adr).padStart(4, "0")}` };
+      else status = { kind: "resolved-elsewhere" };
+      setStatuses((prev) => ({ ...prev, [key]: status }));
+      if (status.kind === "rejected") setSettled((prev) => ({ ...prev, [key]: { entry, status } }));
+      if (status.kind !== "duplicate") {
+        await Promise.all([
+          refetch(),
+          queryClient.invalidateQueries({ queryKey: ["org", "decisions-rejected-keys"] }),
+        ]);
+      }
+    } catch (err) {
+      setStatuses((prev) => ({
+        ...prev,
+        [key]: { kind: "error", message: err instanceof Error ? err.message : "unknown error" },
+      }));
+    } finally {
+      inFlight.current.delete(flightKey);
+    }
+  }
 
   async function handleCountersign(entry: ProposedDecisionEntry, index: number) {
     const key = entryKey(entry, index);
+    const flightKey = `${entry.timestamp}|${entry.leadId}`; // not positional: survives a sibling's refetch
+    if (inFlight.current.has(flightKey)) return;
+    inFlight.current.add(flightKey);
     setStatuses((prev) => ({ ...prev, [key]: { kind: "pending" } }));
     try {
       const result = await countersignDecision(entry.timestamp, entry.leadId);
@@ -103,7 +151,7 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
         }));
         setSettled((prev) => ({
           ...prev,
-          [key]: { entry, alreadyCountersigned: result.alreadyCountersigned, adr: result.adr },
+          [key]: { entry, status: { kind: "done", alreadyCountersigned: result.alreadyCountersigned, adr: result.adr } },
         }));
         // Both surfaces observe the same countersign action's effect —
         // refresh the proposed list (the entry is gone) and the
@@ -119,6 +167,8 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
         ...prev,
         [key]: { kind: "error", message: err instanceof Error ? err.message : "unknown error" },
       }));
+    } finally {
+      inFlight.current.delete(flightKey);
     }
   }
 
@@ -190,6 +240,8 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
                     entry={entry}
                     status={statuses[entryKey(entry, index)] ?? { kind: "idle" }}
                     onCountersign={() => void handleCountersign(entry, index)}
+                    onReject={(reason) => void handleReject(entry, index, reason)}
+                    isRepeat={isRepeat(entry)}
                   />
                 ))}
                 {settledExtras.map(([key, s]) => (
@@ -197,8 +249,10 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
                     key={key}
                     rowKey={key}
                     entry={s.entry}
-                    status={{ kind: "done", alreadyCountersigned: s.alreadyCountersigned, adr: s.adr }}
+                    status={s.status}
                     onCountersign={() => {}}
+                    onReject={() => {}}
+                    isRepeat={false}
                   />
                 ))}
               </ul>

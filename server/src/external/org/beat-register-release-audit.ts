@@ -42,7 +42,7 @@ function ensureAuditFile(absolutePath: string): void {
  *  all). `ensureAuditFile` + an unconditional `guardExistingTarget` replace
  *  the plan-review PR-1 `existsSync`-gated guard (see `ensureAuditFile`'s
  *  own doc comment for why). */
-function appendAuditLine(
+export function appendAuditLine(
   leadsRoot: string,
   auditPath: string,
   lstat: LstatFn,
@@ -75,7 +75,7 @@ function appendAuditLine(
 /** Design decision 6: best-effort — never lets an org-chart problem block
  *  the release action itself. `null` means "couldn't resolve", not
  *  necessarily "reports to the PO". */
-function resolveParentLeadId(leadsRoot: string, leadId: string): string | null {
+export function resolveParentLeadId(leadsRoot: string, leadId: string): string | null {
   const info = readLeadOrgInfo(leadsRoot, leadId);
   return info.ok ? info.reportsTo : null;
 }

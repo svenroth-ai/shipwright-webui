@@ -26,6 +26,9 @@ import type { OrgFileWriteDeps } from "../external/org/file-write.js";
 import type { BeatRegisterLockOptions } from "../external/org/beat-register-release-core.js";
 import { handleReleaseRequest } from "../external/org/beat-register-release-request.js";
 import { handleCountersignRequest } from "../external/org/countersign-request.js";
+import { handleRejectRequest } from "../external/org/reject-request.js";
+import { rejectedKeys, type RejectedKey } from "../external/org/decisions-audit.js";
+import { LEAD_ID_RE } from "../external/org/_helpers.js";
 import { requireChartLead } from "./org-chart-lead-guard.js";
 
 export interface OrgWriteActionsDeps {
@@ -81,5 +84,36 @@ export function registerOrgWriteActions(app: Hono, deps: OrgWriteActionsDeps): v
       body,
     );
     return c.json(result.body, result.status);
+  });
+
+  // W3: reject a proposed entry. Same lock + allowlist-resolved paths as countersign.
+  app.post("/api/org/decisions/reject", async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid_json" }, 400);
+    }
+    const result = await handleRejectRequest(
+      { leadsRoot, lstatSync: deps.lstatSync, withDecisionsLock: deps.withDecisionsLock, now: deps.now },
+      body,
+    );
+    return c.json(result.body, result.status);
+  });
+
+  // W3: decision keys already rejected per lead - the client marks a new
+  // proposal carrying one of them as a repeat. Read-only.
+  app.get("/api/org/decisions/rejected-keys", (c) => {
+    const ids = (c.req.query("leadIds") ?? "").split(",").filter((id) => id.length > 0).slice(0, 50);
+    const byLead: Record<string, RejectedKey[]> = {};
+    for (const id of ids) {
+      if (!LEAD_ID_RE.test(id)) continue; // one bad id (lead-written file) must not drop the others' hints
+      try {
+        byLead[id] = rejectedKeys({ leadsRoot, lstatSync: deps.lstatSync }, id);
+      } catch {
+        byLead[id] = []; // an unreadable audit file must not hide the proposals list
+      }
+    }
+    return c.json({ byLead });
   });
 }

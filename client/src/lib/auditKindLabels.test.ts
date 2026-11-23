@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { AUDIT_KIND_LABELS, auditKindLabel } from "./auditKindLabels";
 
 describe("auditKindLabels", () => {
-  it("has all 19 known AuditKind values mapped to a non-empty label", () => {
+  it("has all 19 leadwright AuditKind values plus the 2 webui decision kinds mapped to a non-empty label", () => {
     const expected = [
       "beat_started",
       "beat_completed",
@@ -23,6 +23,8 @@ describe("auditKindLabels", () => {
       "claim_attempt_lost",
       "executor_liveness_undeterminable",
       "executor_not_tracked",
+      "decision_rejected",
+      "decision_countersigned",
     ];
     expect(Object.keys(AUDIT_KIND_LABELS).sort()).toEqual(expected.sort());
     for (const kind of expected) {
