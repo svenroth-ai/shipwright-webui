@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-24-org-proposals-hardening",
+  "date": "2026-11-24",
+  "section": "Iterate - change: org proposals hardening",
+  "title": "Org proposal decisions: guard, own audit record, stale-entry digest, text rules",
+  "context": "Lead-written proposals are decided in the WebUI; a cross-site POST, a forged lead audit line, a rewrite between view and click, and invisible text could all subvert a decision.",
+  "decision": "Guard org writes (JSON only, no cross-site); 409 audit_unwritable; write the operator's OWN audit record; client block digest checked under the lock (409 entry_changed); stricter text rules (U+2800, private use, Zs, VS16 kept); skipped-entry status line.",
+  "consequences": "Residual limits: a same-user lead can pre-plant an identical own record; an audit_pending entry stays listed until the file is fixed; Sec-Fetch-Site is absent on plain-http LAN (415 + CORS carry it).",
+  "rationale": "Smallest changes that close each gap; the digest needs parity not secrecy, so a 35-line sync SHA-256 replaces crypto.subtle (absent on http).",
+  "rejected": "Sending the whole block; server skipped-count endpoint; ignoring a lead reject line in countersign; HMAC provenance for own records.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

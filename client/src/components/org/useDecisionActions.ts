@@ -106,8 +106,9 @@ export function useDecisionActions(refetch: () => Promise<unknown>) {
         return;
       }
       if (!result.ok && result.reason === "audit-unwritable") {
+        if (result.adr !== undefined) void queryClient.invalidateQueries({ queryKey: ["org", "shared-doc", "decision_log.md"] });
         const message = result.adr !== undefined
-          ? `Logged as ${result.adr}, but the audit record could not be written. ${result.message} Then countersign again to finish.`
+          ? `Logged as ${result.adr}, but the audit record could not be written. ${result.message}. Then countersign again to finish.`
           : UNWRITABLE(result.message);
         setStatuses((prev) => ({ ...prev, [key]: { kind: "blocked", message } }));
         return;

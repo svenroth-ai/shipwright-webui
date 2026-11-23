@@ -1,0 +1,13 @@
+{
+  "section": "iterate-2026-11-24-org-proposals-hardening",
+  "verdict": "pass",
+  "review": [
+    {"severity": "low", "category": "correctness", "file": "server/src/external/org/decisions-audit.ts", "line": 175, "finding": "isOwnRecord for reject includes the reason, so a crash-residue retry with a different reason appends a second decision_rejected record, contradicting the contract's 'exactly once under retries'.", "suggestion": "Narrow the contract wording to 'same reason', or ignore the reason when the entry is still listed."},
+    {"severity": "low", "category": "correctness", "file": "server/src/external/org/countersign-core.ts", "line": 169, "finding": "UNWRITABLE_CODES omits EBUSY/ENOSPC: a transient failure after the log write gives a 500, and the retry's crash branch swallows the error and removes the entry with no audit record, while EACCES keeps it listed.", "suggestion": "Add EBUSY and ENOSPC to UNWRITABLE_CODES, or document the asymmetry."},
+    {"severity": "low", "category": "readability", "file": "client/src/components/org/useDecisionActions.ts", "line": 748, "finding": "Message concatenation yields '...then retry Then countersign again to finish.' (server message has no full stop).", "suggestion": "Insert a full stop; pin the exact text in the test."},
+    {"severity": "low", "category": "correctness", "file": "client/src/components/org/useDecisionActions.ts", "line": 746, "finding": "audit-unwritable with logged:true means decision_log.md was written, but the decision-log tile query is not invalidated.", "suggestion": "Invalidate the decision-log query when result.adr is set."},
+    {"severity": "low", "category": "readability", "file": "client/src/components/org/OrgDecisionsProposedModal.hardening.test.tsx", "line": 386, "finding": "The pending countersign is released after the last assertion and never awaited.", "suggestion": "Release before the final waitFor."},
+    {"severity": "low", "category": "readability", "file": "server/src/external/org/__tests__/decisions-hardening.test.ts", "line": 1, "finding": "324 lines, over the 300-line convention; client skipped test asserts count >= 2 where the count is exact.", "suggestion": "Split by axis; pin the exact count."}
+  ],
+  "notes": "No HIGH or MEDIUM findings."
+}

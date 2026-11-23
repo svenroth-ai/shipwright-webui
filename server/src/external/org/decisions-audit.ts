@@ -37,7 +37,7 @@ export class AuditUnwritableError extends Error {
   }
 }
 
-const UNWRITABLE_CODES = new Set(["EACCES", "EPERM", "EROFS", "EISDIR", "ENOTDIR"]);
+const UNWRITABLE_CODES = new Set(["EACCES", "EPERM", "EROFS", "EISDIR", "ENOTDIR", "EBUSY", "ENOSPC"]);
 
 export interface DecisionAuditDeps {
   leadsRoot: string;
