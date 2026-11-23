@@ -20,10 +20,10 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
-      "passed": 0,
+      "status": "passed",
+      "passed": 3,
       "skipped": 0,
-      "total": 0
+      "total": 3
     },
     "design_fidelity": {
       "status": "not_run",
@@ -91,10 +91,10 @@
       ]
     },
     "surface_verification": {
-      "surface": "cli",
-      "tests_run": 34,
+      "surface": "web",
+      "tests_run": 3,
       "exit_code": 0,
-      "justification": "Server-side parser/countersign change over real files; driven via the vitest runner against the real countersign core (surface_verification.py cli, 34 tests, exit 0). The only client change is a pure parser function in client/src/lib with no rendering change."
+      "justification": "Driven in a real Chromium via the isolated stack: a daemon-form proposal is listed in the Org proposals window and Countersign moves it into decision_log.md exactly once on disk (org-page.decisions-proposed-daemon.spec.ts + the existing WebUI-form spec, 3 passed)."
     }
   },
   "source_state": {

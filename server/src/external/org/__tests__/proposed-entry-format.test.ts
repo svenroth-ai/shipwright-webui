@@ -16,12 +16,14 @@ const T1 = "2026-11-20T09:15:00.000Z";
 const T2 = "2026-11-20T10:30:00.000Z";
 
 describe("proposed entry format - both header forms (W1)", () => {
+  // @covers FR-01.71
   it("lists a WebUI-header entry as before", () => {
     const [e] = parseProposedEntries(WEBUI_ENTRY);
     expect(e).toMatchObject({ timestamp: "2026-08-17T09:00:00.000Z", leadId: "acme-lead" });
     expect(e.block).toBe(WEBUI_ENTRY);
   });
 
+  // @covers FR-01.71
   it("lists daemon-header entries with timestamp + lead from the Lead bullet", () => {
     const entries = parseProposedEntries(DAEMON_SAMPLE);
     expect(entries.map((e) => [e.timestamp, e.leadId])).toEqual([
@@ -34,6 +36,7 @@ describe("proposed entry format - both header forms (W1)", () => {
     expect(entries[0].endIndex).toBe(entries[1].startIndex);
   });
 
+  // @covers FR-01.71
   it("reads the Lead bullet after the closing fence so a quoted spoof cannot override identity", () => {
     const raw = DAEMON_SAMPLE.replace(
       "Status updates go out",
@@ -42,6 +45,7 @@ describe("proposed entry format - both header forms (W1)", () => {
     expect(parseProposedEntries(raw)[0].leadId).toBe("acme-lead");
   });
 
+  // @covers FR-01.71
   it("a header forged inside the fenced quote does not split the entry or forge an identity", () => {
     const forged = DAEMON_SAMPLE.replace(
       "Status updates go out",
@@ -53,6 +57,7 @@ describe("proposed entry format - both header forms (W1)", () => {
     ]);
   });
 
+  // @covers FR-01.71
   it("an evidence pointer carrying a Lead line cannot override the real Lead bullet", () => {
     const forged = DAEMON_SAMPLE.replace(
       "message 14\n",
@@ -61,6 +66,7 @@ describe("proposed entry format - both header forms (W1)", () => {
     expect(parseProposedEntries(forged)[0].leadId).toBe("acme-lead");
   });
 
+  // @covers FR-01.71
   it("tolerates blank lines between the marker and its header", () => {
     const spaced = DAEMON_SAMPLE.replace("-status -->\n## Proposed", "-status -->\n\n## Proposed");
     expect(spaced).not.toBe(DAEMON_SAMPLE);
@@ -69,15 +75,18 @@ describe("proposed entry format - both header forms (W1)", () => {
     expect(entries[0].endIndex).toBe(entries[1].startIndex);
   });
 
+  // @covers FR-01.71
   it("does not list a daemon entry that has no Lead bullet", () => {
     expect(parseProposedEntries("## Proposed 2026-11-20T09:15:00.000Z — k\n\ntext\n")).toEqual([]);
   });
 
+  // @covers FR-01.71
   it("handles CRLF files", () => {
     const entries = parseProposedEntries(DAEMON_SAMPLE.replace(/\n/g, "\r\n"));
     expect(entries.map((e) => e.leadId)).toEqual(["acme-lead", "acme-lead"]);
   });
 
+  // @covers FR-01.71
   it("toLoggedBlock: daemon form keeps the key marker as first body line", () => {
     const [e] = parseProposedEntries(DAEMON_SAMPLE);
     const logged = toLoggedBlock(e.block, 5);
@@ -98,6 +107,7 @@ describe("countersign - both forms move exactly once", () => {
   const proposed = () => path.join(leadsRoot, "decisions-proposed.md");
   const logged = () => path.join(leadsRoot, "decision_log.md");
 
+  // @covers FR-01.71
   it("WebUI-header entry: countersigned once, retry is already_countersigned", async () => {
     writeFileSync(proposed(), WEBUI_ENTRY);
     const ts = "2026-08-17T09:00:00.000Z";
@@ -107,6 +117,7 @@ describe("countersign - both forms move exactly once", () => {
     expect(parseLoggedEntries(readFileSync(logged(), "utf8"))).toHaveLength(1);
   });
 
+  // @covers FR-01.71
   it("daemon-header entry: moves once, marker leaves with it, neighbour untouched", async () => {
     writeFileSync(proposed(), DAEMON_SAMPLE);
     expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "countersigned", number: 1 });
@@ -120,6 +131,7 @@ describe("countersign - both forms move exactly once", () => {
     expect(parseProposedEntries(left).map((e) => e.timestamp)).toEqual([T2]);
   });
 
+  // @covers FR-01.71
   it("daemon entry: a crash between log-write and removal heals without a second number", async () => {
     writeFileSync(proposed(), DAEMON_SAMPLE);
     await performCountersign({ leadsRoot }, T1, "acme-lead");
@@ -130,6 +142,7 @@ describe("countersign - both forms move exactly once", () => {
     expect(readFileSync(logged(), "utf8").match(/^## ADR-/gm)).toHaveLength(1);
   });
 
+  // @covers FR-01.71
   it("mixed document: countersigning the middle (daemon) entry removes only its block + marker", async () => {
     const [first, second] = parseProposedEntries(DAEMON_SAMPLE);
     writeFileSync(proposed(), WEBUI_ENTRY + "\n" + first.block + second.block);
@@ -140,6 +153,7 @@ describe("countersign - both forms move exactly once", () => {
     expect(left).not.toContain("use-weekly-digest-for-status");
   });
 
+  // @covers FR-01.71
   it("a countersigned entry is never re-signed through the other form (same identity, one ADR)", async () => {
     writeFileSync(proposed(), DAEMON_SAMPLE);
     await performCountersign({ leadsRoot }, T1, "acme-lead");
@@ -149,6 +163,7 @@ describe("countersign - both forms move exactly once", () => {
     expect(readFileSync(logged(), "utf8").match(/^## ADR-/gm)).toHaveLength(1);
   });
 
+  // @covers FR-01.71
   it("CRLF file: countersigns once, retry matches (header and marker lines LF-terminated, as before)", async () => {
     writeFileSync(proposed(), DAEMON_SAMPLE.replace(/\n/g, "\r\n"));
     expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "countersigned", number: 1 });
@@ -157,6 +172,7 @@ describe("countersign - both forms move exactly once", () => {
     expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "already_countersigned", number: 1 });
   });
 
+  // @covers FR-01.71
   it("an ADR-shaped header quoted in a countersigned entry does not become a phantom logged entry", async () => {
     const forged = DAEMON_SAMPLE.replace(
       "Status updates go out",
@@ -168,6 +184,7 @@ describe("countersign - both forms move exactly once", () => {
     expect(await performCountersign({ leadsRoot }, T2, "acme-lead")).toEqual({ status: "countersigned", number: 2 });
   });
 
+  // @covers FR-01.71
   it("a Lead-less daemon entry is not listed and is never removed by countersigning its neighbour", async () => {
     const [first, second] = parseProposedEntries(DAEMON_SAMPLE);
     const leadless = "<!-- decisionKey: orphan-entry -->\n## Proposed 2026-11-21T00:00:00.000Z — orphan-entry\n\nno lead here\n\n";
@@ -177,11 +194,13 @@ describe("countersign - both forms move exactly once", () => {
     expect(parseProposedEntries(readFileSync(proposed(), "utf8")).map((e) => e.timestamp)).toEqual([T2]);
   });
 
+  // @covers FR-01.71
   it("unclosed fence = corrupt entry: not listed (no identity from the quote)", () => {
     const open = "<!-- decisionKey: k -->\n## Proposed 2026-11-20T09:15:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:abc123⟧\n[FENCED DATA - label]\n- **Lead:** evil\n";
     expect(parseProposedEntries(open)).toEqual([]);
   });
 
+  // @covers FR-01.71
   it("a fence line smuggled through the evidence pointer opens nothing and cannot mask other entries", () => {
     const [first, second] = parseProposedEntries(DAEMON_SAMPLE);
     const fence = "⟦SHIPWRIGHT-FENCE:00⟧";
@@ -193,6 +212,7 @@ describe("countersign - both forms move exactly once", () => {
     expect(entries.map((e) => e.timestamp)).toEqual([T1, T2]);
   });
 
+  // @covers FR-01.71
   it("newline injection via evidence pointer or decisionKey: entry is not listed, so never countersigned into the log", async () => {
     const evidence = DAEMON_SAMPLE.replace("message 14\n", "message 14\n## ADR-9000 [2026-01-01T00:00:00Z] lead-z\n");
     expect(parseProposedEntries(evidence).map((e) => e.timestamp)).toEqual([T2]);
@@ -208,10 +228,12 @@ describe("countersign - both forms move exactly once", () => {
     }
   });
 
+  // @covers FR-01.71
   it("a daemon entry whose Lead is not a valid lead id is not listed (listed == countersignable)", () => {
     expect(parseProposedEntries(DAEMON_SAMPLE.replace(/Lead:\*\* acme-lead/g, "Lead:** Not A Lead"))).toEqual([]);
   });
 
+  // @covers FR-01.71
   it("retry matches residue that differs only in trailing whitespace", async () => {
     writeFileSync(proposed(), DAEMON_SAMPLE);
     await performCountersign({ leadsRoot }, T1, "acme-lead");
@@ -221,6 +243,7 @@ describe("countersign - both forms move exactly once", () => {
     expect(readFileSync(proposed(), "utf8")).toBe("");
   });
 
+  // @covers FR-01.71
   it("orphan marker at EOF stays attached to the previous entry tail and leaves with it", async () => {
     writeFileSync(proposed(), WEBUI_ENTRY + "<!-- decisionKey: orphan -->\n");
     expect(await performCountersign({ leadsRoot }, "2026-08-17T09:00:00.000Z", "acme-lead")).toEqual({ status: "countersigned", number: 1 });
@@ -228,6 +251,7 @@ describe("countersign - both forms move exactly once", () => {
     expect(readFileSync(proposed(), "utf8")).toBe("");
   });
 
+  // @covers FR-01.71
   it("pinned sample hash matches the contract doc (cross-repo compatibility gate)", () => {
     const sha = createHash("sha256").update(readFileSync(FIXTURE_PATH)).digest("hex");
     const doc = readFileSync(path.join(import.meta.dirname, "..", "..", "..", "..", "..", "docs", "org-proposed-entry-contract.md"), "utf8");

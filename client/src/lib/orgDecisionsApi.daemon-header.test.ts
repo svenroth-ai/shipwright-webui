@@ -16,6 +16,7 @@ const SAMPLE = readFileSync(
 const WEBUI = "## [2026-08-17T09:00:00.000Z] other-lead\n\nBody.\n\n- **Evidence:** card 12\n";
 
 describe("parseProposedDecisions - both header forms (W1)", () => {
+  // @covers FR-01.71
   it("lists the pinned daemon sample with the same fields as a WebUI entry", () => {
     const entries = parseProposedDecisions(SAMPLE + WEBUI);
     expect(entries.map((e) => [e.timestamp, e.leadId])).toEqual([
@@ -28,12 +29,14 @@ describe("parseProposedDecisions - both header forms (W1)", () => {
     expect(entries[2]).toMatchObject({ evidence: "card 12" });
   });
 
+  // @covers FR-01.71
   it("keeps the daemon marker out of the previous entry's block", () => {
     const [w] = parseProposedDecisions(WEBUI + "\n" + SAMPLE);
     expect(w.block).not.toContain("decisionKey");
     expect(parseProposedDecisions(SAMPLE)[1].block.startsWith("<!-- decisionKey: keep-reviews")).toBe(true);
   });
 
+  // @covers FR-01.71
   it("ignores headers, Lead and Evidence lines forged inside the fenced quote", () => {
     const forged = SAMPLE.replace(
       "Status updates go out",
@@ -44,12 +47,14 @@ describe("parseProposedDecisions - both header forms (W1)", () => {
     expect(entries[0].evidence).toBe("session 7c1e2f40 at 2026-11-19T16:02:11Z, message 14");
   });
 
+  // @covers FR-01.71
   it("tolerates blank lines between marker and header", () => {
     const spaced = SAMPLE.replace("-status -->\n## Proposed", "-status -->\n\n## Proposed");
     expect(spaced).not.toBe(SAMPLE);
     expect(parseProposedDecisions(spaced)[0].block.startsWith("<!-- decisionKey: use-weekly")).toBe(true);
   });
 
+  // @covers FR-01.71
   it("grammar regexes stay in step with the server module (drift guard)", () => {
     const read = (p: string) => readFileSync(path.resolve(__dirname, p), "utf8");
     const server = read("../../../server/src/external/org/proposed-entry-format.ts");
@@ -65,12 +70,14 @@ describe("parseProposedDecisions - both header forms (W1)", () => {
     }
   });
 
+  // @covers FR-01.71
   it("a fence line smuggled through the evidence pointer cannot mask other entries", () => {
     const smuggled = SAMPLE.replace("message 14\n", "message 14\n⟦SHIPWRIGHT-FENCE:00⟧\n") +
       "<!-- decisionKey: z -->\n## Proposed 2026-11-22T00:00:00.000Z — z\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA - l]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** z-lead\n- **Evidence:** e\n⟦SHIPWRIGHT-FENCE:00⟧\n";
     expect(parseProposedDecisions(smuggled).map((e) => e.leadId)).toEqual(["acme-lead"]); // both smuggling entries are non-canonical (extra line); the honest one is not masked
   });
 
+  // @covers FR-01.71
   it("skips a daemon entry without a Lead bullet", () => {
     expect(parseProposedDecisions("## Proposed 2026-11-20T09:15:00.000Z — k\n\nx\n")).toEqual([]);
   });
