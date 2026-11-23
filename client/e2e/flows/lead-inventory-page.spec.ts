@@ -16,18 +16,21 @@
  *     charter, in the same order as the vocabulary.
  */
 import { test, expect } from "@playwright/test";
-import { existsSync, mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import os, { homedir } from "node:os";
+import os from "node:os";
 
 import { computeLastNightWindow } from "../../src/lib/auditTimelineMerge";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
 // `|| undefined` (not `??`) so an accidentally-empty-string override does
 // not silently fall through to a relative "" path (mkdirSync("") /
 // writeFileSync("") resolve against the process CWD, not an isolated root —
 // Stage-2 code review, low/correctness). One predicate, reused below.
+// NOTE: removeLeadsPath() only deletes inside the isolated HOME's .claude/leads, so an override
+// must point there; any other root now fails closed instead of being deleted.
 const LEADS_ROOT_OVERRIDE = process.env.SHIPWRIGHT_LEADS_ROOT || undefined;
-const LEADS_ROOT = LEADS_ROOT_OVERRIDE ?? path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = LEADS_ROOT_OVERRIDE ?? guardedLeadsRoot();
 const CHART_PATH = path.join(LEADS_ROOT, "org-chart.json");
 const LEAD_ID = "acme-lead";
 const BEAT_ID = "9f1c9e2a-2b1e-4a1e-9c1e-1a2b3c4d5e6f";
@@ -95,7 +98,7 @@ function assertIsolatedLeadsRoot() {
 
 function removeChart() {
   assertIsolatedLeadsRoot();
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
 }
 
 function writeChart() {

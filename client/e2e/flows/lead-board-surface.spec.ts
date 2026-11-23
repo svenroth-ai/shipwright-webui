@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { homedir } from "node:os";
 import {
   cleanupProject,
   cleanupTask,
@@ -10,6 +9,7 @@ import {
   setActiveProject,
   type SeededProject,
 } from "../helpers/fixtures";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
 // iterate-2026-09-09-leadwright-gate-org-presence — the Bot dropdown +
 // BellDot toggle this spec drives now render only when an org chart is
@@ -18,7 +18,7 @@ import {
 // reads as "absent" and the toolbar controls wouldn't exist at all — this
 // spec is about the filter behavior, not the presence gate itself, so a
 // chart is seeded to keep it on the "present" path.
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const CHART_PATH = path.join(LEADS_ROOT, "org-chart.json");
 function writeChart() {
   mkdirSync(LEADS_ROOT, { recursive: true });
@@ -29,7 +29,7 @@ function writeChart() {
   );
 }
 function removeChart() {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
 }
 
 /*

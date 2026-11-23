@@ -10,13 +10,14 @@ import { parseLoggedEntries } from "../decisions-lock.js";
 import { createHash } from "node:crypto";
 
 const FIXTURE_PATH = path.join(import.meta.dirname, "fixtures", "decisions-proposed-daemon-sample.md");
-const DAEMON_SAMPLE = readFileSync(FIXTURE_PATH, "utf8");
+// LF-normalise: Windows checkouts with core.autocrlf=true materialise CRLF fixtures.
+const DAEMON_SAMPLE = readFileSync(FIXTURE_PATH, "utf8").replace(/\r\n/g, "\n");
 const WEBUI_ENTRY = "## [2026-08-17T09:00:00.000Z] acme-lead\n\nBody line.\n\n- **Evidence:** card 12\n";
 const T1 = "2026-11-20T09:15:00.000Z";
 const T2 = "2026-11-20T10:30:00.000Z";
 
 const CORPUS = JSON.parse(
-  readFileSync(path.join(import.meta.dirname, "fixtures", "adversarial-corpus.json"), "utf8"),
+  readFileSync(path.join(import.meta.dirname, "fixtures", "adversarial-corpus.json"), "utf8").replace(/\r\n/g, "\n"),
 ) as Array<{ name: string; input: string; expected: Array<[string, string]> }>;
 
 describe("adversarial corpus (shared with the client suite)", () => {

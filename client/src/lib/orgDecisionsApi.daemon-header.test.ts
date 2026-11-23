@@ -19,7 +19,7 @@ const CORPUS = JSON.parse(
   readFileSync(
     path.resolve(__dirname, "../../../server/src/external/org/__tests__/fixtures/adversarial-corpus.json"),
     "utf8",
-  ),
+  ).replace(/\r\n/g, "\n"),
 ) as Array<{ name: string; input: string; expected: Array<[string, string]> }>;
 
 describe("adversarial corpus (shared with the server suite)", () => {

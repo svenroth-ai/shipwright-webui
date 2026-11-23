@@ -5,11 +5,11 @@
  * usable by keyboard with the expected roles / labels / focus order.
  */
 import { test, expect } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { homedir } from "node:os";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const PROPOSED_PATH = path.join(LEADS_ROOT, "decisions-proposed.md");
 const LEAD_ID = "acme-lead";
 const TS1 = "2026-11-20T09:15:00.000Z";
@@ -26,7 +26,7 @@ function entry(ts: string, key: string, nonce: string, inner: string[], evidence
 }
 
 function writeFixture() {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
   mkdirSync(path.join(LEADS_ROOT, LEAD_ID), { recursive: true });
   writeFileSync(
     path.join(LEADS_ROOT, "org-chart.json"),
@@ -52,7 +52,7 @@ function writeFixture() {
 
 test.describe("Org page — structured proposal view", () => {
   test.beforeEach(() => writeFixture());
-  test.afterEach(() => rmSync(LEADS_ROOT, { recursive: true, force: true }));
+  test.afterEach(() => removeLeadsPath(LEADS_ROOT));
 
   // @covers FR-01.71
   test("shows each quote separately with its pointer; malformed pointers read 'unknown source'; no markup", async ({ page }) => {
