@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { AUDIT_KIND_LABELS, auditKindLabel } from "./auditKindLabels";
 
 describe("auditKindLabels", () => {
+  // @covers FR-01.71
   it("has all 19 leadwright AuditKind values plus the 2 webui decision kinds mapped to a non-empty label", () => {
     const expected = [
       "beat_started",

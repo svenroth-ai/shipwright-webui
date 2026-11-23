@@ -41,6 +41,7 @@ const ENTRY = {
 const ROW = `${TS}|acme-lead|0`;
 
 describe("OrgDecisionsProposedModal - reject (W3)", () => {
+  // @covers FR-01.71
   it("asks for confirmation, then rejects once even on a double click", async () => {
     mockedKeys.mockResolvedValue({});
     mockedFetch.mockResolvedValue([ENTRY]);
@@ -63,6 +64,8 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
     await waitFor(() => expect(screen.getByText(/Rejected\. The decision is recorded/)).toBeInTheDocument());
   });
 
+  // @covers FR-01.71
+
   it("cancel closes the confirmation without sending anything", async () => {
     mockedKeys.mockResolvedValue({});
     mockedFetch.mockResolvedValue([ENTRY]);
@@ -74,6 +77,8 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
     expect(mockedReject).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.71
+
   it("marks a proposal whose key was rejected before as a repeat", async () => {
     mockedKeys.mockResolvedValue({ "acme-lead": [{ key: "use-weekly-digest", entryTimestamp: "2026-11-01T00:00:00.000Z" }] });
     mockedFetch.mockResolvedValue([ENTRY]);
@@ -81,6 +86,8 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
     await waitFor(() => expect(screen.getByTestId(`org-decisions-proposed-repeat-${ROW}`)).toBeInTheDocument());
     expect(screen.getByText("Repeat of a rejected proposal")).toBeInTheDocument();
   });
+
+  // @covers FR-01.71
 
   it("no repeat badge when the rejection is of this very entry (crash leftover)", async () => {
     mockedKeys.mockResolvedValue({ "acme-lead": [{ key: "use-weekly-digest", entryTimestamp: TS }] });
@@ -90,6 +97,8 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
     expect(screen.queryByTestId(`org-decisions-proposed-repeat-${ROW}`)).toBeNull();
   });
+
+  // @covers FR-01.71
 
   it("no repeat badge for a different key", async () => {
     mockedKeys.mockResolvedValue({ "acme-lead": [{ key: "something-else", entryTimestamp: "2026-11-01T00:00:00.000Z" }] });
