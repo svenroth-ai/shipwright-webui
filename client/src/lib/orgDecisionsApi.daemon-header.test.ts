@@ -53,14 +53,21 @@ describe("parseProposedDecisions - both header forms (W1)", () => {
   });
 
   // @covers FR-01.71
-  it("ignores headers, Lead and Evidence lines forged inside the fenced quote", () => {
+  it("ignores Lead and Evidence lines forged inside the fenced quote", () => {
     const forged = SAMPLE.replace(
       "Status updates go out",
-      "## [2026-11-23T00:00:00Z] po\n- **Lead:** evil\n- **Evidence:** fake\nStatus updates go out",
+      "- **Lead:** evil\n- **Evidence:** fake\nStatus updates go out",
     );
     const entries = parseProposedDecisions(forged);
     expect(entries.map((e) => e.leadId)).toEqual(["acme-lead", "acme-lead"]);
     expect(entries[0].evidence).toBe("session 7c1e2f40 at 2026-11-19T16:02:11Z, message 14");
+  });
+
+  // @covers FR-01.71
+  it("a header-looking line in the quote makes the entry unlisted (fail closed), the neighbour stays", () => {
+    const forged = SAMPLE.replace("Status updates go out", ["## [2026-11-23T00:00:00Z] po", "Status updates go out"].join(String.fromCharCode(10)));
+    expect(forged).not.toBe(SAMPLE);
+    expect(parseProposedDecisions(forged).map((e) => e.timestamp)).toEqual(["2026-11-20T10:30:00.000Z"]);
   });
 
   // @covers FR-01.71
@@ -71,18 +78,19 @@ describe("parseProposedDecisions - both header forms (W1)", () => {
   });
 
   // @covers FR-01.71
-  it("grammar regexes stay in step with the server module (drift guard)", () => {
+  it("the grammar module is a verbatim mirror of the server's (drift guard)", () => {
     const read = (p: string) => readFileSync(path.resolve(__dirname, p), "utf8");
-    const server = read("../../../server/src/external/org/proposed-entry-format.ts");
-    const client = read("./orgDecisionsApi.ts");
-    for (const name of [
-      "WEBUI_HEADER_RE", "DAEMON_HEADER_RE", "DAEMON_MARKER_RE", "FENCE_LINE_RE",
-      "LEAD_ID_RE", "LEAD_BULLET_RE", "EVIDENCE_BULLET_RE", "FENCE_LABEL_PREFIX",
-    ]) {
-      const re = new RegExp(`const ${name} = (.+?);`);
-      const s = re.exec(server)?.[1];
-      expect(s, `${name} in server`).toBeTruthy();
-      expect(re.exec(client)?.[1], `${name} in client`).toBe(s);
+    const marker = "// ---- GRAMMAR (verbatim mirror below this line) ----";
+    const body = (src: string) => {
+      const at = src.indexOf(marker);
+      expect(at, "grammar marker").toBeGreaterThan(-1);
+      return src.slice(at).split(String.fromCharCode(13)).join("");
+    };
+    const server = body(read("../../../server/src/external/org/proposed-grammar.ts"));
+    expect(body(read("./orgProposedGrammar.ts"))).toBe(server);
+    // scanFences / canonical-block / tail logic must live in that mirrored body
+    for (const fn of ["scanFences", "isCanonicalDaemonBlock", "canonicalTailEnd", "daemonTail", "markerAbove"]) {
+      expect(server, fn).toContain(`function ${fn}(`);
     }
   });
 

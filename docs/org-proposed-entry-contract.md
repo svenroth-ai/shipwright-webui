@@ -74,12 +74,22 @@ and `client/src/lib/orgDecisionsApi.ts` (`parseProposedDecisions`).
   fence is the first line after the owner header (marker and blank lines
   skipped): a `⟦SHIPWRIGHT-FENCE:<nonce>⟧` line followed by the `[FENCED DATA`
   label, closing at the next identical line that is followed by the blank /
-  Lead / Evidence tail. Fail-safe, not a guarantee: a fenced region that itself
-  contains a fence-open pair or a marker + daemon header is NOT masked (so real
-  entries nested inside it parse normally and the injected fake is dropped as
-  non-canonical). A lead can therefore at worst get its own (or an adjacent)
-  entry unlisted; it cannot hide other leads' entries. The upstream fix
-  (reject CR/LF in evidencePointer / decisionKey / leadId) is still required.
+  Lead / Evidence tail.
+  **Fail closed on the reading side (integrity beats availability):** in
+  `decisions-proposed.md`, a fenced region that holds ANY structural line (a
+  fence line, a decisionKey marker, a `## [`, `## Proposed` or `## ADR-`
+  header) is ambiguous: the owner entry is NOT listed and nothing inside the
+  region is listed either; an opener with no valid close poisons everything
+  after it. Header-looking text in a quote therefore can never produce a listed
+  (hence countersignable) forged entry; the price is that the lead's own entry,
+  and after a dangling opener the following entries, go unlisted until the file
+  is repaired. `isCanonicalDaemonBlock` applies the same rule. In
+  `decision_log.md` (single writer: the countersign) a valid region is always
+  masked, so a quoted `## ADR-` line never becomes a phantom logged entry or
+  moves the next ADR number; ADR numbers above 9999 parse (`\d{4,}`). The
+  upstream fix (leadwright rejects CR/LF in evidencePointer / decisionKey /
+  leadId) is still required: it is the only thing that stops those unfenced
+  fields from forging structure.
 - **Adversarial corpus:** `__tests__/fixtures/adversarial-corpus.json` (input +
   expected `[timestamp, leadId]` list) is read by both the server and the
   client suites; leadwright should pin it as well.

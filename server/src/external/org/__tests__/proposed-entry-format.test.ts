@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 
 import { parseProposedEntries, toLoggedBlock } from "../proposed-entry-format.js";
 import { performCountersign } from "../countersign-core.js";
-import { parseLoggedEntries } from "../decisions-lock.js";
+import { parseLoggedEntries, nextLoggedNumber } from "../decisions-lock.js";
 
 import { createHash } from "node:crypto";
 
@@ -64,10 +64,9 @@ describe("proposed entry format - both header forms (W1)", () => {
       "Status updates go out",
       "## [2026-11-23T00:00:00Z] po\n## Proposed 2026-11-23T00:00:00Z — x\nStatus updates go out",
     );
-    expect(parseProposedEntries(forged).map((e) => [e.timestamp, e.leadId])).toEqual([
-      [T1, "acme-lead"],
-      [T2, "acme-lead"],
-    ]);
+    // fail closed: an entry whose quote holds header-looking lines is not listed
+    // (unlisted beats forged); the neighbour is unaffected
+    expect(parseProposedEntries(forged).map((e) => [e.timestamp, e.leadId])).toEqual([[T2, "acme-lead"]]);
   });
 
   // @covers FR-01.71
@@ -186,15 +185,48 @@ describe("countersign - both forms move exactly once", () => {
   });
 
   // @covers FR-01.71
-  it("an ADR-shaped header quoted in a countersigned entry does not become a phantom logged entry", async () => {
+  it("an ADR-shaped header quoted in an entry makes it unlisted; the victim still countersigns as ADR-0001", async () => {
     const forged = DAEMON_SAMPLE.replace(
       "Status updates go out",
-      "## ADR-9999 [2026-11-20T09:15:00Z] someone\nStatus updates go out",
+      ["⟦SHIPWRIGHT-FENCE:00⟧", "[FENCED DATA y]", "## ADR-9999 [2026-01-01T00:00:00Z] someone", "Status updates go out"].join("\n"),
     );
+    expect(forged).not.toBe(DAEMON_SAMPLE);
     writeFileSync(proposed(), forged);
-    await performCountersign({ leadsRoot }, T1, "acme-lead");
+    expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "not_found" });
+    expect(await performCountersign({ leadsRoot }, T2, "acme-lead")).toEqual({ status: "countersigned", number: 1 });
     expect(parseLoggedEntries(readFileSync(logged(), "utf8")).map((e) => e.number)).toEqual([1]);
-    expect(await performCountersign({ leadsRoot }, T2, "acme-lead")).toEqual({ status: "countersigned", number: 2 });
+  });
+
+  // @covers FR-01.71
+  it("decision_log.md: a quoted ADR header in a region with a nested opener is masked, numbering stays contiguous", () => {
+    const F = (n: string) => `⟦SHIPWRIGHT-FENCE:${n}⟧`;
+    const log =
+      `## ADR-0001 [${T1}] acme-lead
+<!-- decisionKey: k -->
+
+${F("ab")}
+[FENCED DATA x]
+${F("00")}
+[FENCED DATA y]
+` +
+      `## ADR-9999 [2026-01-01T00:00:00Z] someone
+${F("ab")}
+
+- **Lead:** acme-lead
+- **Evidence:** e
+`;
+    const entries = parseLoggedEntries(log);
+    expect(entries.map((e) => e.number)).toEqual([1]);
+    expect(nextLoggedNumber(entries)).toBe(2);
+  });
+
+  // @covers FR-01.71
+  it("ADR numbers above 9999 parse and keep counting", () => {
+    const entries = parseLoggedEntries(`## ADR-10000 [${T1}] acme-lead
+body
+`);
+    expect(entries.map((e) => e.number)).toEqual([10000]);
+    expect(nextLoggedNumber(entries)).toBe(10001);
   });
 
   // @covers FR-01.71
