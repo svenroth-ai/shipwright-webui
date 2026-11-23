@@ -1,0 +1,1 @@
+Org proposals: the operator can reject a lead's proposed entry; the rejection is recorded in the lead's audit log with the author, lead, decision key and an optional reason (never the quoted text), and a later proposal of the same key is marked as a repeat of a rejected proposal.

@@ -16,7 +16,7 @@ function entry(inner: string[], evidence: string | null): ProposedDecisionEntry 
 }
 
 function renderRow(e: ProposedDecisionEntry) {
-  render(<ul><DecisionEntryRow rowKey="k0" entry={e} status={{ kind: "idle" }} onCountersign={() => {}} /></ul>);
+  render(<ul><DecisionEntryRow rowKey="k0" entry={e} status={{ kind: "idle" }} onCountersign={() => {}} onReject={() => {}} isRepeat={false} /></ul>);
   return screen.getByTestId("org-decisions-proposed-entry-k0");
 }
 

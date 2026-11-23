@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"AC1-3 covered by server tests, component tests and a real-browser E2E"},
+{"name":"Error Handling","verdict":"pass","note":"symlink 403, ELOCKED 409, 404 not found / lead_unknown, 409 duplicate / already_countersigned"},
+{"name":"Security Basics","verdict":"pass","note":"lead id and timestamp validated, paths via the allowlist helper, reason bounded one line, no quote text in the record; origin/CSRF limit shared with countersign and documented"},
+{"name":"Test Quality","verdict":"pass","note":"real files, crash residue and double click simulated, both cross-action orders tested"},
+{"name":"Performance Basics","verdict":"pass","note":"audit read is whole-file per request, same accepted cost as audit-log.ts"},
+{"name":"Naming & Structure","verdict":"pass","note":"all touched files under 300 lines; client mirror of decisionKeyOf by rule 7"},
+{"name":"Affected Boundaries","verdict":"pass","note":"audit.jsonl producer (webui) and consumer (audit view + leadwright) round-tripped in the E2E through the audit API"}
+]}

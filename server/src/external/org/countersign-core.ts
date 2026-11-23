@@ -34,6 +34,8 @@ import { writeFileSync, renameSync, existsSync, unlinkSync } from "node:fs";
 import { dirname, basename, join } from "node:path";
 import { randomBytes } from "node:crypto";
 
+import { decisionKeyOf } from "./proposed-decision-key.js";
+import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, type DecisionAuditDeps } from "./decisions-audit.js";
 import {
   withDecisionsLock,
   parseProposedEntries,
@@ -52,7 +54,7 @@ function bodyAfterHeader(block: string): string {
   return idx === -1 ? "" : block.slice(idx + 1);
 }
 
-function atomicWrite(target: string, content: string): void {
+export function atomicWrite(target: string, content: string): void {
   const tmp = join(
     dirname(target),
     `.${basename(target)}.tmp-${process.pid}-${Date.now()}-${randomBytes(4).toString("hex")}`,
@@ -76,9 +78,12 @@ export type CountersignOutcome =
   | { status: "countersigned"; number: number }
   | { status: "already_countersigned"; number: number }
   | { status: "not_found" }
+  | { status: "reject_pending" }
   | { status: "duplicate_identity"; count: number };
 
-export interface CountersignCoreDeps extends DecisionsLockDeps {
+export interface CountersignCoreDeps extends DecisionsLockDeps, Partial<Omit<DecisionAuditDeps, "leadsRoot">> {
+  /** Who countersigns (audit record). Defaults to "operator". */
+  author?: string;
   /** Injectable for tests; production wires the real `withDecisionsLock`. */
   withDecisionsLock?: typeof withDecisionsLock;
 }
@@ -89,6 +94,16 @@ export async function performCountersign(
   leadId: string,
 ): Promise<CountersignOutcome> {
   const lockFn = deps.withDecisionsLock ?? withDecisionsLock;
+  const audit = (ts: string, lead: string, block: string, number: number): void => {
+    ensureDecisionAudit(deps, {
+      kind: "decision_countersigned",
+      leadId: lead,
+      author: deps.author ?? "operator",
+      entryTimestamp: ts,
+      decisionKey: decisionKeyOf(block),
+      adr: `ADR-${String(number).padStart(4, "0")}`,
+    });
+  };
   return lockFn(deps, (ctx) => {
     const loggedRaw = ctx.readLogged();
     const loggedEntries = parseLoggedEntries(loggedRaw);
@@ -124,6 +139,12 @@ export async function performCountersign(
           bodyAfterHeader(existing.block).trimEnd()) {
           return { status: "duplicate_identity", count: 2 };
         }
+        // Crash between the log write and the audit line: complete it (once).
+        try {
+          audit(timestamp, leadId, stillProposed.block, existing.number);
+        } catch {
+          // The log is the source of truth: a broken audit file must not keep an approved entry listed.
+        }
         const nextProposed =
           proposedRaw.slice(0, stillProposed.startIndex) +
           proposedRaw.slice(stillProposed.endIndex);
@@ -144,6 +165,16 @@ export async function performCountersign(
     }
     const target = matches[0];
 
+    // A reject was recorded but the entry is still listed (crash residue, or a line a
+    // lead wrote into its own audit.jsonl): never approve it, and change nothing - an
+    // audit line alone must not be able to delete a proposal. Reject finishes it.
+    if (hasDecisionAudit(deps, "decision_rejected", leadId, timestamp, decisionKeyOf(target.block))) {
+      return { status: "reject_pending" };
+    }
+
+    // Fail before anything changes when the audit file cannot be read (symlink, not a file).
+    assertAuditAppendable(deps, leadId);
+
     const number = nextLoggedNumber(loggedEntries);
     const loggedBlock = toLoggedBlock(target.block, number);
     const separator = loggedRaw.length > 0 && !loggedRaw.endsWith("\n") ? "\n" : "";
@@ -154,6 +185,7 @@ export async function performCountersign(
     // Log FIRST (durable), then remove from proposed — the idempotent-retry
     // check above trusts decision_log.md as "already done".
     atomicWrite(ctx.loggedPath, nextLogged);
+    audit(timestamp, leadId, target.block, number);
     atomicWrite(ctx.proposedPath, nextProposed);
 
     return { status: "countersigned", number };

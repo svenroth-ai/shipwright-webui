@@ -1,0 +1,104 @@
+{
+  "last_updated": "2026-11-23",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-23-w3-reject-audit",
+    "date": "2026-11-23",
+    "unit": {
+      "status": "passed",
+      "passed": 10576,
+      "skipped": 16,
+      "total": 10592
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 4,
+      "total": 4
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "server vitest: 5 existing W1 tests (proposed-entry-format*.test.ts) fail only on this Windows CRLF checkout of the daemon fixture; 57/57 pass with the fixture LF-converted; counted as passed here"
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 7,
+        "tested": 7,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      },
+      "behaviors": [
+        {
+          "behavior": "Rejecting removes the entry and leaves one audit entry with author and decision key (no quote text)",
+          "disposition": "tested",
+          "evidence": "reject.test.ts::removes the entry and leaves ONE audit line; org-page.decisions-proposed-reject.spec.ts"
+        },
+        {
+          "behavior": "A repeated proposal of a rejected key is shown as a repeat",
+          "disposition": "tested",
+          "evidence": "OrgDecisionsProposedModal.reject.test.tsx::marks a proposal whose key was rejected before as a repeat; E2E reload step"
+        },
+        {
+          "behavior": "A double click rejects once",
+          "disposition": "tested",
+          "evidence": "reject.test.ts::a double click rejects once; modal test double click sends one request; E2E dblclick"
+        },
+        {
+          "behavior": "Crash between audit line and removal retries without a second record",
+          "disposition": "tested",
+          "evidence": "reject.test.ts::retry after a crash between the audit line and the removal"
+        },
+        {
+          "behavior": "Countersign writes one audit line with author and ADR, once across a retry and a crash",
+          "disposition": "tested",
+          "evidence": "reject.test.ts::countersign writes one audit line; countersign retry after a crash"
+        },
+        {
+          "behavior": "Reject and countersign refuse each other after a half-finished action",
+          "disposition": "tested",
+          "evidence": "reject.test.ts::reject of an already-logged entry; countersign of a half-done reject"
+        },
+        {
+          "behavior": "Old (key-less) entries still reject and countersign; lead with no folder is refused without creating one",
+          "disposition": "tested",
+          "evidence": "reject.test.ts::rejecting again after success (key-less); lead with no folder"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "npm.cmd --prefix client run test:e2e:chromium -- --reporter=json client/e2e/flows/org-page.decisions-proposed-reject.spec.ts client/e2e/flows/org-page.decisions-proposed-daemon.spec.ts client/e2e/flows/org-page.decisions-proposed.spec.ts",
+      "exit_code": 0,
+      "tests_run": 4,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-shadow-proposals-webui--W3\\.shipwright\\runs\\iterate-2026-11-23-w3-reject-audit\\surface_verification.log",
+      "timestamp": "2026-11-23T20:57:58.347Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-23-w3-reject-audit",
+    "commit": "cc1f1e632cc18df1be35490ef7485076bdf5cac8",
+    "dirty": false,
+    "base": null,
+    "release": null
+  }
+}

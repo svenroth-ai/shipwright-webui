@@ -6,11 +6,14 @@ import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 import type { ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
 import { DecisionEntryDetail } from "./DecisionEntryDetail";
+import { DecisionRejectControl } from "./DecisionRejectControl";
 
 export type EntryStatus =
   | { kind: "idle" }
   | { kind: "pending" }
   | { kind: "done"; alreadyCountersigned: boolean; adr: string }
+  | { kind: "rejected"; alreadyRejected: boolean }
+  | { kind: "blocked"; message: string }
   | { kind: "duplicate"; count: number }
   | { kind: "resolved-elsewhere" }
   | { kind: "error"; message: string };
@@ -20,6 +23,8 @@ export function DecisionEntryRow({
   entry,
   status,
   onCountersign,
+  onReject,
+  isRepeat,
 }: {
   /** Caller's per-row identity key — includes the array index, so two
    *  entries sharing (timestamp, leadId) (409 duplicate_proposal_identity)
@@ -29,6 +34,9 @@ export function DecisionEntryRow({
   entry: ProposedDecisionEntry;
   status: EntryStatus;
   onCountersign: () => void;
+  onReject: (reason: string) => void;
+  /** The lead proposed a decision key the operator already rejected. */
+  isRepeat: boolean;
 }) {
   const pending = status.kind === "pending";
   const settled = status.kind === "done";
@@ -40,11 +48,19 @@ export function DecisionEntryRow({
       data-testid={`org-decisions-proposed-entry-${rowKey}`}
       aria-labelledby={labelId}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span id={labelId} className="font-mono text-[11px] text-[var(--color-muted,#6b7280)]">
           <span className="sr-only">Proposal from </span>
           {entry.timestamp} — {entry.leadId}
         </span>
+        {isRepeat && !settled && (
+          <span
+            className="rounded-[6px] bg-[var(--color-muted-bg,#ede8e1)] px-1.5 py-0.5 text-[11px]"
+            data-testid={`org-decisions-proposed-repeat-${rowKey}`}
+          >
+            Repeat of a rejected proposal
+          </span>
+        )}
         {!settled && (
           <button
             type="button"
@@ -57,6 +73,7 @@ export function DecisionEntryRow({
             {pending ? "Countersigning…" : "Countersign"}
           </button>
         )}
+        {!settled && <DecisionRejectControl rowKey={rowKey} pending={pending} onReject={onReject} />}
       </div>
       <DecisionEntryDetail rowKey={rowKey} entry={entry} labelId={labelId} />
 
@@ -70,6 +87,16 @@ export function DecisionEntryRow({
           {status.alreadyCountersigned
             ? `Already countersigned as ${status.adr}.`
             : `Countersigned as ${status.adr}.`}
+        </div>
+      )}
+      {status.kind === "blocked" && (
+        <div
+          className="mt-2 flex items-center gap-1 text-[11px]"
+          style={{ color: "var(--color-error, #DC2626)" }}
+          data-testid={`org-decisions-proposed-result-${rowKey}`}
+        >
+          <AlertCircle size={12} aria-hidden="true" />
+          {status.message}
         </div>
       )}
       {status.kind === "duplicate" && (
@@ -99,7 +126,7 @@ export function DecisionEntryRow({
           data-testid={`org-decisions-proposed-result-${rowKey}`}
         >
           <AlertCircle size={12} aria-hidden="true" />
-          Couldn't countersign: {status.message}
+          Couldn't complete: {status.message}
         </div>
       )}
     </li>

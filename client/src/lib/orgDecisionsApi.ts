@@ -120,7 +120,8 @@ export async function fetchProposedDecisions(): Promise<ProposedDecisionEntry[]>
 export type CountersignResult =
   | { ok: true; alreadyCountersigned: boolean; number: number; adr: string }
   | { ok: false; reason: "not-found" }
-  | { ok: false; reason: "duplicate"; count: number };
+  | { ok: false; reason: "duplicate"; count: number }
+  | { ok: false; reason: "reject-pending" };
 
 /**
  * `POST /api/org/decisions/countersign` — mirrors the secret-gated route's
@@ -152,6 +153,7 @@ export async function countersignDecision(
   if (r.status === 409 && body.error === "duplicate_proposal_identity") {
     return { ok: false, reason: "duplicate", count: typeof body.count === "number" ? body.count : 0 };
   }
+  if (r.status === 409 && body.error === "reject_pending") return { ok: false, reason: "reject-pending" };
   if (!r.ok) {
     const code = typeof body.error === "string" ? body.error : `http_${r.status}`;
     throw new ApiError(code, r.status, body);

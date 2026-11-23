@@ -32,6 +32,9 @@ export const AUDIT_KIND_LABELS: Record<string, string> = {
   claim_attempt_lost: "Lost a claim attempt",
   executor_liveness_undeterminable: "Executor liveness undeterminable",
   executor_not_tracked: "Executor not tracked",
+  // Written by THIS webui (not leadwright): the operator's decisions on proposed entries.
+  decision_rejected: "Rejected a proposal",
+  decision_countersigned: "Approved a proposal",
 };
 
 /** An unseen `kind` renders as itself — never hidden, never guessed at. */

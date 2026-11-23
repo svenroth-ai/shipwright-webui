@@ -1376,6 +1376,8 @@ write surface; gated, path-guarded, and concurrency-safe.
   `org-chart.json` parse for every lead, no N+1. No terminal-button
   affordance — that slot belongs to a separate card and is deliberately
   omitted, not stubbed.
+- (E) **(iterate-2026-11-23-w3-reject-audit)** Given a proposed entry in the proposals window, when the operator rejects it (after a confirmation step, with an optional reason), then it disappears from the window and exactly one audit record exists in the proposing lead's audit log naming who decided, the lead, the decision key and the reason, never the quoted text; a double click rejects once.
+- (E) **(iterate-2026-11-23-w3-reject-audit)** Given a key the operator rejected earlier, when the same lead proposes that key again, then the new entry is marked as a repeat of a rejected proposal; and countersigning an entry now also records who approved it in the audit log.
 
 - (H) **(iterate-2026-11-23-w2-entry-view)** Given a proposal in the
   proposed-decisions window, when it is listed, then it shows the proposed
