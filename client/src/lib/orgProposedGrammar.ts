@@ -26,7 +26,9 @@ export const LEAD_BULLET_RE = /^-[ \t]*\*\*Lead:\*\*[ \t]*(.+?)\r?$/;
 export const EVIDENCE_BULLET_RE = /^-[ \t]*\*\*Evidence:\*\*[ \t]*(.+?)\r?$/;
 export const FENCE_LABEL_PREFIX = "[FENCED DATA";
 const LOGGED_HEADER_LINE_RE = /^## ADR-\d{4,} \[/;
+export const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/; // same rule as the countersign route
 
+export const stripBom = (s: string): string => (s.charCodeAt(0) === 0xfeff ? s.slice(1) : s);
 export const isBlank = (line: string): boolean => line.trim() === "";
 
 /** First line after `open` equal to it, ignoring a trailing CR; -1 if none. */
@@ -60,7 +62,7 @@ function isStructural(line: string): boolean {
   );
 }
 
-function structuralInside(lines: string[], from: number, to: number): boolean {
+export function structuralInside(lines: string[], from: number, to: number): boolean {
   for (let k = from; k < to; k++) if (isStructural(lines[k])) return true;
   return false;
 }
@@ -70,9 +72,17 @@ function structuralInside(lines: string[], from: number, to: number): boolean {
 export type FenceFileKind = "proposed" | "logged";
 
 const OWNER_RE: Record<FenceFileKind, RegExp> = {
-  proposed: /^## Proposed \S+ — /,
+  proposed: /^## (Proposed \S+ — |\[[^\]]+\] )/, // daemon form, or a WebUI-form header that has a marker above
   logged: /^## ADR-\d{4,} \[/,
 };
+
+/** logged: a masked region must never swallow another entry's owner header. */
+function crossesLoggedOwner(lines: string[], from: number, to: number): boolean {
+  for (let k = from; k < to; k++) {
+    if (LOGGED_HEADER_LINE_RE.test(lines[k]) && DAEMON_MARKER_RE.test(lines[k + 1] ?? "")) return true;
+  }
+  return false;
+}
 
 export interface FenceScan {
   /** Lines inside a fenced region (open line, label, text, close line). */
@@ -99,12 +109,15 @@ export function scanFences(lines: string[], kind: FenceFileKind): FenceScan {
   let poisonFrom = lines.length;
   let i = 0;
   while (i < lines.length) {
-    if (OWNER_RE[kind].test(lines[i]) && (kind === "logged" || markerAbove(lines, i))) {
+    // proposed: owner = header with its decisionKey marker above; logged: owner = ADR header
+    // directly followed by a marker (the only shape countersign writes for a daemon entry)
+    const owns = kind === "proposed" ? markerAbove(lines, i) : DAEMON_MARKER_RE.test(lines[i + 1] ?? "");
+    if (OWNER_RE[kind].test(lines[i]) && owns) {
       let j = i + 1;
       while (j < lines.length && (isBlank(lines[j]) || DAEMON_MARKER_RE.test(lines[j]))) j++;
       if (j + 1 < lines.length && FENCE_LINE_RE.test(lines[j]) && lines[j + 1].startsWith(FENCE_LABEL_PREFIX)) {
         const close = findClose(lines, j);
-        if (close !== -1 && canonicalTailEnd(lines, close) !== -1) {
+        if (close !== -1 && canonicalTailEnd(lines, close) !== -1 && !(kind === "logged" && crossesLoggedOwner(lines, j, close))) {
           for (let k = j; k <= close; k++) fenced.add(k);
           if (kind === "proposed" && structuralInside(lines, j + 2, close)) ambiguousOwners.add(i);
           i = close + 1;
@@ -145,7 +158,8 @@ export function isCanonicalDaemonBlock(blockLines: string[]): boolean {
     j++;
   }
   if (!sawMarker) return false; // listing and masking use one rule: a daemon entry has its marker
-  if (!DAEMON_HEADER_RE.test(blockLines[j] ?? "")) return false;
+  const header = blockLines[j] ?? "";
+  if (!DAEMON_HEADER_RE.test(header) && !WEBUI_HEADER_RE.test(header)) return false;
   j++;
   while (j < blockLines.length && isBlank(blockLines[j])) j++;
   if (!FENCE_LINE_RE.test(blockLines[j] ?? "") || !(blockLines[j + 1] ?? "").startsWith(FENCE_LABEL_PREFIX)) return false;

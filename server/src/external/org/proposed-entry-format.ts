@@ -27,8 +27,8 @@
  */
 
 import {
-  WEBUI_HEADER_RE, DAEMON_HEADER_RE, DAEMON_MARKER_RE, LEAD_ID_RE, LEAD_BULLET_RE,
-  isBlank, scanFences, daemonTail, isCanonicalDaemonBlock, firstBullet,
+  WEBUI_HEADER_RE, DAEMON_HEADER_RE, DAEMON_MARKER_RE, LEAD_ID_RE, LEAD_BULLET_RE, ISO_TIMESTAMP_RE,
+  isBlank, stripBom, scanFences, structuralInside, daemonTail, isCanonicalDaemonBlock, firstBullet,
 } from "./proposed-grammar.js";
 
 export type { FenceFileKind } from "./proposed-grammar.js";
@@ -46,7 +46,9 @@ export interface ProposedEntry {
 
 const leadFromTail = (lines: string[]): string | null => firstBullet(lines, LEAD_BULLET_RE);
 
-/** Parse `decisions-proposed.md` into its header-delimited entries. */
+/** Parse `decisions-proposed.md` into its header-delimited entries. Fail closed:
+ *  an entry is listed (hence countersignable) only when nothing structural can
+ *  be forged around it - see the contract doc. */
 export function parseProposedEntries(raw: string): ProposedEntry[] {
   const lines = raw.split("\n");
   const lineStarts: number[] = [];
@@ -55,58 +57,69 @@ export function parseProposedEntries(raw: string): ProposedEntry[] {
     lineStarts.push(offset);
     offset += line.length + 1;
   }
+  lines[0] = stripBom(lines[0]); // analysis only; offsets above stay raw
   const { fenced, ambiguousOwners, poisonFrom } = scanFences(lines, "proposed");
 
-  interface Head { startLine: number; timestamp: string; leadFromHeader: string | null; barrier: boolean }
+  interface Head { startLine: number; timestamp: string; leadFromHeader: string | null; markerOwned: boolean; barrier: boolean }
   const heads: Head[] = [];
   lines.forEach((line, idx) => {
     // Ambiguous region / dangling opener: nothing inside or after is trusted.
     if (fenced.has(idx) || idx >= poisonFrom) return;
     const w = WEBUI_HEADER_RE.exec(line);
-    // A WebUI-form header glued right under a daemon header is a decisionKey
-    // that carried a newline, not an entry.
-    if (w && idx > 0 && DAEMON_HEADER_RE.test(lines[idx - 1])) return;
-    if (w) {
-      heads.push({ startLine: idx, timestamp: w[1], leadFromHeader: w[2], barrier: false });
-      return;
-    }
-    const d = DAEMON_HEADER_RE.exec(line);
-    if (d) {
-      let m = idx - 1;
-      while (m >= 0 && isBlank(lines[m])) m--;
-      const hasMarker = m >= 0 && !fenced.has(m) && DAEMON_MARKER_RE.test(lines[m]);
-      heads.push({ startLine: hasMarker ? m : idx, timestamp: d[1], leadFromHeader: null, barrier: ambiguousOwners.has(idx) });
-    }
+    const d = w ? null : DAEMON_HEADER_RE.exec(line);
+    if (!w && !d) return;
+    let m = idx - 1;
+    while (m >= 0 && isBlank(lines[m])) m--;
+    const markerOwned = m >= 0 && !fenced.has(m) && DAEMON_MARKER_RE.test(lines[m]);
+    heads.push({
+      startLine: markerOwned ? m : idx,
+      timestamp: (w ?? d)![1],
+      leadFromHeader: w ? w[2] : null,
+      markerOwned,
+      barrier: ambiguousOwners.has(idx),
+    });
   });
 
   const out: ProposedEntry[] = [];
+  // A marker-less WebUI-form header right after a marker-owned entry that did NOT
+  // list (non-canonical / ambiguous: e.g. a decisionKey carrying a newline and a
+  // header) is part of that damage: unlisted, and so is every WebUI header after it
+  // until a marker-owned entry lists again.
+  let tainted = false;
   heads.forEach((h, i) => {
     const startIndex = lineStarts[h.startLine];
     const next = heads[i + 1];
     const endIndex = next ? lineStarts[next.startLine] : raw.length;
     const block = raw.slice(startIndex, endIndex);
-    if (h.barrier) return; // ambiguous owner: a barrier that is never listed
-    if (h.leadFromHeader === null && !isCanonicalDaemonBlock(block.split("\n"))) return;
-    const leadId = h.leadFromHeader ?? leadFromTail(daemonTail(block.split("\n")));
-    // A daemon entry with no Lead bullet has no identity the countersign
-    // route could address: it is not listed. Its text is still part of the
-    // byte range ending where the next HEADER starts, but no listed entry
-    // owns it, so countersigning another entry never moves or removes it.
-    if (leadId === null || (h.leadFromHeader === null && !LEAD_ID_RE.test(leadId))) return; // listed == countersignable
-    out.push({ timestamp: h.timestamp, leadId, block, startIndex, endIndex });
+    const blockLines = (startIndex === 0 ? stripBom(block) : block).split("\n");
+    const owned = h.markerOwned || h.leadFromHeader === null;
+    if (h.barrier) { tainted = true; return; } // ambiguous owner: a barrier that is never listed
+    let leadId: string | null;
+    if (owned) {
+      // exact renderEntry shape only, ISO timestamp, a countersignable lead id
+      tainted = true; // reset below once this entry is listed
+      if (!isCanonicalDaemonBlock(blockLines) || !ISO_TIMESTAMP_RE.test(h.timestamp)) return;
+      leadId = h.leadFromHeader ?? leadFromTail(daemonTail(blockLines));
+      if (leadId === null || !LEAD_ID_RE.test(leadId)) return;
+      tainted = false;
+    } else {
+      if (tainted || structuralInside(blockLines, 1, blockLines.length)) return;
+      leadId = h.leadFromHeader;
+    }
+    out.push({ timestamp: h.timestamp, leadId: leadId as string, block, startIndex, endIndex });
   });
   return out;
 }
 
 /** Header of a single proposed block (first line, or marker + header). */
 function headerOf(block: string): { timestamp: string; leadId: string | null; marker: string | null; rest: string } | null {
-  const lines = block.split("\n");
+  const lines = stripBom(block).split("\n");
   let markerLine: string | null = null;
   let i = 0;
   if (DAEMON_MARKER_RE.test(lines[0] ?? "")) {
     let j = 1;
     while (j < lines.length && isBlank(lines[j])) j++;
-    if (DAEMON_HEADER_RE.test(lines[j] ?? "")) {
+    if (DAEMON_HEADER_RE.test(lines[j] ?? "") || WEBUI_HEADER_RE.test(lines[j] ?? "")) {
       markerLine = lines[0].replace(/\r$/, "");
       i = j;
     }

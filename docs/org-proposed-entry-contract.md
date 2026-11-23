@@ -9,8 +9,8 @@ routes only). Campaign `shadow-proposals-webui`, unit W1.
 
 | Form | Shape | Lead id comes from |
 |---|---|---|
-| WebUI (legacy, still accepted) | `## [<timestamp>] <leadId>` | the header |
-| Daemon (what leadwright writes today) | `## Proposed <timestamp> — <decisionKey>`, preceded directly by the marker line `<!-- decisionKey: <encoded-key> -->` | the FIRST `- **Lead:** <id>` bullet after the closing fence line |
+| WebUI (the target form leadwright switches to in S1-E; also what WebUI-written entries use) | `## [<timestamp>] <leadId>`, optionally preceded by a decisionKey marker line (then it is a marker-owned entry with the same fenced shape as the daemon form) | the header |
+| Daemon (what leadwright writes today; legacy once S1-E lands) | `## Proposed <timestamp> — <decisionKey>`, preceded directly by the marker line `<!-- decisionKey: <encoded-key> -->` | the FIRST `- **Lead:** <id>` bullet after the closing fence line |
 
 Identity of an entry, for both forms: `(timestamp, leadId)`. The marker line
 belongs to the entry below it: it is part of that entry's block and is removed
@@ -37,8 +37,10 @@ test fixture; a change to the daemon's entry shape must update both copies in
 the same release train. Rollout: WebUI tolerant of both forms first, then
 leadwright switches to the WebUI header form, then W2-W4.
 
-Mirrors that must stay in step: `server/src/external/org/proposed-entry-format.ts`
-and `client/src/lib/orgDecisionsApi.ts` (`parseProposedDecisions`).
+Mirrors that must stay in step: `server/src/external/org/proposed-grammar.ts`
+and `client/src/lib/orgProposedGrammar.ts` (verbatim, text drift guard), plus
+`proposed-entry-format.ts` / `orgDecisionsApi.ts` (`parseProposedDecisions`),
+which the shared adversarial corpus holds in step.
 
 ## Compatibility gate and policies
 
@@ -59,9 +61,15 @@ and `client/src/lib/orgDecisionsApi.ts` (`parseProposedDecisions`).
   to tell crash residue (same body, removed) from a genuine second proposal
   (different body, reported as `duplicate_identity`).
 - CRLF files parse; the rewritten log header line is LF-terminated (legacy behaviour, unchanged).
-- **Legacy form / exit condition:** once leadwright (S1-E) writes the WebUI
-  header, the daemon header is a legacy form; it can be removed when no entry in
-  that form remains in any `decisions-proposed.md`.
+- **Legacy form / exit condition:** the daemon header (`## Proposed ...`) is the
+  CURRENT leadwright form and becomes legacy only once S1-E switches to the WebUI
+  header (with marker + fence); it can then be removed when no entry in that form
+  remains in any `decisions-proposed.md`. The S1-E header switch is safe ONLY
+  with the guarantees in this document: marker-owned `## [<ts>] <lead>` headers
+  are first-class owners (fence masking + exact-shape check, same as the daemon
+  form), a marker-less WebUI-form body with ANY structural line (fence line,
+  decisionKey marker, `## Proposed` / `## ADR-` header) is unlisted, and
+  leadwright rejects CR/LF (next bullet).
 - **Open cross-repo issue (raise with leadwright):** the daemon dedups only
   against decisionKey markers in `decisions-proposed.md`. A countersigned entry
   moves its marker (kept as `<!-- decisionKey: ... -->`, first body line) into
@@ -83,9 +91,12 @@ and `client/src/lib/orgDecisionsApi.ts` (`parseProposedDecisions`).
   after it. Header-looking text in a quote therefore can never produce a listed
   (hence countersignable) forged entry; the price is that the lead's own entry,
   and after a dangling opener the following entries, go unlisted until the file
-  is repaired. `isCanonicalDaemonBlock` applies the same rule. In
-  `decision_log.md` (single writer: the countersign) a valid region is always
-  masked, so a quoted `## ADR-` line never becomes a phantom logged entry or
+  is repaired. A marker-less WebUI-form body is checked the same way: any fence
+  line, marker, `## Proposed` or `## ADR-` line in it makes it unlisted. `isCanonicalDaemonBlock` applies the same rule. In
+  `decision_log.md` (single writer: the countersign) a fence opens only when the
+  `## ADR-` header is directly followed by a decisionKey marker (the only shape
+  countersign writes), a valid region is always masked but never crosses another
+  `## ADR-` owner (header + marker), so a quoted `## ADR-` line never becomes a phantom logged entry or
   moves the next ADR number; ADR numbers above 9999 parse (`\d{4,}`). The
   upstream fix (leadwright rejects CR/LF in evidencePointer / decisionKey /
   leadId) is still required: it is the only thing that stops those unfenced
@@ -95,18 +106,33 @@ and `client/src/lib/orgDecisionsApi.ts` (`parseProposedDecisions`).
   client suites; leadwright should pin it as well.
 - **Listed means countersignable:** a daemon entry whose Lead is not a valid
   lead id (`^[a-z0-9][a-z0-9-]*$`, the countersign route's rule) is not listed.
-- **Open item for leadwright (S1-E):** `evidencePointer` and `decisionKey` are
-  written unfenced; an embedded newline plus a `## [<ts>] <lead>` line would be
-  read as a real header. Leadwright must reject CR/LF in evidencePointer,
-  decisionKey and leadId. W1 cannot close this on the reading side without
-  hiding hand-written entries.
+- **BLOCKING S1-E precondition for leadwright:** `evidencePointer` and
+  `decisionKey` are written unfenced, `leadId` unconstrained. Leadwright MUST
+  reject CR/LF in evidencePointer, decisionKey and leadId before real shadow use
+  and before switching headers. The reading side cannot fully close it: an
+  evidence pointer with a newline after a canonical entry can still make a
+  following header look real, and a decisionKey with a newline makes that one
+  lead's entry (and the marker-less WebUI headers after it) unlisted - a
+  single-lead denial of service via one unfenced newline.
+- **Availability trade-off, no UI signal yet:** whatever fails closed is simply
+  NOT LISTED; the operator sees nothing (no "N entries skipped" signal exists
+  yet). That covers ambiguous fenced regions, dangling openers (everything after
+  one), non-ISO daemon timestamps, structural lines in a WebUI body, and
+  WebUI-form headers directly after an unlisted marker-owned entry. A skipped
+  signal is a follow-up.
+- **Tracked leadwright follow-up (before real shadow use):** dedup/tombstone -
+  the daemon dedups only against markers in `decisions-proposed.md`, so it
+  accepts a countersigned decisionKey again (the marker moves to the log).
 - **Only the exact `renderEntry` shape is listed (and so countersignable):**
   `[marker] header, blank, fence + label + text + fence, blank, Lead bullet,
   Evidence bullet`, nothing after. Any extra line (an evidence pointer or
   decisionKey carrying a newline) makes the entry non-canonical: it is not
   listed and cannot be moved into `decision_log.md`. A fence also only counts
   when its closing line is followed by that Lead/Evidence tail, and a
-  WebUI-form header glued directly under a daemon header is not an entry.
+  WebUI-form header after a non-canonical / ambiguous marker-owned entry (0, 1
+  or 2 blank lines between) is not an entry. The timestamp of a marker-owned
+  header must be ISO (`ISO_TIMESTAMP_RE`, the countersign route's rule); a
+  leading BOM is ignored by both parsers.
   Residual risk, upstream: a lead can still write a complete, canonical-looking
   entry as itself (the Lead id is self-reported by the lead; the daemon does not
   verify it against the beat's real lead). Leadwright must verify leadId and

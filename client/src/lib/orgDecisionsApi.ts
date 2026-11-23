@@ -19,8 +19,8 @@ import { ApiError } from "./externalApi";
 import { ORG_API, fetchOrgFileText } from "./orgApi";
 
 import {
-  WEBUI_HEADER_RE, DAEMON_HEADER_RE, DAEMON_MARKER_RE, LEAD_ID_RE, LEAD_BULLET_RE, EVIDENCE_BULLET_RE,
-  isBlank, scanFences, daemonTail, isCanonicalDaemonBlock, firstBullet,
+  WEBUI_HEADER_RE, DAEMON_HEADER_RE, DAEMON_MARKER_RE, LEAD_ID_RE, LEAD_BULLET_RE, EVIDENCE_BULLET_RE, ISO_TIMESTAMP_RE,
+  isBlank, stripBom, scanFences, structuralInside, daemonTail, isCanonicalDaemonBlock, firstBullet,
 } from "./orgProposedGrammar";
 
 export interface ProposedDecisionEntry {
@@ -54,45 +54,56 @@ function extractEvidence(block: string, daemonForm: boolean): string | null {
  *  entries, in file order. An empty/whitespace-only file yields `[]` — the
  *  panel's "no decisions waiting" state, never a parse error. */
 export function parseProposedDecisions(raw: string): ProposedDecisionEntry[] {
-  const lines = raw.split("\n");
+  const lines = stripBom(raw).split("\n");
   const { fenced, ambiguousOwners, poisonFrom } = scanFences(lines, "proposed");
-  interface Head { startLine: number; headerLine: number; timestamp: string; leadId: string | null; barrier: boolean }
+  interface Head { startLine: number; headerLine: number; timestamp: string; leadFromHeader: string | null; markerOwned: boolean; barrier: boolean }
   const heads: Head[] = [];
   lines.forEach((line, idx) => {
     if (fenced.has(idx) || idx >= poisonFrom) return; // ambiguous region: nothing inside or after is trusted
     const w = WEBUI_HEADER_RE.exec(line);
-    if (w && idx > 0 && DAEMON_HEADER_RE.test(lines[idx - 1])) return; // decisionKey carrying a newline, not an entry
-    if (w) {
-      heads.push({ startLine: idx, headerLine: idx, timestamp: w[1], leadId: w[2], barrier: false });
-      return;
-    }
-    const d = DAEMON_HEADER_RE.exec(line);
-    if (d) {
-      let m = idx - 1;
-      while (m >= 0 && isBlank(lines[m])) m--;
-      const marker = m >= 0 && !fenced.has(m) && DAEMON_MARKER_RE.test(lines[m]);
-      heads.push({ startLine: marker ? m : idx, headerLine: idx, timestamp: d[1], leadId: null, barrier: ambiguousOwners.has(idx) });
-    }
+    const d = w ? null : DAEMON_HEADER_RE.exec(line);
+    if (!w && !d) return;
+    let m = idx - 1;
+    while (m >= 0 && isBlank(lines[m])) m--;
+    const markerOwned = m >= 0 && !fenced.has(m) && DAEMON_MARKER_RE.test(lines[m]);
+    heads.push({
+      startLine: markerOwned ? m : idx,
+      headerLine: idx,
+      timestamp: (w ?? d)![1],
+      leadFromHeader: w ? w[2] : null,
+      markerOwned,
+      barrier: ambiguousOwners.has(idx),
+    });
   });
 
   const out: ProposedDecisionEntry[] = [];
+  // Mirror of the server: a marker-less WebUI header after a marker-owned entry that
+  // did not list is part of that damage and stays unlisted.
+  let tainted = false;
   heads.forEach((h, i) => {
     const endLine = heads[i + 1]?.startLine ?? lines.length;
-    const block = lines.slice(h.startLine, endLine).join("\n");
-    if (h.barrier) return; // ambiguous owner: never listed
-    const daemonForm = h.leadId === null;
-    // Daemon form: the FIRST `- **Lead:**` bullet after the closing fence line
-    // (a quote above or an evidence pointer below can never win). No bullet =
-    // no identity, so the entry is not listed.
-    const leadId = h.leadId ?? firstBullet(daemonTail(block.split("\n")), LEAD_BULLET_RE);
-    if (daemonForm && !isCanonicalDaemonBlock(block.split("\n"))) return; // exact renderEntry shape only
-    if (leadId === null || (daemonForm && !LEAD_ID_RE.test(leadId))) return; // listed == countersignable
+    const blockLines = lines.slice(h.startLine, endLine);
+    const block = blockLines.join("\n");
+    const owned = h.markerOwned || h.leadFromHeader === null;
+    if (h.barrier) { tainted = true; return; } // ambiguous owner: never listed
+    let leadId: string | null;
+    if (owned) {
+      // exact renderEntry shape only, ISO timestamp, a countersignable lead id
+      tainted = true; // reset below once this entry is listed
+      if (!isCanonicalDaemonBlock(blockLines) || !ISO_TIMESTAMP_RE.test(h.timestamp)) return;
+      leadId = h.leadFromHeader ?? firstBullet(daemonTail(blockLines), LEAD_BULLET_RE);
+      if (leadId === null || !LEAD_ID_RE.test(leadId)) return;
+      tainted = false;
+    } else {
+      if (tainted || structuralInside(blockLines, 1, blockLines.length)) return;
+      leadId = h.leadFromHeader;
+    }
     out.push({
       timestamp: h.timestamp,
-      leadId,
+      leadId: leadId as string,
       block,
       body: lines.slice(h.headerLine + 1, endLine).join("\n"),
-      evidence: extractEvidence(block, daemonForm),
+      evidence: extractEvidence(block, owned),
     });
   });
   return out;
