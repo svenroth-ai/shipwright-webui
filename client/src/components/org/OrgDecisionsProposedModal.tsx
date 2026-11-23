@@ -36,6 +36,7 @@ import { fetchRejectedKeys } from "../../lib/orgRejectApi";
 import { decisionKeyOf } from "../../lib/orgDecisionKey";
 import { ApiError } from "../../lib/externalApi";
 import { DecisionEntryRow } from "./DecisionEntryRow";
+import { SkippedEntriesNotice } from "./SkippedEntriesNotice";
 import { useDecisionActions, entryKey } from "./useDecisionActions";
 
 interface Props {
@@ -44,13 +45,14 @@ interface Props {
 }
 
 export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data: result, isLoading, error, refetch } = useQuery({
     queryKey: ["org", "decisions-proposed"],
     queryFn: fetchProposedDecisions,
     enabled: open,
     retry: false,
   });
 
+  const data = result?.entries;
   const leadIds = [...new Set((data ?? []).map((e) => e.leadId))];
   const { data: rejectedByLead } = useQuery({
     queryKey: ["org", "decisions-rejected-keys", leadIds.join(",")],
@@ -104,6 +106,7 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
 
           <div className="min-h-0 flex-1 overflow-auto p-4">
             <div role="status" aria-live="polite" className="text-[11px]" data-testid="org-decisions-proposed-notice">{notice}</div>
+            {!error && <SkippedEntriesNotice skipped={result?.skipped} />}
             {isLoading && (
               <div className="flex h-full items-center justify-center text-[12px]" style={{ color: "var(--color-muted, #6b7280)" }} data-testid="org-decisions-proposed-loading">
                 <Loader2 size={16} className="mr-2 animate-spin" /> Loading…

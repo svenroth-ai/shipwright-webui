@@ -90,7 +90,7 @@ describe("fetchProposedDecisions", () => {
       status: 200,
       text: async () => "## [2026-08-17T09:00:00.000Z] acme-lead\nbody\n",
     });
-    const entries = await fetchProposedDecisions();
+    const { entries } = await fetchProposedDecisions();
     expect(entries).toHaveLength(1);
     expect(fetchMock).toHaveBeenCalledWith(
       `${ORG_API}/file?path=decisions-proposed.md`,
@@ -100,7 +100,7 @@ describe("fetchProposedDecisions", () => {
 
   it("an empty (but present) file resolves to an empty array — the 'no decisions waiting' state", async () => {
     stubFetch({ ok: true, status: 200, text: async () => "" });
-    await expect(fetchProposedDecisions()).resolves.toEqual([]);
+    await expect(fetchProposedDecisions()).resolves.toEqual({ entries: [], skipped: { count: 0, leadIds: [] } });
   });
 
   it("throws a decoded ApiError on a non-2xx (e.g. a genuine 404, distinct from an empty file)", async () => {

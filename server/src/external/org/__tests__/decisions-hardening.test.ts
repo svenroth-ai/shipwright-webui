@@ -192,6 +192,12 @@ describe("decision hardening", () => {
     });
 
     // @covers FR-01.71
+    it("pins the digest of the shared daemon sample (the client mirror pins the same two values)", () => {
+      const raw = readFileSync(path.join(__dirname, "fixtures", "decisions-proposed-daemon-sample.md"), "utf8").split(String.fromCharCode(13)).join("");
+      expect(parseProposedEntries(raw).map((e) => blockDigest(e.block))).toEqual(["0ed68ceb67d8b4c0c7f34a1ba18b9928", "d2c3b4dbd2b5e6ec1d68ca497e8fa34f"]);
+    });
+
+    // @covers FR-01.71
     it("a CRLF checkout and trailing blank lines do not change the digest", () => {
       const lf = entry("Line one.");
       expect(blockDigest(lf.replace(/\n/g, "\r\n") + "\r\n\r\n")).toBe(blockDigest(lf));

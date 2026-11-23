@@ -54,6 +54,24 @@ function extractEvidence(block: string, daemonForm: boolean): string | null {
  *  entries, in file order. An empty/whitespace-only file yields `[]` — the
  *  panel's "no decisions waiting" state, never a parse error. */
 export function parseProposedDecisions(raw: string): ProposedDecisionEntry[] {
+  return parseProposedDecisionsDetailed(raw).entries;
+}
+
+/** Candidate entries the parser dropped (fail closed): how many, and the lead ids that could be read from them.
+ *  Never any content of a skipped entry. */
+export interface SkippedEntries {
+  count: number;
+  leadIds: string[];
+}
+
+export interface ProposedDecisionsResult {
+  entries: ProposedDecisionEntry[];
+  skipped: SkippedEntries;
+}
+
+/** Same listing as `parseProposedDecisions`, plus what was NOT listed (ambiguous fence, damaged or non-canonical
+ *  entry, structural injection, a dangling fence and the header-looking lines after it). Read-only signal. */
+export function parseProposedDecisionsDetailed(raw: string): ProposedDecisionsResult {
   const lines = stripBom(raw).split("\n");
   const { fenced, ambiguousOwners, poisonFrom } = scanFences(lines, "proposed");
   interface Head { startLine: number; headerLine: number; timestamp: string; leadFromHeader: string | null; markerOwned: boolean; barrier: boolean }
@@ -77,6 +95,16 @@ export function parseProposedDecisions(raw: string): ProposedDecisionEntry[] {
   });
 
   const out: ProposedDecisionEntry[] = [];
+  let skippedCount = 0;
+  const skippedLeads = new Set<string>();
+  // Header-looking lines after a dangling fence opener are untrusted and unlisted: each counts as skipped.
+  for (let idx = poisonFrom; idx < lines.length; idx++) {
+    if (WEBUI_HEADER_RE.test(lines[idx]) || DAEMON_HEADER_RE.test(lines[idx])) skippedCount++;
+  }
+  const skip = (lead: string | null) => {
+    skippedCount++;
+    if (lead !== null && LEAD_ID_RE.test(lead)) skippedLeads.add(lead);
+  };
   // Mirror of the server: a marker-less WebUI header after a marker-owned entry that
   // did not list is part of that damage and stays unlisted.
   let tainted = false;
@@ -85,17 +113,18 @@ export function parseProposedDecisions(raw: string): ProposedDecisionEntry[] {
     const blockLines = lines.slice(h.startLine, endLine);
     const block = blockLines.join("\n");
     const owned = h.markerOwned || h.leadFromHeader === null;
-    if (h.barrier) { tainted = true; return; } // ambiguous owner: never listed
+    if (h.barrier) { tainted = true; skip(h.leadFromHeader ?? firstBullet(daemonTail(blockLines), LEAD_BULLET_RE)); return; } // ambiguous owner: never listed
     let leadId: string | null;
     if (owned) {
       // exact renderEntry shape only, ISO timestamp, a countersignable lead id
       tainted = true; // reset below once this entry is listed
-      if (!isCanonicalDaemonBlock(blockLines) || !ISO_TIMESTAMP_RE.test(h.timestamp)) return;
-      leadId = h.leadFromHeader ?? firstBullet(daemonTail(blockLines), LEAD_BULLET_RE);
-      if (leadId === null || !LEAD_ID_RE.test(leadId)) return;
+      const lead = h.leadFromHeader ?? firstBullet(daemonTail(blockLines), LEAD_BULLET_RE);
+      if (!isCanonicalDaemonBlock(blockLines) || !ISO_TIMESTAMP_RE.test(h.timestamp)) { skip(lead); return; }
+      leadId = lead;
+      if (leadId === null || !LEAD_ID_RE.test(leadId)) { skip(null); return; }
       tainted = false;
     } else {
-      if (tainted || structuralInside(blockLines, 1, blockLines.length)) return;
+      if (tainted || structuralInside(blockLines, 1, blockLines.length)) { skip(h.leadFromHeader); return; }
       leadId = h.leadFromHeader;
     }
     out.push({
@@ -106,15 +135,15 @@ export function parseProposedDecisions(raw: string): ProposedDecisionEntry[] {
       evidence: extractEvidence(block, owned),
     });
   });
-  return out;
+  return { entries: out, skipped: { count: skippedCount, leadIds: [...skippedLeads].sort() } };
 }
 
 /** `GET /api/org/file?path=decisions-proposed.md`, parsed. Same 404-on-
  *  missing contract as {@link fetchOrgFileText} — a missing file is a real
  *  state the panel shows, not an error to swallow into "no decisions". */
-export async function fetchProposedDecisions(): Promise<ProposedDecisionEntry[]> {
+export async function fetchProposedDecisions(): Promise<ProposedDecisionsResult> {
   const raw = await fetchOrgFileText("decisions-proposed.md");
-  return parseProposedDecisions(raw);
+  return parseProposedDecisionsDetailed(raw);
 }
 
 export type CountersignResult =
@@ -122,7 +151,11 @@ export type CountersignResult =
   | { ok: false; reason: "line-rejected"; code: string }
   | { ok: false; reason: "not-found" }
   | { ok: false; reason: "duplicate"; count: number }
-  | { ok: false; reason: "reject-pending" };
+  | { ok: false; reason: "reject-pending" }
+  /** The lead rewrote the entry since the operator opened it; nothing was written. */
+  | { ok: false; reason: "entry-changed" }
+  /** The lead audit file cannot be read or written; nothing was changed. */
+  | { ok: false; reason: "audit-unwritable"; message: string };
 
 /**
  * `POST /api/org/decisions/countersign` — mirrors the secret-gated route's
@@ -138,11 +171,13 @@ export async function countersignDecision(
   leadId: string,
   /** The operator's edited proposed line; omit to approve as proposed. */
   line?: string,
+  /** Digest (`blockDigest`) of the entry block the operator saw; the server refuses when the entry changed since. */
+  fingerprint?: string,
 ): Promise<CountersignResult> {
   const r = await fetch(`${ORG_API}/decisions/countersign`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(line === undefined ? { timestamp, leadId } : { timestamp, leadId, line }),
+    body: JSON.stringify({ timestamp, leadId, ...(line === undefined ? {} : { line }), ...(fingerprint === undefined ? {} : { fingerprint }) }),
   });
   let body: Record<string, unknown> = {};
   try {
@@ -157,6 +192,8 @@ export async function countersignDecision(
     return { ok: false, reason: "duplicate", count: typeof body.count === "number" ? body.count : 0 };
   }
   if (r.status === 409 && body.error === "reject_pending") return { ok: false, reason: "reject-pending" };
+  if (r.status === 409 && body.error === "entry_changed") return { ok: false, reason: "entry-changed" };
+  if (r.status === 409 && body.error === "audit_unwritable") return { ok: false, reason: "audit-unwritable", message: typeof body.message === "string" ? body.message : "The audit file of this lead cannot be used." };
   if (r.status === 400 && typeof body.error === "string" && body.error.startsWith("line_")) {
     return { ok: false, reason: "line-rejected", code: body.error };
   }
