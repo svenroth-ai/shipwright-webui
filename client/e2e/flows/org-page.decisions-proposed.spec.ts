@@ -17,18 +17,18 @@
  *     cross-tile cache invalidation this iterate adds.
  */
 import { test, expect } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import { homedir } from "node:os";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const CHART_PATH = path.join(LEADS_ROOT, "org-chart.json");
 const PROPOSED_PATH = path.join(LEADS_ROOT, "decisions-proposed.md");
 const LOGGED_PATH = path.join(LEADS_ROOT, "decision_log.md");
 const LEAD_ID = "acme-lead";
 
 function removeChart() {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
 }
 
 function writeChart() {

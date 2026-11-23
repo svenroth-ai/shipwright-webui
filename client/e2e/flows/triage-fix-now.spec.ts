@@ -34,7 +34,8 @@
 import { test, expect } from "@playwright/test";
 import { mkdirSync, rmSync, writeFileSync, mkdtempSync } from "node:fs";
 import path from "node:path";
-import { tmpdir, homedir } from "node:os";
+import { tmpdir } from "node:os";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
 // iterate-2026-09-09-leadwright-gate-org-presence — Priority/Domain now live
 // inside LeadwrightFieldsFragment, which renders only when an org chart is
@@ -43,7 +44,7 @@ import { tmpdir, homedir } from "node:os";
 // on new-issue-priority-select / new-issue-domain-input below fail — this
 // spec is about triage prefill wiring, not about the presence gate itself,
 // so a chart is seeded to keep it on the "present" path.
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const CHART_PATH = path.join(LEADS_ROOT, "org-chart.json");
 function writeChart() {
   mkdirSync(LEADS_ROOT, { recursive: true });
@@ -54,7 +55,7 @@ function writeChart() {
   );
 }
 function removeChart() {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
 }
 
 // @covers FR-01.30

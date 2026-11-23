@@ -26,9 +26,8 @@
  * temporary HOME, never the operator's real leads.
  */
 import { test, expect } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { homedir } from "node:os";
 import {
   cleanupProject,
   cleanupTask,
@@ -37,12 +36,13 @@ import {
   setActiveProject,
   type SeededProject,
 } from "../helpers/fixtures";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const CHART_PATH = path.join(LEADS_ROOT, "org-chart.json");
 
 function removeChart() {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
 }
 
 function writeInvalidChart() {

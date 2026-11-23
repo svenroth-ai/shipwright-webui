@@ -7,7 +7,7 @@ import { parseProposedEntries } from "../proposed-entry-format.js";
 import { performCountersign } from "../countersign-core.js";
 import { parseLoggedEntries, nextLoggedNumber } from "../decisions-lock.js";
 
-const DAEMON_SAMPLE = readFileSync(path.join(import.meta.dirname, "fixtures", "decisions-proposed-daemon-sample.md"), "utf8");
+const DAEMON_SAMPLE = readFileSync(path.join(import.meta.dirname, "fixtures", "decisions-proposed-daemon-sample.md"), "utf8").replace(/\r\n/g, "\n");
 const WEBUI_ENTRY = "## [2026-08-17T09:00:00.000Z] acme-lead\n\nBody line.\n\n- **Evidence:** card 12\n";
 const T1 = "2026-11-20T09:15:00.000Z";
 const T2 = "2026-11-20T10:30:00.000Z";

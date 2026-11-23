@@ -1,0 +1,10 @@
+{"items":[
+{"name":"correctness","verdict":"pass","note":"LF-normalisation added to fixture reads; guard helper throws unless homedir is under tmpdir and path is inside home; verified by unit test and real-home refusal probe"},
+{"name":"tests","verdict":"pass","note":"server org tests 422 pass; client meta-test + daemon-header 41 pass; 3 e2e specs (9 tests) pass through isolated-stack"},
+{"name":"scope","verdict":"pass","note":"test infrastructure only; .gitattributes untouched; no product code changed"},
+{"name":"conventions","verdict":"pass","note":"files under 300 lines, @covers tags on new tests, typecheck/lint clean"},
+{"name":"security","verdict":"pass","note":"guard is fail-closed; refuses on realpath outside temp and on leads path outside HOME"},
+{"name":"docs","verdict":"n/a","note":"no behaviour change"},
+{"name":"affected-boundaries","verdict":"n/a","note":"no serialized format touched"},
+{"name":"regressions","verdict":"pass","note":"all 15 leads specs use the helper; ratchet scans e2e tree"}
+]}

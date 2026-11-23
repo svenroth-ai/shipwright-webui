@@ -22,15 +22,15 @@
  *     order preserved, marker stripped, open vs. answered rounds.
  */
 import { test, expect } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import { homedir } from "node:os";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const CHART_PATH = path.join(LEADS_ROOT, "org-chart.json");
 
 function removeChart() {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
 }
 
 function writeChart(leads: Record<string, unknown>) {
@@ -213,7 +213,7 @@ test.describe("Org page — present, one lead (AC-1/AC-2/AC-3/AC-8)", () => {
       await expect(open).toHaveCount(1);
       await expect(open.getByTestId("thread-round-open-badge")).toBeVisible();
     } finally {
-      rmSync(threadsPath, { force: true });
+      removeLeadsPath(threadsPath);
     }
   });
 

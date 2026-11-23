@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-24-test-hardening-crlf-leads-guard",
+  "date": "2026-11-24",
+  "section": "Iterate - change: test hardening for CRLF fixtures and leads e2e guard",
+  "title": "Guard e2e specs against touching a real ~/.claude/leads and normalise fixture EOL in tests",
+  "context": "5 W1 server tests failed on Windows autocrlf checkouts (CRLF fixtures), and 15 Org/Lead Playwright specs seeded and deleted ~/.claude/leads with no check that HOME is isolated.",
+  "decision": "Tests LF-normalise fixture reads (no .gitattributes change). One helper e2e/helpers/leads-home-guard.ts (guardedLeadsRoot, removeLeadsPath) requires SHIPWRIGHT_E2E_ISOLATED=1 and a HOME strictly under a non-root temp dir; all specs use it; a vitest source-scan ratchet fails on bare rm of a leads path.",
+  "consequences": "Running a leads spec outside isolated-stack now throws at module load. SHIPWRIGHT_LEADS_ROOT overrides must point inside the isolated HOME. The ratchet is lexical (wrapper parameters are not traced); the runtime guard is the real protection.",
+  "rationale": "Guard writes as well as deletes (code review high): root is taken at spec load. Doubts answered: tmpdir root and missing marker now refuse; realpath errors propagate; scan covers mjs/js, aliases, shell rm. Rebutted: corpus replace is a harmless no-op kept per brief; guard not merged with temp-dir.ts (stricter strict-child semantics).",
+  "rejected": "A .gitattributes eol=lf rule for the fixtures: sensitive path that blocks the PR Review gate.",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ""
+}

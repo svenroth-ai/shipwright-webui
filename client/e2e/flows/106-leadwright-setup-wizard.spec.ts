@@ -15,14 +15,14 @@ import {
   type SeededProject,
 } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { homedir } from "node:os";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
 // Mirrors `105-org-audit-timeline.spec.ts`'s fixture-isolation contract: the
 // isolated E2E stack points HOME at a fresh temp dir, so `~/.claude/leads`
 // resolves per-worker rather than clobbering a real leads directory.
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const CHART_PATH = path.join(LEADS_ROOT, "org-chart.json");
 
 function writeChart() {
@@ -31,7 +31,7 @@ function writeChart() {
 }
 
 function removeChart() {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
 }
 
 const ACTIONS_JSON = {

@@ -1,0 +1,1 @@
+- **iterate-2026-11-24-test-hardening-crlf-leads-guard** (2026-11-24): Convention — Org/Lead e2e specs take their leads root from e2e/helpers/leads-home-guard (guardedLeadsRoot, removeLeadsPath); a bare rm of a leads path fails e2e-leads-rm-guard.test.ts. → decision_log (ADR via Run-ID: iterate-2026-11-24-test-hardening-crlf-leads-guard)
