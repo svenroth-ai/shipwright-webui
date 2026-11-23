@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-23-reminders-followups",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T06:52:10.576680+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T06:58:02.796402+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/sidebar/InboxBadge.tsx",
+          "line": 25,
+          "finding": "Problem state announced only via aria-label on a plain span (generic role; aria-prohibited-attr, unreliable in screen readers); title is mouse-only.",
+          "suggestion": "Use visually hidden sr-only text inside the badge and assert the link's accessible name in tests.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/reminder-contract.ts",
+          "line": 116,
+          "finding": "isNoTriageLog matches any FileNotFoundError, incl. a narrow race inside read_all_items; message carries no path/user text and regex is end-anchored.",
+          "suggestion": "Acceptable; document the trade-off; ask CLI for a structured code.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/e2e/flows/inbox-reminders-followups.spec.ts",
+          "line": 18,
+          "finding": "Header comment cites routes/reminders.test.ts which does not prove the rule.",
+          "suggestion": "Cite only reminder-contract.test.ts.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/pages/TriagePage.tsx",
+          "line": 71,
+          "finding": "settled guard never true with zero projects so the query stays in the URL (cosmetic).",
+          "suggestion": "Optional.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/reminder-contract.ts",
+          "line": 116,
+          "finding": "isNoTriageLog exported without a consumer.",
+          "suggestion": "Drop export.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-23T06:54:45.784825+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "bdda219b78a197458df04d2605206e267744caa6",
+      "reviewer_notes": "No high findings. One medium a11y finding recommended before merge. Hook has no re-run loop; hostile params only compared by equality; MainLayout cost negligible; TriagePage 263 lines < 300."
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": null,
+          "line": null,
+          "finding": "only a project with no triage log becomes triageError=null",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": null,
+          "line": null,
+          "finding": "banner change is local to the Inbox",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": null,
+          "line": null,
+          "finding": "settled means final",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-23T06:58:02.626185+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "bdda219b78a197458df04d2605206e267744caa6"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/hooks/useTriageDeepLink.ts:34 (with client/src/pages/TriagePage.tsx:71)",
+          "line": null,
+          "finding": "When `projectIds` is empty (projects list not yet loaded, or no projects at all), `settled` stays `false` forever in the no-projects case, so a stale deep link's `project`/`item` params are never consumed and linger in the URL. With zero registered projects this is harmless, but if the projects query errors out (not loading, but empty), the link is also never cleaned, and a \"not found\" is never final.",
+          "suggestion": "Treat settled as true when the projects query itself has finished (loaded or errored), not only when `projectIds.length > 0`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/sidebar/InboxBadge.tsx",
+          "line": 30,
+          "finding": "With `count === 0 && problem`, the accessible text is `\", some reminders could not be read\"` — a leading comma with no number, which reads oddly (\"comma, some reminders…\"). The count>0 case reads fine (\"3!, some reminders…\").",
+          "suggestion": "Use a conditional sr-only string (no leading comma when count is 0), e.g. `{count > 0 ? ', some reminders could not be read' : 'some reminders could not be read'}`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/hooks/useTriageDeepLink.ts",
+          "line": 27,
+          "finding": "The effect's dependency list includes `entries` and `open`; in TriagePage `open` is `setSelected` (stable), but if any caller passes an inline arrow function the effect re-runs on every render. With the params already cleared it's a no-op, so this is only wasted work — not a correctness break today. Flagging only in case another call site appears.",
+          "suggestion": "No change needed now; if another consumer appears, wrap the callback or drop `open` from deps via a ref.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/sidebar/InboxBadge.test.tsx",
+          "line": 40,
+          "finding": "expect(badge).not.toHaveAttribute('aria-label')` asserts an implementation detail (that a11y is done via sr-only spans, not aria-label). That's fine, but the e2e's link-name check `/Inbox.could not be read/` is the real behavior gate; the unit test alone wouldn't catch a regression where the sr-only span is dropped while the visual \"!\" remains.",
+          "suggestion": "Add an assertion on the element's accessible name (e.g. `toHaveAccessibleName(/could not be read/)`), which is implementation-agnostic.  Positive notes: the AC trio is fully covered — badge with SR text, exact-entry deep link consumed once, and the FileNotFoundError carve-out on the server with a contract test pinning it. The deep-link hook's semantics (wait while loading, drop stale once settled, single consumption with `replace: true`) match the AC exactly, and both `openTriage` call sites were migrated to the new signature.  Overall: solid, spec-complete, well-tested change; the findings above are refinements, none block shipping.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/src/pages/TriagePage.tsx",
+          "line": 71,
+          "finding": "With zero registered projects, `projectIds.length > 0` remains false, so the deep-link hook never considers loading settled. A stale link therefore keeps its query parameters indefinitely, including after reload, instead of being consumed as required.",
+          "suggestion": "Derive settlement from completion of the projects request and the per-project requests. A successfully loaded empty project list should count as settled; add a test verifying that an unknown link is removed in this state.  Overall assessment: ship-with-fixes. The main behavior matches the specification, but deep-link consumption needs to handle an empty project registry. Local inspection was blocked by the environment’s execution policy, so this review is based on the supplied diff.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-23T06:58:55.890521+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] - Category: edge-case\n  Severity: low\n  File: client/src/hooks/useTriageDeepLink.ts:34 (with client/src/pages/TriagePage.tsx:71)\n  Finding: When `projectIds` is empty (projects list not yet loaded, or no projects at all), `settled` stays `false` forever in the no-projects case, so a stale deep link's `project`/`item` params are never consumed and linger in the URL. With zero registered projects this is harmless, but if the projects query errors out (not loading, but empty), the link is also never cleaned, and a \"not found\" is never final.\n  Suggestion: Treat settled as true when the projects query itself has finished (loaded or errored), not only when `projectIds.length > 0`.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/sidebar/InboxBadge.tsx:30\n  Finding: With `count === 0 && problem`, the accessible text is `\", some reminders could not be read\"` — a leading comma with no number, which reads oddly (\"comma, some reminders…\"). The count>0 case reads fine (\"3!, some reminders…\").\n  Suggestion: Use a conditional sr-only string (no leading comma when count is 0), e.g. `{count > 0 ? ', some reminders could not be read' : 'some reminders could not be read'}`.\n\n- Category: bug\n  Severity: low\n  File: client/src/hooks/useTriageDeepLink.ts:27\n  Finding: The effect's dependency list includes `entries` and `open`; in TriagePage `open` is `setSelected` (stable), but if any caller passes an inline arrow function the effect re-runs on every render. With the params already cleared it's a no-op, so this is only wasted work — not a correctness break today. Flagging only in case another call site appears.\n  Suggestion: No change needed now; if another consumer appears, wrap the callback or drop `open` from deps via a ref.\n\n- Category: test\n  Severity: low\n  File: client/src/components/sidebar/InboxBadge.test.tsx:40\n  Finding: `expect(badge).not.toHaveAttribute('aria-label')` asserts an implementation detail (that a11y is done via sr-only spans, no […truncated]\n\n[openai] - Category: edge-case\n- Severity: medium\n- File: client/src/pages/TriagePage.tsx:71\n- Finding: With zero registered projects, `projectIds.length > 0` remains false, so the deep-link hook never considers loading settled. A stale link therefore keeps its query parameters indefinitely, including after reload, instead of being consumed as required.\n- Suggestion: Derive settlement from completion of the projects request and the per-project requests. A successfully loaded empty project list should count as settled; add a test verifying that an unknown link is removed in this state.\n\nOverall assessment: ship-with-fixes. The main behavior matches the specification, but deep-link consumption needs to handle an empty project registry. Local inspection was blocked by the environment’s execution policy, so this review is based on the supplied diff.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T06:53:09.037050+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "bdda219b78a197458df04d2605206e267744caa6",
+      "ac_verdicts": [
+        {
+          "ac": "item-1",
+          "verdict": "matches",
+          "diff_location": "client/src/pages/inbox/reminderProblems.ts:49",
+          "reason": "cannotRead covers unreadable project, failed request and triage error but not damaged lines; badge shows count plus '!' on every page.",
+          "weakens": false
+        },
+        {
+          "ac": "item-2",
+          "verdict": "matches",
+          "diff_location": "client/src/hooks/useTriageDeepLink.ts",
+          "reason": "Link matched on project and id together, opens that entry's detail, removed with replace:true; stale link dropped once loaded.",
+          "weakens": false
+        },
+        {
+          "ac": "item-3",
+          "verdict": "matches",
+          "diff_location": "server/src/core/reminder-contract.ts:158",
+          "reason": "A message ending in (FileNotFoundError) becomes triageError null; any other exception name stays an error.",
+          "weakens": false
+        }
+      ]
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T06:58:02.985074+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-23T06:58:03.168359+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

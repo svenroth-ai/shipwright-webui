@@ -9,6 +9,7 @@ import { CommandCenter } from '../components/command/CommandCenter';
 import { useExternalInbox } from '../hooks/useExternalInbox';
 import { useTriageCounts } from '../hooks/useTriage';
 import { countDueItems, useRemindersDue } from '../hooks/useReminders';
+import { reminderProblems } from '../pages/inbox/reminderProblems';
 import { useIsPhoneViewport } from '../hooks/useIsCompactViewport';
 import { useDensity } from '../hooks/useDensity';
 import { useListKeyboardNav } from '../hooks/useListKeyboardNav';
@@ -41,9 +42,11 @@ export function MainLayout() {
   }, [location.pathname]);
 
   // The alert: waiting entries PLUS due reminders and expired parked triage (reminders-webui W3).
-  const { data: due } = useRemindersDue();
+  const { data: due, isError: dueFailed } = useRemindersDue();
   const dueReminders = countDueItems(due?.projects);
   const inboxCount = inbox.length + dueReminders;
+  // Something could not be read: the count is then only what WAS read, so the badge says so too.
+  const inboxProblem = reminderProblems(due?.projects, dueFailed).cannotRead;
   const triageCount = triageCounts?.total ?? 0;
 
   return (
@@ -66,6 +69,7 @@ export function MainLayout() {
               <SidebarNav
                 drawer
                 inboxCount={inboxCount}
+                inboxProblem={inboxProblem}
                 triageCount={triageCount}
                 onNavigate={() => setDrawerOpen(false)}
               />
@@ -73,7 +77,7 @@ export function MainLayout() {
           </Dialog.Portal>
         </Dialog.Root>
       ) : (
-        <SidebarNav inboxCount={inboxCount} triageCount={triageCount} />
+        <SidebarNav inboxCount={inboxCount} inboxProblem={inboxProblem} triageCount={triageCount} />
       )}
       <main
         ref={contentRef}

@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useProjectActions } from "../../hooks/useProjectActions";
 import { useReminderDone, useReminderSnooze } from "../../hooks/useReminders";
+import { triageDeepLink } from "../../hooks/useTriageDeepLink";
 import type { ResolvedProjectActions } from "../../lib/externalApi";
 import type { ReminderEntry } from "./reminderModel";
 import { buildReminderStartIntent, type ReminderStartIntent } from "./reminderStartIntent";
@@ -26,7 +27,8 @@ export interface ReminderUi {
   done: (entry: ReminderEntry) => Promise<boolean>;
   snooze: (entry: ReminderEntry, day: string) => Promise<boolean>;
   startTask: (entry: ReminderEntry) => void;
-  openTriage: () => void;
+  /** Opens that parked item's own detail in Triage (not just the list). */
+  openTriage: (entry: ReminderEntry) => void;
   clearError: (key: string) => void;
 }
 
@@ -108,7 +110,7 @@ export function useReminderActions(): { ui: ReminderUi; startModal: ReminderStar
       setError(entry.key, null);
       setPending(entry);
     },
-    openTriage: () => navigate("/triage"),
+    openTriage: (entry) => navigate(triageDeepLink(entry.projectId, entry.item.id)),
     clearError: (key) => setError(key, null),
   };
 

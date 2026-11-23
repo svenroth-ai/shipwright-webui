@@ -225,7 +225,7 @@ export function ReminderDetailDialog({ open, onOpenChange, entry, model, project
                   className="btn-primary"
                   onClick={() => {
                     onOpenChange(false);
-                    ui.openTriage();
+                    ui.openTriage(entry);
                   }}
                   data-testid={`reminder-dialog-open-triage-${key}`}
                 >

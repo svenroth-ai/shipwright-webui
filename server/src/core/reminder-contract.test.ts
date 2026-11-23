@@ -91,4 +91,14 @@ describe("reminder due contract (pinned, v1)", () => {
     const r = parseDueAnswer(JSON.stringify({ ...GOOD_ANSWER, triageError: "the triage log could not be read (OSError)", reminderCorruptLines: 2, items: [] }));
     expect(r).toMatchObject({ kind: "ok", view: { triageError: "the triage log could not be read (OSError)", reminderCorruptLines: 2, items: [] } });
   });
+
+  // @covers FR-01.76
+  it("a project with no triage log (FileNotFoundError) is not a triage error; a real read failure still is", () => {
+    const none = parseDueAnswer(JSON.stringify({ ...GOOD_ANSWER, triageError: "the triage log could not be read (FileNotFoundError)" }));
+    expect(none).toMatchObject({ kind: "ok", view: { triageError: null } });
+    for (const kind of ["PermissionError", "JSONDecodeError", "ModuleNotFoundError"]) {
+      const msg = `the triage log could not be read (${kind})`;
+      expect(parseDueAnswer(JSON.stringify({ ...GOOD_ANSWER, triageError: msg }))).toMatchObject({ view: { triageError: msg } });
+    }
+  });
 });

@@ -49,6 +49,26 @@ describe("reminderProblems", () => {
 });
 
 // @covers FR-01.76
+describe("reminderProblems.cannotRead (the sidebar exclamation mark)", () => {
+  it("is true when a project is unreadable, the request failed, or parked triage was not checked", () => {
+    expect(reminderProblems([{ projectId: "a", state: "failed", reason: "boom" }], false).cannotRead).toBe(true);
+    expect(reminderProblems([makeDue({ projectId: "a" })], true).cannotRead).toBe(true);
+    const permission = makeDue({
+      projectId: "a",
+      state: "degraded",
+      triageError: "the triage log could not be read (PermissionError)",
+    });
+    expect(reminderProblems([permission], false).cannotRead).toBe(true);
+  });
+
+  it("is false for a clean answer and for damaged lines alone (the rest was read)", () => {
+    expect(reminderProblems([makeDue({ projectId: "a" })], false).cannotRead).toBe(false);
+    expect(reminderProblems([makeDue({ projectId: "a", state: "degraded", reminderCorruptLines: 2 })], false).cannotRead).toBe(false);
+    expect(reminderProblems(undefined, false).cannotRead).toBe(false);
+  });
+});
+
+// @covers FR-01.76
 describe("countDueItems (the sidebar alert)", () => {
   it("counts due reminders and expired parks of every readable project, nothing from an unreadable one", () => {
     const n = countDueItems([

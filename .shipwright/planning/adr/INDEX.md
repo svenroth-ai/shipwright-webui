@@ -71,3 +71,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [One assembled event-log reader for both plugin layouts](iterate-2026-11-07-events-drop-files-reader-assembled-event-log.md)
 - [Triage page: one aggregated list, include-set filters, saved view](iterate-2026-11-08-triage-page-redesign-triage-page-model.md)
 - [Reminder CLI bridge (reminders W1)](iterate-2026-11-22-w1-cli-bridge-reminder-cli-bridge.md)
+- [Reminder mail: in-process timer, persisted ledger, pinned SMTP library](iterate-2026-11-22-w4-mail-timer-reminder-mail.md)

@@ -127,7 +127,7 @@ export function ReminderRow({ entry, model, ui, onOpen }: Props) {
             </>
           )}
           {ui && !model.canAct && model.filter === "parked" && (
-            <button type="button" className={PRIMARY} onClick={ui.openTriage} data-testid={`reminder-open-triage-${key}`}>
+            <button type="button" className={PRIMARY} onClick={() => ui.openTriage(entry)} data-testid={`reminder-open-triage-${key}`}>
               Open in Triage
             </button>
           )}

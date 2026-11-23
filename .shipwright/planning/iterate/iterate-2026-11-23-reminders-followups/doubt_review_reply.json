@@ -1,0 +1,5 @@
+{"stage":"doubt","gating":"advisory-must-address","doubts":[
+{"severity":"low","lens":"boundary & contract","claim_under_doubt":"only a project with no triage log becomes triageError=null","disposition":"accepted: a wrong triage root or .shipwright-as-file reads the same; docstring now says so; CLI structured code requested in the ADR as a follow-up. Wording drift fails loud (banner returns)."},
+{"severity":"low","lens":"hidden coupling","claim_under_doubt":"banner change is local to the Inbox","disposition":"accepted: reminder-mail shares the parse, so its 'parked triage could not be read' note also disappears for such a project; intended and now stated in the docstring."},
+{"severity":"low","lens":"concurrency & ordering","claim_under_doubt":"settled means final","disposition":"accepted: offline-paused or cached-then-refreshing lists can drop a link silently; the user lands on the normal list (the documented stale-link fallback), nothing breaks."}],
+"summary":"3 low doubts, no high or medium; checked and disproved: query clash with projectId, effect loops, history/back, hostile params, filters, sidebar '!' never looks like an empty inbox."}
