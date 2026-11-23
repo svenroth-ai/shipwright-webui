@@ -70,115 +70,85 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 6,
+      "findings_count": 2,
       "findings": [
         {
-          "severity": "high",
-          "category": "security",
-          "file": null,
-          "line": null,
-          "finding": "File-wide fence pairing lets an evidence pointer mask other entries - FIXED: a fence opens only after an entry header followed by the FENCED DATA label (server + client + log), test added",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "security",
-          "file": null,
-          "line": null,
-          "finding": "Header injection via evidencePointer/decisionKey newlines - documented as open item for leadwright S1-E (contract doc)",
-          "suggestion": null,
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/external/org/proposed-grammar.ts",
+          "line": 173,
+          "finding": "The new Lead capture accepts U+2028/U+2029 and firstBullet's trim() strips them, so a Lead line with a leading or trailing U+2028 lists and countersigns as the bare lead id. Not a forgery: identity is the lead the line names and the daemon writes it. Breaks the fail-closed symmetry for the identity field. Server and client match.",
+          "suggestion": "Follow-up: trim only space/tab in firstBullet (both mirrors) and add a corpus case expecting such an entry unlisted. Leadwright S1-E rejection in the contract covers it upstream.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "correctness",
-          "file": null,
-          "line": null,
-          "finding": "Lead id not validated against countersign LEAD_ID_RE - FIXED (daemon entries filtered), test added",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "architecture",
-          "file": null,
-          "line": null,
-          "finding": "No drift guard for client mirror - FIXED: regex-sync test",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": null,
-          "line": null,
-          "finding": "Stale client module header - FIXED",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": null,
-          "line": null,
-          "finding": "Duplicate evidence regexes - not changed (non-blocking)",
-          "suggestion": null,
+          "file": "client/src/lib/orgDecisionsApi.ts",
+          "line": 42,
+          "finding": "Display only, WebUI-form entries: under the multiline flag, anchors also match at a lone CR, U+2028 and U+2029, so the shown evidence can differ. Predates the change; does not affect what is listed or countersigned.",
+          "suggestion": "Follow-up: build the WebUI-form evidence from a newline split plus the non-multiline bullet regex.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-11-23T17:07:57.245435+00:00",
+      "completed_at": "2026-11-23T19:07:27.676034+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
       "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "0cc0768a63a281734dd1c9ab59f9159e86ea1b5b"
+      "reviewer_notes": "Verdict: no HIGH or MEDIUM remains. Server and client regexes byte-identical, linear, tests real (the U+2028/U+2029 and empty-value cases fail under the old captures), lone CR fails closed and is pinned, no empty Lead can be listed or countersigned, consumers of the capture still work, whole-PR pass found no HIGH. Earlier rounds on this PR (four code reviews, three doubt reviews) fixed fence-masking forgery paths, logged-kind phantom ADR numbering, unprotected WebUI-form and marker-above header owners, and three classes of regex slowdown and empty-value poisoning."
     },
     "doubt": {
       "review_type": "doubt",
       "status": "completed",
-      "findings_count": 3,
+      "findings_count": 4,
       "findings": [
         {
-          "severity": "high",
-          "category": "boundary & contract / reversibility",
+          "severity": "medium",
+          "category": "boundary",
           "file": null,
           "line": null,
-          "finding": "Claim under doubt: a countersigned daemon entry lands in decision_log.md as exactly one ADR with the next gapless number — newline in evidencePointer/decisionKey injects an ADR-shaped header into the log (phantom ADR, duplicate numbers, stuck crash-retry). Addressed afterwards: only the exact renderEntry shape is listed, so such an entry is never countersigned; upstream must reject CR/LF.",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "high",
-          "category": "hidden coupling & blast radius",
-          "file": null,
-          "line": null,
-          "finding": "Claim under doubt: a fence-looking line smuggled through the evidence pointer opens nothing and cannot mask other entries — smuggled owner header + label + later identical close masks other leads' entries. Addressed afterwards: a daemon header owns a fence only with its marker above, the close must be followed by the canonical Lead/Evidence tail, non-canonical entries are not listed.",
+          "finding": "Claim under doubt: a forged entry can never be listed — An evidence value containing a line break followed by a WebUI-form header after a LISTED marker-owned entry can still list a marker-less header.",
           "suggestion": null,
           "source": "doubt-reviewer"
         },
         {
           "severity": "medium",
-          "category": "boundary & contract",
+          "category": "hidden-coupling",
           "file": null,
           "line": null,
-          "finding": "Claim under doubt: identity (timestamp, leadId) stops identity forging — leadId is self-reported by the lead upstream. Documented in the contract doc as an upstream requirement (verify leadId, reject newlines).",
+          "finding": "Claim under doubt: countersign is local to the two files — The daemon's dedup scans only decisions-proposed.md, so a countersigned decisionKey is accepted again, and its marker regex is looser than the reader's.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "availability",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: fail-closed costs only the offending entry — A dangling fence opener written via a line break in evidence poisons every later entry silently, with no UI or server signal.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "reversibility",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: legacy entries behave as before — Legacy WebUI entries with structural lines in their body are now unlisted; the logged header regex accepts 4 or more digits.",
           "suggestion": null,
           "source": "doubt-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-11-23T17:14:52.370239+00:00",
+      "completed_at": "2026-11-23T19:07:39.314288+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "bbca6ae43db9ee74ebb02c3f5311adf8fe288a58"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -275,14 +245,12 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-11-23T17:02:53.900135+00:00",
+      "completed_at": "2026-11-23T19:07:27.456958+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "0cc0768a63a281734dd1c9ab59f9159e86ea1b5b"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
