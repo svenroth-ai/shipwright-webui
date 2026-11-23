@@ -20,7 +20,7 @@
 import { accessSync, constants as fsConstants, existsSync, lstatSync as lstatSyncReal, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { appendAuditLine, resolveParentLeadId } from "./beat-register-release-audit.js";
+import { appendAuditLine, resolveParentLeadId } from "./audit-append.js";
 import { readAuditLinesGuarded } from "./audit-log.js";
 import { OrgSymlinkEscapeError } from "./decisions-lock.js";
 import { pathGuard, realPathGuard } from "../../core/path-guard.js";
