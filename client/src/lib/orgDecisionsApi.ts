@@ -57,7 +57,7 @@ function daemonTail(blockLines: string[]): string[] {
   const open = blockLines.findIndex((l) => FENCE_LINE_RE.test(l));
   if (open === -1) return blockLines;
   const close = blockLines.indexOf(blockLines[open], open + 1);
-  return close === -1 ? blockLines : blockLines.slice(close + 1);
+  return close === -1 ? [] : blockLines.slice(close + 1); // unclosed fence = corrupt: no identity
 }
 
 function firstBullet(lines: string[], re: RegExp): string | null {

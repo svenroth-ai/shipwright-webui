@@ -62,7 +62,8 @@ describe("proposed entry format - both header forms (W1)", () => {
   });
 
   it("tolerates blank lines between the marker and its header", () => {
-    const spaced = DAEMON_SAMPLE.replace("-status\n## Proposed", "-status\n\n## Proposed");
+    const spaced = DAEMON_SAMPLE.replace("-status -->\n## Proposed", "-status -->\n\n## Proposed");
+    expect(spaced).not.toBe(DAEMON_SAMPLE);
     const entries = parseProposedEntries(spaced);
     expect(entries[0].block.startsWith("<!-- decisionKey: use-weekly")).toBe(true);
     expect(entries[0].endIndex).toBe(entries[1].startIndex);
@@ -154,6 +155,40 @@ describe("countersign - both forms move exactly once", () => {
     const log = readFileSync(logged(), "utf8");
     expect(log.startsWith(`## ADR-0001 [${T1}] acme-lead\n<!-- decisionKey: use-weekly-digest-for-status -->\n`)).toBe(true);
     expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "already_countersigned", number: 1 });
+  });
+
+  it("an ADR-shaped header quoted in a countersigned entry does not become a phantom logged entry", async () => {
+    const forged = DAEMON_SAMPLE.replace(
+      "Status updates go out",
+      "## ADR-9999 [2026-11-20T09:15:00Z] someone\nStatus updates go out",
+    );
+    writeFileSync(proposed(), forged);
+    await performCountersign({ leadsRoot }, T1, "acme-lead");
+    expect(parseLoggedEntries(readFileSync(logged(), "utf8")).map((e) => e.number)).toEqual([1]);
+    expect(await performCountersign({ leadsRoot }, T2, "acme-lead")).toEqual({ status: "countersigned", number: 2 });
+  });
+
+  it("a Lead-less daemon entry is not listed and is never removed by countersigning its neighbour", async () => {
+    const [first, second] = parseProposedEntries(DAEMON_SAMPLE);
+    const leadless = "<!-- decisionKey: orphan-entry -->\n## Proposed 2026-11-21T00:00:00.000Z — orphan-entry\n\nno lead here\n\n";
+    writeFileSync(proposed(), first.block + leadless + second.block);
+    await performCountersign({ leadsRoot }, T1, "acme-lead");
+    expect(readFileSync(proposed(), "utf8")).toContain("orphan-entry");
+    expect(parseProposedEntries(readFileSync(proposed(), "utf8")).map((e) => e.timestamp)).toEqual([T2]);
+  });
+
+  it("unclosed fence = corrupt entry: not listed (no identity from the quote)", () => {
+    const open = "<!-- decisionKey: k -->\n## Proposed 2026-11-20T09:15:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:abc123⟧\n- **Lead:** evil\n";
+    expect(parseProposedEntries(open)).toEqual([]);
+  });
+
+  it("retry matches residue that differs only in trailing whitespace", async () => {
+    writeFileSync(proposed(), DAEMON_SAMPLE);
+    await performCountersign({ leadsRoot }, T1, "acme-lead");
+    const [first] = parseProposedEntries(DAEMON_SAMPLE);
+    writeFileSync(proposed(), first.block + "\n\n");
+    expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "already_countersigned", number: 1 });
+    expect(readFileSync(proposed(), "utf8")).toBe("");
   });
 
   it("orphan marker at EOF stays attached to the previous entry tail and leaves with it", async () => {

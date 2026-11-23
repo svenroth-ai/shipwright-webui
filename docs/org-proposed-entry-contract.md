@@ -43,7 +43,7 @@ and `client/src/lib/orgDecisionsApi.ts` (`parseProposedDecisions`).
 ## Compatibility gate and policies
 
 - Fixture SHA-256 (LF bytes, pinned `-text` in `.gitattributes`):
-  `a2260319cd6c2ba17fdaf7e21a34f2ed3cf43933c2f150b42ae750c8bcb4163b`.
+  `e5f3bd48c1ca08e51e6015908ba502a40ffdd0c1e00db0755f05920fb3d75447`.
   The leadwright copy must hash to the same value; a test here asserts this
   document names the fixture's current hash. Format changes: update the
   daemon renderer, both fixtures and this hash in the same release train, WebUI

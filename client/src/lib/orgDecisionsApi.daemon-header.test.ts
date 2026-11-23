@@ -45,7 +45,8 @@ describe("parseProposedDecisions - both header forms (W1)", () => {
   });
 
   it("tolerates blank lines between marker and header", () => {
-    const spaced = SAMPLE.replace("-status\n## Proposed", "-status\n\n## Proposed");
+    const spaced = SAMPLE.replace("-status -->\n## Proposed", "-status -->\n\n## Proposed");
+    expect(spaced).not.toBe(SAMPLE);
     expect(parseProposedDecisions(spaced)[0].block.startsWith("<!-- decisionKey: use-weekly")).toBe(true);
   });
 

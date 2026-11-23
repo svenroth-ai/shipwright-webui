@@ -46,7 +46,7 @@ const isBlank = (line: string): boolean => line.trim() === "";
 
 /** Line indexes that lie inside a fenced region (open line, text and close
  *  line). A fence only counts when its identical closing line exists later. */
-function fencedLineSet(lines: string[]): Set<number> {
+export function fencedLineSet(lines: string[]): Set<number> {
   const fenced = new Set<number>();
   let i = 0;
   while (i < lines.length) {
@@ -69,7 +69,7 @@ function daemonTail(blockLines: string[]): string[] {
   const open = blockLines.findIndex((l) => FENCE_LINE_RE.test(l));
   if (open === -1) return blockLines;
   const close = blockLines.indexOf(blockLines[open], open + 1);
-  return close === -1 ? blockLines : blockLines.slice(close + 1);
+  return close === -1 ? [] : blockLines.slice(close + 1); // unclosed fence = corrupt: no identity
 }
 
 /** First `- **Lead:** <id>` bullet in `lines`, or null. */

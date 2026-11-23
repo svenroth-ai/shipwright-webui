@@ -29,6 +29,7 @@ import { claimRecordLockOptions } from "../../core/claim-record-lock.js";
 
 // Proposed-entry grammar (both header forms) lives in its own module (W1).
 export { parseProposedEntries, toLoggedBlock, type ProposedEntry } from "./proposed-entry-format.js";
+import { fencedLineSet } from "./proposed-entry-format.js";
 
 // ---------------------------------------------------------------------------
 // Entry format — strict, anchored, full-line header shapes (plan-review
@@ -68,8 +69,9 @@ function splitBlocks(
 
   const headerLineIdx: number[] = [];
   const matches: RegExpMatchArray[] = [];
+  const fenced = fencedLineSet(lines); // ADR-shaped lines inside a quoted fence are text, not headers
   lines.forEach((line, idx) => {
-    const m = headerRe.exec(line);
+    const m = fenced.has(idx) ? null : headerRe.exec(line);
     if (m) {
       headerLineIdx.push(idx);
       matches.push(m);

@@ -8,7 +8,6 @@ Status updates go out as one weekly digest instead of per-task messages.
 
 - **Lead:** acme-lead
 - **Evidence:** session 7c1e2f40 at 2026-11-19T16:02:11Z, message 14
-
 <!-- decisionKey: keep-reviews-under-two-days -->
 ## Proposed 2026-11-20T10:30:00.000Z — keep-reviews-under-two-days
 
