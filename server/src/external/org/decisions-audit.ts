@@ -29,6 +29,16 @@ export type DecisionAuditKind = "decision_rejected" | "decision_countersigned";
 
 export const REASON_MAX = 280;
 
+/** The lead's `audit.jsonl` cannot be read or written (read-only, a directory, unreadable): the decision is refused before anything changes. */
+export class AuditUnwritableError extends Error {
+  constructor(readonly leadId: string, detail: string) {
+    super(`${leadId}/audit.jsonl ${detail}`);
+    this.name = "AuditUnwritableError";
+  }
+}
+
+const UNWRITABLE_CODES = new Set(["EACCES", "EPERM", "EROFS", "EISDIR", "ENOTDIR"]);
+
 export interface DecisionAuditDeps {
   leadsRoot: string;
   lstatSync?: (path: string) => { isSymbolicLink(): boolean };
@@ -63,7 +73,7 @@ function readAuditLines(deps: DecisionAuditDeps, leadId: string): string[] {
   if (read.status === 200) return read.linesNewestFirst;
   if (read.status === 404) return [];
   if (read.status === 403) throw new OrgSymlinkEscapeError(join(deps.leadsRoot, leadId, "audit.jsonl"));
-  throw new Error(`${leadId}/audit.jsonl cannot be read (${read.body.error}): fix the file, then retry`);
+  throw new AuditUnwritableError(leadId, `cannot be read (${read.body.error}): fix the file, then retry`);
 }
 
 function parsed(line: string): { kind?: unknown; data?: Record<string, unknown> } | null {
@@ -101,6 +111,21 @@ export function hasDecisionAudit(
   return readAuditLines(deps, leadId).some((l) => matches(l, kind, entryTimestamp, decisionKey));
 }
 
+/**
+ * Whether THIS webui already wrote this exact record: same kind, entry, key,
+ * author and action, plus the reason (reject) or the ADR (countersign). A line
+ * that merely names the same entry (the lead can write one into its own file)
+ * is NOT ours: the decision then writes its own record.
+ */
+function isOwnRecord(line: string, f: DecisionAuditFacts): boolean {
+  const rec = parsed(line);
+  if (rec === null || !matches(line, f.kind, f.entryTimestamp, f.decisionKey)) return false;
+  const verb = f.kind === "decision_rejected" ? "rejected" : "countersigned";
+  const d = rec.data ?? {};
+  if (d.author !== f.author || d.action !== verb) return false;
+  return f.kind === "decision_rejected" ? (d.reason ?? null) === (f.reason ?? null) : (d.adr ?? null) === (f.adr ?? null);
+}
+
 /** The lead's own folder exists (the audit never creates a lead that is not there). */
 export function leadFolderExists(deps: DecisionAuditDeps, leadId: string): boolean {
   const dir = join(deps.leadsRoot, leadId);
@@ -118,34 +143,40 @@ export function assertAuditAppendable(deps: DecisionAuditDeps, leadId: string): 
   try {
     if (existsSync(file)) accessSync(file, fsConstants.W_OK);
   } catch {
-    throw new Error(`${leadId}/audit.jsonl is read-only: make it writable, then retry`);
+    throw new AuditUnwritableError(leadId, "is read-only: make it writable, then retry");
   }
 }
 
 /** Append the decision's record unless it is already there. Returns whether it appended. */
 export function ensureDecisionAudit(deps: DecisionAuditDeps, f: DecisionAuditFacts): boolean {
   if (!leadFolderExists(deps, f.leadId)) return false;
-  if (hasDecisionAudit(deps, f.kind, f.leadId, f.entryTimestamp, f.decisionKey)) return false;
+  if (readAuditLines(deps, f.leadId).some((l) => isOwnRecord(l, f))) return false;
   const auditGuard = pathGuard(deps.leadsRoot, join(f.leadId, "audit.jsonl"));
   if (!auditGuard.ok) throw new Error(`audit path rejected: ${auditGuard.reason}`);
   const lstat = deps.lstatSync ?? ((p: string) => lstatSyncReal(p));
   const verb = f.kind === "decision_rejected" ? "rejected" : "countersigned";
-  appendAuditLine(deps.leadsRoot, auditGuard.absolute, lstat, {
-    ts: (deps.now ?? (() => new Date()))().toISOString(),
-    kind: f.kind,
-    lead_id: f.leadId,
-    parent_lead_id: resolveParentLeadId(deps.leadsRoot, f.leadId),
-    summary: `proposal ${verb} by ${f.author}${f.kind === "decision_countersigned" ? (f.edited ? " (edited)" : " (approved as proposed)") : ""}: ${f.decisionKey ?? f.entryTimestamp}`,
-    data: {
-      action: verb,
-      author: f.author,
-      entryTimestamp: f.entryTimestamp,
-      decisionKey: f.decisionKey,
-      ...(f.kind === "decision_rejected"
-        ? { reason: f.reason ?? null }
-        : { adr: f.adr ?? null, edit: f.edited ? "edited" : "approved_as_proposed", evidence: f.evidence ?? null }),
-    },
-  });
+  try {
+    appendAuditLine(deps.leadsRoot, auditGuard.absolute, lstat, {
+      ts: (deps.now ?? (() => new Date()))().toISOString(),
+      kind: f.kind,
+      lead_id: f.leadId,
+      parent_lead_id: resolveParentLeadId(deps.leadsRoot, f.leadId),
+      summary: `proposal ${verb} by ${f.author}${f.kind === "decision_countersigned" ? (f.edited ? " (edited)" : " (approved as proposed)") : ""}: ${f.decisionKey ?? f.entryTimestamp}`,
+      data: {
+        action: verb,
+        author: f.author,
+        entryTimestamp: f.entryTimestamp,
+        decisionKey: f.decisionKey,
+        ...(f.kind === "decision_rejected"
+          ? { reason: f.reason ?? null }
+          : { adr: f.adr ?? null, edit: f.edited ? "edited" : "approved_as_proposed", evidence: f.evidence ?? null }),
+      },
+    });
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code !== undefined && UNWRITABLE_CODES.has(code)) throw new AuditUnwritableError(f.leadId, `could not be written (${code}): make it writable, then retry`);
+    throw err;
+  }
   return true;
 }
 

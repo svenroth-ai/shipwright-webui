@@ -22,10 +22,13 @@ import {
 } from "./decisions-lock.js";
 import { atomicWrite } from "./countersign-core.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
+import { blockDigest } from "./proposed-line.js";
 import { ensureDecisionAudit, hasDecisionAudit, leadFolderExists, assertAuditAppendable, type DecisionAuditDeps } from "./decisions-audit.js";
 
 export type RejectOutcome =
-  | { status: "rejected" }
+  /** `recorded`: this call appended the audit record (false = the identical record was already there, a retry). */
+  | { status: "rejected"; recorded: boolean }
+  | { status: "entry_changed" }
   | { status: "already_rejected" }
   | { status: "already_countersigned"; number: number }
   | { status: "not_found" }
@@ -42,6 +45,8 @@ export async function performReject(
   leadId: string,
   author: string,
   reason: string | null,
+  /** `blockDigest` of the entry block the operator saw; absent = not checked. */
+  seenDigest?: string | null,
 ): Promise<RejectOutcome> {
   const lockFn = deps.withDecisionsLock ?? withDecisionsLock;
   return lockFn(deps, (ctx): RejectOutcome => {
@@ -65,10 +70,12 @@ export async function performReject(
     }
 
     const target = matches[0];
+    if (seenDigest != null && seenDigest !== blockDigest(target.block)) return { status: "entry_changed" };
     // The record needs the lead's own folder; never create one for a name found in a lead-written file.
     if (!leadFolderExists(deps, leadId)) return { status: "lead_unknown" };
     assertAuditAppendable(deps, leadId);
-    ensureDecisionAudit(deps, {
+    // Our own record, or nothing: a matching line the lead wrote itself does not count as the operator's record.
+    const recorded = ensureDecisionAudit(deps, {
       kind: "decision_rejected",
       leadId,
       author,
@@ -80,7 +87,7 @@ export async function performReject(
       ctx.proposedPath,
       proposedRaw.slice(0, target.startIndex) + proposedRaw.slice(target.endIndex),
     );
-    return { status: "rejected" };
+    return { status: "rejected", recorded };
   });
 }
 

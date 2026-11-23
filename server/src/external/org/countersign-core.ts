@@ -36,7 +36,7 @@ import { randomBytes } from "node:crypto";
 
 import { normalizeLine } from "./proposed-grammar.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
-import { proposalFacts, proposalFingerprint, checkEditedLine, checkOriginalLine, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
+import { proposalFacts, proposalFingerprint, blockDigest, checkEditedLine, checkOriginalLine, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
 import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, type DecisionAuditDeps } from "./decisions-audit.js";
 import {
   withDecisionsLock,
@@ -78,9 +78,13 @@ export function atomicWrite(target: string, content: string): void {
 
 export type CountersignOutcome =
   | { status: "countersigned"; number: number; edited: boolean }
-  | { status: "already_countersigned"; number: number; /** this request named a line other than the logged one */ loggedLineDiffers?: boolean }
+  /** `loggedLineDiffers`: this request named a line other than the logged one. Only decided for W4 line blocks
+   *  (a fenced entry); a pre-W4 whole-entry log block has no single line to compare, so it is never set there. */
+  | { status: "already_countersigned"; number: number; loggedLineDiffers?: boolean }
   | { status: "not_found" }
   | { status: "reject_pending" }
+  /** The entry was rewritten under the same identity since the operator's view; nothing was written. */
+  | { status: "entry_changed" }
   | { status: "line_rejected"; error: "line_empty" | "line_too_long" | "line_contains_quote" | "edit_not_supported" }
   | { status: "duplicate_identity"; count: number };
 
@@ -97,6 +101,8 @@ export async function performCountersign(
   leadId: string,
   /** The operator's edited proposed line (fenced entries only); absent = approve as proposed. */
   editedLine?: string | null,
+  /** `blockDigest` of the entry block the operator saw; absent = not checked (secret-gated callers). */
+  seenDigest?: string | null,
 ): Promise<CountersignOutcome> {
   const lockFn = deps.withDecisionsLock ?? withDecisionsLock;
   const audit = (ts: string, lead: string, block: string, number: number, edited: boolean, facts: ProposalFacts | null): void => {
@@ -179,6 +185,10 @@ export async function performCountersign(
       return { status: "duplicate_identity", count: matches.length };
     }
     const target = matches[0];
+
+    // The lead rewrote the entry (key, evidence, quotes) after the operator opened it: decide on what they saw, not on this.
+    // Only here: a crash-retry (the log branch above) is judged by the logged fingerprint, never by this check.
+    if (seenDigest != null && seenDigest !== blockDigest(target.block)) return { status: "entry_changed" };
 
     // A reject was recorded but the entry is still listed (crash residue, or a line a
     // lead wrote into its own audit.jsonl): never approve it, and change nothing - an

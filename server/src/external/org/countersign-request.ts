@@ -7,25 +7,12 @@
  * be free to duplicate (and silently drift on) this body.
  */
 
-import { userInfo } from "node:os";
-
 import { performCountersign, type CountersignCoreDeps, type CountersignOutcome } from "./countersign-core.js";
 import { OrgSymlinkEscapeError } from "./decisions-lock.js";
-import { LEAD_ID_RE } from "./_helpers.js";
-
-/** Canonical ISO-8601 UTC ('Z') timestamp — the transfer format's own shape
- *  (spec: "Design decisions I own"). Tolerates 0-N fractional-second digits. */
-const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+import { AuditUnwritableError } from "./decisions-audit.js";
+import { osAuthor, parseDecisionIdentity, auditUnwritableResult, FINGERPRINT_RE } from "./decision-request-common.js";
 
 export type HandleCountersignRequestDeps = CountersignCoreDeps;
-
-function osAuthor(): string {
-  try {
-    return userInfo().username || "operator";
-  } catch {
-    return "operator";
-  }
-}
 
 export interface CountersignRequestResult {
   status: 200 | 400 | 403 | 404 | 409;
@@ -42,37 +29,22 @@ export async function handleCountersignRequest(
   deps: HandleCountersignRequestDeps,
   rawBody: unknown,
 ): Promise<CountersignRequestResult> {
-  const { timestamp, leadId, line } = (rawBody ?? {}) as { timestamp?: unknown; leadId?: unknown; line?: unknown };
-  if (typeof timestamp !== "string" || timestamp.length === 0) {
-    return { status: 400, body: { error: "timestamp_required" } };
-  }
-  if (typeof leadId !== "string" || leadId.length === 0) {
-    return { status: 400, body: { error: "leadId_required" } };
-  }
-  // External-review fix (MEDIUM, spec): the transfer format's identity pair
-  // is a canonical ISO-8601 timestamp + a kebab-case lead id, not merely
-  // "any non-empty string" — an arbitrary value silently 404s as
-  // proposal_not_found instead of being rejected as malformed input.
-  //
-  // Doubt-review fix (LOW): `$` without the `/m` flag still matches just
-  // before a single trailing "\n" (JS regex semantics, not just true
-  // end-of-input) — reject a literal newline explicitly first, so
-  // "<valid-ts>\n" 400s as timestamp_invalid instead of passing this check
-  // and only failing later, less precisely, as proposal_not_found.
-  if (timestamp.includes("\n") || !ISO_TIMESTAMP_RE.test(timestamp)) {
-    return { status: 400, body: { error: "timestamp_invalid", timestamp } };
-  }
-  if (!LEAD_ID_RE.test(leadId)) {
-    return { status: 400, body: { error: "leadId_invalid", leadId } };
-  }
+  const body = (rawBody ?? {}) as { timestamp?: unknown; leadId?: unknown; line?: unknown; fingerprint?: unknown };
+  const id = parseDecisionIdentity(body);
+  if (!id.ok) return { status: id.status, body: id.body };
+  const { timestamp, leadId } = id;
+  const { line, fingerprint } = body;
 
   if (line !== undefined && line !== null && typeof line !== "string") {
     return { status: 400, body: { error: "line_invalid" } };
   }
+  if (fingerprint !== undefined && fingerprint !== null && (typeof fingerprint !== "string" || !FINGERPRINT_RE.test(fingerprint))) {
+    return { status: 400, body: { error: "fingerprint_invalid" } };
+  }
 
   let outcome: CountersignOutcome;
   try {
-    outcome = await performCountersign({ ...deps, author: deps.author ?? osAuthor() }, timestamp, leadId, line);
+    outcome = await performCountersign({ ...deps, author: deps.author ?? osAuthor() }, timestamp, leadId, line, fingerprint);
   } catch (err) {
     // Code-review fix: without this, a symlinked decisions-proposed.md /
     // decision_log.md fell through to the generic 500 error handler
@@ -81,6 +53,7 @@ export async function handleCountersignRequest(
     if (err instanceof OrgSymlinkEscapeError) {
       return { status: 403, body: { error: "symlink_forbidden", path: err.path } };
     }
+    if (err instanceof AuditUnwritableError) return auditUnwritableResult(err);
     throw err;
   }
 
@@ -92,6 +65,9 @@ export async function handleCountersignRequest(
   }
   if (outcome.status === "reject_pending") {
     return { status: 409, body: { error: "reject_pending", timestamp, leadId } };
+  }
+  if (outcome.status === "entry_changed") {
+    return { status: 409, body: { error: "entry_changed", timestamp, leadId } };
   }
   if (outcome.status === "duplicate_identity") {
     return {

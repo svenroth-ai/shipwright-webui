@@ -21,7 +21,7 @@
 import { createHash } from "node:crypto";
 
 import {
-  fencedParts, normalizeLine, foldForCompare, splitQuote, parseSourceRef, firstBullet, daemonTail,
+  fencedParts, normalizeLine, foldForCompare, splitQuote, parseSourceRef, firstBullet, daemonTail, blockForDigest,
   EVIDENCE_BULLET_RE, QUOTE_PREFIX_RE,
 } from "./proposed-grammar.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
@@ -60,6 +60,13 @@ export function proposalFingerprint(block: string): string | null {
   const nonce = FENCE_NONCE_RE.exec(block)?.[1];
   if (nonce === undefined || nonce.length < 32) return null;
   return createHash("sha256").update(block.replace(/\r/g, "").trimEnd()).digest("hex").slice(0, 32);
+}
+
+/** What a browser sends to say "this is the entry I saw": a digest of the block's text (the same text the client
+ *  hashes, see `blockForDigest`). Countersign / reject compare it under the lock, so a lead that rewrote the entry
+ *  under the same identity between render and click is caught. Not a secret: change detection only. */
+export function blockDigest(block: string): string {
+  return createHash("sha256").update(blockForDigest(block), "utf8").digest("hex").slice(0, 32);
 }
 
 /** `null` for an entry without a fence (old marker-less WebUI form): nothing to edit, nothing to strip. */
