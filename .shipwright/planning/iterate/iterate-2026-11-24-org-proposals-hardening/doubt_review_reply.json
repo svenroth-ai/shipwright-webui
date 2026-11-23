@@ -1,0 +1,14 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "trigger": "irreversible-writes+concurrency+security-boundary",
+  "doubts": [
+    {"severity": "medium", "lens": "reversibility", "claim_under_doubt": "audit failure after log write leaves entry logged+listed and retry finishes exactly once", "disproof_attempt": "ENOSPC/EBUSY/EIO/EMFILE/vanished/OrgSymlinkEscapeError after the log write are not mapped to AuditUnwritableError; the retry crash-branch swallows the same error and removes the entry with no audit record", "file": "server/src/external/org/countersign-core.ts:167-173,229-235; decisions-audit.ts UNWRITABLE_CODES", "what_would_resolve_it": "map every post-log audit failure to audit_pending in both branches"},
+    {"severity": "medium", "lens": "boundary-contract", "claim_under_doubt": "normalizeLine/foldForCompare cannot be bypassed to smuggle invisible/lookalike quote text", "disproof_attempt": "fold runs NFKC before strip so u + ZWSP + combining diaeresis stays decomposed after strip; Cyrillic homoglyphs never folded; noncharacters U+FDD0..FDEF/U+FFFE/F not in INVISIBLE", "file": "server/src/external/org/proposed-grammar.ts foldForCompare + client mirror", "what_would_resolve_it": "strip, NFKC, strip again; add noncharacters; document homoglyph limit"},
+    {"severity": "medium", "lens": "boundary-contract", "claim_under_doubt": "cross-site guard closes the drive-by browser path", "disproof_attempt": "same-site (other localhost port) passes; under HONO_HOST/open CORS and plain-http LAN no Fetch Metadata, so a JSON fetch passes; doc claim about CORS carrying the guard is false in that mode", "file": "server/src/routes/org-write-guard.ts:23; docs contract", "what_would_resolve_it": "refuse any Sec-Fetch-Site other than same-origin/none when present; correct the doc"},
+    {"severity": "low", "lens": "concurrency", "claim_under_doubt": "digest means the operator approves what they saw", "disproof_attempt": "refetch after a sibling action silently swaps row content; click-time digest matches the new content", "file": "client/src/components/org/useDecisionActions.ts", "what_would_resolve_it": "pin first-seen digest per row, or document"},
+    {"severity": "low", "lens": "reversibility", "claim_under_doubt": "reject never double-writes", "disproof_attempt": "audit line written, proposed write fails, retry with a different reason appends a second record", "file": "decisions-audit.ts isOwnRecord", "what_would_resolve_it": "document"},
+    {"severity": "low", "lens": "hidden-coupling", "claim_under_doubt": "audit_pending is clearly communicated", "disproof_attempt": "Reject on an audit_pending entry answers already_countersigned and pins done while the entry stays listed", "file": "reject-core.ts:61-62", "what_would_resolve_it": "document or distinct message"}
+  ],
+  "summary": "3 medium, 3 low."
+}

@@ -3,11 +3,11 @@
  * stale-entry refusal (the lead rewrote the entry after the window opened) and an unusable audit file.
  */
 import { test, expect } from "@playwright/test";
-import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import { homedir } from "node:os";
+import { guardedLeadsRoot, removeLeadsPath } from "../helpers/leads-home-guard";
 
-const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const LEADS_ROOT = guardedLeadsRoot();
 const PROPOSED_PATH = path.join(LEADS_ROOT, "decisions-proposed.md");
 const LOGGED_PATH = path.join(LEADS_ROOT, "decision_log.md");
 const AUDIT_PATH = path.join(LEADS_ROOT, "acme-lead", "audit.jsonl");
@@ -26,7 +26,7 @@ function entry(ts: string, key: string, text: string, evidence = "session 7c1e2f
 }
 
 function writeFixture(proposed: string) {
-  rmSync(LEADS_ROOT, { recursive: true, force: true });
+  removeLeadsPath(LEADS_ROOT);
   mkdirSync(path.join(LEADS_ROOT, LEAD_ID), { recursive: true });
   writeFileSync(
     path.join(LEADS_ROOT, "org-chart.json"),
@@ -47,7 +47,7 @@ async function openWindow(page: import("@playwright/test").Page) {
 }
 
 test.describe("Org page - proposals window hardening", () => {
-  test.afterEach(() => rmSync(LEADS_ROOT, { recursive: true, force: true }));
+  test.afterEach(() => removeLeadsPath(LEADS_ROOT));
 
   // @covers FR-01.71
   test("shows one status line for an entry that could not be read, and still lists the good one", async ({ page }) => {

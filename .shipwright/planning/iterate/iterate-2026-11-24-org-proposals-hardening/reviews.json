@@ -183,15 +183,71 @@
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "pending",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "reversibility",
+          "file": "server/src/external/org/countersign-core.ts:167-173,229-235; decisions-audit.ts UNWRITABLE_CODES",
+          "line": null,
+          "finding": "Claim under doubt: audit failure after log write leaves entry logged+listed and retry finishes exactly once — ENOSPC/EBUSY/EIO/EMFILE/vanished/OrgSymlinkEscapeError after the log write are not mapped to AuditUnwritableError; the retry crash-branch swallows the same error and removes the entry with no audit record",
+          "suggestion": "map every post-log audit failure to audit_pending in both branches",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary-contract",
+          "file": "server/src/external/org/proposed-grammar.ts foldForCompare + client mirror",
+          "line": null,
+          "finding": "Claim under doubt: normalizeLine/foldForCompare cannot be bypassed to smuggle invisible/lookalike quote text — fold runs NFKC before strip so u + ZWSP + combining diaeresis stays decomposed after strip; Cyrillic homoglyphs never folded; noncharacters U+FDD0..FDEF/U+FFFE/F not in INVISIBLE",
+          "suggestion": "strip, NFKC, strip again; add noncharacters; document homoglyph limit",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary-contract",
+          "file": "server/src/routes/org-write-guard.ts:23; docs contract",
+          "line": null,
+          "finding": "Claim under doubt: cross-site guard closes the drive-by browser path — same-site (other localhost port) passes; under HONO_HOST/open CORS and plain-http LAN no Fetch Metadata, so a JSON fetch passes; doc claim about CORS carrying the guard is false in that mode",
+          "suggestion": "refuse any Sec-Fetch-Site other than same-origin/none when present; correct the doc",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency",
+          "file": "client/src/components/org/useDecisionActions.ts",
+          "line": null,
+          "finding": "Claim under doubt: digest means the operator approves what they saw — refetch after a sibling action silently swaps row content; click-time digest matches the new content",
+          "suggestion": "pin first-seen digest per row, or document",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "reversibility",
+          "file": "decisions-audit.ts isOwnRecord",
+          "line": null,
+          "finding": "Claim under doubt: reject never double-writes — audit line written, proposed write fails, retry with a different reason appends a second record",
+          "suggestion": "document",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden-coupling",
+          "file": "reject-core.ts:61-62",
+          "line": null,
+          "finding": "Claim under doubt: audit_pending is clearly communicated — Reject on an audit_pending entry answers already_countersigned and pins done while the entry stays listed",
+          "suggestion": "document or distinct message",
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-11-23T23:37:56.782831+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
