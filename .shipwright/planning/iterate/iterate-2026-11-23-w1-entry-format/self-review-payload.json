@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"WebUI-form and daemon-form entries listed with same fields; both countersign exactly once; contract doc + pinned fixture + sha gate."},
+{"name":"Error Handling","verdict":"pass","note":"Daemon entry without a Lead bullet is not listed (documented); unparseable block still throws in toLoggedBlock."},
+{"name":"Security Basics","verdict":"pass","note":"Quote/evidence injection closed: headers inside a fence ignored, lead = first bullet after closing fence; tests for forged header, forged Lead in quote and evidence."},
+{"name":"Test Quality","verdict":"pass","note":"Real files and real countersign core; mixed doc, retry, crash residue, CRLF, orphan marker, client parse of the same pinned fixture."},
+{"name":"Performance Basics","verdict":"pass","note":"Single pass per parse; indexOf per fence is O(lines) worst case on small files."},
+{"name":"Naming & Structure","verdict":"pass","note":"New module proposed-entry-format.ts (<300 lines); decisions-lock re-exports; client mirror stays under limit."},
+{"name":"Affected Boundaries","verdict":"pass","note":"Producer = leadwright renderEntry, consumers = server parser + client mirror; probed with the pinned sample, CRLF and adversarial inputs."},
+{"name":"Test Hygiene Probe","verdict":"n/a","note":"No skipped/only tests added."}
+]}

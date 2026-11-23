@@ -1,0 +1,8 @@
+{"section":"W1-entry-format","review":[
+{"severity":"high","category":"security","finding":"File-wide fence pairing lets an evidence pointer mask other entries - FIXED: a fence opens only after an entry header followed by the FENCED DATA label (server + client + log), test added"},
+{"severity":"medium","category":"security","finding":"Header injection via evidencePointer/decisionKey newlines - documented as open item for leadwright S1-E (contract doc)"},
+{"severity":"low","category":"correctness","finding":"Lead id not validated against countersign LEAD_ID_RE - FIXED (daemon entries filtered), test added"},
+{"severity":"low","category":"architecture","finding":"No drift guard for client mirror - FIXED: regex-sync test"},
+{"severity":"low","category":"readability","finding":"Stale client module header - FIXED"},
+{"severity":"low","category":"readability","finding":"Duplicate evidence regexes - not changed (non-blocking)"}],
+"verdict":"fixes applied after review"}
