@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-23-shadow-proposals-webui-brief",
+  "date": "2026-11-23",
+  "section": "Iterate — change: shadow proposals WebUI campaign brief",
+  "title": "Scope the proposal-review window as a four-unit campaign",
+  "context": "Leads in shadow mode will write proposals. The daemon header form differs from the one the WebUI parses, and the window has no reject, edit or audit record.",
+  "decision": "Record a four-unit brief: one entry format in both repos, structured entry view, reject with audit record, edit before approving. No black-out and no parking.",
+  "consequences": "Nothing is built yet. The brief fixes the rollout order across repositories and requires a test that no quote reaches the decisions log.",
+  "rationale": "What matters is that quoted chat text does not enter the learnings; editing the line in the operator's own words does that without a redaction feature.",
+  "rejected": "A black-out feature and a parking state: more states and format changes without a case that needs them yet.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

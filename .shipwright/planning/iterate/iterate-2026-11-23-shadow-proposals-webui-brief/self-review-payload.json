@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Scope matches request","verdict":"pass","note":"Docs-only campaign brief for the proposal-review window; no code changed."},
+{"name":"Claims verified against code","verdict":"pass","note":"Section 1 facts (header mismatch, countersign, missing reject/audit) were read in decisions-lock.ts, decisions-proposed.ts, countersign-core.ts by a research agent and the header pair re-read by the author."},
+{"name":"No private data","verdict":"pass","note":"No client, person or private project named."},
+{"name":"Business-readable criteria","verdict":"pass","note":"Each unit has Given/When/Then criteria."},
+{"name":"Tests","verdict":"n/a","note":"No code in the diff."},
+{"name":"Affected boundaries","verdict":"n/a","note":"Document only; cross-repo contract is described, not changed."},
+{"name":"Open items recorded","verdict":"pass","note":"Not-in-campaign list and unverified items recorded in sections 4 and 6."}
+]}
