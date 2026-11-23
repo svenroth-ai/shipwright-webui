@@ -33,4 +33,16 @@ describe("doubt-review follow-ups", () => {
     expect((await post("none")).status).toBe(200);
     expect((await post()).status).toBe(200);
   });
+
+  // @covers FR-01.71
+  it("the write guard accepts only the exact JSON media type (parameters allowed)", async () => {
+    const app = new Hono();
+    app.use("/api/org/*", orgWriteGuard);
+    app.post("/api/org/x", (c) => c.json({ ok: true }));
+    const post = (type: string) => app.request("/api/org/x", { method: "POST", headers: { "content-type": type }, body: "{}" });
+    expect((await post("application/jsonp")).status).toBe(415);
+    expect((await post("application/json-invalid")).status).toBe(415);
+    expect((await post("application/json; charset=utf-8")).status).toBe(200);
+    expect((await post("Application/JSON")).status).toBe(200);
+  });
 });

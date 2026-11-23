@@ -11,7 +11,7 @@ org writes, an actionable `audit_unwritable` answer, the operator's own audit re
 text rules on the logged line, a stale-entry check and a skipped-entries signal, plus the small leftovers.
 
 ## Acceptance Criteria
-- [x] A (guard): a `Sec-Fetch-Site: cross-site` request or a non-JSON POST to an org write is refused (403 / 415), nothing changes.
+- [x] A (guard): a `Sec-Fetch-Site: cross-site` or `same-site` request or a non-JSON POST to an org write is refused (403 / 415), nothing changes.
 - [x] B: an unusable lead audit file gives `409 audit_unwritable` (countersign + reject), nothing changes (unless the file fails only after the pre-check: then `logged:true`, the entry stays listed and a retry finishes it), the window shows a blocked message.
 - [x] C: Reject writes its own record unless an identical one (author, action, reason) already exists; the response carries `recorded`; the window never claims a record that was not written. Limit: a same-user lead that reproduces author+reason exactly can pre-empt the record.
 - [x] D: `ISO_TIMESTAMP_RE` + default author + identity parsing live in `decision-request-common.ts`; the audit append lives in `audit-append.ts` (pure move, own commit).

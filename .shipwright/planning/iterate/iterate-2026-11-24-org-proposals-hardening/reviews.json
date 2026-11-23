@@ -251,15 +251,74 @@
     },
     "external_code": {
       "review_type": "external_code",
-      "status": "pending",
-      "findings_count": 0,
-      "findings": [],
-      "provider": null,
-      "completed_at": null,
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "server/src/routes/org-write-guard.ts:26-29` (and the doc paragraph in `docs/org-proposed-entry-contract.md` \"refuses same-site as well as cross-site\")",
+          "line": null,
+          "finding": "The guard refuses `Sec-Fetch-Site: same-site`, which is stricter than acceptance criterion A (\"a `Sec-Fetch-Site: cross-site` request … is refused\"). A browser marks a request `same-site` whenever the client origin and API origin differ in port on the same host (e.g. a dev/prod setup where the webui is served by one server and the API by another on the same machine). In that legitimate deployment every write — countersign, reject, release, charter PUT — now 403s with no client-side workaround, because the browser sets the header and the client cannot suppress it.",
+          "suggestion": "Either restrict the 403 to `cross-site` as the AC states, or make the same-site refusal configurable/overridable and document the supported topologies. If the strictness is intentional, update the acceptance criterion to say so.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/components/org/useDecisionActions.ts` (handleCountersign, `audit-unwritable` with `adr` branch)",
+          "line": null,
+          "finding": "In the `logged:true` branch the handler returns without invalidating/refetching the proposed list (only `decision_log.md` is invalidated). That is correct for the \"nothing changed\" case, but here the entry IS in `decision_log.md` while still listed as proposed — the decisions-proposed list is now stale relative to decision_log until some other action refetches. A concurrent reader of the two surfaces can see the entry both pending and logged.",
+          "suggestion": "Also invalidate `[\"org\", \"decisions-proposed\"]` (or refetch) in the `adr !== undefined` branch so the listed entry is at least reconciled on the next natural refetch; the row status already pins the \"Logged as ADR-N …\" message so no UX regression.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/external/org/countersign-core.ts` (crash-retry branch) and `decisions-audit.ts:assertAuditAppendable",
+          "line": null,
+          "finding": "For countersign, the \"audit unusable before anything changes\" guarantee (AC B) does not rest on the pre-check alone: `assertAuditAppendable` only does `accessSync(file, W_OK)`, which succeeds for a directory on Linux. The directory case is only caught earlier because the `reject_pending` probe (`hasDecisionAudit`) happens to read the file before the log write. If that read is ever reordered or short-circuited (e.g. an entry with no reject check on a future path), a directory-shaped `audit.jsonl` would be logged first and answered `logged:true` instead of \"nothing was changed\". This is fragile-by-accident rather than by design.",
+          "suggestion": "Make `assertAuditAppendable` also `statSync` and require `isFile()` (EISDIR/ENOTDIR → `AuditUnwritableError`) so the pre-check is self-sufficient and doesn't depend on call ordering inside `performCountersign`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/external/org/__tests__/decisions-hardening.test.ts` — \"refuses Sec-Fetch-Site: cross-site on every org write\"",
+          "line": null,
+          "finding": "The same-site refusal (see first finding) is pinned by `decisions-hardening-round2.test.ts` but is not exercised end-to-end for the client's own deployment topology — no test covers a client served from a different port than the API, which is exactly the case the extra strictness breaks. All E2E runs use a same-origin stack.",
+          "suggestion": "Add one test (or a documented decision) for the different-port-same-host topology: either assert it is intentionally refused, or assert it still works.  Everything else checks out: the SHA-256 mirror is correct (padding, high/low length words, hex output) and pinned against node crypto; the digest normalization (BOM/CR/trailing blanks) is identical on both sides and pinned on the shared fixture; the audit-append move is pure; `ensureDecisionAudit`'s own-record matching implements criterion C including the acknowledged same-user pre-emption limit; the skipped-entries signal never carries content (asserted by tests on the JSON keys and lead-id shape); and `fetchProposedDecisions`' return-type change is propagated to every visible caller and its array form remains exported as `parseProposedDecisions`.  Overall: ship-with-fixes — the same-site over-refusal is the one item that can break a real deployment and should be decided (spec-aligned or explicitly documented) before merge; the rest are hardening of the change itself.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/routes/org-write-guard.ts",
+          "line": 27,
+          "finding": "The content-type check accepts any value starting with `application/json`, including `application/jsonp` and `application/json-invalid`. Those are non-JSON media types, so a POST containing valid JSON under either type reaches the write handler and can change state, contrary to AC A.",
+          "suggestion": "Parse the media type before the first semicolon and require it to equal `application/json`, allowing parameters such as `charset=utf-8`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/external/org/decisions-audit.ts",
+          "line": 144,
+          "finding": "When `audit.jsonl` does not exist, the pre-check skips the writability check entirely. If the existing lead directory is not writable, countersign commits `decision_log.md` before discovering that it cannot create the audit file. It returns `logged:true` even though the failure condition existed before the pre-check; AC B requires this case to change nothing.",
+          "suggestion": "When the audit file is absent, check that its parent directory permits creation before committing the decision log. Add a test with an absent audit file and a non-writable lead directory, asserting that no decision is logged.  Overall assessment: ship-with-fixes. The implementation substantially covers A–H, but the media-type validation and audit creation pre-check need correction before shipping. This review used the supplied diff; local execution was blocked by the environment policy.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-23T23:54:22.763931+00:00",
       "disposition": null,
-      "recorded_by": null,
-      "parse_status": null,
-      "raw_excerpt": null
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ### Findings\n\n- Category: edge-case\n  Severity: medium\n  File: `server/src/routes/org-write-guard.ts:26-29` (and the doc paragraph in `docs/org-proposed-entry-contract.md` \"refuses same-site as well as cross-site\")\n  Finding: The guard refuses `Sec-Fetch-Site: same-site`, which is stricter than acceptance criterion A (\"a `Sec-Fetch-Site: cross-site` request … is refused\"). A browser marks a request `same-site` whenever the client origin and API origin differ in *port* on the same host (e.g. a dev/prod setup where the webui is served by one server and the API by another on the same machine). In that legitimate deployment every write — countersign, reject, release, charter PUT — now 403s with no client-side workaround, because the browser sets the header and the client cannot suppress it.\n  Suggestion: Either restrict the 403 to `cross-site` as the AC states, or make the same-site refusal configurable/overridable and document the supported topologies. If the strictness is intentional, update the acceptance criterion to say so.\n\n- Category: bug\n  Severity: low\n  File: `client/src/components/org/useDecisionActions.ts` (handleCountersign, `audit-unwritable` with `adr` branch)\n  Finding: In the `logged:true` branch the handler returns without invalidating/refetching the *proposed* list (only `decision_log.md` is invalidated). That is correct for the \"nothing changed\" case, but here the entry IS in `decision_log.md` while still listed as proposed — the decisions-proposed list is now stale relative to decision_log until some other action refetches. A concurrent reader of the two surfaces can see the entry both pending and logged.\n  Suggestion: Also invalidate `[\"org\", \"decisions-proposed\"]` (or refetch) in the `adr !== undefined` branch so the listed entry is at least reconciled on the next natural refetch; the row status already pins the \"Logged as ADR-N …\" message so no UX regression.\n\n- Category: edge-case\n  Severity: low\n  File: `server/src/external/org/cou […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: server/src/routes/org-write-guard.ts:27\n- Finding: The content-type check accepts any value starting with `application/json`, including `application/jsonp` and `application/json-invalid`. Those are non-JSON media types, so a POST containing valid JSON under either type reaches the write handler and can change state, contrary to AC A.\n- Suggestion: Parse the media type before the first semicolon and require it to equal `application/json`, allowing parameters such as `charset=utf-8`.\n\n- Category: bug\n- Severity: medium\n- File: server/src/external/org/decisions-audit.ts:144\n- Finding: When `audit.jsonl` does not exist, the pre-check skips the writability check entirely. If the existing lead directory is not writable, countersign commits `decision_log.md` before discovering that it cannot create the audit file. It returns `logged:true` even though the failure condition existed before the pre-check; AC B requires this case to change nothing.\n- Suggestion: When the audit file is absent, check that its parent directory permits creation before committing the decision log. Add a test with an absent audit file and a non-writable lead directory, asserting that no decision is logged.\n\nOverall assessment: ship-with-fixes. The implementation substantially covers A–H, but the media-type validation and audit creation pre-check need correction before shipping. This review used the supplied diff; local execution was blocked by the environment policy.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
     },
     "spec": {
       "review_type": "spec",

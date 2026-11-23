@@ -24,7 +24,7 @@ export const orgWriteGuard: MiddlewareHandler = async (c, next) => {
   // preview dev server) and "cross-site" are refused. Absent header = non-browser or plain-http LAN: allowed.
   const site = c.req.header("sec-fetch-site");
   if (site !== undefined && site !== "same-origin" && site !== "none") return c.json({ error: "cross_site_refused" }, 403);
-  if (c.req.method === "POST" && !(c.req.header("content-type") ?? "").toLowerCase().startsWith("application/json")) {
+  if (c.req.method === "POST" && (c.req.header("content-type") ?? "").split(";")[0].trim().toLowerCase() !== "application/json") {
     return c.json({ error: "unsupported_media_type" }, 415);
   }
   return next();

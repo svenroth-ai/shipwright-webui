@@ -141,7 +141,13 @@ export function assertAuditAppendable(deps: DecisionAuditDeps, leadId: string): 
   readAuditLines(deps, leadId); // unreadable / symlink -> throws
   const file = join(deps.leadsRoot, leadId, "audit.jsonl");
   try {
-    if (existsSync(file)) accessSync(file, fsConstants.W_OK);
+    if (existsSync(file)) {
+      if (!statSync(file).isFile()) throw new Error("not a file");
+      accessSync(file, fsConstants.W_OK);
+    } else {
+      // absent audit file: the append creates it, so the lead folder must allow that
+      accessSync(join(deps.leadsRoot, leadId), fsConstants.W_OK);
+    }
   } catch {
     throw new AuditUnwritableError(leadId, "is read-only: make it writable, then retry");
   }

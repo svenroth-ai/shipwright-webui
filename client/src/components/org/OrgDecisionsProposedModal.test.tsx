@@ -38,6 +38,7 @@ const ENTRY = {
 };
 
 describe("OrgDecisionsProposedModal", () => {
+  // @covers FR-01.71
   it("shows an explicit 'no decisions waiting' state for an empty list — never a blank modal", async () => {
     mockedFetch.mockResolvedValue(res([]));
     renderModal();
@@ -45,6 +46,7 @@ describe("OrgDecisionsProposedModal", () => {
     expect(screen.getByText("No decisions waiting.")).toBeInTheDocument();
   });
 
+  // @covers FR-01.71
   it("renders one entry per proposal, with its lead, timestamp, and evidence pointer", async () => {
     mockedFetch.mockResolvedValue(res([ENTRY]));
     renderModal();
@@ -93,6 +95,7 @@ describe("OrgDecisionsProposedModal", () => {
     );
   });
 
+  // @covers FR-01.71
   it("409 duplicate reads as 'resolve by hand', distinct wording from a generic error", async () => {
     mockedFetch.mockResolvedValue(res([ENTRY]));
     mockedCountersign.mockResolvedValue({ ok: false, reason: "duplicate", count: 2 });
@@ -108,6 +111,7 @@ describe("OrgDecisionsProposedModal", () => {
     );
   });
 
+  // @covers FR-01.71
   it("doubt-review fix: two entries sharing (timestamp, leadId) — the server's own duplicate_identity case — get independently addressable rows and Countersign buttons", async () => {
     const DUPLICATE_A = { ...ENTRY, body: "- **Context:** first\n", evidence: null };
     const DUPLICATE_B = { ...ENTRY, body: "- **Context:** second\n", evidence: null };
@@ -129,6 +133,7 @@ describe("OrgDecisionsProposedModal", () => {
     expect(within(rowA).queryByText(/resolve by hand/)).not.toBeInTheDocument();
   });
 
+  // @covers FR-01.71
   it("a 404 not-found on countersign (resolved by someone else meanwhile) reads distinctly, and refetches the list", async () => {
     mockedFetch.mockResolvedValue(res([ENTRY]));
     mockedCountersign.mockResolvedValue({ ok: false, reason: "not-found" });

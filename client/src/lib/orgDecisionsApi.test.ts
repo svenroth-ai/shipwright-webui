@@ -84,6 +84,7 @@ describe("parseProposedDecisions", () => {
 });
 
 describe("fetchProposedDecisions", () => {
+  // @covers FR-01.71
   it("fetches decisions-proposed.md and parses it", async () => {
     const fetchMock = stubFetch({
       ok: true,
@@ -98,6 +99,7 @@ describe("fetchProposedDecisions", () => {
     );
   });
 
+  // @covers FR-01.71
   it("an empty (but present) file resolves to an empty array — the 'no decisions waiting' state", async () => {
     stubFetch({ ok: true, status: 200, text: async () => "" });
     await expect(fetchProposedDecisions()).resolves.toEqual({ entries: [], skipped: { count: 0, leadIds: [] } });
