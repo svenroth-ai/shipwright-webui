@@ -112,6 +112,7 @@ describe("fetchProposedDecisions", () => {
 describe("countersignDecision", () => {
   const TS = "2026-08-17T09:00:00.000Z";
 
+  // @covers FR-01.71
   it("posts {timestamp, leadId} and returns the success shape", async () => {
     const fetchMock = stubFetch({
       ok: true,
@@ -129,6 +130,7 @@ describe("countersignDecision", () => {
     );
   });
 
+  // @covers FR-01.71
   it("an idempotent retry reads alreadyCountersigned: true, not as an error", async () => {
     stubFetch({
       ok: true,
