@@ -11,14 +11,13 @@
  * proposed line. A quote without its own pointer inherits the entry's evidence
  * pointer. Everything here is text: callers render it as plain text, never markup.
  *
- * W4 NOTE: the line/quote classification below exists only on the client. W4 must move it
- * into the mirrored grammar (drift-guarded), not re-implement it on the server.
+ * The line/quote split (`fencedParts`) and the pointer parser live in the mirrored grammar, so the
+ * server countersign uses the very same rule (W4).
  */
-import { FENCE_LINE_RE, FENCE_LABEL_PREFIX, findClose } from "./orgProposedGrammar";
+import { fencedParts, parseSourceRef, splitQuote, stripInvisible, type SourceRef } from "./orgProposedGrammar";
 
-export type SourceRef =
-  | { kind: "known"; session: string; time: string; message: string }
-  | { kind: "unknown"; raw: string | null };
+export { parseSourceRef };
+export type { SourceRef };
 
 export interface QuoteView {
   text: string;
@@ -37,51 +36,22 @@ export interface EntryView {
   quotes: QuoteView[];
 }
 
-const ISO = String.raw`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z`;
-const SHORT_RE = new RegExp(String.raw`^([A-Za-z0-9_-]+):(${ISO}):(\d+)$`);
-const LONG_RE = new RegExp(String.raw`^session ([A-Za-z0-9_-]+) at (${ISO}), message (\d+)$`);
 const BEAT_RE = /origin: \S+ beat ([^,\s]+),/;
-const POINTER_ATTEMPT_RE = /^(?:session\b|[A-Za-z0-9_-]{4,}:\S)/;
-const QUOTE_SEP = " — ";
-
-/** `session:time:number` or `session <id> at <time>, message <n>`; anything else is unknown. */
-export function parseSourceRef(raw: string | null): SourceRef {
-  const t = raw?.trim() ?? "";
-  if (t === "") return { kind: "unknown", raw: null };
-  const m = SHORT_RE.exec(t) ?? LONG_RE.exec(t);
-  if (!m) return { kind: "unknown", raw: t };
-  return { kind: "known", session: m[1], time: m[2], message: m[3] };
-}
 
 function parseQuote(line: string, fallback: SourceRef): QuoteView {
-  const body = line.replace(/^>[ \t]?/, "");
-  const at = body.lastIndexOf(QUOTE_SEP);
-  const suffix = at === -1 ? "" : body.slice(at + QUOTE_SEP.length).trim();
-  // Only a suffix that looks like a pointer is split off: an em-dash inside the quote text stays in it.
-  if (at === -1 || !POINTER_ATTEMPT_RE.test(suffix)) return { text: body.trim(), source: fallback, inherited: true };
-  return { text: body.slice(0, at).trim(), source: parseSourceRef(suffix), inherited: false };
+  const { text, pointer } = splitQuote(line);
+  return pointer === null ? { text, source: fallback, inherited: true } : { text, source: parseSourceRef(pointer), inherited: false };
 }
 
 export function buildEntryView(block: string, evidence: string | null): EntryView {
   const source = parseSourceRef(evidence);
-  const lines = block.split("\n").map((l) => l.replace(/\r$/, ""));
-  const open = lines.findIndex((l, i) => FENCE_LINE_RE.test(l) && (lines[i + 1] ?? "").startsWith(FENCE_LABEL_PREFIX));
-  const close = open === -1 ? -1 : findClose(lines, open);
-  if (open === -1 || close === -1) return { fenced: false, proposedLine: null, beat: null, source, quotes: [] };
-
-  const proposed: string[] = [];
-  const quotes: QuoteView[] = [];
-  for (const line of lines.slice(open + 2, close)) {
-    if (line.startsWith(">")) {
-      const q = parseQuote(line, source);
-      if (q.text !== "") quotes.push(q);
-    }
-    else proposed.push(line);
-  }
+  const parts = fencedParts(block.split("\n"));
+  if (parts === null) return { fenced: false, proposedLine: null, beat: null, source, quotes: [] };
+  const quotes = parts.quotes.map((l) => parseQuote(l, source)).filter((q) => q.text !== "");
   return {
     fenced: true,
-    proposedLine: proposed.join("\n").trim(),
-    beat: BEAT_RE.exec(lines[open + 1])?.[1] ?? null,
+    proposedLine: stripInvisible(parts.proposed.join("\n")).trim(), // invisible characters removed as on the server; whitespace is collapsed on write
+    beat: BEAT_RE.exec(parts.label)?.[1] ?? null,
     source,
     quotes,
   };

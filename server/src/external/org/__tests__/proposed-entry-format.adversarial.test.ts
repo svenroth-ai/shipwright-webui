@@ -31,7 +31,7 @@ describe("adversarial proposed / logged entries (W1)", () => {
     expect(forged).not.toBe(DAEMON_SAMPLE);
     writeFileSync(proposed(), forged);
     expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "not_found" });
-    expect(await performCountersign({ leadsRoot }, T2, "acme-lead")).toEqual({ status: "countersigned", number: 1 });
+    expect(await performCountersign({ leadsRoot }, T2, "acme-lead")).toEqual(expect.objectContaining({ status: "countersigned", number: 1 }));
     expect(parseLoggedEntries(readFileSync(logged(), "utf8")).map((e) => e.number)).toEqual([1]);
   });
 
@@ -148,9 +148,9 @@ body
     writeFileSync(proposed(), raw);
     expect(parseProposedEntries(raw).map((e) => e.leadId)).toEqual(["victim-lead", "x-lead"]);
     expect(await performCountersign({ leadsRoot }, tsA, "a")).toEqual({ status: "not_found" });
-    expect(await performCountersign({ leadsRoot }, tsV, "victim-lead")).toEqual({ status: "countersigned", number: 1 });
+    expect(await performCountersign({ leadsRoot }, tsV, "victim-lead")).toEqual(expect.objectContaining({ status: "countersigned", number: 1 }));
     expect(await performCountersign({ leadsRoot }, tsB, "b")).toEqual({ status: "not_found" });
-    expect(await performCountersign({ leadsRoot }, tsX, "x-lead")).toEqual({ status: "countersigned", number: 2 });
+    expect(await performCountersign({ leadsRoot }, tsX, "x-lead")).toEqual(expect.objectContaining({ status: "countersigned", number: 2 }));
     const nums = parseLoggedEntries(readFileSync(logged(), "utf8")).map((e) => e.number);
     expect(nums).toEqual([1, 2]);
     expect(await performCountersign({ leadsRoot }, tsV, "victim-lead")).toEqual({ status: "already_countersigned", number: 1 });
@@ -161,7 +161,7 @@ body
     const F = (n: string) => `⟦SHIPWRIGHT-FENCE:${n}⟧`;
     const raw = `<!-- decisionKey: k -->\n## [${T1}] s1-lead\n\n${F("aa")}\n[FENCED DATA x]\nq\n${F("aa")}\n\n- **Lead:** s1-lead\n- **Evidence:** e\n`;
     writeFileSync(proposed(), raw);
-    expect(await performCountersign({ leadsRoot }, T1, "s1-lead")).toEqual({ status: "countersigned", number: 1 });
+    expect(await performCountersign({ leadsRoot }, T1, "s1-lead")).toEqual(expect.objectContaining({ status: "countersigned", number: 1 }));
     const log = readFileSync(logged(), "utf8");
     expect(log.startsWith(`## ADR-0001 [${T1}] s1-lead\n<!-- decisionKey: k -->\n`)).toBe(true);
     expect(parseLoggedEntries(log).map((e) => e.number)).toEqual([1]);

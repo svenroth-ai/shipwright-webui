@@ -1389,6 +1389,18 @@ write surface; gated, path-guarded, and concurrency-safe.
   Countersign button, its quotes a labelled group, and the window can be
   used with the keyboard alone, with focus returning to the opener on close.
 
+- (E) **(iterate-2026-11-23-w4-edit-before-approve)** Given a proposal with a
+  proposed line and quotes, when the operator edits the line and countersigns,
+  then the decisions log holds the edited line and nothing else of the entry
+  (no quote, no original wording, no evidence text), and the audit record says
+  the line was edited and points to the observation by session, time and
+  message number, never by text.
+- (E) **(iterate-2026-11-23-w4-edit-before-approve)** Given a proposal whose
+  line is not changed, when it is countersigned, then the audit record says it
+  was approved as proposed and the log still holds the line without the quotes;
+  an edited line that repeats a quote, is empty or is too long is refused with a
+  plain explanation and nothing is changed.
+
 ### FR-01.74 Codex CLI as an alternate task runtime ("Codex Light")
 
 - (E) **(iterate-2026-09-16-codex-light-webui)** Given a global

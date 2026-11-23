@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: client/src/components/org/DecisionEntryRow.tsx:48\n- Finding: `canEdit` excludes empty proposed lines. The server explicitly rejects these with `line_empty` and asks the operator to write a line, but the UI offers no editor, leaving the proposal impossible to approve through the WebUI.\n- Suggestion: Allow editing whenever a fenced proposed line exists, including an empty string. Add a test that fills an initially empty line and countersigns it.\n\n- Category: security\n- Severity: high\n- File: server/src/external/org/proposed-line.ts:48\n- Finding: Quote detection strips pointer suffixes only when the session ID has at least four characters, while `parseSourceRef` accepts one-character IDs. For `> confidential customer observation \u2014 abc:2026-11-19T16:02:11Z:14`, the client displays the quote without its pointer, but submitting that displayed text passes validation and writes the quote into the log.\n- Suggestion: Strip suffixes recognized by `parseSourceRef`, alongside the existing malformed-pointer detection. Test copying a displayed quote with a one-to-three-character session ID.\n\nShip-with-fixes: these gaps prevent recovery from empty proposals and violate the no-quotes logging requirement. Review was limited to the supplied diff because local access was blocked; the referenced brief and tests could not be checked.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "### Findings\n\n- Category: bug\n  Severity: high\n  File: client/src/components/org/DecisionEntryRow.tsx:39-43 (the `useState(false)` / `useState(original ?? \"\")` lines)\n  Finding: The `editing` flag and `draft` text are per-component-instance state, but the row key (`entryKey`) is positional (`timestamp|leadId|index`). On any refetch that removes or reorders entries (a sibling row's countersign always removes one), the same row instance is re-rendered with a *different* proposal while keeping the old row's `editing=true` and `draft`. Clicking Countersign then sends the previous proposal's draft text to the new proposal's identity, permanently logging a line written for a different decision. The old code only risked a stale banner; this change turns that known positional-key staleness into silent wrong-data being written.\n  Suggestion: Reset `draft`/`editing` whenever the entry's content changes (e.g. key the draft by `entry.block`, or `useEffect` on a content hash), or key the row list by a content-derived key so a changed entry remounts the row.\n\n- Category: bug\n  Severity: medium\n  File: server/src/external/org/countersign-core.ts:141-155 (healing branch)\n  Finding: On the crash-heal path, `isEdited(facts, loggedLine)` reads the line back from the log, but for a pre-W4 log block (`loggedFingerprintOf` returns `null`, whole-entry shape) with a fenced proposal, `facts !== null` and `loggedLine === null`, so `edited` evaluates to `false` and the audit is written `approved_as_proposed` even when the log block is the pre-W4 whole-entry shape where no line was ever extracted. That's arguably correct-ish, but more importantly the same expression `facts !== null && loggedLine !== null && isEdited(...)` is a long compound read of a partial heal \u2014 if `loggedLineOf`'s regex ever fails on a slightly different block (e.g. two markers plus CRLF already handled, but a future third marker line), the audit silently records `approved_as_proposed` for an edited decision. The `edit` field in the audit is the spec's core deliverable; deriving it by regex-parsing the log rather than from any durable record of the original edit is fragile.\n  Suggestion: Acceptable for now, but add a test for the heal path asserting the exact `data.edit` value (currently only the crash test asserts log/audit line counts, not `edit`), and consider storing the fingerprint\u2192edit mapping or failing closed when `facts !== null && loggedLine === null` on the heal path.\n\n- Category: test\n  Severity: medium\n  File: server/src/external/org/__tests__/countersign-edit.test.ts:100-118 (double-click test) and the \"crash residue\" heal test\n  Finding: The concurrency test calls `post()` twice via `Promise.all` on two *separate* `app()` instances; it does not actually prove one lock-serialized double-submit (two Hono apps on the same tmpdir share the file lock, so it's OK, but nothing asserts one 200 + one already_countersigned shape). More importantly, the heal test asserts `healed.status === 200` but never asserts `edited` in the response or `data.edit` in the audit for the healed record \u2014 the AC's audit wording (\"says edited\") is untested on this path, and a broken implementation (always `approved_as_proposed` after a crash) would pass.\n  Suggestion: Assert `(await healed.json()).edited` (or `alreadyCountersigned`) and `auditLines()[0].data.edit` on the heal path.\n\n- Category: test\n  Severity: low\n  File: client/e2e/flows/org-page.decisions-proposed-edit.spec.ts:17-20 (`writeFixture`, `rmSync(LEADS_ROOT, {recursive, true})`)\n  Finding: The e2e test recursively deletes `~/.claude/leads` \u2014 the real user home directory \u2014 before and after each run. If a developer runs Playwright on a machine with real lead data, it is destroyed. If this is the established repo convention (W3 tests appear to do the same) it's a known hazard, but it is still a destructive operation against a non-sandboxed path.\n  Suggestion: Gate on an env var (e.g. skip unless `SHIPWRIGHT_E2E=1`) or point `LEADS_ROOT` at a temp dir via injected config.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/org/DecisionEntryRow.tsx:66-74 (`onClick={() => onCountersign(editing ? draft : undefined)}`)\n  Finding: If the operator opens the editor, edits, then clicks \"Stop editing\", the row silently reverts to approving *as proposed* \u2014 but the draft is kept. Re-opening the editor restores the stale draft, and the countersign button gives no hint which text will be sent (edited vs proposed) while the editor is closed. Combined with the positional-key issue above, this makes it easy to countersign unintended text. The `aria-pressed` state helps but the button label (\"Countersign\") never reflects the pending action.\n  Suggestion: When editing stops with a non-empty divergent draft, either send the draft regardless, or clear it; at minimum show which text will be sent on the countersign button.\n\n- Category: regression\n  Severity: low\n  File: client/src/lib/orgProposedGrammar.ts:184-186 vs the removed code in orgProposedView.ts\n  Finding: Two behavior changes are bundled into the \"mirror\" refactor without migration notes: (1) quote detection changed from `startsWith(\">\")` to `trimStart().startsWith(\">\")` \u2014 indented `>` lines that previously rendered as part of the proposed line are now quotes; (2) `parseSourceRef` session minimum length changed from 4 chars to 1. Both are mirrored server-side and documented, so they're intentional, but any other existing consumer of `parseSourceRef`/`buildEntryView` (e.g. the inbox/beat views, if any import it) will see the relaxed pointer shape (1-char sessions now parse as \"known\").\n  Suggestion: Verify no other client surface relies on the old 4-char minimum for rendering \"unknown\" pointers; if it exists, align the bound.\n\n### Assessment\n\nThe core spec (edited line to log, structured evidence pointer, no quote/original text leakage, refusal codes, mirrored grammar) is implemented and well-tested on the server; the client has one real defect \u2014 stale per-row edit state surviving a positional refetch can countersign the wrong proposal's line \u2014 plus a fragile audit-edit derivation on the heal path that lacks a test. Fix the stale-draft bug before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-23-w4-edit-before-approve",
+    "at": "2026-11-23T21:48:11.142476+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

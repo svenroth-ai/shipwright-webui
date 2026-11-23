@@ -112,6 +112,7 @@ describe("fetchProposedDecisions", () => {
 describe("countersignDecision", () => {
   const TS = "2026-08-17T09:00:00.000Z";
 
+  // @covers FR-01.71
   it("posts {timestamp, leadId} and returns the success shape", async () => {
     const fetchMock = stubFetch({
       ok: true,
@@ -119,7 +120,7 @@ describe("countersignDecision", () => {
       json: async () => ({ countersigned: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001" }),
     });
     const result = await countersignDecision(TS, "acme-lead");
-    expect(result).toEqual({ ok: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001" });
+    expect(result).toEqual({ ok: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001", edited: false, loggedLineDiffers: false });
     expect(fetchMock).toHaveBeenCalledWith(
       `${ORG_API}/decisions/countersign`,
       expect.objectContaining({
@@ -129,6 +130,7 @@ describe("countersignDecision", () => {
     );
   });
 
+  // @covers FR-01.71
   it("an idempotent retry reads alreadyCountersigned: true, not as an error", async () => {
     stubFetch({
       ok: true,
@@ -136,7 +138,7 @@ describe("countersignDecision", () => {
       json: async () => ({ countersigned: true, alreadyCountersigned: true, number: 1, adr: "ADR-0001" }),
     });
     const result = await countersignDecision(TS, "acme-lead");
-    expect(result).toEqual({ ok: true, alreadyCountersigned: true, number: 1, adr: "ADR-0001" });
+    expect(result).toEqual({ ok: true, alreadyCountersigned: true, number: 1, adr: "ADR-0001", edited: false, loggedLineDiffers: false });
   });
 
   it("404 (proposal_not_found) reads as a typed not-found result, not a thrown error", async () => {
@@ -160,5 +162,27 @@ describe("countersignDecision", () => {
   it("a validation failure (400) throws ApiError, never a silent typed result", async () => {
     stubFetch({ ok: false, status: 400, json: async () => ({ error: "timestamp_invalid" }) });
     await expect(countersignDecision("not-a-timestamp", "acme-lead")).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+describe("countersignDecision with an edited line (W4)", () => {
+  const TS = "2026-08-17T09:00:00.000Z";
+
+  // @covers FR-01.71
+  it("sends the line only when given, and reads edited back", async () => {
+    const fetchMock = stubFetch({
+      ok: true,
+      status: 200,
+      json: async () => ({ countersigned: true, alreadyCountersigned: false, number: 2, adr: "ADR-0002", edited: true }),
+    });
+    const result = await countersignDecision(TS, "acme-lead", "My own words.");
+    expect(result).toMatchObject({ ok: true, edited: true });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({ timestamp: TS, leadId: "acme-lead", line: "My own words." });
+  });
+
+  // @covers FR-01.71
+  it("a refused line is a result, not an exception", async () => {
+    stubFetch({ ok: false, status: 400, json: async () => ({ error: "line_contains_quote" }) });
+    await expect(countersignDecision(TS, "acme-lead", "x")).resolves.toEqual({ ok: false, reason: "line-rejected", code: "line_contains_quote" });
   });
 });

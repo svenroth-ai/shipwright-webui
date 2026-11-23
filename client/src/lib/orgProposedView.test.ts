@@ -69,3 +69,13 @@ describe("buildEntryView", () => {
     expect(buildEntryView("## [t] lead\n- **Context:** a\n", null).fenced).toBe(false);
   });
 });
+
+describe("indented quote lines (W4)", () => {
+  // @covers FR-01.71
+  it("an indented '>' line is a quote, not part of the proposed line", () => {
+    const block = "<!-- decisionKey: k -->\n## Proposed 2026-11-20T09:15:00.000Z \u2014 k\n\n\u27e6SHIPWRIGHT-FENCE:3f9a1c0e5b7d42a8916c0d2e4f6a8b1c\u27e7\n[FENCED DATA x]\nThe line.\n   > an indented quote\n\u27e6SHIPWRIGHT-FENCE:3f9a1c0e5b7d42a8916c0d2e4f6a8b1c\u27e7\n\n- **Lead:** a-lead\n- **Evidence:** e\n";
+    const view = buildEntryView(block, null);
+    expect(view.proposedLine).toBe("The line.");
+    expect(view.quotes.map((q) => q.text)).toEqual(["an indented quote"]);
+  });
+});

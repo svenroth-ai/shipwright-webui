@@ -42,7 +42,7 @@ export async function handleCountersignRequest(
   deps: HandleCountersignRequestDeps,
   rawBody: unknown,
 ): Promise<CountersignRequestResult> {
-  const { timestamp, leadId } = (rawBody ?? {}) as { timestamp?: unknown; leadId?: unknown };
+  const { timestamp, leadId, line } = (rawBody ?? {}) as { timestamp?: unknown; leadId?: unknown; line?: unknown };
   if (typeof timestamp !== "string" || timestamp.length === 0) {
     return { status: 400, body: { error: "timestamp_required" } };
   }
@@ -66,9 +66,13 @@ export async function handleCountersignRequest(
     return { status: 400, body: { error: "leadId_invalid", leadId } };
   }
 
+  if (line !== undefined && line !== null && typeof line !== "string") {
+    return { status: 400, body: { error: "line_invalid" } };
+  }
+
   let outcome: CountersignOutcome;
   try {
-    outcome = await performCountersign({ ...deps, author: deps.author ?? osAuthor() }, timestamp, leadId);
+    outcome = await performCountersign({ ...deps, author: deps.author ?? osAuthor() }, timestamp, leadId, line);
   } catch (err) {
     // Code-review fix: without this, a symlinked decisions-proposed.md /
     // decision_log.md fell through to the generic 500 error handler
@@ -82,6 +86,9 @@ export async function handleCountersignRequest(
 
   if (outcome.status === "not_found") {
     return { status: 404, body: { error: "proposal_not_found", timestamp, leadId } };
+  }
+  if (outcome.status === "line_rejected") {
+    return { status: 400, body: { error: outcome.error, timestamp, leadId } };
   }
   if (outcome.status === "reject_pending") {
     return { status: 409, body: { error: "reject_pending", timestamp, leadId } };
@@ -98,6 +105,8 @@ export async function handleCountersignRequest(
       countersigned: true,
       alreadyCountersigned: outcome.status === "already_countersigned",
       number: outcome.number,
+      edited: outcome.status === "countersigned" ? outcome.edited : undefined,
+      loggedLineDiffers: outcome.status === "already_countersigned" && outcome.loggedLineDiffers === true ? true : undefined,
       adr: `ADR-${String(outcome.number).padStart(4, "0")}`,
     },
   };

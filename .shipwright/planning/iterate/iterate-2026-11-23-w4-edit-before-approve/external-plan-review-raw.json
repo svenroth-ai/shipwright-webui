@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "**Findings**\n\n- **Category: security \u2014 Severity: high**\n  Finding: The audit entry must never contain quote text, but the edited line itself is operator-controlled free text that flows into the audit entry and the log block. If quotes can appear inside the fenced block (the very thing `fencedParts` splits), an operator could type quote text (or maliciously crafted content resembling a quote marker) into the edited line, reintroducing leak/log-corruption paths. \"Must not repeat a quote\" is a substring check \u2014 define it precisely (normalized whitespace? case-sensitive?) or it will be bypassable or over-broad.\n  Suggestion: Specify the leak test as adversarial in the plan (it's only \"adversarial quotes\" for parsing, not for the edited-line path). Validate the edited line against the same quote-detection logic used for parsing, and add tests where the edited line contains quote markers, the key marker string, or log-header-like lines.\n\n- **Category: edge-case \u2014 Severity: medium**\n  Finding: Rebuilding the log block as `header + key marker + \"- <line>\"` creates a log-injection surface: a multi-line edited line (or one starting with `- ` / header syntax) can alter the log's structure. The plan validates non-empty and \u22642000 chars but doesn't state newline/CR rejection or structural-character rejection.\n  Suggestion: Reject newlines, control chars, and any line-leading syntax that collides with the log format (or escape it deterministically). State this in the validation step of the plan.\n\n- **Category: risk \u2014 Severity: medium**\n  Finding: Moving `fencedParts` and the pointer parser \"verbatim\" into a mirrored grammar changes shared parsing on both server and client. Old unfenced entries and pre-W4 residue comparison depend on the old behavior. A verbatim move plus drift test is good, but the plan doesn't say whether pre-W4 log blocks are covered by regression tests after the rebuild-path change.\n  Suggestion: Add an explicit acceptance item or test list: parse + countersign-retry against a pre-W4 fixture file (the plan mentions \"residue compare uses the line already logged\" but no concrete fixture test is named).\n\n- **Category: approach \u2014 Severity: low**\n  Finding: `performCountersign(\u2026, editedLine?)` deciding \"edited vs. approved_as_proposed itself\" is good, but the decision boundary needs a definition: is whitespace-normalized-equal \"unedited\"? Trailing whitespace from a textarea is the classic case where a user clicks edit, changes nothing, and the entry flips to `edited` spuriously.\n  Suggestion: Normalize (trim) before comparing and document it.\n\n- **Category: edge-case \u2014 Severity: low**\n  Finding: The 2000-char max and the line-with-newline refusal messages are \"plain-language\" client-side, but the plan doesn't mention server-side error surfacing \u2014 if the client validation and server validation diverge (client allows, server refuses), what does the operator see on countersign failure? Crash/retry semantics on refusal also matter (does a refused countersign leave residue?).\n  Suggestion: Confirm refusal is atomic \u2014 no partial log write or residue on validation failure \u2014 and that server refusals render in the same refusal UI path.\n\n- **Category: dependency \u2014 Severity: low**\n  Finding: `useDecisionActions` extraction is bundled into this change; that's fine, but it widens the diff surface of a change whose core risk is correctness of leak prevention. Not blocking.\n  Suggestion: Consider landing the handler extraction as a separate no-behavior commit within the same unit so the E2E diff isolates the W4 behavior.\n\n**Overall assessment**: The approach is sound and the audit-leak design (pointer, never text) is the right shape, but the edited line is a new operator-controlled input into the log and audit, and the plan's validation spec is under-specified against injection of quote markers and log-structure characters \u2014 fix those specifics before building.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "The environment blocked file reads, so I could not verify the referenced brief or existing implementation. These findings concern the supplied mini-plan.\n\n1. **Category: security \u00b7 Severity: high**  \n   **Finding:** Non-empty, length, and quote checks do not prevent an edited textarea value from injecting additional log lines, headers, or key markers through embedded newlines.  \n   **Suggestion:** Validate the request value as a string and enforce a single logical line server-side, rejecting CR/LF and other delimiters recognized by the log parser before constructing the block.\n\n2. **Category: edge-case \u00b7 Severity: high**  \n   **Finding:** Comparing retry residue against the already logged line establishes content consistency, but does not explain how to recover the correct `edited` classification after a crash between log append and audit write. A retry could also submit a different edit.  \n   **Suggestion:** Specify recovery under the existing countersign lock: use the committed line, derive classification against the pending proposal before removing it, and reject conflicting retry content. Test crashes between each persistent write and concurrent submissions with different edits.\n\n3. **Category: security \u00b7 Severity: medium**  \n   **Finding:** \u201cMust not repeat a quote\u201d leaves the privacy boundary underspecified. Exact matching can miss a copied quote whose whitespace or line endings changed. Preserving unfenced blocks unchanged also needs an explicit compatibility check against the no-quote requirement.  \n   **Suggestion:** Define quote comparison normalization and supported legacy behavior. Test copied quotes with formatting changes, malformed fences, and unfenced entries containing evidence. Reject entries that cannot be safely separated instead of copying ambiguous content into the log.\n\n4. **Category: dependency \u00b7 Severity: medium**  \n   **Finding:** The plan changes the service signature and audit event, but does not explicitly cover the HTTP request validator, client API types, or historical audit readers. A strict validator could discard `editedLine`; readers could reject older events lacking the new fields.  \n   **Suggestion:** Include the transport/schema changes and backward-compatible audit parsing. Add a route-level test proving that the edited value reaches countersign and that historical events still load.\n\n5. **Category: edge-case \u00b7 Severity: medium**  \n   **Finding:** \u201cDecides edited/unedited itself\u201d needs a defined equality rule. Opening the editor without changing anything, reverting an edit, or submitting whitespace-only changes could otherwise produce misleading audit classifications.  \n   **Suggestion:** Define one canonicalization rule for validation, storage, and comparison. Classify by the resulting line\u2019s equality with the proposed line, and distinguish an omitted edit from an explicitly empty submission.\n\nThe approach is broadly sound and appropriately scoped. Specify input boundaries, recovery semantics, and compatibility behavior before implementation.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-23-w4-edit-before-approve",
+    "at": "2026-11-23T21:40:08.684712+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

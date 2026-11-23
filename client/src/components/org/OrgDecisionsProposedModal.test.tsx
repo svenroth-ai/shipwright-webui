@@ -59,9 +59,10 @@ describe("OrgDecisionsProposedModal", () => {
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-not-found")).toBeInTheDocument());
   });
 
+  // @covers FR-01.71
   it("Countersign success shows the assigned ADR number", async () => {
     mockedFetch.mockResolvedValue([ENTRY]);
-    mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001" });
+    mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001", edited: false });
     renderModal();
 
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
@@ -72,12 +73,13 @@ describe("OrgDecisionsProposedModal", () => {
     await waitFor(() =>
       expect(screen.getByText("Countersigned as ADR-0001.")).toBeInTheDocument(),
     );
-    expect(mockedCountersign).toHaveBeenCalledWith(ENTRY.timestamp, ENTRY.leadId);
+    expect(mockedCountersign).toHaveBeenCalledWith(ENTRY.timestamp, ENTRY.leadId, undefined);
   });
 
+  // @covers FR-01.71
   it("an idempotent retry (alreadyCountersigned: true) reads as a quiet already-done state, not an error", async () => {
     mockedFetch.mockResolvedValue([ENTRY]);
-    mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: true, number: 1, adr: "ADR-0001" });
+    mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: true, number: 1, adr: "ADR-0001", edited: false });
     renderModal();
 
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());

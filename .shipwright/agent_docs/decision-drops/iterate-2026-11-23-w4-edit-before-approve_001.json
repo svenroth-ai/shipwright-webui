@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-23-w4-edit-before-approve",
+  "date": "2026-11-23",
+  "section": "Iterate - feature: edit the proposed line before countersigning",
+  "title": "Countersign logs only the operator line",
+  "context": "Campaign shadow-proposals-webui W4: countersign moved the whole entry, quotes included, and the operator could not change the wording.",
+  "decision": "Countersign takes an optional line; a fenced entry is logged as its line only (list item, key marker, block fingerprint), edited or not; the server decides edited; the audit gets edit plus a structured evidence pointer.",
+  "consequences": "No quote or original wording reaches the log or audit. A stale-view fingerprint is not built (tracked follow-up); a lead can still pre-plant its own audit line.",
+  "rationale": "Reuses the lock, atomic write and audit of W3; one mirrored grammar rule for line vs quote; the fingerprint keeps crash retry safe without storing text.",
+  "rejected": "Strip quotes after copying (leak window); hand editing outside the lock; trusting a client edited flag.",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-11-23-w4-edit-before-approve-edit-line.md"
+}

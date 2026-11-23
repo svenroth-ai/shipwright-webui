@@ -45,6 +45,10 @@ export interface DecisionAuditFacts {
   reason?: string | null;
   /** ADR number, for a countersign. */
   adr?: string;
+  /** Countersign only: the operator changed the proposed line. The original text is never recorded. */
+  edited?: boolean;
+  /** Countersign only: pointer to the observation (known shape only, never free text). */
+  evidence?: { session: string; time: string; message: string } | null;
 }
 
 /** One line, bounded: an operator note can never forge a second JSONL line. */
@@ -131,13 +135,15 @@ export function ensureDecisionAudit(deps: DecisionAuditDeps, f: DecisionAuditFac
     kind: f.kind,
     lead_id: f.leadId,
     parent_lead_id: resolveParentLeadId(deps.leadsRoot, f.leadId),
-    summary: `proposal ${verb} by ${f.author}: ${f.decisionKey ?? f.entryTimestamp}`,
+    summary: `proposal ${verb} by ${f.author}${f.kind === "decision_countersigned" ? (f.edited ? " (edited)" : " (approved as proposed)") : ""}: ${f.decisionKey ?? f.entryTimestamp}`,
     data: {
       action: verb,
       author: f.author,
       entryTimestamp: f.entryTimestamp,
       decisionKey: f.decisionKey,
-      ...(f.kind === "decision_rejected" ? { reason: f.reason ?? null } : { adr: f.adr ?? null }),
+      ...(f.kind === "decision_rejected"
+        ? { reason: f.reason ?? null }
+        : { adr: f.adr ?? null, edit: f.edited ? "edited" : "approved_as_proposed", evidence: f.evidence ?? null }),
     },
   });
   return true;
