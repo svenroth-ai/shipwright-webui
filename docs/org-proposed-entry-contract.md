@@ -174,10 +174,10 @@ Nothing here changes identity, listing or countersign.
 - No "Open source session" link: a pointer's session id has no resolvable target in the
   WebUI yet (short ids are not mapped to tasks); it is added only where a target exists.
 - **PROPOSAL, needs leadwright sign-off in S1-E:** quotes as `> text — pointer` lines inside the
-  fence. Until agreed and pinned as a fixture in both repos, entries simply show no quotes (the
-  `>` lines would fold into the proposed line). Tracked next to the other S1-E preconditions.
+  fence. Until agreed and pinned as a fixture in both repos, entries show no quotes unless the lead
+  already writes this shape. Tracked next to the other S1-E preconditions.
 - A suffix after ` — ` is split off only when it looks like a pointer attempt (`session …` or
-  `<id>:…`); otherwise the whole line is quote text and shows the entry's evidence pointer,
+  `<id of 4+ characters>:…`); otherwise the whole line is quote text and shows the entry's evidence pointer,
   labelled "(entry evidence)". Empty `>` lines are skipped.
 - Unfenced (marker-less) bodies stay sanitised Markdown with no quote extraction.
 - W4 must move this line/quote classification into the mirrored grammar, not reimplement it.

@@ -102,7 +102,7 @@ test.describe("Org page — structured proposal view", () => {
     await page.keyboard.press("Tab");
     await expect(c2).toBeFocused();
     await page.keyboard.press("Tab");
-    await expect(dialog.locator(":focus")).toHaveCount(1); // the focus trap keeps focus inside the dialog
+    await expect(page.getByRole("button", { name: "Close" })).toBeFocused(); // the trap wraps back to Close
     // Escape closes the window
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();

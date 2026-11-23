@@ -41,7 +41,7 @@ const ISO = String.raw`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z`;
 const SHORT_RE = new RegExp(String.raw`^([A-Za-z0-9_-]+):(${ISO}):(\d+)$`);
 const LONG_RE = new RegExp(String.raw`^session ([A-Za-z0-9_-]+) at (${ISO}), message (\d+)$`);
 const BEAT_RE = /origin: \S+ beat ([^,\s]+),/;
-const POINTER_ATTEMPT_RE = /^(?:session\b|[A-Za-z0-9_-]+:\S)/;
+const POINTER_ATTEMPT_RE = /^(?:session\b|[A-Za-z0-9_-]{4,}:\S)/;
 const QUOTE_SEP = " — ";
 
 /** `session:time:number` or `session <id> at <time>, message <n>`; anything else is unknown. */

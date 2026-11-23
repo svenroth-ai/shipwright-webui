@@ -45,6 +45,10 @@ describe("buildEntryView", () => {
     expect(v.quotes[0]).toMatchObject({ text: "shipped — after a week — on Friday", inherited: true });
     expect(v.quotes[0].source.kind).toBe("known");
   });
+  it("a short ratio-like suffix is quote text, not a pointer attempt", () => {
+    const v = buildEntryView(block(["Line.", "> target — 2:1"]), null);
+    expect(v.quotes[0].text).toBe("target — 2:1");
+  });
   it("beat is read from the origin clause only", () => {
     const b = block(["Line."]).replace("origin: acme-lead beat beat-0042", "origin: x-lead beat beat-7");
     expect(buildEntryView(b, null).beat).toBe("beat-7");
