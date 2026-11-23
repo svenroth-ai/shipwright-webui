@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n**1. Category: approach \u2014 Severity: medium**\nDuplicating the entry grammar in `orgDecisionsApi.parseProposedDecisions` (rule 7: no cross-package import) means the same format is parsed by two independent implementations that can drift. The mitigation \u2014 a pinned shared fixture in both repos \u2014 is good but is only verified in tests, not enforced. Suggestion: add a test on *both* sides that parses the identical pinned sample file (byte-for-byte, from the fixture path, not a copy-pasted string), and document in the contract doc that the fixture file hash is the compatibility gate. If rule 7 can be relaxed to a shared low-level parser package, that's materially simpler than mirroring the grammar \u2014 but if not, the fixture-hash check is the pragmatic fallback.\n\n**2. Category: edge-case \u2014 Severity: high**\nThe countersign \"exactly once\" guarantee with mixed history: if a daemon-form entry was already countersigned (partially? interrupted?) and retried, does `toLoggedBlock` produce the same output for the pre- and post-signature state? The plan says retry comparison uses `toLoggedBlock`, but the logged-block form for a WebUI-form entry vs a daemon-form entry will differ textually even with the same identity. If idempotent retry works by comparing the *stored* block against a re-rendered one, a format migration or mixed-form history could produce false \"not yet signed\" results \u2192 double countersign. Verify that idempotency is keyed on `decisionKey` (content-independent), not on rendered block text. If it's block-text based, this needs explicit tests for: sign daemon-form entry, retry, and confirm the retry matches the stored form rather than re-rendering from a possibly different header form.\n\n**3. Category: edge-case \u2014 Severity: medium**\nMarker-line attribution: \"marker line belongs to the entry below\" \u2014 what happens when the marker is the *last* line of the file with no entry below, or when two markers are adjacent (entry deleted between them)? These states are reachable through concurrent edits. Decide explicitly: orphaned markers are dropped silently, preserved, or surfaced as a validation error. Same question for a `decisionKey` that doesn't match the entry's identity (stale marker after an edit).\n\n**4. Category: security \u2014 Severity: medium**\n\"Spoofed Lead\" is mentioned in tests but the plan doesn't state the policy. An attacker with repo write access can add `- **Lead:** someone-else` to a daemon entry. Clarify: is the Lead authoritative from the header, from an authenticated session, or cross-checked? If countersigning trusts the parsed Lead for attribution, the contract doc must state who vouches for it. If Lead is display-only, say so in the contract so the other repo doesn't build auth on it.\n\n**5. Category: risk \u2014 Severity: medium**\n\"Marker removal\" during countersign modifies files in place. If the countersign rewrites the entry, CRLF files must be preserved as CRLF (or the diff will be a whole-file rewrite). The plan lists CRLF tests for parsing \u2014 extend that to CRLF *round-trip through countersign*, which is where the corruption actually bites.\n\n**6. Category: dependency \u2014 Severity: low**\nThe cross-repo fixture pin (step 4) has no enforcement mentioned: \"leadwright pins the same file\" is out of this repo's control. Suggestion: record the fixture's SHA-256 in `docs/org-proposed-entry-contract.md` so the other repo's pin can be verified against it, and note the sync procedure (who updates it, in what order) when the format evolves.\n\n**7. Category: edge-case \u2014 Severity: low**\n`decisions-lock.ts` re-exports from the new module \u2014 confirm no existing consumer imports the old symbols by path in a way the re-export breaks (e.g., barrel re-export chains, or tests importing internals). Cheap to verify; keep the re-export until W-series completes and then remove deliberately.\n\n## Overall assessment\n\nThe approach is sound and the test list covers the right ground; the main gaps are the idempotency mechanism under mixed entry forms (potentially a double-countersign bug), the unspecified spoofed-Lead policy, and unenforced cross-repo fixture sync. All addressable within this unit.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "I could review the supplied plan, but local command access was blocked, so I could not inspect the referenced brief or implementation.\n\n1. **Category: approach \u00b7 Severity: high**  \n   **Finding:** The plan defines how to recognize both headers but leaves their shared identity unspecified. Normalizing logged bodies does not establish that a daemon marker, daemon header key, and existing WebUI identity resolve to the same decision. This is central to \u201ccountersigns exactly once.\u201d  \n   **Suggestion:** Specify how each format derives the existing countersign identity, including what happens when the daemon marker and header key disagree. Add a test that countersigns through one format and retries through the other, asserting one logged entry.\n\n2. **Category: risk \u00b7 Severity: medium**  \n   **Finding:** Using `toLoggedBlock` for retry comparisons could discard meaningful differences along with header formatting. A changed proposal could then be treated as an already successful retry.  \n   **Suggestion:** Define exactly which differences normalization ignores. Test that equivalent formats compare equal while changes to decision content still trigger the existing conflict behavior.\n\n3. **Category: edge-case \u00b7 Severity: medium**  \n   **Finding:** \u201cMarker line belongs to the entry below\u201d needs coverage in mixed documents. Single-entry parsing and marker-removal tests may miss attaching a marker to the wrong entry or removing a neighboring proposal\u2019s marker during countersigning.  \n   **Suggestion:** Add a mixed-format document test with adjacent entries. Countersign the middle entry and verify that only its block and marker are removed and the remaining entries retain their identities.\n\n4. **Category: dependency \u00b7 Severity: medium**  \n   **Finding:** Pinning the matching fixture in leadwright is explicitly outside this repository, leaving an acceptance criterion dependent on untracked external work. The duplicated client grammar also needs to be checked against that actual sample.  \n   **Suggestion:** Identify the companion leadwright change and pin the same fixture bytes in both repositories. Run the WebUI server and client parsers against the fixture, and document its provenance and coordinated update procedure.\n\nThe dual-format parser and reuse of the existing countersign flow are reasonable and appropriately scoped. Shared identity, normalization boundaries, and the companion fixture change need to be made explicit before implementation proceeds.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-23-w1-entry-format",
+    "at": "2026-11-23T16:45:25.428502+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

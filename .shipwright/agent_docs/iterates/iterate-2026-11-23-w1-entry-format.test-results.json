@@ -1,0 +1,107 @@
+{
+  "last_updated": "2026-11-23",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-23-w1-entry-format",
+    "date": "2026-11-23",
+    "unit": {
+      "status": "passed",
+      "passed": 10489,
+      "skipped": 16,
+      "total": 10505
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0,
+      "total": 3
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 8,
+        "tested": 8,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      },
+      "behaviors": [
+        {
+          "behavior": "WebUI-header entry is listed as before",
+          "disposition": "tested",
+          "evidence": "proposed-entry-format.test.ts 'lists a WebUI-header entry as before' + existing decisions-lock/countersign suites PASSED"
+        },
+        {
+          "behavior": "daemon-header entry listed with the same fields (client + server, against the pinned sample)",
+          "disposition": "tested",
+          "evidence": "proposed-entry-format.test.ts + orgDecisionsApi.daemon-header.test.ts PASSED"
+        },
+        {
+          "behavior": "either form countersigns exactly once and a retry is already_countersigned",
+          "disposition": "tested",
+          "evidence": "proposed-entry-format.test.ts 'countersign - both forms move exactly once' PASSED",
+          "category": "integration"
+        },
+        {
+          "behavior": "pinned sample is documented as a cross-repo contract with a hash gate",
+          "disposition": "tested",
+          "evidence": "proposed-entry-format.test.ts 'pinned sample hash matches the contract doc' PASSED"
+        },
+        {
+          "behavior": "quote/evidence injection (forged header, forged Lead, ADR-shaped header) cannot forge identity or phantom entries",
+          "disposition": "tested",
+          "evidence": "proposed-entry-format.test.ts + client daemon-header test adversarial cases PASSED"
+        },
+        {
+          "behavior": "marker line travels with its entry; neighbour untouched in mixed documents",
+          "disposition": "tested",
+          "evidence": "proposed-entry-format.test.ts mixed document + marker cases PASSED"
+        },
+        {
+          "behavior": "crash-residue retry heals without a second ADR number (incl. trailing whitespace)",
+          "disposition": "tested",
+          "evidence": "proposed-entry-format.test.ts crash residue cases PASSED"
+        },
+        {
+          "behavior": "Lead-less / unclosed-fence daemon entries are not listed and never removed by a neighbour countersign",
+          "disposition": "tested",
+          "evidence": "proposed-entry-format.test.ts Lead-less + unclosed fence cases PASSED"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 3,
+      "exit_code": 0,
+      "justification": "Driven in a real Chromium via the isolated stack: a daemon-form proposal is listed in the Org proposals window and Countersign moves it into decision_log.md exactly once on disk (org-page.decisions-proposed-daemon.spec.ts + the existing WebUI-form spec, 3 passed)."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

@@ -5,23 +5,23 @@
  * `orgRegisterApi.ts` — separate from `orgApi.ts`, whose line count is
  * additionally bound by `org-schema-sync.test.ts`'s hardcoded `CLIENT_PATH`.
  *
- * `parseProposedDecisions` mirrors `server/src/external/org/decisions-lock.ts`'s
- * `PROPOSED_HEADER_RE` / `parseProposedEntries` header format — CLAUDE.md
- * rule 7 forbids importing that module directly (cross-package import), so
- * this is a deliberate, documented mirror of the SAME opaque, header-
- * delimited contract that route already parses (`## [<ISO-8601 timestamp>]
- * <lead-id>`, body opaque up to the next header or EOF), not a
- * reinterpretation of it. `decisions-lock.ts` treats the body as fully
- * opaque; this mirror additionally scrapes a labelled `- **Evidence:**`
- * line for display ONLY (best-effort — a body without one still renders,
- * just without an evidence line), never for anything the countersign call
- * itself depends on (that only ever needs `timestamp` + `leadId`, taken
- * from the header).
+ * `parseProposedDecisions` is a deliberate, documented mirror (CLAUDE.md rule
+ * 7 forbids importing server code) of `server/src/external/org/
+ * proposed-entry-format.ts`: BOTH entry header forms (`## [<ts>] <lead>` and
+ * the leadwright daemon's `## Proposed <ts> — <key>` + decisionKey marker),
+ * identity `(timestamp, leadId)`, quote-injection rules. Contract:
+ * `docs/org-proposed-entry-contract.md`; drift guard:
+ * `orgDecisionsApi.daemon-header.test.ts` (same pinned sample + regex sync).
+ * This mirror additionally scrapes the `- **Evidence:**` bullet for display
+ * ONLY; countersign needs just `timestamp` + `leadId`.
  */
 import { ApiError } from "./externalApi";
 import { ORG_API, fetchOrgFileText } from "./orgApi";
 
-const PROPOSED_HEADER_RE = /^## \[([^\]]+)\] (.+?)\r?$/;
+import {
+  WEBUI_HEADER_RE, DAEMON_HEADER_RE, DAEMON_MARKER_RE, LEAD_ID_RE, LEAD_BULLET_RE, EVIDENCE_BULLET_RE, ISO_TIMESTAMP_RE,
+  isBlank, stripBom, scanFences, structuralInside, daemonTail, isCanonicalDaemonBlock, firstBullet,
+} from "./orgProposedGrammar";
 
 export interface ProposedDecisionEntry {
   timestamp: string;
@@ -39,40 +39,74 @@ export interface ProposedDecisionEntry {
   evidence: string | null;
 }
 
-const EVIDENCE_LINE_RE = /^-\s*\*\*Evidence:\*\*\s*(.+?)\r?$/m;
+const EVIDENCE_LINE_RE = /^-[ \t]*\*\*Evidence:\*\*([^\r\n]*)\r?$/m;
 
-function extractEvidence(block: string): string | null {
+function extractEvidence(block: string, daemonForm: boolean): string | null {
+  if (daemonForm) {
+    // Only the bullet AFTER the closing fence counts - never one in the quote.
+    return firstBullet(daemonTail(block.split("\n")), EVIDENCE_BULLET_RE) || null; // empty value = no Evidence label
+  }
   const m = EVIDENCE_LINE_RE.exec(block);
-  return m ? m[1].trim() : null;
+  return m ? m[1].trim() || null : null;
 }
 
 /** Parses `decisions-proposed.md`'s raw text into its header-delimited
  *  entries, in file order. An empty/whitespace-only file yields `[]` — the
  *  panel's "no decisions waiting" state, never a parse error. */
 export function parseProposedDecisions(raw: string): ProposedDecisionEntry[] {
-  const lines = raw.split("\n");
-  const headerLineIdx: number[] = [];
-  const matches: RegExpMatchArray[] = [];
+  const lines = stripBom(raw).split("\n");
+  const { fenced, ambiguousOwners, poisonFrom } = scanFences(lines, "proposed");
+  interface Head { startLine: number; headerLine: number; timestamp: string; leadFromHeader: string | null; markerOwned: boolean; barrier: boolean }
+  const heads: Head[] = [];
   lines.forEach((line, idx) => {
-    const m = PROPOSED_HEADER_RE.exec(line);
-    if (m) {
-      headerLineIdx.push(idx);
-      matches.push(m);
-    }
+    if (fenced.has(idx) || idx >= poisonFrom) return; // ambiguous region: nothing inside or after is trusted
+    const w = WEBUI_HEADER_RE.exec(line);
+    const d = w ? null : DAEMON_HEADER_RE.exec(line);
+    if (!w && !d) return;
+    let m = idx - 1;
+    while (m >= 0 && isBlank(lines[m])) m--;
+    const markerOwned = m >= 0 && !fenced.has(m) && DAEMON_MARKER_RE.test(lines[m]);
+    heads.push({
+      startLine: markerOwned ? m : idx,
+      headerLine: idx,
+      timestamp: (w ?? d)![1],
+      leadFromHeader: w ? w[2] : null,
+      markerOwned,
+      barrier: ambiguousOwners.has(idx),
+    });
   });
 
-  return headerLineIdx.map((lineIdx, i) => {
-    const nextIdx = headerLineIdx[i + 1] ?? lines.length;
-    const block = lines.slice(lineIdx, nextIdx).join("\n");
-    const body = lines.slice(lineIdx + 1, nextIdx).join("\n");
-    return {
-      timestamp: matches[i][1],
-      leadId: matches[i][2],
+  const out: ProposedDecisionEntry[] = [];
+  // Mirror of the server: a marker-less WebUI header after a marker-owned entry that
+  // did not list is part of that damage and stays unlisted.
+  let tainted = false;
+  heads.forEach((h, i) => {
+    const endLine = heads[i + 1]?.startLine ?? lines.length;
+    const blockLines = lines.slice(h.startLine, endLine);
+    const block = blockLines.join("\n");
+    const owned = h.markerOwned || h.leadFromHeader === null;
+    if (h.barrier) { tainted = true; return; } // ambiguous owner: never listed
+    let leadId: string | null;
+    if (owned) {
+      // exact renderEntry shape only, ISO timestamp, a countersignable lead id
+      tainted = true; // reset below once this entry is listed
+      if (!isCanonicalDaemonBlock(blockLines) || !ISO_TIMESTAMP_RE.test(h.timestamp)) return;
+      leadId = h.leadFromHeader ?? firstBullet(daemonTail(blockLines), LEAD_BULLET_RE);
+      if (leadId === null || !LEAD_ID_RE.test(leadId)) return;
+      tainted = false;
+    } else {
+      if (tainted || structuralInside(blockLines, 1, blockLines.length)) return;
+      leadId = h.leadFromHeader;
+    }
+    out.push({
+      timestamp: h.timestamp,
+      leadId: leadId as string,
       block,
-      body,
-      evidence: extractEvidence(block),
-    };
+      body: lines.slice(h.headerLine + 1, endLine).join("\n"),
+      evidence: extractEvidence(block, owned),
+    });
   });
+  return out;
 }
 
 /** `GET /api/org/file?path=decisions-proposed.md`, parsed. Same 404-on-

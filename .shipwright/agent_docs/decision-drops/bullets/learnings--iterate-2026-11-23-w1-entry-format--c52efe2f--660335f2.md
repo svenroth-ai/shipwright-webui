@@ -1,0 +1,1 @@
+- (2026-11-23) iterate — a parser for lead/agent-written markdown must treat quoted text AND free-text pointers as hostile: ignore headers inside the fence and anchor identity to layout, not to 'last match'. [→ iterate-2026-11-23-w1-entry-format]

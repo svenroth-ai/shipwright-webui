@@ -1,0 +1,1 @@
+fix(org): proposals the leadwright daemon writes (header '## Proposed <time> - <key>' plus its decisionKey marker) are now listed and can be countersigned, in addition to the existing '## [<time>] <lead>' form; the pinned daemon sample is documented as a cross-repo contract

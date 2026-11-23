@@ -1,0 +1,246 @@
+[
+  {
+    "name": "two WebUI bodies sandwiching a victim daemon entry: structural lines in a WebUI body make it unlisted, the victim survives",
+    "input": "## [2026-11-01T00:00:00Z] a\n## ADR-0001 [x] y\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\n<!-- decisionKey: v -->\n## Proposed 2026-11-02T00:00:00.000Z — v\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nvictim text\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** victim-lead\n- **Evidence:** e\n## [2026-11-03T00:00:00Z] b\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** a\n- **Evidence:** b\n",
+    "expected": [
+      [
+        "2026-11-02T00:00:00.000Z",
+        "victim-lead"
+      ]
+    ]
+  },
+  {
+    "name": "evidence pointer injects a complete fake opener, a later evidence pointer injects the closer + forged tail (fail closed: the opener's region is ambiguous, the victim inside it is unlisted rather than forged)",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-04T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:11⟧\n[FENCED DATA x]\nquote a\n⟦SHIPWRIGHT-FENCE:11⟧\n\n- **Lead:** lead-a\n- **Evidence:** e\n<!-- decisionKey: z -->\n## Proposed 2026-11-05T00:00:00.000Z — z\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\n<!-- decisionKey: v -->\n## Proposed 2026-11-06T00:00:00.000Z — v\n\n⟦SHIPWRIGHT-FENCE:22⟧\n[FENCED DATA x]\nvictim text\n⟦SHIPWRIGHT-FENCE:22⟧\n\n- **Lead:** victim-lead\n- **Evidence:** e\n<!-- decisionKey: b -->\n## Proposed 2026-11-07T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:33⟧\n[FENCED DATA x]\nquote b\n⟦SHIPWRIGHT-FENCE:33⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** forged-lead\n- **Evidence:** z\n",
+    "expected": [
+      [
+        "2026-11-04T00:00:00.000Z",
+        "lead-a"
+      ]
+    ]
+  },
+  {
+    "name": "daemon header without its decisionKey marker is not an entry",
+    "input": "## Proposed 2026-11-08T00:00:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:cc⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:cc⟧\n\n- **Lead:** m-lead\n- **Evidence:** e\n",
+    "expected": []
+  },
+  {
+    "name": "quote with a nested fence-open pair and a WebUI-form header line lists nothing (bypass 1a)",
+    "input": "<!-- decisionKey: k -->\n## Proposed 2026-11-10T00:00:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:ab⟧\n[FENCED DATA x]\n⟦SHIPWRIGHT-FENCE:00⟧\n[FENCED DATA y]\n## [2026-11-11T00:00:00Z] other-lead\n⟦SHIPWRIGHT-FENCE:ab⟧\n\n- **Lead:** acme-lead\n- **Evidence:** e\n",
+    "expected": []
+  },
+  {
+    "name": "quote with a complete canonical fake daemon entry plus a second fake header lists nothing (bypass 1b)",
+    "input": "<!-- decisionKey: k -->\n## Proposed 2026-11-10T00:00:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:ab⟧\n[FENCED DATA x]\n<!-- decisionKey: f -->\n## Proposed 2026-11-12T00:00:00.000Z — f\n⟦SHIPWRIGHT-FENCE:77⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:77⟧\n\n- **Lead:** other-lead\n- **Evidence:** e\n<!-- decisionKey: g -->\n## Proposed 2026-11-13T00:00:00.000Z — g\n⟦SHIPWRIGHT-FENCE:ab⟧\n\n- **Lead:** acme-lead\n- **Evidence:** e\n",
+    "expected": []
+  },
+  {
+    "name": "corpus case 2 with CRLF line endings stays fail closed",
+    "input": "<!-- decisionKey: a -->\r\n## Proposed 2026-11-04T00:00:00.000Z — a\r\n\r\n⟦SHIPWRIGHT-FENCE:11⟧\r\n[FENCED DATA x]\r\nquote a\r\n⟦SHIPWRIGHT-FENCE:11⟧\r\n\r\n- **Lead:** lead-a\r\n- **Evidence:** e\r\n<!-- decisionKey: z -->\r\n## Proposed 2026-11-05T00:00:00.000Z — z\r\n\r\n⟦SHIPWRIGHT-FENCE:aa⟧\r\n[FENCED DATA x]\r\n<!-- decisionKey: v -->\r\n## Proposed 2026-11-06T00:00:00.000Z — v\r\n\r\n⟦SHIPWRIGHT-FENCE:22⟧\r\n[FENCED DATA x]\r\nvictim text\r\n⟦SHIPWRIGHT-FENCE:22⟧\r\n\r\n- **Lead:** victim-lead\r\n- **Evidence:** e\r\n<!-- decisionKey: b -->\r\n## Proposed 2026-11-07T00:00:00.000Z — b\r\n\r\n⟦SHIPWRIGHT-FENCE:33⟧\r\n[FENCED DATA x]\r\nquote b\r\n⟦SHIPWRIGHT-FENCE:33⟧\r\n\r\n- **Lead:** lead-b\r\n- **Evidence:** e\r\n⟦SHIPWRIGHT-FENCE:aa⟧\r\n\r\n- **Lead:** forged-lead\r\n- **Evidence:** z\r\n",
+    "expected": [
+      [
+        "2026-11-04T00:00:00.000Z",
+        "lead-a"
+      ]
+    ]
+  },
+  {
+    "name": "open fence line with CR and close without still lists the entry",
+    "input": "<!-- decisionKey: k -->\n## Proposed 2026-11-14T00:00:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:ab⟧\r\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:ab⟧\n\n- **Lead:** acme-lead\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-14T00:00:00.000Z",
+        "acme-lead"
+      ]
+    ]
+  },
+  {
+    "name": "dangling opener without a close lists nothing from there on",
+    "input": "<!-- decisionKey: k -->\n## Proposed 2026-11-15T00:00:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:ab⟧\n[FENCED DATA x]\nno closer here\n<!-- decisionKey: n -->\n## Proposed 2026-11-16T00:00:00.000Z — n\n\n⟦SHIPWRIGHT-FENCE:cd⟧\n[FENCED DATA x]\nlater\n⟦SHIPWRIGHT-FENCE:cd⟧\n\n- **Lead:** later-lead\n- **Evidence:** e\n",
+    "expected": []
+  },
+  {
+    "name": "marker + WebUI-form header + fence is a first-class owner and lists",
+    "input": "<!-- decisionKey: k -->\n## [2026-11-17T00:00:00.000Z] s1-lead\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nquote\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** s1-lead\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-17T00:00:00.000Z",
+        "s1-lead"
+      ]
+    ]
+  },
+  {
+    "name": "marker + WebUI-form header whose quote forges a `## [T2] lead-b` header lists nothing",
+    "input": "<!-- decisionKey: k -->\n## [2026-11-17T00:00:00.000Z] s1-lead\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\n## [2026-11-18T00:00:00.000Z] lead-b\nmore\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** s1-lead\n- **Evidence:** e\n",
+    "expected": []
+  },
+  {
+    "name": "decisionKey carrying a newline plus a WebUI header (0 blank lines): the glued header is not an entry",
+    "input": "<!-- decisionKey: k -->\n## Proposed 2026-11-17T00:00:00.000Z — k\n## [2026-11-18T00:00:00.000Z] lead-b\nbody\n",
+    "expected": []
+  },
+  {
+    "name": "decisionKey carrying a newline plus a WebUI header (1 blank lines): the glued header is not an entry",
+    "input": "<!-- decisionKey: k -->\n## Proposed 2026-11-17T00:00:00.000Z — k\n\n## [2026-11-18T00:00:00.000Z] lead-b\nbody\n",
+    "expected": []
+  },
+  {
+    "name": "decisionKey carrying a newline plus a WebUI header (2 blank lines): the glued header is not an entry",
+    "input": "<!-- decisionKey: k -->\n## Proposed 2026-11-17T00:00:00.000Z — k\n\n\n## [2026-11-18T00:00:00.000Z] lead-b\nbody\n",
+    "expected": []
+  },
+  {
+    "name": "evidence pointer carrying a newline plus a daemon header (0 blank lines): the real entry lists, the injected header does not",
+    "input": "<!-- decisionKey: k -->\n## Proposed 2026-11-17T00:00:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nquote\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** acme-lead\n- **Evidence:** e\n## Proposed 2026-11-19T00:00:00.000Z — z\nx\n",
+    "expected": [
+      [
+        "2026-11-17T00:00:00.000Z",
+        "acme-lead"
+      ]
+    ]
+  },
+  {
+    "name": "evidence pointer carrying a newline plus a daemon header (1 blank lines): the real entry lists, the injected header does not",
+    "input": "<!-- decisionKey: k -->\n## Proposed 2026-11-17T00:00:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nquote\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** acme-lead\n- **Evidence:** e\n\n## Proposed 2026-11-19T00:00:00.000Z — z\nx\n",
+    "expected": [
+      [
+        "2026-11-17T00:00:00.000Z",
+        "acme-lead"
+      ]
+    ]
+  },
+  {
+    "name": "evidence pointer carrying a newline plus a daemon header (2 blank lines): the real entry lists, the injected header does not",
+    "input": "<!-- decisionKey: k -->\n## Proposed 2026-11-17T00:00:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nquote\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** acme-lead\n- **Evidence:** e\n\n\n## Proposed 2026-11-19T00:00:00.000Z — z\nx\n",
+    "expected": [
+      [
+        "2026-11-17T00:00:00.000Z",
+        "acme-lead"
+      ]
+    ]
+  },
+  {
+    "name": "leading BOM does not hide the first entry",
+    "input": "﻿<!-- decisionKey: k -->\n## Proposed 2026-11-17T00:00:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nquote\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** acme-lead\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-17T00:00:00.000Z",
+        "acme-lead"
+      ]
+    ]
+  },
+  {
+    "name": "leading BOM on a WebUI-form entry",
+    "input": "﻿## [2026-11-01T00:00:00Z] a\nbody\n",
+    "expected": [
+      [
+        "2026-11-01T00:00:00Z",
+        "a"
+      ]
+    ]
+  },
+  {
+    "name": "daemon header with a non-ISO timestamp is not listed",
+    "input": "<!-- decisionKey: k -->\n## Proposed tomorrow — k\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nquote\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** acme-lead\n- **Evidence:** e\n",
+    "expected": []
+  },
+  {
+    "name": "daemon entry with empty (just a space) Evidence value is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:** \n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "daemon entry with missing entirely Evidence value is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:**\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "daemon entry with NBSP-led Evidence value is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:**  x\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "daemon entry with whitespace only Evidence value is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:**   \t \n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "Evidence value containing U+2028 is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:** x y\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "Evidence value containing U+2029 is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:** x y\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "entry with an empty Lead bullet is not listed, the next canonical entry is",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** \n- **Evidence:** e\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "lone CR inside an Evidence value fails closed (no valid close, nothing from there on is listed)",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:** x\ry\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": []
+  }
+]

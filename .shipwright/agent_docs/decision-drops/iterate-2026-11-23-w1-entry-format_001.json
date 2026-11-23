@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-23-w1-entry-format",
+  "date": "2026-11-23",
+  "section": "Iterate - change: accept both proposal header forms (W1)",
+  "title": "decisions-proposed.md accepts the daemon header form",
+  "context": "The leadwright daemon writes '## Proposed <ts> - <key>' with a decisionKey marker and the lead only in a Lead bullet; the WebUI only read '## [<ts>] <lead>', so no real daemon proposal was listed or countersignable.",
+  "decision": "Parser (server proposed-entry-format.ts + client mirror) accepts both forms; identity stays (timestamp, leadId), lead for daemon form = first Lead bullet after the closing fence; marker travels with its entry; pinned fixture + docs/org-proposed-entry-contract.md.",
+  "consequences": "Old entries behave unchanged; countersign moves daemon entries once (marker kept as first log body line). Two parsers (server, client) must stay in step with the pinned sample.",
+  "rationale": "Operator decision 2026-11-23: WebUI tolerant first, leadwright changes header later; smallest change, no new standing mechanism.",
+  "rejected": "Daemon-only change (leaves existing daemon entries unreadable); shared parser package (rule 7 forbids cross-package imports).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

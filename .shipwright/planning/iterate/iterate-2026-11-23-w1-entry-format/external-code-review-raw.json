@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: high\n- File: server/src/external/org/proposed-entry-format.ts:172\n- Finding: Countersigning preserves quoted daemon text verbatim in the log, but `parseLoggedEntries` still treats every matching ADR header as a real entry, including headers inside the quote fence. A proposal quoting `## ADR-9999 [2026-11-20T09:15:00Z] someone` therefore creates a phantom logged entry, inflates subsequent numbering, and can break crash recovery because the real logged block is truncated.\n- Suggestion: Make logged-entry parsing ignore headers inside paired quote fences too. Test countersigning and crash recovery with an ADR-shaped header inside the daemon quote.\n\n- Category: test\n- Severity: low\n- File: server/src/external/org/__tests__/proposed-entry-format.test.ts:65\n- Finding: The blank-line tolerance test does not modify the fixture: `\"-status\\n## Proposed\"` never occurs because the marker ends with `\"-status -->\\n## Proposed\"`. The client test has the same mistake, so both pass without exercising the claimed behavior.\n- Suggestion: Replace the actual marker/header boundary and assert that the modified input contains the added blank line before parsing.\n\nOverall assessment: ship-with-fixes. The supplied diff covers both header forms, but logged parsing needs matching fence handling; workspace access was blocked, so I could not read the referenced brief or run tests.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n- Category: bug\n  Severity: medium\n  File: server/src/external/org/proposed-entry-format.ts:135\u2013140 (comment) vs parse logic\n  Finding: The comment claims a leadless daemon entry's text \"is still part of the byte range \u2026 so countersigning another entry never moves or removes it.\" That is false: the skipped head still participates as a block delimiter \u2014 the previous listed entry's `endIndex` is the *next head's* `startIndex` (not the next *listed* head's), so the leadless entry's entire text sits inside the previous entry's `block` and is spliced out when that entry is countersigned. Silent deletion of daemon data, contradicting both the inline invariant and the contract doc's framing.\n  Suggestion: Either change the delimiter so a leadless head terminates the previous entry's block (leaving its text in place), or fix the comment and document the deletion behavior in the contract doc. Pick one and test it.\n\n- Category: edge-case\n  Severity: medium\n  File: server/src/external/org/proposed-entry-format.ts:47\u201363 (`daemonTail`) and client/src/lib/orgDecisionsApi.ts (`daemonTail`)\n  Finding: If a daemon entry's fence is unclosed (truncated quote, partial write under the lock), `daemonTail` returns the *whole block*, so a forged `- **Lead:** evil-lead` bullet inside the quote wins the identity lookup \u2014 exactly the injection the module header claims is defended. The fenced-set used for header detection also leaves such lines unfenced, so a forged header inside an unclosed quote would split the entry too.\n  Suggestion: Decide and test a policy for unclosed fences (e.g., treat the whole rest of the entry as quoted / reject the entry), rather than silently falling back to the insecure path.\n\n- Category: spec\n  Severity: medium\n  File: docs/org-proposed-entry-contract.md (\"Pinned sample\" section)\n  Finding: The acceptance criterion says the sample is \"pinned as a fixture in both repositories,\" but this diff only pins it in the WebUI repo. The leadwright copy (and the hash-equality test against it) is described as a future obligation (\"must be pinned in leadwright \u2026 unit S1-E\"); nothing in this change verifies it. The WebUI-side hash test only checks the fixture against this repo's own doc, so the cross-repo gate is not actually enforced yet.\n  Suggestion: If S1-E is genuinely a separate unit in the leadwright repo, note the AC as partially met; otherwise add the second pinned copy / cross-check now.\n\n- Category: bug\n  Severity: low\n  File: client/src/lib/orgDecisionsApi.daemon-header.test.ts:9\u201314\n  Finding: The client test reads the fixture via a relative path out of `client/` into `server/`. If the two packages are ever built/tested in isolation (client-only CI checkout, published client package), this test fails at file-read time, not assertion time \u2014 a brittle coupling that the \"no cross-package import\" rule elsewhere in the codebase argues against.\n  Suggestion: Copy the fixture into `client/\u2026/__tests__/fixtures/` and assert its SHA-256 equals the contract doc's hash, mirroring the server-side gate instead of reaching across directories.\n\n- Category: test\n  Severity: low\n  File: server/src/external/org/__tests__/proposed-entry-format.test.ts:112\u2013118 (\"crash between log-write and removal\")\n  Finding: The \"crash residue\" test doesn't actually simulate the crash state it names: it rewrites the whole sample file (both entries) after a successful countersign, which is indistinguishable from a fresh duplicate of entry 2 as well. It does validate the retry identity for entry 1, but the residue-vs-duplicate discrimination (`bodyAfterHeader` comparison) is only exercised on the matching-text path via `performCountersign`; the `toLoggedBlock`-normalized comparison for a *daemon-form* residue where the logged block and re-proposed block differ only in trailing whitespace is untested.\n  Suggestion: Add a case where the residual proposed block has a trailing blank line / CRLF so the `trimEnd()` normalization is what makes the match succeed \u2014 otherwise that fix in countersign-core.ts is untested.\n\n- Category: edge-case\n  Severity: low\n  File: server/src/external/org/proposed-entry-format.ts:143\u2013169 (`headerOf`)\n  Finding: `headerOf` re-derives the marker/lead independently of `parseProposedEntries` and uses slightly different rules (no `fenced` check on the marker line; blank-tolerance re-implemented). For blocks coming from `parseProposedEntries` these agree today, but `toLoggedBlock` is also called from the countersign duplicate-identity path on `stillProposed.block` \u2014 any future divergence between the two derivations turns a crash-residue retry into a spurious `duplicate_identity` (or vice versa). Worth a shared helper or a cross-check test.\n  Suggestion: Have `parseProposedEntries` carry the parsed header (marker, lead) on the entry so `toLoggedBlock` doesn't re-parse.\n\nPositive notes: the injection tests (forged header/lead inside quote and evidence pointer) are behavioral and would fail against the naive implementation; CRLF, orphan-marker, and mixed-document countersign cases are covered; the hash-gate test tying fixture to contract doc is a good compatibility gate; the `trimEnd()` fix in countersign-core.ts correctly handles the previously-brittle body comparison.\n\nOverall: the core grammar, countersign-once semantics, and injection defence are sound and well-tested, but the leadless-entry deletion contradicts its own stated invariant, the unclosed-fence path undermines the injection guarantee, and the cross-repo half of the \"both repositories\" AC is not present. Ship-with-fixes.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-23-w1-entry-format",
+    "at": "2026-11-23T16:56:42.837776+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}
