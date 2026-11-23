@@ -39,7 +39,7 @@ export interface ProposedDecisionEntry {
   evidence: string | null;
 }
 
-const EVIDENCE_LINE_RE = /^-\s*\*\*Evidence:\*\*\s*(.+?)\r?$/m;
+const EVIDENCE_LINE_RE = /^-[ \t]*\*\*Evidence:\*\*[ \t]*(.+?)\r?$/m;
 
 function extractEvidence(block: string, daemonForm: boolean): string | null {
   if (daemonForm) {

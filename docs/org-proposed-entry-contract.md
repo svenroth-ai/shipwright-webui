@@ -76,9 +76,9 @@ which the shared adversarial corpus holds in step.
   `decision_log.md`, so the daemon would accept the same key again unless it
   also scans the log or the WebUI leaves a tombstone. Not changed in W1.
 - **A fence opens only where the daemon puts it, and only for the right
-  file:** in `decisions-proposed.md` only a `## Proposed` header with its
-  decisionKey marker above it can own a fence (a `## ADR-` line in a WebUI-form
-  body opens nothing); in `decision_log.md` only `## ADR-` headers can. The
+  file:** in `decisions-proposed.md` only a `## Proposed` header OR a `## [<ts>] <lead>`
+  header with its decisionKey marker above it can own a fence (a `## ADR-` line
+  in a marker-less WebUI-form body opens nothing); in `decision_log.md` only `## ADR-` headers can. The
   fence is the first line after the owner header (marker and blank lines
   skipped): a `⟦SHIPWRIGHT-FENCE:<nonce>⟧` line followed by the `[FENCED DATA`
   label, closing at the next identical line that is followed by the blank /
@@ -92,7 +92,10 @@ which the shared adversarial corpus holds in step.
   (hence countersignable) forged entry; the price is that the lead's own entry,
   and after a dangling opener the following entries, go unlisted until the file
   is repaired. A marker-less WebUI-form body is checked the same way: any fence
-  line, marker, `## Proposed` or `## ADR-` line in it makes it unlisted. `isCanonicalDaemonBlock` applies the same rule. In
+  line, marker, `## Proposed` or `## ADR-` line in it makes it unlisted.
+  Honest scope: a plain WebUI-form body has no fence and therefore no
+  injection protection; only fenced quotes (marker-owned entries) are
+  protected. Lead is identity, not authentication. `isCanonicalDaemonBlock` applies the same rule. In
   `decision_log.md` (single writer: the countersign) a fence opens only when the
   `## ADR-` header is directly followed by a decisionKey marker (the only shape
   countersign writes), a valid region is always masked but never crosses another
@@ -120,6 +123,15 @@ which the shared adversarial corpus holds in step.
   one), non-ISO daemon timestamps, structural lines in a WebUI body, and
   WebUI-form headers directly after an unlisted marker-owned entry. A skipped
   signal is a follow-up.
+- **Upstream requirement (leadwright):** the per-entry fence nonce must be
+  random, generated AFTER the quote is known, and the quote must not contain it.
+  The reader's close rule (first identical fence line followed by the
+  Lead/Evidence tail) relies on that; a guessable or reused nonce lets a quote
+  close its own fence early.
+- **Accepted / open:** an evidence pointer carrying `\n## [<ts>] <lead>` after a
+  LISTED marker-owned entry can still list a marker-less WebUI header (the
+  reader does not taint headers after a listed entry, because legitimate mixed
+  files would lose entries). Leadwright's CR/LF rejection is the blocking fix.
 - **Tracked leadwright follow-up (before real shadow use):** dedup/tombstone -
   the daemon dedups only against markers in `decisions-proposed.md`, so it
   accepts a countersigned decisionKey again (the marker moves to the log).

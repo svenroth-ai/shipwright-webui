@@ -19,7 +19,7 @@
 
 export const WEBUI_HEADER_RE = /^## \[([^\]]+)\] (.+?)\r?$/;
 export const DAEMON_HEADER_RE = /^## Proposed (\S+) — (.+?)\r?$/;
-export const DAEMON_MARKER_RE = /^<!--\s*decisionKey:\s*.*?\s*-->\r?$/;
+export const DAEMON_MARKER_RE = /^<!--[ \t]*decisionKey:.*-->\r?$/; // linear: no adjacent overlapping quantifiers
 export const FENCE_LINE_RE = /^⟦SHIPWRIGHT-FENCE:[0-9a-f]+⟧\r?$/;
 export const LEAD_ID_RE = /^[a-z0-9][a-z0-9-]*$/; // same rule as the countersign route
 export const LEAD_BULLET_RE = /^-[ \t]*\*\*Lead:\*\*[ \t]*(.+?)\r?$/;
@@ -111,8 +111,8 @@ export function scanFences(lines: string[], kind: FenceFileKind): FenceScan {
   while (i < lines.length) {
     // proposed: owner = header with its decisionKey marker above; logged: owner = ADR header
     // directly followed by a marker (the only shape countersign writes for a daemon entry)
-    const owns = kind === "proposed" ? markerAbove(lines, i) : DAEMON_MARKER_RE.test(lines[i + 1] ?? "");
-    if (OWNER_RE[kind].test(lines[i]) && owns) {
+    // (owner shape first: the marker lookup only runs for owner-shaped lines)
+    if (OWNER_RE[kind].test(lines[i]) && (kind === "proposed" ? markerAbove(lines, i) : DAEMON_MARKER_RE.test(lines[i + 1] ?? ""))) {
       let j = i + 1;
       while (j < lines.length && (isBlank(lines[j]) || DAEMON_MARKER_RE.test(lines[j]))) j++;
       if (j + 1 < lines.length && FENCE_LINE_RE.test(lines[j]) && lines[j + 1].startsWith(FENCE_LABEL_PREFIX)) {
