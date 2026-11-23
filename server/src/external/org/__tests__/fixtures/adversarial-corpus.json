@@ -143,5 +143,61 @@
     "name": "daemon header with a non-ISO timestamp is not listed",
     "input": "<!-- decisionKey: k -->\n## Proposed tomorrow — k\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nquote\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** acme-lead\n- **Evidence:** e\n",
     "expected": []
+  },
+  {
+    "name": "daemon entry with empty (just a space) Evidence value is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:** \n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "daemon entry with missing entirely Evidence value is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:**\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "daemon entry with NBSP-led Evidence value is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:**  x\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "daemon entry with whitespace only Evidence value is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:**   \t \n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
   }
 ]

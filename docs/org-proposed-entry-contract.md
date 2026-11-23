@@ -133,6 +133,7 @@ which the shared adversarial corpus holds in step.
   LISTED marker-owned entry can still list a marker-less WebUI header (the
   reader does not taint headers after a listed entry, because legitimate mixed
   files would lose entries). Leadwright's CR/LF rejection is the blocking fix.
+- **Leadwright dedup marker regex:** it is currently looser (`/<!--\s*decisionKey:\s*(.*?)\s*-->/g`, unanchored). It must be anchored per line and use `[ \t]` (plain space/tab) like the reader, so both sides agree on what a marker is.
 - **Tracked leadwright follow-up (before real shadow use):** dedup/tombstone -
   the daemon dedups only against markers in `decisions-proposed.md`, so it
   accepts a countersigned decisionKey again (the marker moves to the log).

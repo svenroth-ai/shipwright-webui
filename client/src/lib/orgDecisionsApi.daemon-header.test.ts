@@ -118,6 +118,7 @@ describe("parseProposedDecisions - both header forms (W1)", () => {
       "- **Lead:**" + " ".repeat(50000) + "\n- **Evidence:**" + " ".repeat(50000) + "\n",
       fenced + "- **Lead:**" + " ".repeat(50000) + "\u2028\n- **Evidence:** e\n",
       fenced + "- **Lead:** a\n- **Evidence:**" + " ".repeat(50000) + "\rx\n",
+      "## [2026-11-18T00:00:00.000Z] a\n- **Evidence:**" + " ".repeat(50000) + "\u2028x\n",
     ];
     const t0 = Date.now();
     for (const raw of inputs) parseProposedDecisions(raw);
