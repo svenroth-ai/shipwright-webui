@@ -199,5 +199,48 @@
         "lead-b"
       ]
     ]
+  },
+  {
+    "name": "Evidence value containing U+2028 is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:** x y\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "Evidence value containing U+2029 is listed and does not poison the next entry",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:** x y\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-20T00:00:00.000Z",
+        "lead-a"
+      ],
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "entry with an empty Lead bullet is not listed, the next canonical entry is",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** \n- **Evidence:** e\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": [
+      [
+        "2026-11-21T00:00:00.000Z",
+        "lead-b"
+      ]
+    ]
+  },
+  {
+    "name": "lone CR inside an Evidence value fails closed (no valid close, nothing from there on is listed)",
+    "input": "<!-- decisionKey: a -->\n## Proposed 2026-11-20T00:00:00.000Z — a\n\n⟦SHIPWRIGHT-FENCE:aa⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:aa⟧\n\n- **Lead:** lead-a\n- **Evidence:** x\ry\n<!-- decisionKey: b -->\n## Proposed 2026-11-21T00:00:00.000Z — b\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA x]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** lead-b\n- **Evidence:** e\n",
+    "expected": []
   }
 ]

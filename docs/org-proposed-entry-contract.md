@@ -117,6 +117,7 @@ which the shared adversarial corpus holds in step.
   following header look real, and a decisionKey with a newline makes that one
   lead's entry (and the marker-less WebUI headers after it) unlisted - a
   single-lead denial of service via one unfenced newline.
+- **Defence in depth (S1-E):** leadwright should also reject lone CR, U+2028 and U+2029 in evidencePointer / decisionKey / leadId. The reader tolerates U+2028/U+2029 inside a value (the entry stays listed); a lone CR inside a Lead/Evidence line fails closed (the entry and everything after it is unlisted).
 - **Availability trade-off, no UI signal yet:** whatever fails closed is simply
   NOT LISTED; the operator sees nothing (no "N entries skipped" signal exists
   yet). That covers ambiguous fenced regions, dangling openers (everything after

@@ -39,15 +39,15 @@ export interface ProposedDecisionEntry {
   evidence: string | null;
 }
 
-const EVIDENCE_LINE_RE = /^-[ \t]*\*\*Evidence:\*\*(.*?)\r?$/m;
+const EVIDENCE_LINE_RE = /^-[ \t]*\*\*Evidence:\*\*([^\r\n]*)\r?$/m;
 
 function extractEvidence(block: string, daemonForm: boolean): string | null {
   if (daemonForm) {
     // Only the bullet AFTER the closing fence counts - never one in the quote.
-    return firstBullet(daemonTail(block.split("\n")), EVIDENCE_BULLET_RE);
+    return firstBullet(daemonTail(block.split("\n")), EVIDENCE_BULLET_RE) || null; // empty value = no Evidence label
   }
   const m = EVIDENCE_LINE_RE.exec(block);
-  return m ? m[1].trim() : null;
+  return m ? m[1].trim() || null : null;
 }
 
 /** Parses `decisions-proposed.md`'s raw text into its header-delimited

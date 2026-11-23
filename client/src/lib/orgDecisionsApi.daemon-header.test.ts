@@ -124,4 +124,12 @@ describe("parseProposedDecisions - both header forms (W1)", () => {
     for (const raw of inputs) parseProposedDecisions(raw);
     expect(Date.now() - t0).toBeLessThan(1500);
   });
+
+  // @covers FR-01.71
+  it("an empty Evidence value maps to null (no empty label), daemon and WebUI form", () => {
+    const fence = "⟦SHIPWRIGHT-FENCE:aa⟧";
+    const daemon = `<!-- decisionKey: k -->\n## Proposed 2026-11-20T00:00:00.000Z — k\n\n${fence}\n[FENCED DATA x]\nq\n${fence}\n\n- **Lead:** lead-a\n- **Evidence:** \n`;
+    expect(parseProposedDecisions(daemon).map((e) => e.evidence)).toEqual([null]);
+    expect(parseProposedDecisions("## [2026-11-18T00:00:00.000Z] a\nbody\n- **Evidence:**   \n").map((e) => e.evidence)).toEqual([null]);
+  });
 });
