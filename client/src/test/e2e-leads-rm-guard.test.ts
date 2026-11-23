@@ -87,6 +87,7 @@ export function offenders(src: string): string[] {
 }
 
 describe("e2e leads removal guard", () => {
+  // @covers FR-01.71
   it("no e2e spec removes a leads path without the guard helper", () => {
     const bad = walk(E2E)
       .filter((f) => f !== HELPER)
@@ -94,6 +95,7 @@ describe("e2e leads removal guard", () => {
     expect(bad).toEqual([]);
   });
 
+  // @covers FR-01.71
   it("the scan catches a bare rmSync on a leads path (self-check)", () => {
     expect(offenders('rmSync(LEADS_ROOT, { recursive: true, force: true });')).toHaveLength(1);
     expect(offenders('await fs.rm(CHART_PATH, { force: true })')).toHaveLength(1);
@@ -106,6 +108,7 @@ describe("e2e leads removal guard", () => {
     expect(offenders('const tmp = mkdtempSync("x");\nrmSync(tmp, { recursive: true });')).toEqual([]);
   });
 
+  // @covers FR-01.71
   it("the guard refuses a HOME outside the OS temp dir, a missing harness marker and a root temp dir", async () => {
     const { assertHomeIsUnderTemp } = await loadGuard();
     const root = path.parse(tmpdir()).root;
@@ -124,6 +127,7 @@ describe("e2e leads removal guard", () => {
     }
   });
 
+  // @covers FR-01.71
   it("the guard accepts an isolated temp HOME and removes only inside its leads tree", async () => {
     const { assertHomeIsUnderTemp, guardedLeadsRoot, removeLeadsPath } = await loadGuard();
     const home = mkdtempSync(path.join(tmpdir(), "leads-guard-"));
