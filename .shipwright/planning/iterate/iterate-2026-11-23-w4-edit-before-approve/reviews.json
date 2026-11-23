@@ -132,29 +132,77 @@
     },
     "code": {
       "review_type": "code",
-      "status": "not_run",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/external/org/proposed-grammar.ts",
+          "line": 246,
+          "finding": "Adding the default-ignorable property to the strip also removes variation selectors, Mongolian selectors, Hangul fillers and the grapheme joiner from the written line, so an emoji typed with a presentation selector is logged in text style and the header comment no longer lists everything the function strips. Edit classification stays consistent because original, edited and logged all go through the same normaliser.",
+          "suggestion": "Accept as a documented limit in the comment, or strip selectors only in the quote-comparison fold.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/external/org/__tests__/countersign-edit.hardening.test.ts",
+          "line": 108,
+          "finding": "No test shows that legitimate text such as umlauts, CJK and a plain emoji survives the wider strip unchanged and still counts as not edited.",
+          "suggestion": "Add one unedited-approval case with such text asserting an exact log line and edited false.",
+          "source": "code-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-11-23T21:50:18.552875+00:00",
-      "disposition": "Coordinator instruction: the campaign orchestrator runs the real spec/code/doubt cascade on the PR head and replaces this row (3f-bis); not attested by the runner",
-      "recorded_by": "none",
+      "completed_at": "2026-11-23T22:38:11.855510+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "delegated-to-orchestrator"
+      "model_tier": "opus",
+      "reviewer_notes": "Mirror carries the same strip and the drift test compares the bodies. The C1 range is now an ASCII escape. Edit check and retry compare are symmetric and idempotent, also for lines logged before this change. The joined quote needle without pointers catches a sentence spanning a quote line that ends in a pointer. The selector-interleaved quote test hits the guard. Files under 300 lines. No HIGH or MEDIUM. Review type full-review, no external model run."
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "not_run",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "boundary and contract",
+          "file": "server/src/external/org/proposed-grammar.ts",
+          "line": null,
+          "finding": "Claim under doubt: no invisible character reaches the log or defeats the 20-character quote guard — The braille blank and private-use characters render blank in many fonts but are outside the stripped classes, so a lead could interleave one every 19 characters of a copied quote in an unedited line and pass the quote guard.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary and contract",
+          "file": "server/src/external/org/proposed-grammar.ts",
+          "line": null,
+          "finding": "Claim under doubt: whitespace is normalised on write — Mid-line runs of non-ASCII space characters are written unchanged.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency and ordering",
+          "file": "server/src/external/org/countersign-core.ts",
+          "line": null,
+          "finding": "Claim under doubt: the retry comparison is stable — A lone surrogate in the edited line is encoded as the replacement character on write, so a retry compares unequal and reports a different wording.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-11-23T21:50:18.703851+00:00",
-      "disposition": "Coordinator instruction: the campaign orchestrator runs the real spec/code/doubt cascade on the PR head and replaces this row (3f-bis); not attested by the runner",
-      "recorded_by": "none",
+      "completed_at": "2026-11-23T22:39:02.223311+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "delegated-to-orchestrator"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -247,16 +295,16 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "not_run",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-11-23T21:50:18.420987+00:00",
-      "disposition": "Coordinator instruction: the campaign orchestrator runs the real spec/code/doubt cascade on the PR head and replaces this row (3f-bis); not attested by the runner",
-      "recorded_by": "none",
+      "completed_at": "2026-11-23T22:14:44.516101+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "delegated-to-orchestrator"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
