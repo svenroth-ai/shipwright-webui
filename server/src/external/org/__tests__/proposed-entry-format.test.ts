@@ -178,8 +178,22 @@ describe("countersign - both forms move exactly once", () => {
   });
 
   it("unclosed fence = corrupt entry: not listed (no identity from the quote)", () => {
-    const open = "<!-- decisionKey: k -->\n## Proposed 2026-11-20T09:15:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:abc123⟧\n- **Lead:** evil\n";
+    const open = "<!-- decisionKey: k -->\n## Proposed 2026-11-20T09:15:00.000Z — k\n\n⟦SHIPWRIGHT-FENCE:abc123⟧\n[FENCED DATA - label]\n- **Lead:** evil\n";
     expect(parseProposedEntries(open)).toEqual([]);
+  });
+
+  it("a fence line smuggled through the evidence pointer opens nothing and cannot mask other entries", () => {
+    const [first, second] = parseProposedEntries(DAEMON_SAMPLE);
+    const fence = "⟦SHIPWRIGHT-FENCE:00⟧";
+    const evil = (n: string) =>
+      `<!-- decisionKey: ${n} -->\n## Proposed 2026-11-2${n}T00:00:00.000Z — ${n}\n\n⟦SHIPWRIGHT-FENCE:aa${n}⟧\n[FENCED DATA - label]\nq\n⟦SHIPWRIGHT-FENCE:aa${n}⟧\n\n- **Lead:** evil-lead\n- **Evidence:** x\n${fence}\n`;
+    const raw = evil("1") + first.block + second.block + evil("2");
+    const entries = parseProposedEntries(raw);
+    expect(entries.map((e) => e.timestamp)).toEqual(["2026-11-21T00:00:00.000Z", T1, T2, "2026-11-22T00:00:00.000Z"]);
+  });
+
+  it("a daemon entry whose Lead is not a valid lead id is not listed (listed == countersignable)", () => {
+    expect(parseProposedEntries(DAEMON_SAMPLE.replace(/Lead:\*\* acme-lead/g, "Lead:** Not A Lead"))).toEqual([]);
   });
 
   it("retry matches residue that differs only in trailing whitespace", async () => {

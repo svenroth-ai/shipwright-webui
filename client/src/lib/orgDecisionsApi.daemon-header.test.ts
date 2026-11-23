@@ -50,6 +50,27 @@ describe("parseProposedDecisions - both header forms (W1)", () => {
     expect(parseProposedDecisions(spaced)[0].block.startsWith("<!-- decisionKey: use-weekly")).toBe(true);
   });
 
+  it("grammar regexes stay in step with the server module (drift guard)", () => {
+    const read = (p: string) => readFileSync(path.resolve(__dirname, p), "utf8");
+    const server = read("../../../server/src/external/org/proposed-entry-format.ts");
+    const client = read("./orgDecisionsApi.ts");
+    for (const name of [
+      "WEBUI_HEADER_RE", "DAEMON_HEADER_RE", "DAEMON_MARKER_RE", "FENCE_LINE_RE",
+      "LEAD_ID_RE", "LEAD_BULLET_RE", "FENCE_OWNER_RE",
+    ]) {
+      const re = new RegExp(`const ${name} = (/.*/);`);
+      const s = re.exec(server)?.[1];
+      expect(s, `${name} in server`).toBeTruthy();
+      expect(re.exec(client)?.[1], `${name} in client`).toBe(s);
+    }
+  });
+
+  it("a fence line smuggled through the evidence pointer cannot mask other entries", () => {
+    const smuggled = SAMPLE.replace("message 14\n", "message 14\n⟦SHIPWRIGHT-FENCE:00⟧\n") +
+      "<!-- decisionKey: z -->\n## Proposed 2026-11-22T00:00:00.000Z — z\n\n⟦SHIPWRIGHT-FENCE:bb⟧\n[FENCED DATA - l]\nq\n⟦SHIPWRIGHT-FENCE:bb⟧\n\n- **Lead:** z-lead\n- **Evidence:** e\n⟦SHIPWRIGHT-FENCE:00⟧\n";
+    expect(parseProposedDecisions(smuggled).map((e) => e.leadId)).toEqual(["acme-lead", "acme-lead", "z-lead"]);
+  });
+
   it("skips a daemon entry without a Lead bullet", () => {
     expect(parseProposedDecisions("## Proposed 2026-11-20T09:15:00.000Z — k\n\nx\n")).toEqual([]);
   });

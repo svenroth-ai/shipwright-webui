@@ -67,3 +67,16 @@ and `client/src/lib/orgDecisionsApi.ts` (`parseProposedDecisions`).
   moves its marker (kept as `<!-- decisionKey: ... -->`, first body line) into
   `decision_log.md`, so the daemon would accept the same key again unless it
   also scans the log or the WebUI leaves a tombstone. Not changed in W1.
+- **A fence opens only where the daemon puts it:** the first line after an
+  entry header (marker and blank lines skipped) that is a
+  `⟦SHIPWRIGHT-FENCE:<nonce>⟧` line followed by the `[FENCED DATA` label; it
+  closes at the next identical line. A fence-looking line anywhere else (e.g.
+  smuggled through the evidence pointer) opens nothing, so it cannot mask other
+  entries. The same rule applies when reading `decision_log.md`.
+- **Listed means countersignable:** a daemon entry whose Lead is not a valid
+  lead id (`^[a-z0-9][a-z0-9-]*$`, the countersign route's rule) is not listed.
+- **Open item for leadwright (S1-E):** `evidencePointer` and `decisionKey` are
+  written unfenced; an embedded newline plus a `## [<ts>] <lead>` line would be
+  read as a real header. Leadwright must reject CR/LF in evidencePointer,
+  decisionKey and leadId. W1 cannot close this on the reading side without
+  hiding hand-written entries.

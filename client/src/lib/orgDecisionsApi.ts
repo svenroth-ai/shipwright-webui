@@ -5,46 +5,50 @@
  * `orgRegisterApi.ts` — separate from `orgApi.ts`, whose line count is
  * additionally bound by `org-schema-sync.test.ts`'s hardcoded `CLIENT_PATH`.
  *
- * `parseProposedDecisions` mirrors `server/src/external/org/decisions-lock.ts`'s
- * `PROPOSED_HEADER_RE` / `parseProposedEntries` header format — CLAUDE.md
- * rule 7 forbids importing that module directly (cross-package import), so
- * this is a deliberate, documented mirror of the SAME opaque, header-
- * delimited contract that route already parses (`## [<ISO-8601 timestamp>]
- * <lead-id>`, body opaque up to the next header or EOF), not a
- * reinterpretation of it. `decisions-lock.ts` treats the body as fully
- * opaque; this mirror additionally scrapes a labelled `- **Evidence:**`
- * line for display ONLY (best-effort — a body without one still renders,
- * just without an evidence line), never for anything the countersign call
- * itself depends on (that only ever needs `timestamp` + `leadId`, taken
- * from the header).
+ * `parseProposedDecisions` is a deliberate, documented mirror (CLAUDE.md rule
+ * 7 forbids importing server code) of `server/src/external/org/
+ * proposed-entry-format.ts`: BOTH entry header forms (`## [<ts>] <lead>` and
+ * the leadwright daemon's `## Proposed <ts> — <key>` + decisionKey marker),
+ * identity `(timestamp, leadId)`, quote-injection rules. Contract:
+ * `docs/org-proposed-entry-contract.md`; drift guard:
+ * `orgDecisionsApi.daemon-header.test.ts` (same pinned sample + regex sync).
+ * This mirror additionally scrapes the `- **Evidence:**` bullet for display
+ * ONLY; countersign needs just `timestamp` + `leadId`.
  */
 import { ApiError } from "./externalApi";
 import { ORG_API, fetchOrgFileText } from "./orgApi";
 
-// Both header forms (W1) - verbatim mirror of server `proposed-entry-format.ts`
-// (CLAUDE.md rule 7: no cross-package import). Contract:
-// `docs/org-proposed-entry-contract.md`.
 const WEBUI_HEADER_RE = /^## \[([^\]]+)\] (.+?)\r?$/;
 const DAEMON_HEADER_RE = /^## Proposed (\S+) — (.+?)\r?$/;
 const DAEMON_MARKER_RE = /^<!--\s*decisionKey:\s*.*?\s*-->\r?$/;
 const FENCE_LINE_RE = /^⟦SHIPWRIGHT-FENCE:[0-9a-f]+⟧\r?$/;
+const LEAD_ID_RE = /^[a-z0-9][a-z0-9-]*$/; // same rule as the countersign route
 const LEAD_BULLET_RE = /^-[ \t]*\*\*Lead:\*\*[ \t]*(.+?)\r?$/;
 const EVIDENCE_BULLET_RE = /^-[ \t]*\*\*Evidence:\*\*[ \t]*(.+?)\r?$/;
 
 const isBlank = (line: string): boolean => line.trim() === "";
 
-/** Lines inside a fenced region (a fence counts only when its identical
- *  closing line exists later) - header lines there are quoted text. */
+/** A header the daemon renders directly above its quote. */
+const FENCE_OWNER_RE = /^## (?:Proposed \S+ — |ADR-\d{4} \[)/;
+
+/** Lines inside a fenced region. A fence opens ONLY where the daemon puts it
+ *  (first line after an entry header, marker/blank skipped, fence line then
+ *  `[FENCED DATA` label) and closes at the next identical line; a fence-like
+ *  line anywhere else opens nothing. Header lines inside are quoted text. */
 function fencedLineSet(lines: string[]): Set<number> {
   const fenced = new Set<number>();
   let i = 0;
   while (i < lines.length) {
-    if (FENCE_LINE_RE.test(lines[i])) {
-      const close = lines.indexOf(lines[i], i + 1);
-      if (close !== -1) {
-        for (let k = i; k <= close; k++) fenced.add(k);
-        i = close + 1;
-        continue;
+    if (FENCE_OWNER_RE.test(lines[i])) {
+      let j = i + 1;
+      while (j < lines.length && (isBlank(lines[j]) || DAEMON_MARKER_RE.test(lines[j]))) j++;
+      if (j + 1 < lines.length && FENCE_LINE_RE.test(lines[j]) && lines[j + 1].startsWith("[FENCED DATA")) {
+        const close = lines.indexOf(lines[j], j + 1);
+        if (close !== -1) {
+          for (let k = j; k <= close; k++) fenced.add(k);
+          i = close + 1;
+          continue;
+        }
       }
     }
     i++;
@@ -54,9 +58,11 @@ function fencedLineSet(lines: string[]): Set<number> {
 
 /** Lines after a daemon entry's closing fence line (whole block if no fence). */
 function daemonTail(blockLines: string[]): string[] {
-  const open = blockLines.findIndex((l) => FENCE_LINE_RE.test(l));
-  if (open === -1) return blockLines;
-  const close = blockLines.indexOf(blockLines[open], open + 1);
+  let j = 0;
+  while (j < blockLines.length && (isBlank(blockLines[j]) || DAEMON_MARKER_RE.test(blockLines[j]) || blockLines[j].startsWith("## "))) j++;
+  // No fence where the daemon puts it: no quote to skip, the rest is the tail.
+  if (!(FENCE_LINE_RE.test(blockLines[j] ?? "") && (blockLines[j + 1] ?? "").startsWith("[FENCED DATA"))) return blockLines.slice(j);
+  const close = blockLines.indexOf(blockLines[j], j + 1);
   return close === -1 ? [] : blockLines.slice(close + 1); // unclosed fence = corrupt: no identity
 }
 
@@ -128,7 +134,7 @@ export function parseProposedDecisions(raw: string): ProposedDecisionEntry[] {
     // (a quote above or an evidence pointer below can never win). No bullet =
     // no identity, so the entry is not listed.
     const leadId = h.leadId ?? firstBullet(daemonTail(block.split("\n")), LEAD_BULLET_RE);
-    if (leadId === null) return;
+    if (leadId === null || (daemonForm && !LEAD_ID_RE.test(leadId))) return; // listed == countersignable
     out.push({
       timestamp: h.timestamp,
       leadId,

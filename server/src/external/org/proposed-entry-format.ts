@@ -30,6 +30,7 @@ const WEBUI_HEADER_RE = /^## \[([^\]]+)\] (.+?)\r?$/;
 const DAEMON_HEADER_RE = /^## Proposed (\S+) — (.+?)\r?$/;
 const DAEMON_MARKER_RE = /^<!--\s*decisionKey:\s*.*?\s*-->\r?$/;
 const FENCE_LINE_RE = /^⟦SHIPWRIGHT-FENCE:[0-9a-f]+⟧\r?$/;
+const LEAD_ID_RE = /^[a-z0-9][a-z0-9-]*$/; // same rule as the countersign route
 const LEAD_BULLET_RE = /^-[ \t]*\*\*Lead:\*\*[ \t]*(.+?)\r?$/;
 
 export interface ProposedEntry {
@@ -44,18 +45,30 @@ export interface ProposedEntry {
 
 const isBlank = (line: string): boolean => line.trim() === "";
 
-/** Line indexes that lie inside a fenced region (open line, text and close
- *  line). A fence only counts when its identical closing line exists later. */
+/** A header the daemon renders (and the log keeps) directly above its quote. */
+const FENCE_OWNER_RE = /^## (?:Proposed \S+ — |ADR-\d{4} \[)/;
+const FENCE_LABEL_PREFIX = "[FENCED DATA";
+
+/** Line indexes that lie inside a fenced region (open line, label, text and
+ *  close line). A fence opens ONLY where the daemon puts it: the first line
+ *  after an entry header (marker/blank lines skipped) that is a fence line
+ *  followed by the `[FENCED DATA` label; it closes at the next identical
+ *  line. A fence-looking line anywhere else (e.g. smuggled through the
+ *  evidence pointer) opens nothing, so it can never mask other entries. */
 export function fencedLineSet(lines: string[]): Set<number> {
   const fenced = new Set<number>();
   let i = 0;
   while (i < lines.length) {
-    if (FENCE_LINE_RE.test(lines[i])) {
-      const close = lines.indexOf(lines[i], i + 1);
-      if (close !== -1) {
-        for (let k = i; k <= close; k++) fenced.add(k);
-        i = close + 1;
-        continue;
+    if (FENCE_OWNER_RE.test(lines[i])) {
+      let j = i + 1;
+      while (j < lines.length && (isBlank(lines[j]) || DAEMON_MARKER_RE.test(lines[j]))) j++;
+      if (j + 1 < lines.length && FENCE_LINE_RE.test(lines[j]) && lines[j + 1].startsWith(FENCE_LABEL_PREFIX)) {
+        const close = lines.indexOf(lines[j], j + 1);
+        if (close !== -1) {
+          for (let k = j; k <= close; k++) fenced.add(k);
+          i = close + 1;
+          continue;
+        }
       }
     }
     i++;
@@ -66,9 +79,11 @@ export function fencedLineSet(lines: string[]): Set<number> {
 /** Lines of a daemon entry that come after its closing fence line (or the
  *  whole block when it has no fence). */
 function daemonTail(blockLines: string[]): string[] {
-  const open = blockLines.findIndex((l) => FENCE_LINE_RE.test(l));
-  if (open === -1) return blockLines;
-  const close = blockLines.indexOf(blockLines[open], open + 1);
+  let j = 0;
+  while (j < blockLines.length && (isBlank(blockLines[j]) || DAEMON_MARKER_RE.test(blockLines[j]) || blockLines[j].startsWith("## "))) j++;
+  // No fence where the daemon puts it: no quote to skip, the rest is the tail.
+  if (!(FENCE_LINE_RE.test(blockLines[j] ?? "") && (blockLines[j + 1] ?? "").startsWith("[FENCED DATA"))) return blockLines.slice(j);
+  const close = blockLines.indexOf(blockLines[j], j + 1);
   return close === -1 ? [] : blockLines.slice(close + 1); // unclosed fence = corrupt: no identity
 }
 
@@ -121,7 +136,7 @@ export function parseProposedEntries(raw: string): ProposedEntry[] {
     // route could address: it is not listed. Its text is still part of the
     // byte range ending where the next HEADER starts, but no listed entry
     // owns it, so countersigning another entry never moves or removes it.
-    if (leadId === null) return;
+    if (leadId === null || (h.leadFromHeader === null && !LEAD_ID_RE.test(leadId))) return; // listed == countersignable
     out.push({ timestamp: h.timestamp, leadId, block, startIndex, endIndex });
   });
   return out;
