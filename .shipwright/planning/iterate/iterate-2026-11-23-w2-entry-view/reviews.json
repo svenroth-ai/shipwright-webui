@@ -119,59 +119,58 @@
       "findings": [
         {
           "severity": "low",
-          "category": "correctness",
-          "file": "client/src/lib/orgProposedView.ts",
-          "line": null,
-          "finding": "POINTER_ATTEMPT_RE may move prose starting with 'session' into an unknown-source label; nothing is lost; documented.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/components/org/DecisionEntryDetail.tsx",
-          "line": null,
-          "finding": "empty proposed line rendered an empty paragraph; fixed.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/components/org/OrgSharedDocs.tsx",
-          "line": null,
-          "finding": "comment reason reworded; fixed.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
+          "category": "security",
           "file": "client/e2e/flows/org-page.decisions-proposed-entry-view.spec.ts",
-          "line": null,
-          "finding": "E2E quote-level malformed pointer now pointer-shaped; fixed.",
-          "suggestion": null,
+          "line": 35,
+          "finding": "Fixture setup and teardown remove the leads directory under the home folder recursively. If run outside the isolated temp-HOME harness it would delete real leads data. Existing convention shared by 11 other specs, not a regression.",
+          "suggestion": "Follow-up: a shared guard that refuses to delete unless HOME sits under the OS temp dir, covering all specs at once.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "readability",
+          "file": "client/src/components/org/DecisionEntryDetail.tsx",
+          "line": 137,
+          "finding": "Muted colour applied through an inline style constant while the sibling row uses the Tailwind arbitrary-value class.",
+          "suggestion": "Use the Tailwind class like the row and drop the constant.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/org/DecisionEntryDetail.tsx",
+          "line": 143,
+          "finding": "SourceLabel is exported but only used inside its file.",
+          "suggestion": "Drop the export keyword.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
           "file": "client/src/components/org/DecisionEntryRow.test.tsx",
-          "line": null,
-          "finding": "test name; fixed.",
-          "suggestion": null,
+          "line": 1238,
+          "finding": "A truthiness assertion on an element that getByTestId already throws for asserts nothing; the accessible name of the quotes group is never checked.",
+          "suggestion": "Assert the group by role and accessible name.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": ".shipwright/planning/adr/iterate-2026-11-23-w2-entry-view-structured-proposal-view.md",
+          "line": 186,
+          "finding": "The ADR wording says the beat regex is anchored and fixed, but it is only bound to the origin clause of the label line; behaviour is correct.",
+          "suggestion": "Reword the ADR.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-11-23T20:33:43.846567+00:00",
+      "completed_at": "2026-11-23T21:03:17.907463+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
       "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "0208b6b902340989ddc9c69e51d067cd0cdcf327"
+      "reviewer_notes": "Verdict: no HIGH or MEDIUM remains. Lead-written text is rendered only as React text nodes, no raw-HTML injection and no link built from lead text; unit and real-browser injection probes pass. Pointer parsers are anchored and linear and total on garbage. The mirrored grammar file is untouched. No animation added. Files under 300 lines. Tests tagged FR-01.71, E2E is real-browser and checks roles, names, tab order, Escape and focus restore. Accessibility label-in-name holds. No architecture-rules block exists in conventions.md."
     },
     "doubt": {
       "review_type": "doubt",
@@ -272,14 +271,12 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-11-23T20:30:18.018447+00:00",
+      "completed_at": "2026-11-23T21:03:02.573817+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "b4083c73e19e975ef17dbb87e5d4f24e4dd64e35"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
