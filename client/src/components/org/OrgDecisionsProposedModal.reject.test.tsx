@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 import { OrgDecisionsProposedModal } from "./OrgDecisionsProposedModal";
-import { fetchProposedDecisions } from "../../lib/orgDecisionsApi";
+import { fetchProposedDecisions, countersignDecision } from "../../lib/orgDecisionsApi";
 import { rejectDecision, fetchRejectedKeys } from "../../lib/orgRejectApi";
 
 vi.mock("../../lib/orgDecisionsApi", async (importOriginal) => {
@@ -13,6 +13,7 @@ vi.mock("../../lib/orgDecisionsApi", async (importOriginal) => {
 vi.mock("../../lib/orgRejectApi", () => ({ rejectDecision: vi.fn(), fetchRejectedKeys: vi.fn() }));
 
 const mockedFetch = vi.mocked(fetchProposedDecisions);
+const mockedCountersign = vi.mocked(countersignDecision);
 const mockedReject = vi.mocked(rejectDecision);
 const mockedKeys = vi.mocked(fetchRejectedKeys);
 
@@ -59,9 +60,37 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
     expect(mockedReject).toHaveBeenCalledTimes(1);
     expect(mockedReject).toHaveBeenCalledWith(TS, "acme-lead", "too vague");
 
-    mockedFetch.mockResolvedValue([]); // the entry is gone after the refetch
     release({ ok: true, alreadyRejected: false });
-    await waitFor(() => expect(screen.getByText(/Rejected\. The decision is recorded/)).toBeInTheDocument());
+    // The row is gone at once (even if a stale refetch still lists it); a quote-free notice stays.
+    await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-notice")).toHaveTextContent(`Rejected: acme-lead, ${TS}. Recorded in the audit log.`));
+    expect(screen.queryByTestId(`org-decisions-proposed-entry-${ROW}`)).toBeNull();
+    expect(screen.queryByText("text")).toBeNull();
+  });
+
+  // @covers FR-01.71
+  it("a lead without a folder shows a blocking message and keeps the entry", async () => {
+    mockedKeys.mockResolvedValue({});
+    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedReject.mockResolvedValue({ ok: false, reason: "lead-unknown" });
+    renderModal();
+    await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId(`org-decisions-proposed-reject-${ROW}`));
+    fireEvent.click(screen.getByTestId(`org-decisions-proposed-reject-confirm-btn-${ROW}`));
+    await waitFor(() => expect(screen.getByTestId(`org-decisions-proposed-result-${ROW}`)).toHaveTextContent("Can't reject: this lead has no folder."));
+    expect(screen.queryByText(/resolved elsewhere/)).toBeNull();
+    expect(screen.getByTestId(`org-decisions-proposed-entry-${ROW}`)).toBeInTheDocument();
+  });
+
+  // @covers FR-01.71
+  it("approving an entry whose rejection is not finished says to use Reject", async () => {
+    mockedKeys.mockResolvedValue({});
+    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedCountersign.mockResolvedValue({ ok: false, reason: "reject-pending" });
+    renderModal();
+    await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId(`org-decisions-proposed-countersign-${ROW}`));
+    await waitFor(() => expect(screen.getByTestId(`org-decisions-proposed-result-${ROW}`)).toHaveTextContent("This proposal was rejected but not removed. Use Reject to finish."));
+    expect(screen.queryByText(/resolved elsewhere/)).toBeNull();
   });
 
 

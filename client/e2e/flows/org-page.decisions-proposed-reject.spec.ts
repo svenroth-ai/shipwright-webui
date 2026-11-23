@@ -58,7 +58,13 @@ test.describe("Org page - reject a proposal", () => {
     await page.getByTestId(`org-decisions-proposed-reject-${rowKey}`).click();
     await page.getByTestId(`org-decisions-proposed-reject-reason-${rowKey}`).fill("too vague");
     await page.getByTestId(`org-decisions-proposed-reject-confirm-btn-${rowKey}`).dblclick();
-    await expect(row.getByText(/Rejected\. The decision is recorded/)).toBeVisible();
+    // The entry leaves the window (no quote, no evidence); a quote-free confirmation stays.
+    await expect(page.getByText(QUOTE)).toHaveCount(0);
+    await expect(row).toHaveCount(0);
+    const notice = page.getByTestId("org-decisions-proposed-notice");
+    await expect(notice).toContainText(`Rejected: ${LEAD_ID}`);
+    await expect(notice).toContainText("Recorded in the audit log.");
+    await expect(notice).not.toContainText(QUOTE);
 
     await expect.poll(() => readFileSync(PROPOSED_PATH, "utf8")).not.toContain(KEY);
     const lines = readFileSync(AUDIT_PATH, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));

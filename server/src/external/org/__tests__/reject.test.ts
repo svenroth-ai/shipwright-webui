@@ -177,12 +177,13 @@ describe("reject a proposed entry (W3)", () => {
 
 
   // @covers FR-01.71
-  it("countersign of an entry whose reject was recorded but not completed finishes the removal and does not approve it", async () => {
+  it("countersign of an entry whose reject was recorded but not completed is refused (409 reject_pending) and changes nothing", async () => {
     writeFileSync(proposed, daemonEntry(TS, "use-weekly-digest"));
     writeFileSync(audit, JSON.stringify({ kind: "decision_rejected", lead_id: LEAD, data: { entryTimestamp: TS, decisionKey: "use-weekly-digest", author: "sven" } }) + "\n");
     const res = await post(app(), "countersign", { timestamp: TS, leadId: LEAD });
-    expect(res.status).toBe(404);
-    expect(readFileSync(proposed, "utf8")).not.toContain("use-weekly-digest");
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("reject_pending");
+    expect(readFileSync(proposed, "utf8")).toContain("use-weekly-digest"); // an audit line alone never deletes a proposal
     expect(existsSync(logged)).toBe(false);
     expect(auditLines()).toHaveLength(1);
   });

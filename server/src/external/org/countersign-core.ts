@@ -78,6 +78,7 @@ export type CountersignOutcome =
   | { status: "countersigned"; number: number }
   | { status: "already_countersigned"; number: number }
   | { status: "not_found" }
+  | { status: "reject_pending" }
   | { status: "duplicate_identity"; count: number };
 
 export interface CountersignCoreDeps extends DecisionsLockDeps, Partial<Omit<DecisionAuditDeps, "leadsRoot">> {
@@ -164,11 +165,11 @@ export async function performCountersign(
     }
     const target = matches[0];
 
-    // Crash residue of a reject (audit line written, removal not): the operator
-    // said no - finish the removal instead of approving it.
+    // A reject was recorded but the entry is still listed (crash residue, or a line a
+    // lead wrote into its own audit.jsonl): never approve it, and change nothing - an
+    // audit line alone must not be able to delete a proposal. Reject finishes it.
     if (hasDecisionAudit(deps, "decision_rejected", leadId, timestamp, decisionKeyOf(target.block))) {
-      atomicWrite(ctx.proposedPath, proposedRaw.slice(0, target.startIndex) + proposedRaw.slice(target.endIndex));
-      return { status: "not_found" };
+      return { status: "reject_pending" };
     }
 
     // Fail before anything changes when the audit file cannot be read (symlink, not a file).

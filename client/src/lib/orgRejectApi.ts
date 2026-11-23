@@ -9,6 +9,7 @@ import { ORG_API } from "./orgApi";
 export type RejectResult =
   | { ok: true; alreadyRejected: boolean }
   | { ok: false; reason: "not-found" }
+  | { ok: false; reason: "lead-unknown" }
   | { ok: false; reason: "duplicate"; count: number }
   | { ok: false; reason: "already-countersigned"; adr: number };
 
@@ -25,7 +26,7 @@ export async function rejectDecision(timestamp: string, leadId: string, reason: 
   } catch {
     body = { error: `HTTP ${r.status}` };
   }
-  if (r.status === 404) return { ok: false, reason: "not-found" };
+  if (r.status === 404) return { ok: false, reason: body.error === "lead_unknown" ? "lead-unknown" : "not-found" };
   if (r.status === 409 && body.error === "duplicate_proposal_identity") {
     return { ok: false, reason: "duplicate", count: typeof body.count === "number" ? body.count : 0 };
   }

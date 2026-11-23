@@ -71,6 +71,7 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
   // from decisions-proposed.md). Reset naturally on close — OrgSharedDocs
   // unmounts this component when the tile's modal closes, so a fresh open
   // starts with an empty map, never a stale success from a prior session.
+  const [notice, setNotice] = useState<string | null>(null);
   const [settled, setSettled] = useState<Record<string, { entry: ProposedDecisionEntry; status: EntryStatus }>>({});
   // Rows with a request in flight: a double click must send ONE request.
   const inFlight = useRef(new Set<string>());
@@ -108,9 +109,11 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
       if (result.ok) status = { kind: "rejected", alreadyRejected: result.alreadyRejected };
       else if (result.reason === "duplicate") status = { kind: "duplicate", count: result.count };
       else if (result.reason === "already-countersigned") status = { kind: "done", alreadyCountersigned: true, adr: `ADR-${String(result.adr).padStart(4, "0")}` };
+      else if (result.reason === "lead-unknown") status = { kind: "blocked", message: "Can't reject: this lead has no folder." };
       else status = { kind: "resolved-elsewhere" };
       setStatuses((prev) => ({ ...prev, [key]: status }));
-      if (status.kind === "rejected") setSettled((prev) => ({ ...prev, [key]: { entry, status } }));
+      // The rejected row leaves the list (it is filtered below); the notice carries no quote text.
+      if (status.kind === "rejected") setNotice(`Rejected: ${entry.leadId}, ${entry.timestamp}. Recorded in the audit log.`);
       if (status.kind !== "duplicate") {
         await Promise.all([
           refetch(),
@@ -137,6 +140,10 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
       const result = await countersignDecision(entry.timestamp, entry.leadId);
       if (!result.ok && result.reason === "duplicate") {
         setStatuses((prev) => ({ ...prev, [key]: { kind: "duplicate", count: result.count } }));
+        return;
+      }
+      if (!result.ok && result.reason === "reject-pending") {
+        setStatuses((prev) => ({ ...prev, [key]: { kind: "blocked", message: "This proposal was rejected but not removed. Use Reject to finish." } }));
         return;
       }
       if (!result.ok && result.reason === "not-found") {
@@ -172,8 +179,9 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
     }
   }
 
-  const liveEntries = data ?? [];
-  const liveKeys = new Set(liveEntries.map((e, i) => entryKey(e, i)));
+  const allEntries = data ?? [];
+  const liveKeys = new Set(allEntries.map((e, i) => entryKey(e, i)));
+  const visibleCount = allEntries.filter((e, i) => statuses[entryKey(e, i)]?.kind !== "rejected").length;
   // A settled entry the server has already dropped from its list (the
   // common case — the countersign actually removed it) stays pinned here;
   // one still present (a mocked/stale refetch, or the rare same-identity
@@ -208,6 +216,7 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto p-4">
+            <div role="status" aria-live="polite" className="text-[11px]" data-testid="org-decisions-proposed-notice">{notice}</div>
             {isLoading && (
               <div className="flex h-full items-center justify-center text-[12px]" style={{ color: "var(--color-muted, #6b7280)" }} data-testid="org-decisions-proposed-loading">
                 <Loader2 size={16} className="mr-2 animate-spin" /> Loading…
@@ -225,15 +234,15 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
                 <span>Couldn't load decisions-proposed.md: {error instanceof Error ? error.message : "unknown error"}</span>
               </div>
             )}
-            {!isLoading && !error && data !== undefined && liveEntries.length === 0 && settledExtras.length === 0 && (
+            {!isLoading && !error && data !== undefined && visibleCount === 0 && settledExtras.length === 0 && (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-[12px]" style={{ color: "var(--color-muted, #6b7280)" }} data-testid="org-decisions-proposed-empty">
                 <CheckCircle2 size={20} aria-hidden="true" />
                 <span>No decisions waiting.</span>
               </div>
             )}
-            {!isLoading && !error && data !== undefined && (liveEntries.length > 0 || settledExtras.length > 0) && (
+            {!isLoading && !error && data !== undefined && (visibleCount > 0 || settledExtras.length > 0) && (
               <ul className="flex flex-col gap-3" data-testid="org-decisions-proposed-list">
-                {liveEntries.map((entry, index) => (
+                {allEntries.map((entry, index) => statuses[entryKey(entry, index)]?.kind === "rejected" ? null : (
                   <DecisionEntryRow
                     key={entryKey(entry, index)}
                     rowKey={entryKey(entry, index)}

@@ -13,6 +13,7 @@ export type EntryStatus =
   | { kind: "pending" }
   | { kind: "done"; alreadyCountersigned: boolean; adr: string }
   | { kind: "rejected"; alreadyRejected: boolean }
+  | { kind: "blocked"; message: string }
   | { kind: "duplicate"; count: number }
   | { kind: "resolved-elsewhere" }
   | { kind: "error"; message: string };
@@ -38,7 +39,7 @@ export function DecisionEntryRow({
   isRepeat: boolean;
 }) {
   const pending = status.kind === "pending";
-  const settled = status.kind === "done" || status.kind === "rejected";
+  const settled = status.kind === "done";
 
   return (
     <li
@@ -68,7 +69,7 @@ export function DecisionEntryRow({
             {pending ? "Countersigning…" : "Countersign"}
           </button>
         )}
-        {!settled && <DecisionRejectControl rowKey={rowKey} pending={pending} disabled={pending} onReject={onReject} />}
+        {!settled && <DecisionRejectControl rowKey={rowKey} pending={pending} onReject={onReject} />}
       </div>
       {entry.evidence && (
         <div className="mt-1 text-[11px]" style={{ color: "var(--color-muted, #6b7280)" }}>
@@ -91,14 +92,14 @@ export function DecisionEntryRow({
             : `Countersigned as ${status.adr}.`}
         </div>
       )}
-      {status.kind === "rejected" && (
+      {status.kind === "blocked" && (
         <div
           className="mt-2 flex items-center gap-1 text-[11px]"
-          style={{ color: "var(--color-muted, #6b7280)" }}
+          style={{ color: "var(--color-error, #DC2626)" }}
           data-testid={`org-decisions-proposed-result-${rowKey}`}
         >
-          <CheckCircle2 size={12} aria-hidden="true" />
-          {status.alreadyRejected ? "Already rejected." : "Rejected. The decision is recorded in the audit log."}
+          <AlertCircle size={12} aria-hidden="true" />
+          {status.message}
         </div>
       )}
       {status.kind === "duplicate" && (

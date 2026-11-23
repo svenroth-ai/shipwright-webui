@@ -12,6 +12,10 @@ Run: `iterate-2026-11-23-w3-reject-audit`. Spec: `.shipwright/planning/iterate/c
 - Author is the OS account of the server process, not a verified identity (local single-user tool, same exposure as countersign).
 - `audit.jsonl` is leadwright's per-lead file: the audited lead can also write it, so the record is a trail, not tamper-proof. No fsync (crash-safe against process death, not power loss).
 - No CSRF/origin hardening beyond what the other `/api/org/*` writes have.
+- Fix round (reviews of 09c23f05): a rejected row now leaves the window at once; a quote-free confirmation line replaces it (brief: a rejected entry disappears).
+- Fix round: countersign never deletes an entry because an audit line says it was rejected (a lead-writable audit.jsonl could forge that line). It answers 409 `reject_pending` and changes nothing; the operator finishes with Reject, whose retry path completes the removal.
+- Open (cross-repo follow-up): a reused (timestamp, decisionKey) identity can match an earlier rejected entry, so the daemon's timestamp meaning must be pinned; leadwright must read `decision_rejected` before proposing; a quote-less or duplicate proposal can re-appear.
+- Fix round: a lead without a folder answers 404 `lead_unknown` (shown as "Can't reject: this lead has no folder", not "resolved elsewhere"); a symlinked lead folder is refused with 403 before any audit file is created; a torn last audit line no longer swallows the next record.
 - The two new audit kinds are a cross-repo contract; leadwright's reader should pin a sample (follow-up).
 
 ## Internal plan-arm review findings (recorded verbatim in substance; fixes are in commit ace6cd909)

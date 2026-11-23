@@ -12,13 +12,11 @@ const BTN =
 export function DecisionRejectControl({
   rowKey,
   pending,
-  disabled,
   onReject,
 }: {
   rowKey: string;
+  /** An action on this row is running. */
   pending: boolean;
-  /** Another action on this row is running. */
-  disabled: boolean;
   onReject: (reason: string) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -29,7 +27,7 @@ export function DecisionRejectControl({
       <button
         type="button"
         data-testid={`org-decisions-proposed-reject-${rowKey}`}
-        disabled={disabled || pending}
+        disabled={pending}
         onClick={() => setConfirming(true)}
         className={BTN}
       >

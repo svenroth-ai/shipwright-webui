@@ -17,13 +17,13 @@
  * check-then-append cannot interleave with another decision.
  */
 
-import { accessSync, constants as fsConstants, existsSync, lstatSync as lstatSyncReal } from "node:fs";
+import { accessSync, constants as fsConstants, existsSync, lstatSync as lstatSyncReal, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { appendAuditLine, resolveParentLeadId } from "./beat-register-release-audit.js";
 import { readAuditLinesGuarded } from "./audit-log.js";
 import { OrgSymlinkEscapeError } from "./decisions-lock.js";
-import { pathGuard } from "../../core/path-guard.js";
+import { pathGuard, realPathGuard } from "../../core/path-guard.js";
 
 export type DecisionAuditKind = "decision_rejected" | "decision_countersigned";
 
@@ -59,7 +59,7 @@ function readAuditLines(deps: DecisionAuditDeps, leadId: string): string[] {
   if (read.status === 200) return read.linesNewestFirst;
   if (read.status === 404) return [];
   if (read.status === 403) throw new OrgSymlinkEscapeError(join(deps.leadsRoot, leadId, "audit.jsonl"));
-  throw new Error(`audit.jsonl unreadable: ${read.body.error}`);
+  throw new Error(`${leadId}/audit.jsonl cannot be read (${read.body.error}): fix the file, then retry`);
 }
 
 function parsed(line: string): { kind?: unknown; data?: Record<string, unknown> } | null {
@@ -99,15 +99,23 @@ export function hasDecisionAudit(
 
 /** The lead's own folder exists (the audit never creates a lead that is not there). */
 export function leadFolderExists(deps: DecisionAuditDeps, leadId: string): boolean {
-  return existsSync(join(deps.leadsRoot, leadId));
+  const dir = join(deps.leadsRoot, leadId);
+  if (!existsSync(dir)) return false;
+  // A symlinked lead folder must not let an audit file be created outside leadsRoot.
+  if (!realPathGuard(deps.leadsRoot, dir).ok) throw new OrgSymlinkEscapeError(dir);
+  return statSync(dir).isDirectory();
 }
 
 /** Fail BEFORE a decision changes anything when the audit line could not be appended later. */
 export function assertAuditAppendable(deps: DecisionAuditDeps, leadId: string): void {
   if (!leadFolderExists(deps, leadId)) return;
-  hasDecisionAudit(deps, "decision_rejected", leadId, "", undefined); // unreadable / symlink -> throws
+  readAuditLines(deps, leadId); // unreadable / symlink -> throws
   const file = join(deps.leadsRoot, leadId, "audit.jsonl");
-  if (existsSync(file)) accessSync(file, fsConstants.W_OK);
+  try {
+    if (existsSync(file)) accessSync(file, fsConstants.W_OK);
+  } catch {
+    throw new Error(`${leadId}/audit.jsonl is read-only: make it writable, then retry`);
+  }
 }
 
 /** Append the decision's record unless it is already there. Returns whether it appended. */

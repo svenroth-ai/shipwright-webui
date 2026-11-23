@@ -5,7 +5,7 @@
  * guideline (iterate-2026-08-18-org-route-beat-register).
  */
 
-import { existsSync, mkdirSync, openSync, writeFileSync, writeSync, closeSync } from "node:fs";
+import { existsSync, mkdirSync, openSync, writeFileSync, writeSync, closeSync, fstatSync, readSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { readLeadOrgInfo } from "./org-chart-lookup.js";
@@ -37,6 +37,19 @@ function ensureAuditFile(absolutePath: string): void {
   }
 }
 
+function endsMidLine(path: string): boolean {
+  const fd = openSync(path, "r");
+  try {
+    const size = fstatSync(fd).size;
+    if (size === 0) return false;
+    const b = Buffer.alloc(1);
+    readSync(fd, b, 0, 1, size - 1);
+    return b[0] !== 0x0a;
+  } finally {
+    closeSync(fd);
+  }
+}
+
 /** Single-write append, matching leadwright's `audit-append.ts` atomicity
  *  contract (one `write()` call so the line is fully visible or not at
  *  all). `ensureAuditFile` + an unconditional `guardExistingTarget` replace
@@ -63,7 +76,8 @@ export function appendAuditLine(
     }
     throw new OrgSymlinkEscapeError(auditPath);
   }
-  const line = JSON.stringify(entry) + "\n";
+  // A torn last line (a crashed writer) must not swallow this record: start on a fresh line.
+  const line = (endsMidLine(auditPath) ? "\n" : "") + JSON.stringify(entry) + "\n";
   const fd = openSync(auditPath, "a");
   try {
     writeSync(fd, line);

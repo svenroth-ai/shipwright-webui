@@ -83,6 +83,9 @@ export async function handleCountersignRequest(
   if (outcome.status === "not_found") {
     return { status: 404, body: { error: "proposal_not_found", timestamp, leadId } };
   }
+  if (outcome.status === "reject_pending") {
+    return { status: 409, body: { error: "reject_pending", timestamp, leadId } };
+  }
   if (outcome.status === "duplicate_identity") {
     return {
       status: 409,
