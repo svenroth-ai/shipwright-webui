@@ -12,6 +12,7 @@ import { createOrgApiRouter } from "../../../routes/org.js";
 import { parseProposedEntries } from "../decisions-lock.js";
 import { blockDigest } from "../proposed-line.js";
 import { normalizeLine, foldForCompare } from "../proposed-grammar.js";
+import { performCountersign } from "../countersign-core.js";
 
 const TS = "2026-11-20T09:15:00.000Z";
 const LEAD = "acme-lead";
@@ -222,6 +223,57 @@ describe("decision hardening", () => {
       expect(bad.status).toBe(400);
       expect((await bad.json()).error).toBe("fingerprint_invalid");
       expect((await post("countersign", {})).status).toBe(200);
+    });
+  });
+
+  describe("failure and concurrency guarantees", () => {
+    // @covers FR-01.71
+    it("an append that fails AFTER the pre-check leaves the entry logged AND listed (audit_unwritable, logged:true); the retry finishes it", async () => {
+      writeFileSync(proposed, entry("Line one."));
+      let calls = 0;
+      const failingNow = () => {
+        // the audit append is the only caller of `now`; fail it once like a file that became read-only mid-request
+        if (calls++ === 0) throw Object.assign(new Error("EACCES: simulated"), { code: "EACCES" });
+        return new Date("2026-11-20T10:00:00.000Z");
+      };
+      const first = await performCountersign({ leadsRoot: root, author: "op", now: failingNow }, TS, LEAD);
+      expect(first.status).toBe("audit_pending");
+      expect(readFileSync(logged, "utf8")).toContain("ADR-0001");
+      expect(readFileSync(proposed, "utf8")).toContain(KEY); // still listed
+      expect(auditLines()).toHaveLength(0);
+      const retry = await performCountersign({ leadsRoot: root, author: "op", now: failingNow }, TS, LEAD);
+      expect(retry.status).toBe("already_countersigned");
+      expect(readFileSync(proposed, "utf8")).not.toContain(KEY);
+      expect(auditLines()).toHaveLength(1);
+      expect(readFileSync(logged, "utf8").match(/ADR-0001/g)).toHaveLength(1);
+    });
+
+    // @covers FR-01.71
+    it("two concurrent countersigns with the same digest approve once and write one audit record", async () => {
+      const raw = entry("Line one.");
+      writeFileSync(proposed, raw);
+      const fingerprint = digestOf(raw);
+      const [a, b] = await Promise.all([post("countersign", { fingerprint }), post("countersign", { fingerprint })]);
+      expect([a.status, b.status]).toEqual([200, 200]);
+      const bodies = [await a.json(), await b.json()];
+      expect(bodies.filter((x) => x.alreadyCountersigned === false)).toHaveLength(1);
+      expect(readFileSync(logged, "utf8").match(/ADR-0001/g)).toHaveLength(1);
+      expect(auditLines()).toHaveLength(1);
+    });
+
+    // @covers FR-01.71
+    it("the text normalisation is idempotent and adversarial emoji samples keep their shape", () => {
+      const samples = [
+        `${cp(0x2764, 0xfe0f)}${cp(0xfe0f)}`, // heart + selector + stray selector
+        `a${cp(0xfe0f)}`, // selector without an emoji base
+        `1${cp(0xfe0f, 0x20e3)} ${cp(0x1f468, 0x200d, 0x1f469, 0x200d, 0x1f467)}`, // keycap + ZWJ family
+        `${cp(0x2764, 0xe000, 0xfe0f)}`, // private use between base and selector
+        `x${cp(0xa0, 0x2800, 0xd800)}y${cp(0x3000)}z`,
+      ];
+      for (const t of samples) expect(normalizeLine(normalizeLine(t))).toBe(normalizeLine(t));
+      expect(normalizeLine(samples[1])).toBe("a");
+      expect(normalizeLine(samples[2])).toBe(`1${cp(0xfe0f, 0x20e3)} ${cp(0x1f468, 0x1f469, 0x1f467)}`);
+      expect(normalizeLine(samples[3])).toBe(cp(0x2764));
     });
   });
 

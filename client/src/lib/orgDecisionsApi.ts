@@ -155,7 +155,7 @@ export type CountersignResult =
   /** The lead rewrote the entry since the operator opened it; nothing was written. */
   | { ok: false; reason: "entry-changed" }
   /** The lead audit file cannot be read or written; nothing was changed. */
-  | { ok: false; reason: "audit-unwritable"; message: string };
+  | { ok: false; reason: "audit-unwritable"; message: string; /** the entry is already in the log (only its audit record is missing): countersign again to finish */ adr?: string };
 
 /**
  * `POST /api/org/decisions/countersign` — mirrors the secret-gated route's
@@ -193,7 +193,7 @@ export async function countersignDecision(
   }
   if (r.status === 409 && body.error === "reject_pending") return { ok: false, reason: "reject-pending" };
   if (r.status === 409 && body.error === "entry_changed") return { ok: false, reason: "entry-changed" };
-  if (r.status === 409 && body.error === "audit_unwritable") return { ok: false, reason: "audit-unwritable", message: typeof body.message === "string" ? body.message : "The audit file of this lead cannot be used." };
+  if (r.status === 409 && body.error === "audit_unwritable") return { ok: false, reason: "audit-unwritable", message: typeof body.message === "string" ? body.message : "The audit file of this lead cannot be used.", ...(body.logged === true && typeof body.adr === "string" ? { adr: body.adr } : {}) };
   if (r.status === 400 && typeof body.error === "string" && body.error.startsWith("line_")) {
     return { ok: false, reason: "line-rejected", code: body.error };
   }

@@ -1400,6 +1400,30 @@ write surface; gated, path-guarded, and concurrency-safe.
   was approved as proposed and the log still holds the line without the quotes;
   an edited line that repeats a quote, is empty or is too long is refused with a
   plain explanation and nothing is changed.
+- (E) **(iterate-2026-11-24-org-proposals-hardening)** Given the operator opened a proposal and its lead then rewrote it, when the
+  operator approves or rejects it, then the decision is refused with a message
+  to reload, the list is refreshed, and nothing is written to the decisions
+  log or the lead's audit trail.
+- (E) **(iterate-2026-11-24-org-proposals-hardening)** Given a lead's audit trail file cannot be read or written, when the operator
+  approves or rejects one of its proposals, then the decision is refused
+  before anything changes and the window shows a blocked message that names
+  the file to fix.
+- (E) **(iterate-2026-11-24-org-proposals-hardening)** Given a lead already wrote a matching reject line into its own audit trail,
+  when the operator rejects the proposal, then the operator's own audit record
+  is still written exactly once even after retries, and the window only says
+  the rejection was recorded when a record was really written.
+- (E) **(iterate-2026-11-24-org-proposals-hardening)** Given the proposals file holds entries that could not be read safely, when
+  the window opens, then it shows one status line with how many entries were
+  skipped and which leads they came from, and never shows any content of a
+  skipped entry.
+- (E) **(iterate-2026-11-24-org-proposals-hardening)** Given a request from another website or a plain-text form post, when it
+  targets any write of the organization overview, then it is refused and
+  nothing is changed.
+- (E) **(iterate-2026-11-24-org-proposals-hardening)** Given a proposed line that contains characters which render as nothing or as
+  odd spaces, when it is countersigned, then those characters are removed or
+  turned into plain spaces in the decisions log while emoji, umlauts and CJK
+  text stay intact, and an unedited everyday line is logged exactly as
+  proposed.
 
 ### FR-01.74 Codex CLI as an alternate task runtime ("Codex Light")
 

@@ -37,7 +37,7 @@ import { randomBytes } from "node:crypto";
 import { normalizeLine } from "./proposed-grammar.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
 import { proposalFacts, proposalFingerprint, blockDigest, checkEditedLine, checkOriginalLine, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
-import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, type DecisionAuditDeps } from "./decisions-audit.js";
+import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, AuditUnwritableError, type DecisionAuditDeps } from "./decisions-audit.js";
 import {
   withDecisionsLock,
   parseProposedEntries,
@@ -85,6 +85,9 @@ export type CountersignOutcome =
   | { status: "reject_pending" }
   /** The entry was rewritten under the same identity since the operator's view; nothing was written. */
   | { status: "entry_changed" }
+  /** The entry IS in the log, but its audit record could not be written (the file became unusable after the pre-check):
+   *  it stays listed so a retry finishes it. `message` names the file to fix. */
+  | { status: "audit_pending"; number: number; message: string }
   | { status: "line_rejected"; error: "line_empty" | "line_too_long" | "line_contains_quote" | "edit_not_supported" }
   | { status: "duplicate_identity"; count: number };
 
@@ -163,8 +166,10 @@ export async function performCountersign(
         // Crash between the log write and the audit line: complete it (once).
         try {
           audit(timestamp, leadId, stillProposed.block, existing.number, facts !== null && loggedLine !== null && isEdited(facts, loggedLine), facts);
-        } catch {
-          // The log is the source of truth: a broken audit file must not keep an approved entry listed.
+        } catch (err) {
+          // An unusable audit file keeps the entry listed (the retry finishes the record once it is fixed); any other
+          // audit failure must not keep an approved entry listed: the log is the source of truth.
+          if (err instanceof AuditUnwritableError) return { status: "audit_pending", number: existing.number, message: err.message };
         }
         const nextProposed =
           proposedRaw.slice(0, stillProposed.startIndex) +
@@ -221,7 +226,13 @@ export async function performCountersign(
     // Log FIRST (durable), then remove from proposed — the idempotent-retry
     // check above trusts decision_log.md as "already done".
     atomicWrite(ctx.loggedPath, nextLogged);
-    audit(timestamp, leadId, target.block, number, edited, facts);
+    try {
+      audit(timestamp, leadId, target.block, number, edited, facts);
+    } catch (err) {
+      // The pre-check passed but the append failed: the entry is logged and stays listed, so a retry completes the record.
+      if (err instanceof AuditUnwritableError) return { status: "audit_pending", number, message: err.message };
+      throw err;
+    }
     atomicWrite(ctx.proposedPath, nextProposed);
 
     return { status: "countersigned", number, edited };

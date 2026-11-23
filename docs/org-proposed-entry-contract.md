@@ -216,14 +216,20 @@ Nothing here changes identity, listing or countersign.
   setup wizard, the charter PUT) refuses a request the browser marks `Sec-Fetch-Site: cross-site` (403
   `cross_site_refused`); every POST needs a JSON content-type (415 `unsupported_media_type`), so a cross-site
   `text/plain` form POST never reaches a handler. Same two rules as the reminder routes
-  (`server/src/routes/org-write-guard.ts`). This is a browser-path defence, not authentication.
+  (`server/src/routes/org-write-guard.ts`). A request WITHOUT the header (curl, a script, an old browser) is not refused: this is a
+  browser-path defence in depth, not authentication, and says nothing about who else can reach the port.
 - **`409 audit_unwritable`.** When the lead's `audit.jsonl` cannot be read or written (read-only, a directory,
   unreadable), countersign and reject answer 409 `{error: "audit_unwritable", leadId, message}` BEFORE anything changes; the
   window shows it as a blocked status ("Nothing was changed. ...") naming the file to fix. A symlinked file stays `403 symlink_forbidden`.
+  The blocked status is per row and not sticky: the next click retries from scratch. If the file only fails AFTER the pre-check
+  (it became unusable mid-request), a countersign has already written the log: the answer is the same 409 with `logged: true` and the
+  `adr`, the entry stays listed, the window says "Logged as ADR-N, but the audit record could not be written ... countersign again to
+  finish", and the retry completes the record and removes the entry (an unusable file keeps it listed until fixed). Reject writes the audit
+  line first, so its failure changes nothing.
 - **Own record.** A decision appends its audit record unless THIS webui already wrote the identical one: same kind, entry
   timestamp, decisionKey, author and action, plus the same reason (reject) or ADR (countersign). A matching line that the lead
   wrote itself (other author or shape) does not count, so Reject always leaves the operator's own `decision_rejected` record and
-  removes the entry. Exactly once under retries: a retry finds its own record and writes nothing. The reject response carries
+  removes the entry. The reason is compared as stored (already normalised by `normalizeReason`). Exactly once under retries: a retry finds its own record and writes nothing. The reject response carries
   `recorded: true|false` (false = the identical record was already there, or the entry was already gone) and the window only says
   "Recorded in the audit log" when it is true. Countersign of an entry whose reject line exists (forged or crash residue) is still
   `409 reject_pending`; Reject is the way out. Residual limit: a lead can write such a line to stop its OWN proposal being approved
@@ -234,7 +240,9 @@ Nothing here changes identity, listing or countersign.
   `blockDigest`; both pinned on the shared sample). Compared under the decisions lock; a difference is `409 entry_changed` with nothing
   written and the window says "This proposal changed since you opened it - reload" and refetches. Absent = not checked (secret-gated
   callers). A crash retry (the entry is already in `decision_log.md`) is judged by the logged fingerprint only, never by this digest,
-  so it still heals. A malformed value is `400 fingerprint_invalid`. Change detection, not a secret.
+  so it still heals. A malformed value is `400 fingerprint_invalid`. Change detection, not a secret. Everything (re-read of the file,
+  digest check, own-record match, the writes) happens inside the one decisions lock; the lead's own writes to its audit.jsonl do not
+  take that lock (documented limit). If `blockForDigest` ever changes, windows opened before the change get `entry_changed` and a reload fixes it.
 - **Text rules on the write path** (`normalizeLine`, mirrored): besides format characters, default ignorables and C1 controls, the
   braille blank U+2800, private-use characters and lone surrogates are removed; Unicode space separators (NBSP, ideographic space,
   U+2000 range, ...) become a plain space. U+FE0F directly after an emoji base (and in a keycap sequence) is kept so emoji keep their

@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n- **Category: security / Category: risk \u2014 medium**\n  **Finding:** The cross-site guard (criterion A) is a browser-honor header (`Sec-Fetch-Site`) plus content-type check, and the spec explicitly scopes out authenticating the caller. `Sec-Fetch-Site` is absent on older browsers and on any non-browser client, so \"no header\" must default to refused (403), not allowed \u2014 the spec doesn't pin the default direction. Also, non-JSON POST rejection via content type does nothing against a plain curl write to `/api/org/*`; the LAN-threat model should be stated in the contract doc so this isn't mistaken for auth.\n  **Suggestion:** Confirm missing/`Sec-Fetch-Site: none`/`cross-site` all \u2192 403, and only `same-origin`/`same-site` pass. Document explicitly that this guard is defense-in-depth, not authentication.\n\n- **Category: edge-case \u2014 medium**\n  **Finding:** Criterion F: SHA-256 truncated to first 32 hex = 128 bits \u2014 collision risk is negligible, but the real risk is *digest stability across grammar version changes*. If `blockForDigest` rules ever change (e.g., a future Unicode rule tweak), every pending window becomes stale at click time and returns `409 entry_changed` for honest users. There's no version tag in the digest or a fallback message distinguishing \"entry changed\" from \"digest rules drifted.\"\n  **Suggestion:** Include a grammar version byte in the digest input (or key it in the API), so a rule change fails loudly at the boundary test rather than as mysterious 409s in the field.\n\n- **Category: edge-case \u2014 low**\n  **Finding:** Criterion C: \"identical (author, action, reason)\" dedup for Reject \u2014 if the same author rejects the same entry twice with the *same* reason but the situation changed between clicks (e.g., a prior reject was retracted upstream), the second reject silently reports `recorded:false`-style dedup even though it's a fresh decision. Conversely, reason strings normalized by the new text rules (E) may make two *different* original reasons collide after folding.\n  **Suggestion:** Include entry timestamp / decisionKey in the dedup key explicitly (the mini-plan says it does \u2014 make sure the *reason comparison* is on the folded text and that's documented, since the folded and raw reasons differ under E's rules).\n\n- **Category: risk \u2014 medium**\n  **Finding:** Criterion E's aggressive Unicode stripping (lone surrogates, private use, VS16 except after emoji) is applied to the *logged line*. If folding happens before digest computation *and* before display, two visually distinct entries on different clients could fold identically, and the \"unedited `Ship \ud83d\ude80 Pr\u00fcfung \u65e5\u672c` logs exactly\" promise only covers one direction \u2014 there's no stated invariant that folded text is idempotent (fold\u2218fold = fold), which matters for dedup and digest.\n  **Suggestion:** Add an idempotency property test for the fold (fold twice == fold once), and pin a few adversarial samples (VS16 without pictographic base, keycap sequences, ZWJ family emoji losing ZWJ per spec).\n\n- **Category: dependency \u2014 low**\n  **Finding:** Client ships a hand-rolled synchronous SHA-256, pinned against node crypto. That's justified given `crypto.subtle` unavailability on http, but it's a security-relevant crypto primitive in client code with a correctness (not just performance) failure mode \u2014 a single-bit bug turns every click into `409 entry_changed`.\n  **Suggestion:** Keep it, but ensure the pinned test vectors include multi-block (>64 byte) inputs and inputs with lengths \u2261 55/56/64 mod 64 (padding edges), not just the shared daemon sample.\n\n- **Category: approach \u2014 low**\n  **Finding:** \"One `settle()` for statuses\" (client step 4) \u2014 collapsing status updates into a single settle is a reasonable cleanup, but if it changes notice-clearing timing (criterion H's \"notice cleared when another action starts\"), an async race could show a stale reject result after a new action starts.\n  **Suggestion:** Add an E2E assertion that starting action N+1 clears action N's result notice before N+1's response arrives.\n\n- **Category: edge-case \u2014 low**\n  **Finding:** Criterion B: `audit.jsonl` as a directory (EISDIR/EPERM) is probed, but the *heals-after-crash-retry* claim for F and B together isn't clearly probed \u2014 i.e., an unwritable audit file that becomes writable mid-session: does the client retry, or does the blocked state stick until reload?\n  **Suggestion:** State explicitly whether `audit_unwritable` blocked status is sticky until page reload or cleared on the next action; test whichever is claimed.\n\n## Overall assessment\n\nThe approach is sound and the alternatives were chosen correctly (digest over full text, hand-rolled SHA-256, no new endpoint). The main real risks are pinning the guard's default-deny direction, digest stability under grammar drift, and fold idempotency \u2014 all refinements rather than structural problems. Well-probed overall.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category:** risk  \n   **Severity:** high  \n   **Finding:** The approach does not explain how `audit_unwritable` guarantees \u201cnothing changes\u201d when an append fails during execution. Detecting an unusable audit file before mutation handles the directory probe, but a later append can still fail after the proposal or decision log has changed.  \n   **Suggestion:** Define the write ordering and recovery behavior explicitly. Inject an append failure after the initial writability check and verify that countersign and reject either leave application state unchanged or recover consistently on retry.\n\n2. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** Own-record matching and digest validation both depend on reading state before writing. Without serialization, concurrent requests can both find no matching record and append duplicates, or a proposal can change after its digest was checked. The listed sequential retry probes do not establish protection against these races.  \n   **Suggestion:** Verify that the existing locking mechanism covers rereading the proposal, checking its digest, matching audit records, and performing writes. Add a concurrent duplicate-request test and a rewrite-during-action test. Document whether external lead writers participate in that coordination.\n\nThe approach is otherwise focused and coherent, with useful boundary and browser coverage. Before approval, establish the failure and concurrency guarantees behind \u201cnothing changes,\u201d stale-entry protection, and exactly-once audit recording.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-24-org-proposals-hardening",
+    "at": "2026-11-23T23:24:35.219467+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

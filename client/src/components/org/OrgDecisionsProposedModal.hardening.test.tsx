@@ -113,6 +113,20 @@ describe("OrgDecisionsProposedModal - hardening", () => {
   });
 
   // @covers FR-01.71
+  it("an audit failure after the entry was logged says so and asks to countersign again", async () => {
+    vi.mocked(fetchRejectedKeys).mockResolvedValue({});
+    mockedFetch.mockResolvedValue({ entries: [ENTRY], skipped: none });
+    mockedCountersign.mockResolvedValue({ ok: false, reason: "audit-unwritable", message: "acme-lead/audit.jsonl is read-only: make it writable, then retry", adr: "ADR-0003" });
+    renderModal();
+    await listed();
+    fireEvent.click(screen.getByTestId(`org-decisions-proposed-countersign-${ROW}`));
+    const result = await screen.findByTestId(`org-decisions-proposed-result-${ROW}`);
+    await waitFor(() => expect(result).toHaveTextContent("Logged as ADR-0003, but the audit record could not be written."));
+    expect(result).toHaveTextContent("countersign again to finish");
+    expect(result).not.toHaveTextContent("Nothing was changed");
+  });
+
+  // @covers FR-01.71
   it("the Rejected notice never claims a record that was not written", async () => {
     vi.mocked(fetchRejectedKeys).mockResolvedValue({});
     mockedFetch.mockResolvedValue({ entries: [ENTRY], skipped: none });

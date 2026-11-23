@@ -66,6 +66,12 @@ export async function handleCountersignRequest(
   if (outcome.status === "reject_pending") {
     return { status: 409, body: { error: "reject_pending", timestamp, leadId } };
   }
+  if (outcome.status === "audit_pending") {
+    return {
+      status: 409,
+      body: { error: "audit_unwritable", leadId, message: outcome.message, logged: true, adr: `ADR-${String(outcome.number).padStart(4, "0")}` },
+    };
+  }
   if (outcome.status === "entry_changed") {
     return { status: 409, body: { error: "entry_changed", timestamp, leadId } };
   }

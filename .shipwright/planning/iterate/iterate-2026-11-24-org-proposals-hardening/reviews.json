@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-24-org-proposals-hardening",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": null,
+          "category": "security / Category: risk — medium",
+          "file": null,
+          "line": null,
+          "finding": "The cross-site guard (criterion A) is a browser-honor header (`Sec-Fetch-Site`) plus content-type check, and the spec explicitly scopes out authenticating the caller. `Sec-Fetch-Site` is absent on older browsers and on any non-browser client, so \"no header\" must default to refused (403), not allowed — the spec doesn't pin the default direction. Also, non-JSON POST rejection via content type does nothing against a plain curl write to `/api/org/`; the LAN-threat model should be stated in the contract doc so this isn't mistaken for auth.",
+          "suggestion": "Confirm missing/`Sec-Fetch-Site: none`/`cross-site` all → 403, and only `same-origin`/`same-site` pass. Document explicitly that this guard is defense-in-depth, not authentication.",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": "edge-case — medium",
+          "file": null,
+          "line": null,
+          "finding": "Criterion F: SHA-256 truncated to first 32 hex = 128 bits — collision risk is negligible, but the real risk is digest stability across grammar version changes. If `blockForDigest` rules ever change (e.g., a future Unicode rule tweak), every pending window becomes stale at click time and returns `409 entry_changed` for honest users. There's no version tag in the digest or a fallback message distinguishing \"entry changed\" from \"digest rules drifted.\"",
+          "suggestion": "Include a grammar version byte in the digest input (or key it in the API), so a rule change fails loudly at the boundary test rather than as mysterious 409s in the field.",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": "edge-case — low",
+          "file": null,
+          "line": null,
+          "finding": "Criterion C: \"identical (author, action, reason)\" dedup for Reject — if the same author rejects the same entry twice with the same reason but the situation changed between clicks (e.g., a prior reject was retracted upstream), the second reject silently reports `recorded:false`-style dedup even though it's a fresh decision. Conversely, reason strings normalized by the new text rules (E) may make two different original reasons collide after folding.",
+          "suggestion": "Include entry timestamp / decisionKey in the dedup key explicitly (the mini-plan says it does — make sure the reason comparison is on the folded text and that's documented, since the folded and raw reasons differ under E's rules).",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": "risk — medium",
+          "file": null,
+          "line": null,
+          "finding": "Criterion E's aggressive Unicode stripping (lone surrogates, private use, VS16 except after emoji) is applied to the logged line. If folding happens before digest computation and before display, two visually distinct entries on different clients could fold identically, and the \"unedited `Ship 🚀 Prüfung 日本` logs exactly\" promise only covers one direction — there's no stated invariant that folded text is idempotent (fold∘fold = fold), which matters for dedup and digest.",
+          "suggestion": "Add an idempotency property test for the fold (fold twice == fold once), and pin a few adversarial samples (VS16 without pictographic base, keycap sequences, ZWJ family emoji losing ZWJ per spec).",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": "dependency — low",
+          "file": null,
+          "line": null,
+          "finding": "Client ships a hand-rolled synchronous SHA-256, pinned against node crypto. That's justified given `crypto.subtle` unavailability on http, but it's a security-relevant crypto primitive in client code with a correctness (not just performance) failure mode — a single-bit bug turns every click into `409 entry_changed`.",
+          "suggestion": "Keep it, but ensure the pinned test vectors include multi-block (>64 byte) inputs and inputs with lengths ≡ 55/56/64 mod 64 (padding edges), not just the shared daemon sample.",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": "approach — low",
+          "file": null,
+          "line": null,
+          "finding": "\"One `settle()` for statuses\" (client step 4) — collapsing status updates into a single settle is a reasonable cleanup, but if it changes notice-clearing timing (criterion H's \"notice cleared when another action starts\"), an async race could show a stale reject result after a new action starts.",
+          "suggestion": "Add an E2E assertion that starting action N+1 clears action N's result notice before N+1's response arrives.",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": "edge-case — low",
+          "file": null,
+          "line": null,
+          "finding": "Criterion B: `audit.jsonl` as a directory (EISDIR/EPERM) is probed, but the heals-after-crash-retry claim for F and B together isn't clearly probed — i.e., an unwritable audit file that becomes writable mid-session: does the client retry, or does the blocked state stick until reload?",
+          "suggestion": "State explicitly whether `audit_unwritable` blocked status is sticky until page reload or cleared on the next action; test whichever is claimed.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The approach does not explain how `audit_unwritable` guarantees “nothing changes” when an append fails during execution. Detecting an unusable audit file before mutation handles the directory probe, but a later append can still fail after the proposal or decision log has changed.",
+          "suggestion": "Define the write ordering and recovery behavior explicitly. Inject an append failure after the initial writability check and verify that countersign and reject either leave application state unchanged or recover consistently on retry.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Own-record matching and digest validation both depend on reading state before writing. Without serialization, concurrent requests can both find no matching record and append duplicates, or a proposal can change after its digest was checked. The listed sequential retry probes do not establish protection against these races.",
+          "suggestion": "Verify that the existing locking mechanism covers rereading the proposal, checking its digest, matching audit records, and performing writes. Add a concurrent duplicate-request test and a rewrite-during-action test. Document whether external lead writers participate in that coordination.  The approach is otherwise focused and coherent, with useful boundary and browser coverage. Before approval, establish the failure and concurrency guarantees behind “nothing changes,” stale-entry protection, and exactly-once audit recording.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-23T23:26:53.299493+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- **Category: security / Category: risk — medium**\n  **Finding:** The cross-site guard (criterion A) is a browser-honor header (`Sec-Fetch-Site`) plus content-type check, and the spec explicitly scopes out authenticating the caller. `Sec-Fetch-Site` is absent on older browsers and on any non-browser client, so \"no header\" must default to refused (403), not allowed — the spec doesn't pin the default direction. Also, non-JSON POST rejection via content type does nothing against a plain curl write to `/api/org/*`; the LAN-threat model should be stated in the contract doc so this isn't mistaken for auth.\n  **Suggestion:** Confirm missing/`Sec-Fetch-Site: none`/`cross-site` all → 403, and only `same-origin`/`same-site` pass. Document explicitly that this guard is defense-in-depth, not authentication.\n\n- **Category: edge-case — medium**\n  **Finding:** Criterion F: SHA-256 truncated to first 32 hex = 128 bits — collision risk is negligible, but the real risk is *digest stability across grammar version changes*. If `blockForDigest` rules ever change (e.g., a future Unicode rule tweak), every pending window becomes stale at click time and returns `409 entry_changed` for honest users. There's no version tag in the digest or a fallback message distinguishing \"entry changed\" from \"digest rules drifted.\"\n  **Suggestion:** Include a grammar version byte in the digest input (or key it in the API), so a rule change fails loudly at the boundary test rather than as mysterious 409s in the field.\n\n- **Category: edge-case — low**\n  **Finding:** Criterion C: \"identical (author, action, reason)\" dedup for Reject — if the same author rejects the same entry twice with the *same* reason but the situation changed between clicks (e.g., a prior reject was retracted upstream), the second reject silently reports `recorded:false`-style dedup even though it's a fresh decision. Conversely, reason strings normalized by the new text rules (E) may make two *different* original […truncated]\n\n[openai] 1. **Category:** risk  \n   **Severity:** high  \n   **Finding:** The approach does not explain how `audit_unwritable` guarantees “nothing changes” when an append fails during execution. Detecting an unusable audit file before mutation handles the directory probe, but a later append can still fail after the proposal or decision log has changed.  \n   **Suggestion:** Define the write ordering and recovery behavior explicitly. Inject an append failure after the initial writability check and verify that countersign and reject either leave application state unchanged or recover consistently on retry.\n\n2. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** Own-record matching and digest validation both depend on reading state before writing. Without serialization, concurrent requests can both find no matching record and append duplicates, or a proposal can change after its digest was checked. The listed sequential retry probes do not establish protection against these races.  \n   **Suggestion:** Verify that the existing locking mechanism covers rereading the proposal, checking its digest, matching audit records, and performing writes. Add a concurrent duplicate-request test and a rewrite-during-action test. Document whether external lead writers participate in that coordination.\n\nThe approach is otherwise focused and coherent, with useful boundary and browser coverage. Before approval, establish the failure and concurrency guarantees behind “nothing changes,” stale-entry protection, and exactly-once audit recording.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

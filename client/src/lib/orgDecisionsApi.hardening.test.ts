@@ -15,6 +15,8 @@ describe("decision requests - hardening", () => {
     expect(JSON.parse(f.mock.calls[0][1].body)).toEqual({ timestamp: "t", leadId: "l", line: "line", fingerprint: "ab".repeat(16) });
     vi.stubGlobal("fetch", reply(409, { error: "audit_unwritable", message: "fix it" }));
     expect(await countersignDecision("t", "l")).toEqual({ ok: false, reason: "audit-unwritable", message: "fix it" });
+    vi.stubGlobal("fetch", reply(409, { error: "audit_unwritable", message: "fix it", logged: true, adr: "ADR-0002" }));
+    expect(await countersignDecision("t", "l")).toEqual({ ok: false, reason: "audit-unwritable", message: "fix it", adr: "ADR-0002" });
   });
 
   // @covers FR-01.71

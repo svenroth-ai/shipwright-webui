@@ -106,7 +106,10 @@ export function useDecisionActions(refetch: () => Promise<unknown>) {
         return;
       }
       if (!result.ok && result.reason === "audit-unwritable") {
-        setStatuses((prev) => ({ ...prev, [key]: { kind: "blocked", message: UNWRITABLE(result.message) } }));
+        const message = result.adr !== undefined
+          ? `Logged as ${result.adr}, but the audit record could not be written. ${result.message} Then countersign again to finish.`
+          : UNWRITABLE(result.message);
+        setStatuses((prev) => ({ ...prev, [key]: { kind: "blocked", message } }));
         return;
       }
       if (!result.ok && result.reason === "entry-changed") {
