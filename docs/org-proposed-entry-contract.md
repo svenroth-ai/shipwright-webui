@@ -166,8 +166,18 @@ Nothing here changes identity, listing or countersign.
 - **Pointer** is `session:time:number` (the S1-E format) or the legacy
   `session <id> at <ISO time>, message <n>`. Anything else (empty, free text) is shown
   as **unknown source** (with the raw text), never hidden.
+- One line per quote (a continuation line counts as part of the proposed line). A quote whose
+  ` — ` suffix is not a valid pointer shows the raw suffix beside "unknown source" (nothing is
+  dropped); an absent pointer shows "unknown source (none given)". An entry that is not
+  fenced falls back to the sanitised markdown body.
 - Quote and pointer text is rendered as plain text only (never markdown/HTML).
 - No "Open source session" link: a pointer's session id has no resolvable target in the
   WebUI yet (short ids are not mapped to tasks); it is added only where a target exists.
-- Leadwright (S1-E) should write quotes in this `> text — pointer` shape inside the fence;
-  until it does, entries simply show no quotes.
+- **PROPOSAL, needs leadwright sign-off in S1-E:** quotes as `> text — pointer` lines inside the
+  fence. Until agreed and pinned as a fixture in both repos, entries simply show no quotes (the
+  `>` lines would fold into the proposed line). Tracked next to the other S1-E preconditions.
+- A suffix after ` — ` is split off only when it looks like a pointer attempt (`session …` or
+  `<id>:…`); otherwise the whole line is quote text and shows the entry's evidence pointer,
+  labelled "(entry evidence)". Empty `>` lines are skipped.
+- Unfenced (marker-less) bodies stay sanitised Markdown with no quote extraction.
+- W4 must move this line/quote classification into the mirrored grammar, not reimplement it.

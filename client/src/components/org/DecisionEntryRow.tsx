@@ -50,7 +50,7 @@ export function DecisionEntryRow({
             type="button"
             data-testid={`org-decisions-proposed-countersign-${rowKey}`}
             disabled={pending}
-            aria-label={`Countersign proposal from ${entry.leadId} at ${entry.timestamp}`}
+            aria-label={`${pending ? "Countersigning" : "Countersign"} proposal from ${entry.leadId} at ${entry.timestamp}`}
             onClick={onCountersign}
             className="rounded-[6px] border border-[var(--color-border,#e0dbd4)] px-2 py-1 text-[11px] hover:bg-[var(--color-muted-bg,#ede8e1)] disabled:opacity-50"
           >

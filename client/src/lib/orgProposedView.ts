@@ -6,9 +6,13 @@
  *
  * Display convention for quotes (documented in docs/org-proposed-entry-contract.md):
  * inside the fenced region, a line starting with `> ` is ONE quote, optionally
- * ending in ` — <pointer>` (split at the LAST ` — `); every other line is the
+ * ending in ` — <pointer>` (split at the LAST ` — `, only when the suffix looks like a
+ * pointer, so an em-dash in the text survives); every other line is the
  * proposed line. A quote without its own pointer inherits the entry's evidence
  * pointer. Everything here is text: callers render it as plain text, never markup.
+ *
+ * W4 NOTE: the line/quote classification below exists only on the client. W4 must move it
+ * into the mirrored grammar (drift-guarded), not re-implement it on the server.
  */
 import { FENCE_LINE_RE, FENCE_LABEL_PREFIX, findClose } from "./orgProposedGrammar";
 
@@ -19,6 +23,8 @@ export type SourceRef =
 export interface QuoteView {
   text: string;
   source: SourceRef;
+  /** true when the quote named no pointer of its own and shows the entry's evidence pointer. */
+  inherited: boolean;
 }
 
 export interface EntryView {
@@ -34,7 +40,8 @@ export interface EntryView {
 const ISO = String.raw`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z`;
 const SHORT_RE = new RegExp(String.raw`^([A-Za-z0-9_-]+):(${ISO}):(\d+)$`);
 const LONG_RE = new RegExp(String.raw`^session ([A-Za-z0-9_-]+) at (${ISO}), message (\d+)$`);
-const BEAT_RE = /\bbeat (\S+?),/;
+const BEAT_RE = /origin: \S+ beat ([^,\s]+),/;
+const POINTER_ATTEMPT_RE = /^(?:session\b|[A-Za-z0-9_-]+:\S)/;
 const QUOTE_SEP = " — ";
 
 /** `session:time:number` or `session <id> at <time>, message <n>`; anything else is unknown. */
@@ -49,8 +56,10 @@ export function parseSourceRef(raw: string | null): SourceRef {
 function parseQuote(line: string, fallback: SourceRef): QuoteView {
   const body = line.replace(/^>[ \t]?/, "");
   const at = body.lastIndexOf(QUOTE_SEP);
-  if (at === -1) return { text: body.trim(), source: fallback };
-  return { text: body.slice(0, at).trim(), source: parseSourceRef(body.slice(at + QUOTE_SEP.length)) };
+  const suffix = at === -1 ? "" : body.slice(at + QUOTE_SEP.length).trim();
+  // Only a suffix that looks like a pointer is split off: an em-dash inside the quote text stays in it.
+  if (at === -1 || !POINTER_ATTEMPT_RE.test(suffix)) return { text: body.trim(), source: fallback, inherited: true };
+  return { text: body.slice(0, at).trim(), source: parseSourceRef(suffix), inherited: false };
 }
 
 export function buildEntryView(block: string, evidence: string | null): EntryView {
@@ -63,7 +72,10 @@ export function buildEntryView(block: string, evidence: string | null): EntryVie
   const proposed: string[] = [];
   const quotes: QuoteView[] = [];
   for (const line of lines.slice(open + 2, close)) {
-    if (line.startsWith(">")) quotes.push(parseQuote(line, source));
+    if (line.startsWith(">")) {
+      const q = parseQuote(line, source);
+      if (q.text !== "") quotes.push(q);
+    }
     else proposed.push(line);
   }
   return {

@@ -32,7 +32,7 @@ describe("DecisionEntryRow structured view", () => {
   });
 
   it("shows a malformed pointer as unknown source", () => {
-    const row = renderRow(entry(["Digest.", "> q — garbage"], "garbage too"));
+    const row = renderRow(entry(["Digest.", "> q — 7c1e:badtime:1"], "garbage too"));
     expect(within(row).getByTestId("org-decisions-proposed-evidence-k0")).toHaveTextContent("unknown source");
     expect(within(row).getByTestId("org-decisions-proposed-quote-source-k0-0")).toHaveTextContent("unknown source");
   });

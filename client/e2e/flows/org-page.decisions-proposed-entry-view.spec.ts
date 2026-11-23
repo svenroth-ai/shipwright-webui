@@ -106,5 +106,7 @@ test.describe("Org page — structured proposal view", () => {
     // Escape closes the window
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
+    // focus returns to the tile button that opened the window
+    await expect(page.getByTestId("org-shared-doc-view-decisions-proposed.md")).toBeFocused();
   });
 });

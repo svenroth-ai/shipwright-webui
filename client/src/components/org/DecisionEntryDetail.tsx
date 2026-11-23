@@ -20,8 +20,8 @@ export function SourceLabel({ source, testId }: { source: SourceRef; testId: str
   return (
     <span data-testid={testId} data-source={source.kind} className="break-words">
       {describeSource(source)}
-      {source.kind === "unknown" && source.raw !== null && (
-        <span className="ml-1 font-mono">({source.raw})</span>
+      {source.kind === "unknown" && (
+        <span className="ml-1 font-mono">({source.raw ?? "none given"})</span>
       )}
     </span>
   );
@@ -59,7 +59,7 @@ export function DecisionEntryDetail({ rowKey, entry, labelId }: { rowKey: string
       </dl>
 
       {view.quotes.length > 0 && (
-        <section aria-labelledby={quotesId}>
+        <div role="group" aria-labelledby={quotesId}>
           <h3 id={quotesId} className="text-[11px] font-medium" style={MUTED}>
             Quotes from the lead ({view.quotes.length})
           </h3>
@@ -68,12 +68,12 @@ export function DecisionEntryDetail({ rowKey, entry, labelId }: { rowKey: string
               <li key={i} className="rounded-[6px] border-l-2 border-[var(--color-border,#e0dbd4)] pl-2" data-testid={`org-decisions-proposed-quote-${rowKey}-${i}`}>
                 <blockquote className="m-0 whitespace-pre-wrap break-words text-[11px]">{q.text}</blockquote>
                 <div className="text-[10px]" style={MUTED}>
-                  Source: <SourceLabel source={q.source} testId={`org-decisions-proposed-quote-source-${rowKey}-${i}`} />
+                  Source{q.inherited ? " (entry evidence)" : ""}: <SourceLabel source={q.source} testId={`org-decisions-proposed-quote-source-${rowKey}-${i}`} />
                 </div>
               </li>
             ))}
           </ul>
-        </section>
+        </div>
       )}
     </div>
   );

@@ -35,9 +35,19 @@ describe("buildEntryView", () => {
     expect(v.quotes[1].source).toMatchObject({ kind: "known", message: "21" });
   });
   it("a malformed quote pointer is unknown source, a missing one inherits the entry pointer", () => {
-    const v = buildEntryView(block(["Line.", "> a — nonsense", "> b"]), "session s1 at 2026-11-19T16:02:11Z, message 3");
-    expect(v.quotes[0].source).toEqual({ kind: "unknown", raw: "nonsense" });
+    const v = buildEntryView(block(["Line.", "> a — 7c1e:notatime:9", "> b"]), "session s1 at 2026-11-19T16:02:11Z, message 3");
+    expect(v.quotes[0].source).toEqual({ kind: "unknown", raw: "7c1e:notatime:9" });
     expect(v.quotes[1].source.kind).toBe("known");
+  });
+  it("keeps an em-dash in the quote text and inherits the entry pointer; skips empty quotes", () => {
+    const v = buildEntryView(block(["Line.", "> shipped — after a week — on Friday", ">"]), "session s1 at 2026-11-19T16:02:11Z, message 3");
+    expect(v.quotes).toHaveLength(1);
+    expect(v.quotes[0]).toMatchObject({ text: "shipped — after a week — on Friday", inherited: true });
+    expect(v.quotes[0].source.kind).toBe("known");
+  });
+  it("beat is read from the origin clause only", () => {
+    const b = block(["Line."]).replace("origin: acme-lead beat beat-0042", "origin: x-lead beat beat-7");
+    expect(buildEntryView(b, null).beat).toBe("beat-7");
   });
   it("a missing evidence pointer is unknown, never hidden", () => {
     expect(buildEntryView(block(["Line."], ""), null).source).toEqual({ kind: "unknown", raw: null });
