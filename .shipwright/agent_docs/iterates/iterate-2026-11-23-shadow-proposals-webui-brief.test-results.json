@@ -1,0 +1,64 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-23-shadow-proposals-webui-brief",
+    "date": "2026-11-23",
+    "unit": {
+      "status": "passed",
+      "passed": 10463,
+      "skipped": 16,
+      "total": 10479
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "n/a",
+      "justification": "Docs-only diff: one markdown campaign brief, no code or behavior; client (5242) and server (5221, 16 skipped) suites re-run green.",
+      "behaviors": [],
+      "counts": {
+        "testable": 0,
+        "tested": 0,
+        "untestable": 0,
+        "untested_testable": 0
+      }
+    },
+    "surface_verification": {
+      "surface": "none",
+      "justification": "Docs-only change; no UI, API or runtime surface touched.",
+      "tests_run": 0,
+      "exit_code": 0
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-23-shadow-proposals-webui-brief",
+    "commit": "e32fcf844958b0b8120971215877b69d114896c9",
+    "dirty": false,
+    "base": null,
+    "release": null
+  }
+}

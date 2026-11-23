@@ -1,0 +1,36 @@
+{
+  "run_id": "iterate-2026-11-23-shadow-proposals-webui-brief",
+  "date": "2026-11-23T16:21:18.874823Z",
+  "event_at": "2026-11-23T07:04:50.934187+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/shadow-proposals-webui-brief",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-23-shadow-proposals-webui-brief",
+  "test_completeness": {
+    "status": "n/a",
+    "justification": "Docs-only diff: one markdown campaign brief, no code or behavior; client (5242) and server (5221, 16 skipped) suites re-run green.",
+    "behaviors": [],
+    "counts": {
+      "testable": 0,
+      "tested": 0,
+      "untestable": 0,
+      "untested_testable": 0
+    }
+  },
+  "surface_verification": {
+    "run_id": "iterate-2026-11-23-shadow-proposals-webui-brief",
+    "surface": "none",
+    "justification": "Docs-only change; no UI, API or runtime surface touched.",
+    "tests_run": 0,
+    "exit_code": 0
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}
