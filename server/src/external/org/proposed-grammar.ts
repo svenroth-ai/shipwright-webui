@@ -239,12 +239,12 @@ export function splitQuote(line: string): { text: string; pointer: string | null
  *  `normalizeLine` strips on the write path, and more (it also drops the emoji selector), so a line can never hide a
  *  quote by an invisible difference. */
 export function foldForCompare(text: string): string {
-  return normalizeLine(stripInvisible(text.normalize("NFKC"), false)).toLowerCase();
+  return normalizeLine(stripInvisible(stripInvisible(text, false).normalize("NFKC"), false)).toLowerCase();
 }
 
 // Code points that render as nothing: format characters (tag characters, bidi overrides, zero width, ...), default
 // ignorables (variation selectors, fillers), private use, lone surrogates, C1 controls and the braille blank.
-const INVISIBLE = String.raw`\p{Cf}\p{Default_Ignorable_Code_Point}\p{Co}\p{Cs}\u0080-\u009f\u2800`;
+const INVISIBLE = String.raw`\p{Cf}\p{Default_Ignorable_Code_Point}\p{Co}\p{Cs}\u0080-\u009f\u2800\uFDD0-\uFDEF\uFFFE\uFFFF`;
 const INVISIBLE_ALL_RE = new RegExp(`[${INVISIBLE}]`, "gu");
 // An emoji presentation selector (U+FE0F) that directly follows an emoji base (or a keycap base before U+20E3) is
 // kept: dropping it turns a red heart into a text glyph. Every other selector is removed.

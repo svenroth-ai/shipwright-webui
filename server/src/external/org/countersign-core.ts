@@ -76,6 +76,11 @@ export function atomicWrite(target: string, content: string): void {
   }
 }
 
+function auditFailureMessage(err: unknown): string {
+  if (err instanceof AuditUnwritableError) return err.message;
+  return `The audit record could not be written (${err instanceof Error ? err.message : "unknown error"}); fix the lead's audit.jsonl, then retry`;
+}
+
 export type CountersignOutcome =
   | { status: "countersigned"; number: number; edited: boolean }
   /** `loggedLineDiffers`: this request named a line other than the logged one. Only decided for W4 line blocks
@@ -167,9 +172,9 @@ export async function performCountersign(
         try {
           audit(timestamp, leadId, stillProposed.block, existing.number, facts !== null && loggedLine !== null && isEdited(facts, loggedLine), facts);
         } catch (err) {
-          // An unusable audit file keeps the entry listed (the retry finishes the record once it is fixed); any other
-          // audit failure must not keep an approved entry listed: the log is the source of truth.
-          if (err instanceof AuditUnwritableError) return { status: "audit_pending", number: existing.number, message: err.message };
+          // ANY audit failure keeps the entry listed (the retry finishes the record once it is fixed): swallowing it
+          // would remove the entry and leave no audit record at all.
+          return { status: "audit_pending", number: existing.number, message: auditFailureMessage(err) };
         }
         const nextProposed =
           proposedRaw.slice(0, stillProposed.startIndex) +
@@ -230,8 +235,7 @@ export async function performCountersign(
       audit(timestamp, leadId, target.block, number, edited, facts);
     } catch (err) {
       // The pre-check passed but the append failed: the entry is logged and stays listed, so a retry completes the record.
-      if (err instanceof AuditUnwritableError) return { status: "audit_pending", number, message: err.message };
-      throw err;
+      return { status: "audit_pending", number, message: auditFailureMessage(err) };
     }
     atomicWrite(ctx.proposedPath, nextProposed);
 

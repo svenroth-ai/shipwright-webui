@@ -20,7 +20,10 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 export const orgWriteGuard: MiddlewareHandler = async (c, next) => {
   if (SAFE_METHODS.has(c.req.method)) return next();
-  if (c.req.header("sec-fetch-site") === "cross-site") return c.json({ error: "cross_site_refused" }, 403);
+  // Only a same-origin (or user-initiated, "none") request may write: "same-site" (another localhost port, e.g. a
+  // preview dev server) and "cross-site" are refused. Absent header = non-browser or plain-http LAN: allowed.
+  const site = c.req.header("sec-fetch-site");
+  if (site !== undefined && site !== "same-origin" && site !== "none") return c.json({ error: "cross_site_refused" }, 403);
   if (c.req.method === "POST" && !(c.req.header("content-type") ?? "").toLowerCase().startsWith("application/json")) {
     return c.json({ error: "unsupported_media_type" }, 415);
   }
