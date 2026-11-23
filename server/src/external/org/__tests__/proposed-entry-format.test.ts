@@ -186,7 +186,8 @@ describe("countersign - both forms move exactly once", () => {
 
   // @covers FR-01.71
   it("pinned sample hash matches the contract doc (cross-repo compatibility gate)", () => {
-    const sha = createHash("sha256").update(readFileSync(FIXTURE_PATH)).digest("hex");
+    // LF-normalised so a CRLF checkout (core.autocrlf) hashes identically; no .gitattributes pin needed.
+    const sha = createHash("sha256").update(readFileSync(FIXTURE_PATH, "utf8").replace(/\r\n/g, "\n")).digest("hex");
     const doc = readFileSync(path.join(import.meta.dirname, "..", "..", "..", "..", "..", "docs", "org-proposed-entry-contract.md"), "utf8");
     expect(doc).toContain(sha);
   });

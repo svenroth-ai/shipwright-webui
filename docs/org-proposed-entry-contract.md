@@ -44,7 +44,7 @@ which the shared adversarial corpus holds in step.
 
 ## Compatibility gate and policies
 
-- Fixture SHA-256 (LF bytes, pinned `-text` in `.gitattributes`):
+- Fixture SHA-256 (computed over the LF-normalised content, so a CRLF checkout hashes the same):
   `e5f3bd48c1ca08e51e6015908ba502a40ffdd0c1e00db0755f05920fb3d75447`.
   The leadwright copy must hash to the same value; a test here asserts this
   document names the fixture's current hash. Format changes: update the
