@@ -78,29 +78,131 @@
     },
     "code": {
       "review_type": "code",
-      "status": "not_run",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/org/OrgDecisionsProposedModal.tsx",
+          "line": 504,
+          "finding": "When Reject comes back already-countersigned the row gets status done but is not pinned in settled, so the refetch drops the entry and its Countersigned confirmation disappears at once.",
+          "suggestion": "Also pin it in settled the way handleCountersign does.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/org/OrgDecisionsProposedModal.tsx",
+          "line": 469,
+          "finding": "settled was widened but only done statuses are written to it; the Rejected notice is never cleared when a later action starts.",
+          "suggestion": "Clear the notice when another action begins.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "server/src/external/org/reject-request.ts",
+          "line": 13,
+          "finding": "The ISO timestamp pattern and the default author helper are copied from countersign-request.ts.",
+          "suggestion": "Share them from one helper module.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "server/src/external/org/decisions-audit.ts",
+          "line": 374,
+          "finding": "The general audit appender lives in the beat-register release module and is exported just for this.",
+          "suggestion": "Move it into a neutral audit-append module in its own commit.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/external/org/countersign-core.ts",
+          "line": 1281,
+          "finding": "A decision_rejected line written by the lead itself blocks countersign for good (409 reject_pending), and a later Reject finds that line and writes no real operator record. The fail-safe direction is right; the forged-author result is not stated anywhere.",
+          "suggestion": "Accept as documented risk and add a sentence to the decisions-audit header.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/external/org/countersign-core.ts",
+          "line": 1286,
+          "finding": "An unreadable or read-only lead audit.jsonl now becomes a generic 500 on countersign and the client shows a bare error code instead of the actionable message.",
+          "suggestion": "Map it to a dedicated 409 audit_unwritable and show it as a blocked status.",
+          "source": "code-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-11-23T20:44:42.870192+00:00",
-      "disposition": "the reviewer ran on an earlier state of the diff; its findings were fixed afterwards in ace6cd909; the orchestrator re-reviews the final commit at 3f-bis (campaign mode, ADR-029)",
-      "recorded_by": "none",
+      "completed_at": "2026-11-23T21:19:18.949313+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "delegated-to-orchestrator"
+      "model_tier": "opus",
+      "reviewer_notes": "No HIGH or MEDIUM. Exactly-once, path guard, locking, file sizes and the W2 merge were checked and found correct. Review type is full-review, no external model run."
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "not_run",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "reversibility",
+          "file": "server/src/external/org/reject-core.ts",
+          "line": null,
+          "finding": "Claim under doubt: after a 409 reject_pending, Reject finishes the job and the operator's own decision is what gets recorded — A pre-existing decision_rejected line (crash residue or written by the lead) exists. Countersign returns reject_pending, the operator clicks Reject and types a reason; reject finds the same kind, timestamp and key and appends nothing, then removes the entry.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary and contract",
+          "file": "server/src/external/org/proposed-decision-key.ts",
+          "line": null,
+          "finding": "Claim under doubt: the audit record never contains the proposed text or a quote — decisionKey is lead-written and only limited by a slug pattern of up to 200 characters, so hyphenated prose can land in summary and data.decisionKey.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency and ordering",
+          "file": "client/src/components/org/OrgDecisionsProposedModal.tsx",
+          "line": null,
+          "finding": "Claim under doubt: a rejected row hides only that entry — Row identity is timestamp, lead and index; a new proposal that reuses the timestamp and lands at the same index after refetch is hidden as rejected until the modal is reopened.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling and blast radius",
+          "file": "server/src/external/org/countersign-core.ts",
+          "line": null,
+          "finding": "Claim under doubt: adding the audit to countersign does not change when countersign works — Countersign now fails for a lead whose audit.jsonl is not a regular file, read-only, unopenable or behind a symlinked lead folder, and reads the whole file each time.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary and contract",
+          "file": "server/src/routes/org-writes.ts",
+          "line": null,
+          "finding": "Claim under doubt: only the operator's browser can trigger the destructive reject — The org route guard checks the bind host, not the request origin; a cross-site form POST with a text/plain JSON body is a simple request and is parsed.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-11-23T20:44:42.999676+00:00",
-      "disposition": "the reviewer ran on an earlier state of the diff; its findings were fixed afterwards in ace6cd909; the orchestrator re-reviews the final commit at 3f-bis (campaign mode, ADR-029)",
-      "recorded_by": "none",
+      "completed_at": "2026-11-23T21:20:04.427068+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "delegated-to-orchestrator"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -184,16 +286,16 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "not_run",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-11-23T20:44:42.719756+00:00",
-      "disposition": "the reviewer ran on an earlier state of the diff; its findings were fixed afterwards in ace6cd909; the orchestrator re-reviews the final commit at 3f-bis (campaign mode, ADR-029)",
-      "recorded_by": "none",
+      "completed_at": "2026-11-23T21:18:37.136206+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "delegated-to-orchestrator"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
