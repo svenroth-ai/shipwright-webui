@@ -228,8 +228,8 @@ Nothing here changes identity, listing or countersign.
   line first, so its failure changes nothing.
 - **Own record.** A decision appends its audit record unless THIS webui already wrote the identical one: same kind, entry
   timestamp, decisionKey, author and action, plus the same reason (reject) or ADR (countersign). A matching line that the lead
-  wrote itself (other author or shape) does not count, so Reject always leaves the operator's own `decision_rejected` record and
-  removes the entry. The reason is compared as stored (already normalised by `normalizeReason`). Exactly once under retries: a retry finds its own record and writes nothing. The reject response carries
+  wrote itself (other author or shape) does not count, so Reject leaves the operator's own `decision_rejected` record and
+  removes the entry. Limit: the match uses only fields a same-OS-user lead can predict (author defaults to the OS user name, reason is often empty), so a lead that reproduces them exactly can pre-empt the record (`recorded:false`, "already in the log"); the audit content stays true, real provenance would need a webui-only marker (out of scope). A countersign whose audit write failed after the log write (`logged:true`) stays listed until the file is fixed; if the lead rewrites that entry meanwhile, the retry answers `409 duplicate_identity` and the operator removes it by hand (tracked limit). Plain-http LAN: browsers send no Fetch-Metadata there, so the 415 JSON rule plus the CORS allowlist carry the guard; the 403 applies on secure contexts and localhost. The reason is compared as stored (already normalised by `normalizeReason`). Exactly once under retries: a retry finds its own record and writes nothing. The reject response carries
   `recorded: true|false` (false = the identical record was already there, or the entry was already gone) and the window only says
   "Recorded in the audit log" when it is true. Countersign of an entry whose reject line exists (forged or crash residue) is still
   `409 reject_pending`; Reject is the way out. Residual limit: a lead can write such a line to stop its OWN proposal being approved

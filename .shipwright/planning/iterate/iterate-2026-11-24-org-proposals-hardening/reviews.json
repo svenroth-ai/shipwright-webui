@@ -4,13 +4,13 @@
   "reviews": {
     "self": {
       "review_type": "self",
-      "status": "pending",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-11-23T23:31:26.305481+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "self-review",
       "parse_status": null,
       "raw_excerpt": null
     },
@@ -150,39 +150,42 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "pending",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-11-23T23:31:26.501067+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
-      "status": "pending",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-11-23T23:31:26.703867+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "opus-plan-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     },
     "architecture_internal": {
       "review_type": "architecture_internal",
-      "status": "pending",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-11-23T23:31:26.906339+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "architecture-internal-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     }
   }
 }

@@ -36,7 +36,7 @@ export function parseDecisionIdentity(raw: { timestamp?: unknown; leadId?: unkno
 }
 
 /** The staleness fingerprint a browser sends with a decision (optional; absent = not checked). */
-export const FINGERPRINT_RE = /^[0-9a-f]{32,64}$/;
+export const FINGERPRINT_RE = /^[0-9a-f]{32}$/;
 
 /** `409 audit_unwritable`: the lead's audit.jsonl cannot be read or written; nothing was changed. */
 export function auditUnwritableResult(err: AuditUnwritableError): { status: 409; body: Record<string, unknown> } {
