@@ -64,7 +64,7 @@ const TILES: Tile[] = [
 export function OrgSharedDocs() {
   const [openTile, setOpenTile] = useState<Tile | null>(null);
   const [decisionsProposedOpen, setDecisionsProposedOpen] = useState(false);
-  // The modal is unmounted on close, so Radix cannot restore focus: hand it back to the opener.
+  // No Dialog.Trigger, so Radix has nothing to return focus to on close: hand it back to the opener.
   const proposedBtnRef = useRef<HTMLButtonElement>(null);
 
   return (

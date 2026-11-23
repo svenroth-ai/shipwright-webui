@@ -45,7 +45,7 @@ function writeFixture() {
       "> We should batch these — 7c1e2f40:2026-11-19T16:02:11Z:14",
       '> <img src=x onerror="window.__pwned=1"> **not bold** — 7c1e2f40:2026-11-19T16:05:00Z:21',
     ], "session 7c1e2f40 at 2026-11-19T16:02:11Z, message 14") +
-      entry(TS2, "bad-pointer", "a1b2c3d4e5f60718293a4b5c6d7e8f90", ["Reviews are answered in two days.", "> quick turnaround — ???"], "see the chat"),
+      entry(TS2, "bad-pointer", "a1b2c3d4e5f60718293a4b5c6d7e8f90", ["Reviews are answered in two days.", "> quick turnaround — 7c1e2f40:notatime:3"], "see the chat"),
     "utf8",
   );
 }

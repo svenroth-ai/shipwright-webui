@@ -43,7 +43,7 @@ describe("DecisionEntryRow structured view", () => {
     expect(within(row).getByTestId("org-decisions-proposed-quote-k0-0")).toHaveTextContent("**bold**");
   });
 
-  it("exposes the entry as a named group and the button with a descriptive name", () => {
+  it("exposes the entry as a named list item and the button with a descriptive name", () => {
     renderRow(entry(["Digest."], "a1b2c3d4:2026-11-19T16:02:11Z:14"));
     expect(screen.getByRole("listitem", { name: /Proposal from 2026-11-20T09:15:00.000Z — acme-lead/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Countersign proposal from acme-lead at 2026-11-20T09:15:00.000Z" })).toBeEnabled();

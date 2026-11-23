@@ -33,11 +33,11 @@ export function DecisionEntryDetail({ rowKey, entry, labelId }: { rowKey: string
 
   return (
     <div className="mt-2 flex flex-col gap-2" data-testid={`org-decisions-proposed-detail-${rowKey}`}>
-      {view.fenced ? (
+      {view.fenced ? (view.proposedLine === "" ? null : (
         <p className="whitespace-pre-wrap break-words text-[12px] font-medium" data-testid={`org-decisions-proposed-line-${rowKey}`}>
           {view.proposedLine}
         </p>
-      ) : (
+      )) : (
         <div className="text-[11px] leading-relaxed">
           <DocumentMarkdown text={entry.body} />
         </div>
