@@ -1,4 +1,3 @@
-// @covers FR-01.76
 import { renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, useLocation } from "react-router-dom";
@@ -28,6 +27,7 @@ const entryFor = (projectId: string, id: string | null): ReminderEntry => ({
   key: `triage-${projectId}-${id}`,
 });
 
+// @covers FR-01.76
 describe("Open in Triage (parked row)", () => {
   it("opens THAT item in Triage, not just the list", async () => {
     const { result } = setup();

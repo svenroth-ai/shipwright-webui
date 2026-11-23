@@ -1,4 +1,3 @@
-// @covers FR-01.76
 import { act, renderHook } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
@@ -24,6 +23,7 @@ function setup(url: string, entries: TriageEntry[], settled: boolean) {
   return { open, view };
 }
 
+// @covers FR-01.76
 describe("triageDeepLink", () => {
   it("builds the link from project and id, and falls back to the list without an id", () => {
     expect(triageDeepLink("p 1", "trg-ab")).toBe("/triage?project=p%201&item=trg-ab");
@@ -31,6 +31,7 @@ describe("triageDeepLink", () => {
   });
 });
 
+// @covers FR-01.76
 describe("useTriageDeepLink", () => {
   it("opens the entry of THAT project (ids repeat across projects) and consumes the link", () => {
     const { open, view } = setup(
