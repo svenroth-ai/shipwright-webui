@@ -93,14 +93,9 @@ export function useDecisionActions(refetch: () => Promise<unknown>) {
         return;
       }
       if (result.ok) {
-        setStatuses((prev) => ({
-          ...prev,
-          [key]: { kind: "done", alreadyCountersigned: result.alreadyCountersigned, adr: result.adr, edited: result.edited, loggedLineDiffers: result.loggedLineDiffers },
-        }));
-        setSettled((prev) => ({
-          ...prev,
-          [key]: { entry, status: { kind: "done", alreadyCountersigned: result.alreadyCountersigned, adr: result.adr, edited: result.edited } },
-        }));
+        const done: EntryStatus = { kind: "done", alreadyCountersigned: result.alreadyCountersigned, adr: result.adr, edited: result.edited, loggedLineDiffers: result.loggedLineDiffers };
+        setStatuses((prev) => ({ ...prev, [key]: done }));
+        setSettled((prev) => ({ ...prev, [key]: { entry, status: done } }));
         // Both surfaces observe the same countersign action's effect —
         // refresh the proposed list (the entry is gone) and the
         // decision_log.md tile (the new entry is there), without the PO

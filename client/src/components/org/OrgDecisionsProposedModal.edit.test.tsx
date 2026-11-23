@@ -120,6 +120,16 @@ describe("edit before approving (W4)", () => {
   });
 
   // @covers FR-01.71
+  it("the pinned row keeps 'with an earlier wording' after the refetch no longer lists the entry", async () => {
+    mockedFetch.mockResolvedValueOnce([FENCED]).mockResolvedValue([]);
+    mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: true, number: 4, adr: "ADR-0004", edited: false, loggedLineDiffers: true });
+    renderModal();
+    fireEvent.click(await screen.findByTestId(id("countersign")));
+    await waitFor(() => expect(mockedFetch.mock.calls.length).toBeGreaterThan(1));
+    expect(await screen.findByTestId(id("result"))).toHaveTextContent("with an earlier wording");
+  });
+
+  // @covers FR-01.71
   it("a retry answered with another wording than the one sent says so", async () => {
     mockedFetch.mockResolvedValue([FENCED]);
     mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: true, number: 4, adr: "ADR-0004", edited: false, loggedLineDiffers: true });

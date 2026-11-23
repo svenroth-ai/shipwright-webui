@@ -105,6 +105,28 @@ describe("countersign edit hardening (W4 fix round)", () => {
   });
 
   // @covers FR-01.71
+  it("invisible format characters and C1 controls never reach the log, in an unedited or an edited line", async () => {
+    const tag = String.fromCodePoint(0xe0049, 0xe0067, 0xe006e) + "‮​";
+    writeFileSync(proposed, entry([`Ship${tag} weekly${tag} digests.`]));
+    expect((await post({})).status).toBe(200);
+    const log = readFileSync(logged, "utf8");
+    expect(log).toContain("- Ship weekly digests.");
+    expect(/[\p{Cf}-]/u.test(log)).toBe(false);
+    rmSync(logged);
+    writeFileSync(proposed, entry([LINE]));
+    expect((await post({ line: `Edited${tag} wording.` })).status).toBe(200);
+    expect(/[\p{Cf}-]/u.test(readFileSync(logged, "utf8"))).toBe(false);
+    expect(readFileSync(logged, "utf8")).toContain("- Edited wording.");
+  });
+
+  // @covers FR-01.71
+  it("a sentence split across two quote lines is refused", async () => {
+    writeFileSync(proposed, entry([LINE, "> the migration to the new billing", "> platform was postponed again"]));
+    const res = await post({ line: "Because the new billing platform was postponed, we wait." });
+    expect(res.status).toBe(400);
+  });
+
+  // @covers FR-01.71
   it("every displayed quote text is one of the server's needles (shared splitQuote)", () => {
     const lines = [
       `> ${LONG_QUOTE} \u2014 acme:2026-11-19T16:02:11Z:14`,

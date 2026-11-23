@@ -14,7 +14,7 @@
  * The line/quote split (`fencedParts`) and the pointer parser live in the mirrored grammar, so the
  * server countersign uses the very same rule (W4).
  */
-import { fencedParts, parseSourceRef, splitQuote, type SourceRef } from "./orgProposedGrammar";
+import { fencedParts, parseSourceRef, splitQuote, stripInvisible, type SourceRef } from "./orgProposedGrammar";
 
 export { parseSourceRef };
 export type { SourceRef };
@@ -50,7 +50,7 @@ export function buildEntryView(block: string, evidence: string | null): EntryVie
   const quotes = parts.quotes.map((l) => parseQuote(l, source)).filter((q) => q.text !== "");
   return {
     fenced: true,
-    proposedLine: parts.proposed.join("\n").trim(),
+    proposedLine: stripInvisible(parts.proposed.join("\n")).trim(), // exactly what the server will log
     beat: BEAT_RE.exec(parts.label)?.[1] ?? null,
     source,
     quotes,

@@ -32,9 +32,9 @@
 
 import { writeFileSync, renameSync, existsSync, unlinkSync } from "node:fs";
 import { dirname, basename, join } from "node:path";
-import { normalizeLine } from "./proposed-grammar.js";
 import { randomBytes } from "node:crypto";
 
+import { normalizeLine } from "./proposed-grammar.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
 import { proposalFacts, proposalFingerprint, checkEditedLine, checkOriginalLine, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
 import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, type DecisionAuditDeps } from "./decisions-audit.js";

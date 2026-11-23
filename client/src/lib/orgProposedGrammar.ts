@@ -209,7 +209,8 @@ export interface FencedParts {
 
 /** The ONE rule that splits a fenced region into proposed line and quotes: a
  *  line starting with `>` is a quote, every other line is the proposed line.
- *  `null` when the block has no fence where the daemon puts it. */
+ *  `null` when the block has no fence where the daemon puts it. The block must already be canonical: a fence
+ *  opened by the daemon's own label line, lines split on LF (a trailing CR is dropped). */
 export function fencedParts(blockLines: string[]): FencedParts | null {
   const lines = blockLines.map((l) => l.replace(/\r$/, ""));
   const open = lines.findIndex((l, i) => FENCE_LINE_RE.test(l) && (lines[i + 1] ?? "").startsWith(FENCE_LABEL_PREFIX));
@@ -239,7 +240,13 @@ export function foldForCompare(text: string): string {
   return normalizeLine(text.normalize("NFKC").replace(/\p{Cf}/gu, "")).toLowerCase();
 }
 
+/** Invisible characters removed from anything shown as, or written as, the line: Unicode format characters
+ *  (tag characters, bidi overrides, zero width, ...) and C1 controls. The log is read by agents as authority. */
+export function stripInvisible(text: string): string {
+  return text.replace(/[\p{Cf}-]/gu, "");
+}
+
 /** One line for the log: control characters (newlines too) and runs of blanks become one space. */
 export function normalizeLine(text: string): string {
-  return text.replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, " ").replace(/ {2,}/g, " ").trim();
+  return stripInvisible(text).replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, " ").replace(/ {2,}/g, " ").trim();
 }

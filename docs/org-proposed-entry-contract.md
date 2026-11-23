@@ -205,10 +205,10 @@ Nothing here changes identity, listing or countersign.
 - A fenced line that starts with `>` after optional blanks is a quote. An UNEDITED line goes through the same
   checks (empty, too long, repeats a quote) and the operator must edit it when it fails. Quote needles include
   the text without its ` — <pointer>` suffix. Evidence pointer fields are bounded (session 1-64 chars, message
-  up to 9 digits). Quotes under 20 characters are not guarded, and a paraphrase or translation of a quote is not detected (documented limits). decisionKey is lead-written and may carry wording.
+  up to 9 digits). Invisible characters (Unicode format characters such as tag characters, bidi overrides and zero width, and C1 controls) are removed from every line before it is shown, sent or logged, so the log never carries them. Quotes under 20 characters are not guarded, the quote region is also checked as one joined text, and a paraphrase or translation of a quote is not detected (documented limits). decisionKey is lead-written and may carry wording.
 - Accepted limits (tracked follow-ups, not built): the client always sends the line it displayed, so only seen text is logged and a changed line is audited as edited, but
   it sends no fingerprint of the quotes/evidence it displayed, so a same-identity rewrite of those between view and click is approved; a lead can pre-plant a
   `decision_countersigned` line in its own audit.jsonl; a missing lead folder skips the audit line.
 - Retry after a crash between log write and removal compares the rest of the block with the line the log
-  already holds (a retry that names another line than the logged one is answered `loggedLineDiffers: true`); a log block in the pre-W4 shape (whole entry) still matches.
+  already holds (a retry that names another line than the logged one is answered `loggedLineDiffers: true`; this applies to W4 line blocks only, not pre-W4 whole-entry blocks). The evidence session id (up to 64 identifier characters) is lead-written like the decisionKey: an accepted limit; a log block in the pre-W4 shape (whole entry) still matches.
 

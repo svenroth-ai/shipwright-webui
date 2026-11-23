@@ -10,6 +10,9 @@
  * is a plain identifier (`decisionKeyOf`). The line is written as a list item
  * on its own line, so no text of it can ever start a header, marker or fence.
  *
+ * Documented limits: a look-alike (homoglyph, paraphrase, translation) of a quote is not detected; the evidence
+ * session id (up to 64 identifier characters) is lead-written, like the decisionKey, and is audited as such.
+ *
  * The classification of fenced lines (line vs quote) and the quote split are the
  * mirrored grammar's `fencedParts` / `splitQuote`; this module only decides what
  * to write.
@@ -67,7 +70,8 @@ export function proposalFacts(block: string): ProposalFacts | null {
   const pointer = parseSourceRef(firstBullet(daemonTail(lines), EVIDENCE_BULLET_RE) || null);
   return {
     original: normalizeLine(parts.proposed.join("\n")),
-    quotes: parts.quotes.flatMap(quoteNeedles).filter((q) => q !== ""),
+    // each quote line, plus the whole quote region joined (a sentence can be pasted across two quote lines)
+    quotes: [...parts.quotes.flatMap(quoteNeedles), foldForCompare(parts.quotes.map((q) => q.replace(QUOTE_PREFIX_RE, "")).join(" "))].filter((q) => q !== ""),
     evidence: pointer.kind === "known" ? { session: pointer.session, time: pointer.time, message: pointer.message } : null,
   };
 }
