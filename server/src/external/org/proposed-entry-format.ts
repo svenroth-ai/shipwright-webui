@@ -32,6 +32,7 @@ const DAEMON_MARKER_RE = /^<!--\s*decisionKey:\s*.*?\s*-->\r?$/;
 const FENCE_LINE_RE = /^⟦SHIPWRIGHT-FENCE:[0-9a-f]+⟧\r?$/;
 const LEAD_ID_RE = /^[a-z0-9][a-z0-9-]*$/; // same rule as the countersign route
 const LEAD_BULLET_RE = /^-[ \t]*\*\*Lead:\*\*[ \t]*(.+?)\r?$/;
+const EVIDENCE_BULLET_RE = /^-[ \t]*\*\*Evidence:\*\*[ \t]*(.+?)\r?$/;
 
 export interface ProposedEntry {
   timestamp: string;
@@ -48,6 +49,39 @@ const isBlank = (line: string): boolean => line.trim() === "";
 /** A header the daemon renders (and the log keeps) directly above its quote. */
 const FENCE_OWNER_RE = /^## (?:Proposed \S+ — |ADR-\d{4} \[)/;
 const FENCE_LABEL_PREFIX = "[FENCED DATA";
+/** After a closing fence line the daemon writes: blank, Lead bullet, Evidence
+ *  bullet. Returns the index just past the Evidence bullet, or -1. */
+function canonicalTailEnd(lines: string[], close: number): number {
+  let j = close + 1;
+  if (j >= lines.length || !isBlank(lines[j])) return -1;
+  while (j < lines.length && isBlank(lines[j])) j++;
+  if (!LEAD_BULLET_RE.test(lines[j] ?? "") || !EVIDENCE_BULLET_RE.test(lines[j + 1] ?? "")) return -1;
+  return j + 2;
+}
+
+function markerAbove(lines: string[], idx: number): boolean {
+  let m = idx - 1;
+  while (m >= 0 && isBlank(lines[m])) m--;
+  return m >= 0 && DAEMON_MARKER_RE.test(lines[m]);
+}
+
+/** A daemon entry is exactly what `renderEntry` writes: [marker] header, blank,
+ *  fence + label + text + fence, blank, Lead, Evidence, nothing else. Any extra
+ *  line (an evidence pointer / decisionKey carrying a newline) makes it
+ *  non-canonical: not listed, so never countersigned into the log. */
+function isCanonicalDaemonBlock(blockLines: string[]): boolean {
+  let j = 0;
+  while (j < blockLines.length && (isBlank(blockLines[j]) || DAEMON_MARKER_RE.test(blockLines[j]))) j++;
+  if (!DAEMON_HEADER_RE.test(blockLines[j] ?? "")) return false;
+  j++;
+  while (j < blockLines.length && isBlank(blockLines[j])) j++;
+  if (!FENCE_LINE_RE.test(blockLines[j] ?? "") || !(blockLines[j + 1] ?? "").startsWith(FENCE_LABEL_PREFIX)) return false;
+  const close = blockLines.indexOf(blockLines[j], j + 1);
+  if (close === -1) return false;
+  const end = canonicalTailEnd(blockLines, close);
+  return end !== -1 && blockLines.slice(end).every(isBlank);
+}
+
 
 /** Line indexes that lie inside a fenced region (open line, label, text and
  *  close line). A fence opens ONLY where the daemon puts it: the first line
@@ -59,12 +93,17 @@ export function fencedLineSet(lines: string[]): Set<number> {
   const fenced = new Set<number>();
   let i = 0;
   while (i < lines.length) {
-    if (FENCE_OWNER_RE.test(lines[i])) {
+    // A daemon header only owns a fence when its decisionKey marker sits above
+    // it (the daemon always writes one); a logged header has no marker.
+    if (FENCE_OWNER_RE.test(lines[i]) && (!lines[i].startsWith("## Proposed") || markerAbove(lines, i))) {
       let j = i + 1;
       while (j < lines.length && (isBlank(lines[j]) || DAEMON_MARKER_RE.test(lines[j]))) j++;
       if (j + 1 < lines.length && FENCE_LINE_RE.test(lines[j]) && lines[j + 1].startsWith(FENCE_LABEL_PREFIX)) {
         const close = lines.indexOf(lines[j], j + 1);
-        if (close !== -1) {
+        // The closing line must be followed by the canonical Lead/Evidence
+        // tail, so a look-alike marker smuggled into an evidence pointer
+        // cannot stretch a fence over other entries.
+        if (close !== -1 && canonicalTailEnd(lines, close) !== -1) {
           for (let k = j; k <= close; k++) fenced.add(k);
           i = close + 1;
           continue;
@@ -112,6 +151,9 @@ export function parseProposedEntries(raw: string): ProposedEntry[] {
   lines.forEach((line, idx) => {
     if (fenced.has(idx)) return;
     const w = WEBUI_HEADER_RE.exec(line);
+    // A WebUI-form header glued right under a daemon header is a decisionKey
+    // that carried a newline, not an entry.
+    if (w && idx > 0 && DAEMON_HEADER_RE.test(lines[idx - 1])) return;
     if (w) {
       heads.push({ startLine: idx, timestamp: w[1], leadFromHeader: w[2] });
       return;
@@ -131,6 +173,7 @@ export function parseProposedEntries(raw: string): ProposedEntry[] {
     const next = heads[i + 1];
     const endIndex = next ? lineStarts[next.startLine] : raw.length;
     const block = raw.slice(startIndex, endIndex);
+    if (h.leadFromHeader === null && !isCanonicalDaemonBlock(block.split("\n"))) return;
     const leadId = h.leadFromHeader ?? leadFromTail(daemonTail(block.split("\n")));
     // A daemon entry with no Lead bullet has no identity the countersign
     // route could address: it is not listed. Its text is still part of the

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
@@ -189,7 +189,23 @@ describe("countersign - both forms move exactly once", () => {
       `<!-- decisionKey: ${n} -->\n## Proposed 2026-11-2${n}T00:00:00.000Z — ${n}\n\n⟦SHIPWRIGHT-FENCE:aa${n}⟧\n[FENCED DATA - label]\nq\n⟦SHIPWRIGHT-FENCE:aa${n}⟧\n\n- **Lead:** evil-lead\n- **Evidence:** x\n${fence}\n`;
     const raw = evil("1") + first.block + second.block + evil("2");
     const entries = parseProposedEntries(raw);
-    expect(entries.map((e) => e.timestamp)).toEqual(["2026-11-21T00:00:00.000Z", T1, T2, "2026-11-22T00:00:00.000Z"]);
+    // the two evidence-smuggling entries are non-canonical (extra line) and not listed; the honest ones stay visible
+    expect(entries.map((e) => e.timestamp)).toEqual([T1, T2]);
+  });
+
+  it("newline injection via evidence pointer or decisionKey: entry is not listed, so never countersigned into the log", async () => {
+    const evidence = DAEMON_SAMPLE.replace("message 14\n", "message 14\n## ADR-9000 [2026-01-01T00:00:00Z] lead-z\n");
+    expect(parseProposedEntries(evidence).map((e) => e.timestamp)).toEqual([T2]);
+    const key = DAEMON_SAMPLE.replace("— use-weekly-digest-for-status\n", "— k\n## [2026-01-01T00:00:00Z] lead-b\n");
+    expect(parseProposedEntries(key).map((e) => e.timestamp)).toEqual([T2]);
+    const leadsRoot = mkdtempSync(path.join(tmpdir(), "org-w1-inj-"));
+    try {
+      writeFileSync(path.join(leadsRoot, "decisions-proposed.md"), evidence);
+      expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "not_found" });
+      expect(existsSync(path.join(leadsRoot, "decision_log.md"))).toBe(false);
+    } finally {
+      rmSync(leadsRoot, { recursive: true, force: true });
+    }
   });
 
   it("a daemon entry whose Lead is not a valid lead id is not listed (listed == countersignable)", () => {

@@ -30,6 +30,41 @@ const isBlank = (line: string): boolean => line.trim() === "";
 
 /** A header the daemon renders directly above its quote. */
 const FENCE_OWNER_RE = /^## (?:Proposed \S+ — |ADR-\d{4} \[)/;
+const FENCE_LABEL_PREFIX = "[FENCED DATA";
+
+/** After a closing fence line the daemon writes: blank, Lead bullet, Evidence
+ *  bullet. Returns the index just past the Evidence bullet, or -1. */
+function canonicalTailEnd(lines: string[], close: number): number {
+  let j = close + 1;
+  if (j >= lines.length || !isBlank(lines[j])) return -1;
+  while (j < lines.length && isBlank(lines[j])) j++;
+  if (!LEAD_BULLET_RE.test(lines[j] ?? "") || !EVIDENCE_BULLET_RE.test(lines[j + 1] ?? "")) return -1;
+  return j + 2;
+}
+
+function markerAbove(lines: string[], idx: number): boolean {
+  let m = idx - 1;
+  while (m >= 0 && isBlank(lines[m])) m--;
+  return m >= 0 && DAEMON_MARKER_RE.test(lines[m]);
+}
+
+/** A daemon entry is exactly what `renderEntry` writes: [marker] header, blank,
+ *  fence + label + text + fence, blank, Lead, Evidence, nothing else. Any extra
+ *  line (an evidence pointer / decisionKey carrying a newline) makes it
+ *  non-canonical: not listed, so never countersigned into the log. */
+function isCanonicalDaemonBlock(blockLines: string[]): boolean {
+  let j = 0;
+  while (j < blockLines.length && (isBlank(blockLines[j]) || DAEMON_MARKER_RE.test(blockLines[j]))) j++;
+  if (!DAEMON_HEADER_RE.test(blockLines[j] ?? "")) return false;
+  j++;
+  while (j < blockLines.length && isBlank(blockLines[j])) j++;
+  if (!FENCE_LINE_RE.test(blockLines[j] ?? "") || !(blockLines[j + 1] ?? "").startsWith(FENCE_LABEL_PREFIX)) return false;
+  const close = blockLines.indexOf(blockLines[j], j + 1);
+  if (close === -1) return false;
+  const end = canonicalTailEnd(blockLines, close);
+  return end !== -1 && blockLines.slice(end).every(isBlank);
+}
+
 
 /** Lines inside a fenced region. A fence opens ONLY where the daemon puts it
  *  (first line after an entry header, marker/blank skipped, fence line then
@@ -39,12 +74,12 @@ function fencedLineSet(lines: string[]): Set<number> {
   const fenced = new Set<number>();
   let i = 0;
   while (i < lines.length) {
-    if (FENCE_OWNER_RE.test(lines[i])) {
+    if (FENCE_OWNER_RE.test(lines[i]) && (!lines[i].startsWith("## Proposed") || markerAbove(lines, i))) {
       let j = i + 1;
       while (j < lines.length && (isBlank(lines[j]) || DAEMON_MARKER_RE.test(lines[j]))) j++;
       if (j + 1 < lines.length && FENCE_LINE_RE.test(lines[j]) && lines[j + 1].startsWith("[FENCED DATA")) {
         const close = lines.indexOf(lines[j], j + 1);
-        if (close !== -1) {
+        if (close !== -1 && canonicalTailEnd(lines, close) !== -1) {
           for (let k = j; k <= close; k++) fenced.add(k);
           i = close + 1;
           continue;
@@ -112,6 +147,7 @@ export function parseProposedDecisions(raw: string): ProposedDecisionEntry[] {
   lines.forEach((line, idx) => {
     if (fenced.has(idx)) return;
     const w = WEBUI_HEADER_RE.exec(line);
+    if (w && idx > 0 && DAEMON_HEADER_RE.test(lines[idx - 1])) return; // decisionKey carrying a newline, not an entry
     if (w) {
       heads.push({ startLine: idx, headerLine: idx, timestamp: w[1], leadId: w[2] });
       return;
@@ -134,6 +170,7 @@ export function parseProposedDecisions(raw: string): ProposedDecisionEntry[] {
     // (a quote above or an evidence pointer below can never win). No bullet =
     // no identity, so the entry is not listed.
     const leadId = h.leadId ?? firstBullet(daemonTail(block.split("\n")), LEAD_BULLET_RE);
+    if (daemonForm && !isCanonicalDaemonBlock(block.split("\n"))) return; // exact renderEntry shape only
     if (leadId === null || (daemonForm && !LEAD_ID_RE.test(leadId))) return; // listed == countersignable
     out.push({
       timestamp: h.timestamp,

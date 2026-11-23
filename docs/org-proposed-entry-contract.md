@@ -80,3 +80,14 @@ and `client/src/lib/orgDecisionsApi.ts` (`parseProposedDecisions`).
   read as a real header. Leadwright must reject CR/LF in evidencePointer,
   decisionKey and leadId. W1 cannot close this on the reading side without
   hiding hand-written entries.
+- **Only the exact `renderEntry` shape is listed (and so countersignable):**
+  `[marker] header, blank, fence + label + text + fence, blank, Lead bullet,
+  Evidence bullet`, nothing after. Any extra line (an evidence pointer or
+  decisionKey carrying a newline) makes the entry non-canonical: it is not
+  listed and cannot be moved into `decision_log.md`. A fence also only counts
+  when its closing line is followed by that Lead/Evidence tail, and a
+  WebUI-form header glued directly under a daemon header is not an entry.
+  Residual risk, upstream: a lead can still write a complete, canonical-looking
+  entry as itself (the Lead id is self-reported by the lead; the daemon does not
+  verify it against the beat's real lead). Leadwright must verify leadId and
+  reject newlines in evidencePointer, decisionKey and leadId (S1-E).
