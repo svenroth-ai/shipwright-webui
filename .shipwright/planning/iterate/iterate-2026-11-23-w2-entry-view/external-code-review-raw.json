@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Review findings\n\n- Category: spec\n  Severity: medium\n  File: client/src/components/org/OrgDecisionsProposedModal.tsx (not in diff)\n  Finding: The scope says \"Split the row **and modal** to stay under 300 lines.\" The diff splits the row into `DecisionEntryDetail` but touches the modal only via its props interface; no modal split is present. If the modal is still over 300 lines (or grows with the W2 a11y additions), the unit is only half done.\n  Suggestion: Verify the modal's line count; if it's near/over 300, split its row-list body out in this unit or note explicitly that it's deferred.\n\n- Category: edge-case\n  Severity: medium\n  File: client/src/lib/orgProposedView.ts:60 (`POINTER_ATTEMPT_RE`)\n  Finding: A quote whose text legitimately ends in something matching `[A-Za-z0-9_-]+:\\S` loses that suffix from its text and shows it as \"unknown source (\u2026)\". E.g. `> ship ratio target \u2014 2:1` splits to text \"ship ratio target\" + \"unknown source (2:1)\". The doc contract says \"split only when it looks like a pointer attempt\", so this is spec'd, but the heuristic `2:1` matching is a real text-corruption case a lead can hit.\n  Suggestion: Tighten the heuristic (e.g. require the pre-colon segment to be \u22654 chars and the post-colon segment to start with a digit/ISO date), or accept and document the truncation behavior.\n\n- Category: test\n  Severity: medium\n  File: client/e2e/flows/org-page.decisions-proposed-entry-view.spec.ts:24-25 (`writeFixture` / `afterEach`)\n  Finding: The spec does `rmSync(~/.claude/leads, {recursive: true})` in `beforeEach`/`afterEach` \u2014 it deletes the developer's real home-directory data on every run. If this is an established repo convention, fine; if not, a single run on a dev machine destroys real leads data.\n  Suggestion: Confirm this matches the existing e2e harness convention (env-pinned `LEADS_ROOT`); if the other flows do the same, ignore.\n\n- Category: test\n  Severity: low\n  File: client/e2e/flows/org-page.decisions-proposed-entry-view.spec.ts:105-106\n  Finding: The focus-trap assertion `expect(dialog.locator(\":focus\")).toHaveCount(1)` only asserts *some* element inside the dialog has focus \u2014 it would pass even if the trap cycled to an unexpected element or if tabbing escaped into a dialog child. It does not actually prove focus didn't leave the dialog (escaping focus would give count 0, which is caught, but a wrong-order trap passes).\n  Suggestion: Assert the focused element's identity after the third Tab (e.g. it's the Close button again, or the first focusable), which pins the cycle behavior.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/org/DecisionEntryDetail.tsx:36-39\n  Finding: For unfenced (legacy) entries, `view.beat` is null and `view.source` is parsed from `entry.evidence`, so a legacy entry whose evidence was free-form prose (previously shown as plain \"Evidence: <text>\") now renders as \"unknown source (\u2026prose\u2026)\". This is per the new contract, but it is a behavior change for all existing entries not shown in the diff \u2014 worth confirming with the brief that legacy evidence prose is meant to be re-labelled as \"unknown source\".\n  Suggestion: If legacy prose evidence should remain verbatim, special-case `fenced === false` to render `entry.evidence` as-is.\n\nOtherwise the change looks solid: the parser is pure and tested against both pointer shapes plus malformed inputs; quote text is React text nodes only (the XSS assertions in both unit and e2e tests are real behavioral checks); row split keeps identity/countersign untouched; the focus-restore handoff (`requestAnimationFrame` \u2192 opener button) correctly compensates for Radix's unmount-on-close. Tests cover happy path, malformed pointers, missing pointers, unfenced fallback, and keyboard flow.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "Repository reads were blocked by the execution policy, so I could not inspect the referenced brief or run tests. This review is based on the supplied specification and diff.\n\n- Category: bug\n- Severity: high\n- File: client/e2e/flows/org-page.decisions-proposed-entry-view.spec.ts:32\n- Finding: `writeFixture()` recursively deletes the real `~/.claude/leads` directory, and teardown deletes it again. Running this test on a developer machine can permanently erase existing lead data.\n- Suggestion: Run the application and tests against an isolated temporary leads directory. Remove only that test-owned directory during cleanup.\n\n- Category: spec\n- Severity: medium\n- File: client/src/lib/orgProposedView.ts:60\n- Finding: A malformed quote pointer such as `> quick turnaround \u2014 ???` inherits the entry\u2019s evidence instead of showing \u201cunknown source.\u201d With valid entry evidence, this incorrectly attributes the quote to that source. The E2E fixture masks the defect because its entry evidence is also malformed.\n- Suggestion: Make explicit malformed quote pointers distinguishable from ordinary quote text and render them as unknown sources. Add a test combining valid entry evidence with a malformed quote pointer.\n\nOverall assessment: ship-with-fixes. Isolate the destructive test fixture and correct malformed quote attribution before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-23-w2-entry-view",
+    "at": "2026-11-23T20:28:01.819434+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}
