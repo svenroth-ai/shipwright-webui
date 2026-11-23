@@ -1379,6 +1379,16 @@ write surface; gated, path-guarded, and concurrency-safe.
 - (E) **(iterate-2026-11-23-w3-reject-audit)** Given a proposed entry in the proposals window, when the operator rejects it (after a confirmation step, with an optional reason), then it disappears from the window and exactly one audit record exists in the proposing lead's audit log naming who decided, the lead, the decision key and the reason, never the quoted text; a double click rejects once.
 - (E) **(iterate-2026-11-23-w3-reject-audit)** Given a key the operator rejected earlier, when the same lead proposes that key again, then the new entry is marked as a repeat of a rejected proposal; and countersigning an entry now also records who approved it in the audit log.
 
+- (H) **(iterate-2026-11-23-w2-entry-view)** Given a proposal in the
+  proposed-decisions window, when it is listed, then it shows the proposed
+  line, the lead, the beat, the evidence pointer (session, time, message
+  number) and each quote the lead gave as its own element beside the source
+  it names; a pointer that cannot be read shows as "unknown source" and is
+  never hidden; quote and pointer text is shown as plain text, never as
+  markup. Each proposal is a labelled list item with a descriptive
+  Countersign button, its quotes a labelled group, and the window can be
+  used with the keyboard alone, with focus returning to the opener on close.
+
 ### FR-01.74 Codex CLI as an alternate task runtime ("Codex Light")
 
 - (E) **(iterate-2026-09-16-codex-light-webui)** Given a global

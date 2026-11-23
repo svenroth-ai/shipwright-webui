@@ -5,8 +5,8 @@
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 import type { ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
+import { DecisionEntryDetail } from "./DecisionEntryDetail";
 import { DecisionRejectControl } from "./DecisionRejectControl";
-import { DocumentMarkdown } from "../external/SmartViewer/DocumentMarkdown";
 
 export type EntryStatus =
   | { kind: "idle" }
@@ -40,14 +40,17 @@ export function DecisionEntryRow({
 }) {
   const pending = status.kind === "pending";
   const settled = status.kind === "done";
+  const labelId = `org-proposed-label-${rowKey.replace(/[^A-Za-z0-9_-]/g, "_")}`;
 
   return (
     <li
       className="rounded-[8px] border border-[var(--color-border,#e0dbd4)] p-3 text-[12px]"
       data-testid={`org-decisions-proposed-entry-${rowKey}`}
+      aria-labelledby={labelId}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="font-mono text-[11px] text-[var(--color-muted,#6b7280)]">
+        <span id={labelId} className="font-mono text-[11px] text-[var(--color-muted,#6b7280)]">
+          <span className="sr-only">Proposal from </span>
           {entry.timestamp} — {entry.leadId}
         </span>
         {isRepeat && !settled && (
@@ -63,6 +66,7 @@ export function DecisionEntryRow({
             type="button"
             data-testid={`org-decisions-proposed-countersign-${rowKey}`}
             disabled={pending}
+            aria-label={`${pending ? "Countersigning" : "Countersign"} proposal from ${entry.leadId} at ${entry.timestamp}`}
             onClick={onCountersign}
             className="rounded-[6px] border border-[var(--color-border,#e0dbd4)] px-2 py-1 text-[11px] hover:bg-[var(--color-muted-bg,#ede8e1)] disabled:opacity-50"
           >
@@ -71,14 +75,7 @@ export function DecisionEntryRow({
         )}
         {!settled && <DecisionRejectControl rowKey={rowKey} pending={pending} onReject={onReject} />}
       </div>
-      {entry.evidence && (
-        <div className="mt-1 text-[11px]" style={{ color: "var(--color-muted, #6b7280)" }}>
-          Evidence: {entry.evidence}
-        </div>
-      )}
-      <div className="mt-2 text-[11px] leading-relaxed">
-        <DocumentMarkdown text={entry.body} />
-      </div>
+      <DecisionEntryDetail rowKey={rowKey} entry={entry} labelId={labelId} />
 
       {status.kind === "done" && (
         <div

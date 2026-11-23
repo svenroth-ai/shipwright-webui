@@ -1,0 +1,7 @@
+{"section":"iterate-2026-11-23-w2-entry-view","verdict":"PASS","review":[
+{"severity":"low","category":"correctness","file":"client/src/lib/orgProposedView.ts","finding":"POINTER_ATTEMPT_RE may move prose starting with 'session' into an unknown-source label; nothing is lost; documented."},
+{"severity":"low","category":"correctness","file":"client/src/components/org/DecisionEntryDetail.tsx","finding":"empty proposed line rendered an empty paragraph; fixed."},
+{"severity":"low","category":"readability","file":"client/src/components/org/OrgSharedDocs.tsx","finding":"comment reason reworded; fixed."},
+{"severity":"low","category":"correctness","file":"client/e2e/flows/org-page.decisions-proposed-entry-view.spec.ts","finding":"E2E quote-level malformed pointer now pointer-shaped; fixed."},
+{"severity":"low","category":"readability","file":"client/src/components/org/DecisionEntryRow.test.tsx","finding":"test name; fixed."}],
+"summary":"PASS, no high or medium findings."}

@@ -1,0 +1,70 @@
+{
+  "run_id": "iterate-2026-11-23-w2-entry-view",
+  "date": "2026-11-23T20:34:03.613931Z",
+  "event_at": "2026-11-23T17:03:52.643139+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "history",
+  "branch": "iterate/campaign-shadow-proposals-webui--W2",
+  "spec": ".shipwright/planning/iterate/campaigns/shadow-proposals-webui/sub-iterates/W2-entry-view.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-23-w2-entry-view",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "two quotes shown separately each with its pointer",
+        "disposition": "tested",
+        "evidence": "DecisionEntryRow.test.tsx + org-page.decisions-proposed-entry-view.spec.ts passed"
+      },
+      {
+        "behavior": "malformed or absent pointer shows unknown source, never hidden",
+        "disposition": "tested",
+        "evidence": "orgProposedView.test.ts + DecisionEntryRow.test.tsx + e2e passed"
+      },
+      {
+        "behavior": "quote text rendered as plain text, no markup",
+        "disposition": "tested",
+        "evidence": "unit and real-browser injection probe passed"
+      },
+      {
+        "behavior": "keyboard order, roles, names, Escape and focus restore",
+        "disposition": "tested",
+        "evidence": "e2e keyboard and screen-reader test passed"
+      },
+      {
+        "behavior": "em-dash text, ratio suffix, empty quote, anchored beat",
+        "disposition": "tested",
+        "evidence": "orgProposedView.test.ts passed"
+      },
+      {
+        "behavior": "real screen-reader announcement",
+        "disposition": "untestable",
+        "reason_code": "requires-manual-visual-judgment",
+        "reason": "role/name assertions stand in; no screen reader available in CI"
+      }
+    ],
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 3,
+      "covered_acs": 3
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 5,
+    "exit_code": 0,
+    "evidence_path": ".shipwright/runs/iterate-2026-11-23-w2-entry-view/surface_verification.log"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

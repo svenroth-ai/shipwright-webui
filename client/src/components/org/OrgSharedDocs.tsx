@@ -12,7 +12,7 @@
  * stays read-only-only, per its own doc comment).
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { fetchOrgChart, fetchOrgFileText } from "../../lib/orgApi";
 import { OrgDocViewerModal } from "./OrgDocViewerModal";
@@ -64,6 +64,8 @@ const TILES: Tile[] = [
 export function OrgSharedDocs() {
   const [openTile, setOpenTile] = useState<Tile | null>(null);
   const [decisionsProposedOpen, setDecisionsProposedOpen] = useState(false);
+  // No Dialog.Trigger, so Radix has nothing to return focus to on close: hand it back to the opener.
+  const proposedBtnRef = useRef<HTMLButtonElement>(null);
 
   return (
     <div className="rost" data-testid="org-shared-docs">
@@ -93,6 +95,7 @@ export function OrgSharedDocs() {
           <button
             type="button"
             className="da"
+            ref={proposedBtnRef}
             data-testid="org-shared-doc-view-decisions-proposed.md"
             onClick={() => setDecisionsProposedOpen(true)}
           >
@@ -113,7 +116,10 @@ export function OrgSharedDocs() {
       {decisionsProposedOpen && (
         <OrgDecisionsProposedModal
           open={decisionsProposedOpen}
-          onOpenChange={setDecisionsProposedOpen}
+          onOpenChange={(o) => {
+            setDecisionsProposedOpen(o);
+            if (!o) requestAnimationFrame(() => proposedBtnRef.current?.focus());
+          }}
         />
       )}
     </div>

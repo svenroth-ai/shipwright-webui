@@ -1,0 +1,8 @@
+{"items": [
+  {"kind": "add", "owner_fr": "FR-01.71", "files": ["client/src/components/org/DecisionEntryRow.tsx"],
+   "new_text": "Each proposal in the proposed-decisions window shows its proposed line, the lead, the beat, the evidence pointer and every quote the lead gave as its own element, each quote beside the source it names."},
+  {"kind": "add", "owner_fr": "FR-01.71", "files": ["client/src/components/org/DecisionEntryRow.tsx"],
+   "new_text": "A proposal whose evidence pointer cannot be read is shown with the label unknown source and is never hidden, and a quote is shown only as plain text, never interpreted as markup."},
+  {"kind": "add", "owner_fr": "FR-01.71", "files": ["client/src/components/org/DecisionEntryRow.tsx"],
+   "new_text": "The proposed-decisions window can be used with the keyboard alone, and a screen reader hears each proposal as a labelled group with its quotes as a labelled list."}
+]}

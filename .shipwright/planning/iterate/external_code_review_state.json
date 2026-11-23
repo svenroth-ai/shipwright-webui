@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-11-23T20:47:13.445577+00:00",
-  "provider": "codex",
+  "timestamp": "2026-11-23T20:30:23.231554+00:00",
+  "provider": "openrouter",
   "findings_count": 7,
   "self_review_fallback_ran": false,
-  "reason": null,
+  "reason": "glm+openai revise: destructive-fixture finding rejected (existing specs share the temp-HOME convention); malformed-pointer-vs-em-dash trade-off decided by design; ratio-suffix heuristic tightened; focus assertion pinned; modal is 211 lines, no split needed",
   "review_mode": "code",
   "marker_schema": 4,
   "verdicts": {
-    "glm": "revise",
+    "glm": "approve",
     "openai": "revise"
   },
   "contradiction": {
     "detected": false,
     "comparable": true,
     "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
   },
   "contradiction_resolution": null
 }

@@ -1,0 +1,89 @@
+{
+  "unattended": true,
+  "resolved_items": [
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.71",
+      "files": [
+        "client/src/components/org/DecisionEntryRow.tsx"
+      ],
+      "new_text": "Each proposal in the proposed-decisions window shows its proposed line, the lead, the beat, the evidence pointer and every quote the lead gave as its own element, each quote beside the source it names.",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.71",
+      "files": [
+        "client/src/components/org/DecisionEntryRow.tsx"
+      ],
+      "new_text": "A proposal whose evidence pointer cannot be read is shown with the label unknown source and is never hidden, and a quote is shown only as plain text, never interpreted as markup.",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "kind": "add",
+      "owner_fr": "FR-01.71",
+      "files": [
+        "client/src/components/org/DecisionEntryRow.tsx"
+      ],
+      "new_text": "The proposed-decisions window can be used with the keyboard alone, and a screen reader hears each proposal as a labelled group with its quotes as a labelled list.",
+      "decided_by": "code",
+      "confirmed": false
+    }
+  ],
+  "ac_decisions": [
+    {
+      "ac": "FR-01.71.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "ac": "FR-01.71.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    },
+    {
+      "ac": "FR-01.71.new",
+      "mode": "auto",
+      "answer": "auto",
+      "kind": "add",
+      "answered_via": "none",
+      "decided_by": "code",
+      "confirmed": false
+    }
+  ],
+  "counts": {
+    "total": 3,
+    "auto": 3,
+    "asked": 0,
+    "exempt": 0,
+    "restore": 0,
+    "unchanged": 0,
+    "answered_inline": 0,
+    "unconfirmed": 0,
+    "exempt_share": 0.0,
+    "restore_share": 0.0
+  },
+  "status": "ok",
+  "ac_mode": {
+    "mode": "auto",
+    "source": "--ac-mode"
+  },
+  "run_id": "iterate-2026-11-23-w2-entry-view",
+  "bind_id": "shadow-proposals-webui--W2@2026-11-23T20:12:32.590328+00:00",
+  "exemption_check": "tested against the current diff (2 file(s), 2 not observable)",
+  "surface": {
+    "observable": false,
+    "files": [],
+    "ignored": 2
+  }
+}

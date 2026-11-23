@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-23-w2-entry-view",
+  "date": "2026-11-23",
+  "section": "Iterate — feature: structured proposal view (W2)",
+  "title": "Structured proposal view as a client-only read-only display model",
+  "context": "The proposed-decisions window showed entries as markdown plus one raw evidence line; operators could not tell quotes from the proposed line or see each quote's source.",
+  "decision": "Derive a read-only display model in the client from the raw entry block and render line, beat, pointer and quotes as plain text; unreadable pointers show as unknown source.",
+  "consequences": "No server or parser change; quote convention is a proposal for leadwright S1-E; W4 must move the line/quote classifier into the mirrored grammar.",
+  "rationale": "Smallest change meeting the ACs; avoids touching the drift-guarded parser mirror; architecture review (external and internal) approved.",
+  "rejected": "Restyling the markdown only (cannot attribute quotes); extending the shared parser on both sides (heavier standing mirror for a display need).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-11-23-w2-entry-view-structured-proposal-view.md"
+}
