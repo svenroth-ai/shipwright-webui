@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import { tmpdir } from "node:os";
+import { tmpdir, userInfo } from "node:os";
 
 import { registerOrgWriteActions } from "../../../routes/org-writes.js";
 import { toLoggedBlock } from "../proposed-entry-format.js";
@@ -57,7 +57,7 @@ describe("reject a proposed entry (W3)", () => {
     writeFileSync(proposed, daemonEntry(TS, "use-weekly-digest") + daemonEntry(TS2, "keep-reviews", "Other text.", NONCE2));
     const res = await post(app(), "reject", { timestamp: TS, leadId: LEAD, reason: "too vague" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ rejected: true, alreadyRejected: false });
+    expect(await res.json()).toEqual({ rejected: true, alreadyRejected: false, recorded: true });
     const left = readFileSync(proposed, "utf8");
     expect(left).not.toContain("use-weekly-digest");
     expect(left).toContain("keep-reviews"); // neighbour untouched
@@ -95,7 +95,7 @@ describe("reject a proposed entry (W3)", () => {
     writeFileSync(proposed, daemonEntry(TS, "use-weekly-digest"));
     writeFileSync(
       audit,
-      JSON.stringify({ kind: "decision_rejected", lead_id: LEAD, data: { entryTimestamp: TS, decisionKey: "use-weekly-digest", author: "sven" } }) + "\n",
+      JSON.stringify({ kind: "decision_rejected", lead_id: LEAD, data: { action: "rejected", author: userInfo().username || "operator", entryTimestamp: TS, decisionKey: "use-weekly-digest", reason: null } }) + "\n",
     );
     const res = await post(app(), "reject", { timestamp: TS, leadId: LEAD });
     expect(res.status).toBe(200);
@@ -110,7 +110,7 @@ describe("reject a proposed entry (W3)", () => {
     const a = app();
     expect((await post(a, "reject", { timestamp: TS, leadId: LEAD })).status).toBe(200);
     const again = await post(a, "reject", { timestamp: TS, leadId: LEAD });
-    expect(await again.json()).toEqual({ rejected: true, alreadyRejected: true });
+    expect(await again.json()).toEqual({ rejected: true, alreadyRejected: true, recorded: false });
     expect(auditLines()).toHaveLength(1);
     expect(auditLines()[0].data.decisionKey).toBeNull(); // key-less WebUI entry
     expect((await post(a, "reject", { timestamp: TS2, leadId: LEAD })).status).toBe(404);

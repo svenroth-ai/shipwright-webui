@@ -7,18 +7,21 @@ import { ApiError } from "./externalApi";
 import { ORG_API } from "./orgApi";
 
 export type RejectResult =
-  | { ok: true; alreadyRejected: boolean }
+  /** `recorded`: this request wrote the audit record (false = it was already there, or the entry was gone). */
+  | { ok: true; alreadyRejected: boolean; recorded: boolean }
+  | { ok: false; reason: "entry-changed" }
+  | { ok: false; reason: "audit-unwritable"; message: string }
   | { ok: false; reason: "not-found" }
   | { ok: false; reason: "lead-unknown" }
   | { ok: false; reason: "duplicate"; count: number }
   | { ok: false; reason: "already-countersigned"; adr: number };
 
 /** `POST /api/org/decisions/reject`. Other failures throw {@link ApiError}. */
-export async function rejectDecision(timestamp: string, leadId: string, reason: string): Promise<RejectResult> {
+export async function rejectDecision(timestamp: string, leadId: string, reason: string, fingerprint?: string): Promise<RejectResult> {
   const r = await fetch(`${ORG_API}/decisions/reject`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ timestamp, leadId, reason }),
+    body: JSON.stringify({ timestamp, leadId, reason, ...(fingerprint === undefined ? {} : { fingerprint }) }),
   });
   let body: Record<string, unknown> = {};
   try {
@@ -30,13 +33,15 @@ export async function rejectDecision(timestamp: string, leadId: string, reason: 
   if (r.status === 409 && body.error === "duplicate_proposal_identity") {
     return { ok: false, reason: "duplicate", count: typeof body.count === "number" ? body.count : 0 };
   }
+  if (r.status === 409 && body.error === "entry_changed") return { ok: false, reason: "entry-changed" };
+  if (r.status === 409 && body.error === "audit_unwritable") return { ok: false, reason: "audit-unwritable", message: typeof body.message === "string" ? body.message : "The audit file of this lead cannot be used." };
   if (r.status === 409 && body.error === "already_countersigned") {
     return { ok: false, reason: "already-countersigned", adr: typeof body.number === "number" ? body.number : 0 };
   }
   if (!r.ok) {
     throw new ApiError(typeof body.error === "string" ? body.error : `http_${r.status}`, r.status, body);
   }
-  return { ok: true, alreadyRejected: body.alreadyRejected === true };
+  return { ok: true, alreadyRejected: body.alreadyRejected === true, recorded: body.recorded === true };
 }
 
 export interface RejectedKey {

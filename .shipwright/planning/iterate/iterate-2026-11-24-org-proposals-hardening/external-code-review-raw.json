@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: server/src/routes/org-write-guard.ts:27\n- Finding: The content-type check accepts any value starting with `application/json`, including `application/jsonp` and `application/json-invalid`. Those are non-JSON media types, so a POST containing valid JSON under either type reaches the write handler and can change state, contrary to AC A.\n- Suggestion: Parse the media type before the first semicolon and require it to equal `application/json`, allowing parameters such as `charset=utf-8`.\n\n- Category: bug\n- Severity: medium\n- File: server/src/external/org/decisions-audit.ts:144\n- Finding: When `audit.jsonl` does not exist, the pre-check skips the writability check entirely. If the existing lead directory is not writable, countersign commits `decision_log.md` before discovering that it cannot create the audit file. It returns `logged:true` even though the failure condition existed before the pre-check; AC B requires this case to change nothing.\n- Suggestion: When the audit file is absent, check that its parent directory permits creation before committing the decision log. Add a test with an absent audit file and a non-writable lead directory, asserting that no decision is logged.\n\nOverall assessment: ship-with-fixes. The implementation substantially covers A\u2013H, but the media-type validation and audit creation pre-check need correction before shipping. This review used the supplied diff; local execution was blocked by the environment policy.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "### Findings\n\n- Category: edge-case\n  Severity: medium\n  File: `server/src/routes/org-write-guard.ts:26-29` (and the doc paragraph in `docs/org-proposed-entry-contract.md` \"refuses same-site as well as cross-site\")\n  Finding: The guard refuses `Sec-Fetch-Site: same-site`, which is stricter than acceptance criterion A (\"a `Sec-Fetch-Site: cross-site` request \u2026 is refused\"). A browser marks a request `same-site` whenever the client origin and API origin differ in *port* on the same host (e.g. a dev/prod setup where the webui is served by one server and the API by another on the same machine). In that legitimate deployment every write \u2014 countersign, reject, release, charter PUT \u2014 now 403s with no client-side workaround, because the browser sets the header and the client cannot suppress it.\n  Suggestion: Either restrict the 403 to `cross-site` as the AC states, or make the same-site refusal configurable/overridable and document the supported topologies. If the strictness is intentional, update the acceptance criterion to say so.\n\n- Category: bug\n  Severity: low\n  File: `client/src/components/org/useDecisionActions.ts` (handleCountersign, `audit-unwritable` with `adr` branch)\n  Finding: In the `logged:true` branch the handler returns without invalidating/refetching the *proposed* list (only `decision_log.md` is invalidated). That is correct for the \"nothing changed\" case, but here the entry IS in `decision_log.md` while still listed as proposed \u2014 the decisions-proposed list is now stale relative to decision_log until some other action refetches. A concurrent reader of the two surfaces can see the entry both pending and logged.\n  Suggestion: Also invalidate `[\"org\", \"decisions-proposed\"]` (or refetch) in the `adr !== undefined` branch so the listed entry is at least reconciled on the next natural refetch; the row status already pins the \"Logged as ADR-N \u2026\" message so no UX regression.\n\n- Category: edge-case\n  Severity: low\n  File: `server/src/external/org/countersign-core.ts` (crash-retry branch) and `decisions-audit.ts:assertAuditAppendable`\n  Finding: For countersign, the \"audit unusable before anything changes\" guarantee (AC B) does not rest on the pre-check alone: `assertAuditAppendable` only does `accessSync(file, W_OK)`, which *succeeds* for a directory on Linux. The directory case is only caught earlier because the `reject_pending` probe (`hasDecisionAudit`) happens to read the file before the log write. If that read is ever reordered or short-circuited (e.g. an entry with no reject check on a future path), a directory-shaped `audit.jsonl` would be logged first and answered `logged:true` instead of \"nothing was changed\". This is fragile-by-accident rather than by design.\n  Suggestion: Make `assertAuditAppendable` also `statSync` and require `isFile()` (EISDIR/ENOTDIR \u2192 `AuditUnwritableError`) so the pre-check is self-sufficient and doesn't depend on call ordering inside `performCountersign`.\n\n- Category: test\n  Severity: low\n  File: `server/src/external/org/__tests__/decisions-hardening.test.ts` \u2014 \"refuses Sec-Fetch-Site: cross-site on every org write\"\n  Finding: The same-site refusal (see first finding) is pinned by `decisions-hardening-round2.test.ts` but is not exercised end-to-end for the *client's own* deployment topology \u2014 no test covers a client served from a different port than the API, which is exactly the case the extra strictness breaks. All E2E runs use a same-origin stack.\n  Suggestion: Add one test (or a documented decision) for the different-port-same-host topology: either assert it is intentionally refused, or assert it still works.\n\nEverything else checks out: the SHA-256 mirror is correct (padding, high/low length words, hex output) and pinned against node crypto; the digest normalization (BOM/CR/trailing blanks) is identical on both sides and pinned on the shared fixture; the audit-append move is pure; `ensureDecisionAudit`'s own-record matching implements criterion C including the acknowledged same-user pre-emption limit; the skipped-entries signal never carries content (asserted by tests on the JSON keys and lead-id shape); and `fetchProposedDecisions`' return-type change is propagated to every visible caller and its array form remains exported as `parseProposedDecisions`.\n\nOverall: ship-with-fixes \u2014 the same-site over-refusal is the one item that can break a real deployment and should be decided (spec-aligned or explicitly documented) before merge; the rest are hardening of the change itself.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-24-org-proposals-hardening",
+    "at": "2026-11-23T23:52:45.334041+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

@@ -11,6 +11,7 @@ vi.mock("../../lib/orgDecisionsApi", async (importOriginal) => {
 });
 
 const mockedFetch = vi.mocked(fetchProposedDecisions);
+const res = (entries: Awaited<ReturnType<typeof fetchProposedDecisions>>["entries"]) => ({ entries, skipped: { count: 0, leadIds: [] as string[] } });
 const mockedCountersign = vi.mocked(countersignDecision);
 
 afterEach(() => {
@@ -44,16 +45,16 @@ function renderModal() {
 describe("edit before approving (W4)", () => {
   // @covers FR-01.71
   it("countersign without editing sends no line (approved as proposed)", async () => {
-    mockedFetch.mockResolvedValue([FENCED]);
+    mockedFetch.mockResolvedValue(res([FENCED]));
     mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001", edited: false });
     renderModal();
     fireEvent.click(await screen.findByTestId(id("countersign")));
-    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", LINE)); // always the line the operator saw
+    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", LINE, expect.stringMatching(/^[0-9a-f]{32}$/))); // always the line the operator saw
   });
 
   // @covers FR-01.71
   it("Edit line opens a labelled field with the line; countersign sends the edited text; the quote stays visible but is not in the field", async () => {
-    mockedFetch.mockResolvedValue([FENCED]);
+    mockedFetch.mockResolvedValue(res([FENCED]));
     mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: false, number: 7, adr: "ADR-0007", edited: true });
     renderModal();
     fireEvent.click(await screen.findByTestId(id("edit")));
@@ -63,13 +64,13 @@ describe("edit before approving (W4)", () => {
     expect(screen.getByTestId(`org-decisions-proposed-quote-${TS}|acme-lead|0-0`)).toBeInTheDocument();
     fireEvent.change(field, { target: { value: "One digest per week." } });
     fireEvent.click(screen.getByTestId(id("countersign")));
-    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", "One digest per week."));
+    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", "One digest per week.", expect.stringMatching(/^[0-9a-f]{32}$/)));
     expect(await screen.findByText(/Countersigned as ADR-0007 with your edited line/)).toBeInTheDocument();
   });
 
   // @covers FR-01.71
   it("'Use the original line' restores the proposed text", async () => {
-    mockedFetch.mockResolvedValue([FENCED]);
+    mockedFetch.mockResolvedValue(res([FENCED]));
     renderModal();
     fireEvent.click(await screen.findByTestId(id("edit")));
     const field = screen.getByLabelText("Line for the decisions log") as HTMLTextAreaElement;
@@ -80,7 +81,7 @@ describe("edit before approving (W4)", () => {
 
   // @covers FR-01.71
   it("a refused line (it copies a quote) is explained in plain words and the row stays actionable", async () => {
-    mockedFetch.mockResolvedValue([FENCED]);
+    mockedFetch.mockResolvedValue(res([FENCED]));
     mockedCountersign.mockResolvedValue({ ok: false, reason: "line-rejected", code: "line_contains_quote" });
     renderModal();
     fireEvent.click(await screen.findByTestId(id("edit")));
@@ -93,18 +94,18 @@ describe("edit before approving (W4)", () => {
   it("an empty proposed line can still be edited, so the proposal can be approved", async () => {
     const empty = { ...FENCED, block: FENCED.block.replace(`${LINE}
 `, "") };
-    mockedFetch.mockResolvedValue([empty]);
+    mockedFetch.mockResolvedValue(res([empty]));
     mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: false, number: 3, adr: "ADR-0003", edited: true });
     renderModal();
     fireEvent.click(await screen.findByTestId(id("edit")));
     fireEvent.change(screen.getByLabelText("Line for the decisions log"), { target: { value: "Written by the operator." } });
     fireEvent.click(screen.getByTestId(id("countersign")));
-    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", "Written by the operator."));
+    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", "Written by the operator.", expect.stringMatching(/^[0-9a-f]{32}$/)));
   });
 
   // @covers FR-01.71
   it("opening the editor moves focus into it; the toggle keeps one name and reports its state; blocked results are alerts", async () => {
-    mockedFetch.mockResolvedValue([FENCED]);
+    mockedFetch.mockResolvedValue(res([FENCED]));
     mockedCountersign.mockResolvedValue({ ok: false, reason: "line-rejected", code: "line_empty" });
     renderModal();
     const toggle = await screen.findByTestId(id("edit"));
@@ -121,7 +122,7 @@ describe("edit before approving (W4)", () => {
 
   // @covers FR-01.71
   it("the pinned row keeps 'with an earlier wording' after the refetch no longer lists the entry", async () => {
-    mockedFetch.mockResolvedValueOnce([FENCED]).mockResolvedValue([]);
+    mockedFetch.mockResolvedValueOnce(res([FENCED])).mockResolvedValue(res([]));
     mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: true, number: 4, adr: "ADR-0004", edited: false, loggedLineDiffers: true });
     renderModal();
     fireEvent.click(await screen.findByTestId(id("countersign")));
@@ -131,7 +132,7 @@ describe("edit before approving (W4)", () => {
 
   // @covers FR-01.71
   it("a retry answered with another wording than the one sent says so", async () => {
-    mockedFetch.mockResolvedValue([FENCED]);
+    mockedFetch.mockResolvedValue(res([FENCED]));
     mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: true, number: 4, adr: "ADR-0004", edited: false, loggedLineDiffers: true });
     renderModal();
     fireEvent.click(await screen.findByTestId(id("countersign")));
@@ -140,7 +141,7 @@ describe("edit before approving (W4)", () => {
 
   // @covers FR-01.71
   it("an entry without a fenced line offers no edit button", async () => {
-    mockedFetch.mockResolvedValue([{ timestamp: TS, leadId: "acme-lead", block: `## [${TS}] acme-lead\n- **Context:** a\n`, body: "- **Context:** a\n", evidence: null }]);
+    mockedFetch.mockResolvedValue(res([{ timestamp: TS, leadId: "acme-lead", block: `## [${TS}] acme-lead\n- **Context:** a\n`, body: "- **Context:** a\n", evidence: null }]));
     renderModal();
     await screen.findByTestId(id("countersign"));
     expect(screen.queryByTestId(id("edit"))).toBeNull();

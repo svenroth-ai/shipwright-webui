@@ -234,19 +234,33 @@ export function splitQuote(line: string): { text: string; pointer: string | null
   return { text: body.slice(0, at).trim(), pointer: suffix };
 }
 
-/** Comparison form of a text: Unicode-folded (NFKC, so NBSP and wide forms), format characters (zero width) removed,
- *  one line, lower case. Never written anywhere. */
+/** Comparison form of a text: Unicode-folded (NFKC, so NBSP and wide forms), every invisible character removed
+ *  (including emoji presentation selectors), one line, lower case. Never written anywhere. It strips exactly what
+ *  `normalizeLine` strips on the write path, and more (it also drops the emoji selector), so a line can never hide a
+ *  quote by an invisible difference. */
 export function foldForCompare(text: string): string {
-  return normalizeLine(text.normalize("NFKC").replace(/[\p{Cf}\p{Default_Ignorable_Code_Point}\u0080-\u009f]/gu, "")).toLowerCase();
+  return normalizeLine(stripInvisible(stripInvisible(text, false).normalize("NFKC"), false)).toLowerCase();
 }
 
-/** Invisible characters removed from anything shown as, or written as, the line: Unicode format characters
- *  (tag characters, bidi overrides, zero width, ...) and C1 controls. The log is read by agents as authority. */
-export function stripInvisible(text: string): string {
-  return text.replace(/[\p{Cf}\p{Default_Ignorable_Code_Point}\u0080-\u009f]/gu, "");
+// Code points that render as nothing: format characters (tag characters, bidi overrides, zero width, ...), default
+// ignorables (variation selectors, fillers), private use, lone surrogates, C1 controls and the braille blank.
+const INVISIBLE = String.raw`\p{Cf}\p{Default_Ignorable_Code_Point}\p{Co}\p{Cs}\u0080-\u009f\u2800\uFDD0-\uFDEF\uFFFE\uFFFF`;
+const INVISIBLE_ALL_RE = new RegExp(`[${INVISIBLE}]`, "gu");
+// An emoji presentation selector (U+FE0F) that directly follows an emoji base (or a keycap base before U+20E3) is
+// kept: dropping it turns a red heart into a text glyph. Every other selector is removed.
+const INVISIBLE_KEEP_EMOJI_RE = new RegExp(String.raw`(\p{Extended_Pictographic}\uFE0F)|([0-9#*]\uFE0F(?=\u20E3))|[${INVISIBLE}]`, "gu");
+
+/** Invisible characters removed from anything shown as, or written as, the line (see INVISIBLE). The log is read by
+ *  agents as authority. `keepEmojiPresentation` (default) keeps U+FE0F after an emoji base; ZWJ stays stripped. */
+export function stripInvisible(text: string, keepEmojiPresentation = true): string {
+  return keepEmojiPresentation ? text.replace(INVISIBLE_KEEP_EMOJI_RE, (_m, emoji?: string, keycap?: string) => emoji ?? keycap ?? "") : text.replace(INVISIBLE_ALL_RE, "");
 }
 
-/** One line for the log: control characters (newlines too) and runs of blanks become one space. */
+/** One line for the log: invisible characters removed, Unicode space separators (NBSP, ideographic space, ...)
+ *  become a plain space, control characters (newlines too) and runs of blanks become one space. */
 export function normalizeLine(text: string): string {
-  return stripInvisible(text).replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, " ").replace(/ {2,}/g, " ").trim();
+  return stripInvisible(text).replace(/\p{Zs}/gu, " ").replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, " ").replace(/ {2,}/g, " ").trim();
 }
+
+/** The text both sides hash to tell "the entry I saw" from "the entry now": no BOM, no CR, no trailing blanks. */
+export const blockForDigest = (block: string): string => stripBom(block).replace(/\r/g, "").trimEnd();

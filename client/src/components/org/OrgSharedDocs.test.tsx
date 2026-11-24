@@ -45,8 +45,9 @@ describe("OrgSharedDocs", () => {
     expect(screen.getByTestId("org-shared-doc-view-decisions-proposed.md")).toBeInTheDocument();
   });
 
+  // @covers FR-01.71
   it("opens the dedicated write-capable modal for decisions-proposed.md, not the generic read-only viewer", async () => {
-    mockedFetchProposedDecisions.mockResolvedValue([]);
+    mockedFetchProposedDecisions.mockResolvedValue({ entries: [], skipped: { count: 0, leadIds: [] } });
     renderTiles();
 
     fireEvent.click(screen.getByTestId("org-shared-doc-view-decisions-proposed.md"));

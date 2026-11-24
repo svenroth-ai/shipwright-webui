@@ -12,6 +12,7 @@ vi.mock("../../lib/orgDecisionsApi", async (importOriginal) => {
 });
 
 const mockedFetch = vi.mocked(fetchProposedDecisions);
+const res = (entries: Awaited<ReturnType<typeof fetchProposedDecisions>>["entries"]) => ({ entries, skipped: { count: 0, leadIds: [] as string[] } });
 const mockedCountersign = vi.mocked(countersignDecision);
 
 afterEach(() => {
@@ -37,15 +38,17 @@ const ENTRY = {
 };
 
 describe("OrgDecisionsProposedModal", () => {
+  // @covers FR-01.71
   it("shows an explicit 'no decisions waiting' state for an empty list — never a blank modal", async () => {
-    mockedFetch.mockResolvedValue([]);
+    mockedFetch.mockResolvedValue(res([]));
     renderModal();
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-empty")).toBeInTheDocument());
     expect(screen.getByText("No decisions waiting.")).toBeInTheDocument();
   });
 
+  // @covers FR-01.71
   it("renders one entry per proposal, with its lead, timestamp, and evidence pointer", async () => {
-    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedFetch.mockResolvedValue(res([ENTRY]));
     renderModal();
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
     const row = screen.getByTestId(`org-decisions-proposed-entry-${ENTRY.timestamp}|${ENTRY.leadId}|0`);
@@ -61,7 +64,7 @@ describe("OrgDecisionsProposedModal", () => {
 
   // @covers FR-01.71
   it("Countersign success shows the assigned ADR number", async () => {
-    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedFetch.mockResolvedValue(res([ENTRY]));
     mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001", edited: false });
     renderModal();
 
@@ -73,12 +76,12 @@ describe("OrgDecisionsProposedModal", () => {
     await waitFor(() =>
       expect(screen.getByText("Countersigned as ADR-0001.")).toBeInTheDocument(),
     );
-    expect(mockedCountersign).toHaveBeenCalledWith(ENTRY.timestamp, ENTRY.leadId, undefined);
+    expect(mockedCountersign).toHaveBeenCalledWith(ENTRY.timestamp, ENTRY.leadId, undefined, expect.stringMatching(/^[0-9a-f]{32}$/));
   });
 
   // @covers FR-01.71
   it("an idempotent retry (alreadyCountersigned: true) reads as a quiet already-done state, not an error", async () => {
-    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedFetch.mockResolvedValue(res([ENTRY]));
     mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: true, number: 1, adr: "ADR-0001", edited: false });
     renderModal();
 
@@ -92,8 +95,9 @@ describe("OrgDecisionsProposedModal", () => {
     );
   });
 
+  // @covers FR-01.71
   it("409 duplicate reads as 'resolve by hand', distinct wording from a generic error", async () => {
-    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedFetch.mockResolvedValue(res([ENTRY]));
     mockedCountersign.mockResolvedValue({ ok: false, reason: "duplicate", count: 2 });
     renderModal();
 
@@ -107,10 +111,11 @@ describe("OrgDecisionsProposedModal", () => {
     );
   });
 
+  // @covers FR-01.71
   it("doubt-review fix: two entries sharing (timestamp, leadId) — the server's own duplicate_identity case — get independently addressable rows and Countersign buttons", async () => {
     const DUPLICATE_A = { ...ENTRY, body: "- **Context:** first\n", evidence: null };
     const DUPLICATE_B = { ...ENTRY, body: "- **Context:** second\n", evidence: null };
-    mockedFetch.mockResolvedValue([DUPLICATE_A, DUPLICATE_B]);
+    mockedFetch.mockResolvedValue(res([DUPLICATE_A, DUPLICATE_B]));
     renderModal();
 
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
@@ -128,8 +133,9 @@ describe("OrgDecisionsProposedModal", () => {
     expect(within(rowA).queryByText(/resolve by hand/)).not.toBeInTheDocument();
   });
 
+  // @covers FR-01.71
   it("a 404 not-found on countersign (resolved by someone else meanwhile) reads distinctly, and refetches the list", async () => {
-    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedFetch.mockResolvedValue(res([ENTRY]));
     mockedCountersign.mockResolvedValue({ ok: false, reason: "not-found" });
     renderModal();
 

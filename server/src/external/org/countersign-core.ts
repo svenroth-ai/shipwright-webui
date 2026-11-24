@@ -36,8 +36,8 @@ import { randomBytes } from "node:crypto";
 
 import { normalizeLine } from "./proposed-grammar.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
-import { proposalFacts, proposalFingerprint, checkEditedLine, checkOriginalLine, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
-import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, type DecisionAuditDeps } from "./decisions-audit.js";
+import { proposalFacts, proposalFingerprint, blockDigest, checkEditedLine, checkOriginalLine, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
+import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, AuditUnwritableError, type DecisionAuditDeps } from "./decisions-audit.js";
 import {
   withDecisionsLock,
   parseProposedEntries,
@@ -76,11 +76,23 @@ export function atomicWrite(target: string, content: string): void {
   }
 }
 
+function auditFailureMessage(err: unknown): string {
+  if (err instanceof AuditUnwritableError) return err.message;
+  return `The audit record could not be written (${err instanceof Error ? err.message : "unknown error"}); fix the lead's audit.jsonl, then retry`;
+}
+
 export type CountersignOutcome =
   | { status: "countersigned"; number: number; edited: boolean }
-  | { status: "already_countersigned"; number: number; /** this request named a line other than the logged one */ loggedLineDiffers?: boolean }
+  /** `loggedLineDiffers`: this request named a line other than the logged one. Only decided for W4 line blocks
+   *  (a fenced entry); a pre-W4 whole-entry log block has no single line to compare, so it is never set there. */
+  | { status: "already_countersigned"; number: number; loggedLineDiffers?: boolean }
   | { status: "not_found" }
   | { status: "reject_pending" }
+  /** The entry was rewritten under the same identity since the operator's view; nothing was written. */
+  | { status: "entry_changed" }
+  /** The entry IS in the log, but its audit record could not be written (the file became unusable after the pre-check):
+   *  it stays listed so a retry finishes it. `message` names the file to fix. */
+  | { status: "audit_pending"; number: number; message: string }
   | { status: "line_rejected"; error: "line_empty" | "line_too_long" | "line_contains_quote" | "edit_not_supported" }
   | { status: "duplicate_identity"; count: number };
 
@@ -97,6 +109,8 @@ export async function performCountersign(
   leadId: string,
   /** The operator's edited proposed line (fenced entries only); absent = approve as proposed. */
   editedLine?: string | null,
+  /** `blockDigest` of the entry block the operator saw; absent = not checked (secret-gated callers). */
+  seenDigest?: string | null,
 ): Promise<CountersignOutcome> {
   const lockFn = deps.withDecisionsLock ?? withDecisionsLock;
   const audit = (ts: string, lead: string, block: string, number: number, edited: boolean, facts: ProposalFacts | null): void => {
@@ -157,8 +171,10 @@ export async function performCountersign(
         // Crash between the log write and the audit line: complete it (once).
         try {
           audit(timestamp, leadId, stillProposed.block, existing.number, facts !== null && loggedLine !== null && isEdited(facts, loggedLine), facts);
-        } catch {
-          // The log is the source of truth: a broken audit file must not keep an approved entry listed.
+        } catch (err) {
+          // ANY audit failure keeps the entry listed (the retry finishes the record once it is fixed): swallowing it
+          // would remove the entry and leave no audit record at all.
+          return { status: "audit_pending", number: existing.number, message: auditFailureMessage(err) };
         }
         const nextProposed =
           proposedRaw.slice(0, stillProposed.startIndex) +
@@ -179,6 +195,10 @@ export async function performCountersign(
       return { status: "duplicate_identity", count: matches.length };
     }
     const target = matches[0];
+
+    // The lead rewrote the entry (key, evidence, quotes) after the operator opened it: decide on what they saw, not on this.
+    // Only here: a crash-retry (the log branch above) is judged by the logged fingerprint, never by this check.
+    if (seenDigest != null && seenDigest !== blockDigest(target.block)) return { status: "entry_changed" };
 
     // A reject was recorded but the entry is still listed (crash residue, or a line a
     // lead wrote into its own audit.jsonl): never approve it, and change nothing - an
@@ -211,7 +231,12 @@ export async function performCountersign(
     // Log FIRST (durable), then remove from proposed — the idempotent-retry
     // check above trusts decision_log.md as "already done".
     atomicWrite(ctx.loggedPath, nextLogged);
-    audit(timestamp, leadId, target.block, number, edited, facts);
+    try {
+      audit(timestamp, leadId, target.block, number, edited, facts);
+    } catch (err) {
+      // The pre-check passed but the append failed: the entry is logged and stays listed, so a retry completes the record.
+      return { status: "audit_pending", number, message: auditFailureMessage(err) };
+    }
     atomicWrite(ctx.proposedPath, nextProposed);
 
     return { status: "countersigned", number, edited };

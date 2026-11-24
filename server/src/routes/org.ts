@@ -46,6 +46,7 @@ import { auditLogCore, type AuditLogDeps } from "../external/org/audit-log.js";
 import type { BeatRegisterLockOptions } from "../external/org/beat-register-release-core.js";
 import { requireChartLead } from "./org-chart-lead-guard.js";
 import { registerOrgWriteActions } from "./org-writes.js";
+import { orgWriteGuard } from "./org-write-guard.js";
 import { registerLeadSetupWizardRoutes } from "./org-lead-setup-wizard.js";
 import type { TaskDomainLookup } from "../external/org/domains.js";
 import type { LeadsRosterResponse } from "../types/org.js";
@@ -84,6 +85,8 @@ export function createOrgApiRouter(deps: OrgApiRouterDeps): Hono {
     }
     await next();
   });
+  // Browser writes: refuse a cross-site request and a non-JSON POST (see org-write-guard.ts).
+  app.use("/api/org/*", orgWriteGuard);
 
   app.get("/api/org/org-chart", async (c) => {
     const result = orgChartCore({ leadsRoot, lstatSync: deps.lstatSync });

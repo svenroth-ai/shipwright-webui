@@ -118,12 +118,10 @@ which the shared adversarial corpus holds in step.
   lead's entry (and the marker-less WebUI headers after it) unlisted - a
   single-lead denial of service via one unfenced newline.
 - **Defence in depth (S1-E):** leadwright should also reject lone CR, U+2028 and U+2029 in evidencePointer / decisionKey / leadId. The reader tolerates U+2028/U+2029 inside a value (the entry stays listed); a lone CR inside a Lead/Evidence line fails closed (the entry and everything after it is unlisted).
-- **Availability trade-off, no UI signal yet:** whatever fails closed is simply
-  NOT LISTED; the operator sees nothing (no "N entries skipped" signal exists
-  yet). That covers ambiguous fenced regions, dangling openers (everything after
-  one), non-ISO daemon timestamps, structural lines in a WebUI body, and
-  WebUI-form headers directly after an unlisted marker-owned entry. A skipped
-  signal is a follow-up.
+- **Availability trade-off, with a signal:** whatever fails closed is NOT LISTED, but the operator now
+  sees that something was left out (see "Skipped entries" below). That covers ambiguous fenced regions,
+  dangling openers (everything after one), non-ISO daemon timestamps, structural lines in a WebUI body, and
+  WebUI-form headers directly after an unlisted marker-owned entry.
 - **Marker grammar:** exactly `<!--[ \t]*decisionKey:...-->` (plain space/tab only); leadwright must match it, or reject anything looser, when deduplicating.
 - **Upstream requirement (leadwright):** the per-entry fence nonce must be
   random, generated AFTER the quote is known, and the quote must not contain it.
@@ -206,9 +204,54 @@ Nothing here changes identity, listing or countersign.
   checks (empty, too long, repeats a quote) and the operator must edit it when it fails. Quote needles include
   the text without its ` — <pointer>` suffix. Evidence pointer fields are bounded (session 1-64 chars, message
   up to 9 digits). Invisible characters (Unicode format characters such as tag characters, bidi overrides and zero width, and C1 controls) are removed from every line before it is shown, sent or logged, so the log never carries them. Quotes under 20 characters are not guarded, the quote region is also checked as one joined text, and a paraphrase or translation of a quote is not detected (documented limits). decisionKey is lead-written and may carry wording.
-- Accepted limits (tracked follow-ups, not built): the client always sends the line it displayed, so only seen text is logged and a changed line is audited as edited, but
-  it sends no fingerprint of the quotes/evidence it displayed, so a same-identity rewrite of those between view and click is approved; a lead can pre-plant a
-  `decision_countersigned` line in its own audit.jsonl; a missing lead folder skips the audit line.
+- Accepted limits: the client always sends the line it displayed, so only seen text is logged and a changed line is audited as edited. A rewrite of the quotes/evidence between view and click is caught by
+  the stale-entry digest (see "Hardening" below). A lead can pre-plant a `decision_countersigned` line in its own audit.jsonl, but that no longer
+  suppresses the operator's own record (see "Own record"); a missing lead folder skips the audit line.
 - Retry after a crash between log write and removal compares the rest of the block with the line the log
   already holds (a retry that names another line than the logged one is answered `loggedLineDiffers: true`; this applies to W4 line blocks only, not pre-W4 whole-entry blocks). The evidence session id (up to 64 identifier characters) is lead-written like the decisionKey: an accepted limit; a log block in the pre-W4 shape (whole entry) still matches.
 
+## Hardening (iterate org-proposals-hardening)
+
+- **Cross-site guard.** Every browser write under `/api/org/*` (countersign, reject, beat-register release, the lead
+  setup wizard, the charter PUT) refuses a request the browser marks `Sec-Fetch-Site: cross-site` (403
+  `cross_site_refused`); every POST needs a JSON content-type (415 `unsupported_media_type`), so a cross-site
+  `text/plain` form POST never reaches a handler. Same two rules as the reminder routes
+  (`server/src/routes/org-write-guard.ts`). A request WITHOUT the header (curl, a script, an old browser) is not refused: this is a
+  browser-path defence in depth, not authentication, and says nothing about who else can reach the port.
+- **`409 audit_unwritable`.** When the lead's `audit.jsonl` cannot be read or written (read-only, a directory,
+  unreadable), countersign and reject answer 409 `{error: "audit_unwritable", leadId, message}` BEFORE anything changes; the
+  window shows it as a blocked status ("Nothing was changed. ...") naming the file to fix. A symlinked file stays `403 symlink_forbidden`.
+  The blocked status is per row and not sticky: the next click retries from scratch. If the file only fails AFTER the pre-check
+  (it became unusable mid-request), a countersign has already written the log: the answer is the same 409 with `logged: true` and the
+  `adr`, the entry stays listed, the window says "Logged as ADR-N, but the audit record could not be written ... countersign again to
+  finish", and the retry completes the record and removes the entry (an unusable file keeps it listed until fixed). Reject writes the audit
+  line first, so its failure changes nothing.
+- **Own record.** A decision appends its audit record unless THIS webui already wrote the identical one: same kind, entry
+  timestamp, decisionKey, author and action, plus the same reason (reject) or ADR (countersign). A matching line that the lead
+  wrote itself (other author or shape) does not count, so Reject leaves the operator's own `decision_rejected` record and
+  removes the entry. Limit: the match uses only fields a same-OS-user lead can predict (author defaults to the OS user name, reason is often empty), so a lead that reproduces them exactly can pre-empt the record (`recorded:false`, "already in the log"); the audit content stays true, real provenance would need a webui-only marker (out of scope). A countersign whose audit write failed after the log write (`logged:true`) stays listed until the file is fixed; if the lead rewrites that entry meanwhile, the retry answers `409 duplicate_identity` and the operator removes it by hand (tracked limit). Plain-http LAN: browsers send no Fetch-Metadata there, so the 415 JSON rule plus the CORS allowlist carry the guard; the 403 applies on secure contexts and localhost, and refuses `same-site` as well as `cross-site`. Under `HONO_HOST` or the `open` network profile the CORS policy reflects any origin, so there the 415 rule alone stands between a plain-http LAN page and the writes (tracked limit: an Origin check against the trusted-origin policy). Quote guard limits: look-alike letters (e.g. Cyrillic o) are not folded, and the 20-character shared-run check can be diluted by them (tracked limit). The operator approves what is on screen at click time: a refetch after another row's action can swap a row's content silently (tracked limit). A reject retry with a different reason after a crash between audit line and removal appends a second record. Reject on an audit_pending entry reports "already countersigned" while the entry stays listed. The reason is compared as stored (already normalised by `normalizeReason`). Exactly once under retries: a retry finds its own record and writes nothing. The reject response carries
+  `recorded: true|false` (false = the identical record was already there, or the entry was already gone) and the window only says
+  "Recorded in the audit log" when it is true. Countersign of an entry whose reject line exists (forged or crash residue) is still
+  `409 reject_pending`; Reject is the way out. Residual limit: a lead can write such a line to stop its OWN proposal being approved
+  (it cannot stop the operator rejecting it); `rejected earlier` (entry gone) is still decided from any author's line, since no
+  entry is left to protect.
+- **Stale-entry digest.** Countersign and reject accept an optional `fingerprint`: the first 32 hex characters of SHA-256 over the
+  block text the operator saw (`blockForDigest`: BOM and CR removed, trailing blanks trimmed; client `orgBlockDigest.ts`, server
+  `blockDigest`; both pinned on the shared sample). Compared under the decisions lock; a difference is `409 entry_changed` with nothing
+  written and the window says "This proposal changed since you opened it - reload" and refetches. Absent = not checked (secret-gated
+  callers). A crash retry (the entry is already in `decision_log.md`) is judged by the logged fingerprint only, never by this digest,
+  so it still heals. A malformed value is `400 fingerprint_invalid`. Change detection, not a secret. Everything (re-read of the file,
+  digest check, own-record match, the writes) happens inside the one decisions lock; the lead's own writes to its audit.jsonl do not
+  take that lock (documented limit). If `blockForDigest` ever changes, windows opened before the change get `entry_changed` and a reload fixes it.
+- **Text rules on the write path** (`normalizeLine`, mirrored): besides format characters, default ignorables and C1 controls, the
+  braille blank U+2800, private-use characters and lone surrogates are removed; Unicode space separators (NBSP, ideographic space,
+  U+2000 range, ...) become a plain space. U+FE0F directly after an emoji base (and in a keycap sequence) is kept so emoji keep their
+  presentation; every other variation selector is removed; ZWJ is a format character and stays stripped (emoji ZWJ sequences
+  therefore split into their parts). Umlauts, CJK and plain emoji are untouched. The quote-guard fold strips the same set (and the
+  emoji selector too), so a line cannot hide a quote behind them.
+- **Skipped entries.** The client parser reports `{count, leadIds}` of candidate entries it dropped (ambiguous region, damaged or
+  non-canonical entry, bad timestamp or lead, structural injection, a dangling opener plus the header-looking lines after it). Lead ids appear
+  only when they pass the lead-id rule; no content of a skipped entry is ever shown. The window shows one `role=status` line: "N entries
+  could not be read and were skipped (lead: ...)." The count is a lower bound after a dangling opener (text after it is untrusted) and
+  may include a header-looking line that was never a real entry.
+- `loggedLineDiffers` is decided for W4 line blocks only (a fenced entry); a pre-W4 whole-entry log block has no single line to compare.

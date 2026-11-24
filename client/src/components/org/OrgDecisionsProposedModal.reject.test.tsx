@@ -4,7 +4,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 
 import { OrgDecisionsProposedModal } from "./OrgDecisionsProposedModal";
 import { fetchProposedDecisions, countersignDecision } from "../../lib/orgDecisionsApi";
-import { rejectDecision, fetchRejectedKeys } from "../../lib/orgRejectApi";
+import { rejectDecision, fetchRejectedKeys, type RejectResult } from "../../lib/orgRejectApi";
 
 vi.mock("../../lib/orgDecisionsApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../lib/orgDecisionsApi")>();
@@ -13,6 +13,7 @@ vi.mock("../../lib/orgDecisionsApi", async (importOriginal) => {
 vi.mock("../../lib/orgRejectApi", () => ({ rejectDecision: vi.fn(), fetchRejectedKeys: vi.fn() }));
 
 const mockedFetch = vi.mocked(fetchProposedDecisions);
+const res = (entries: Awaited<ReturnType<typeof fetchProposedDecisions>>["entries"]) => ({ entries, skipped: { count: 0, leadIds: [] as string[] } });
 const mockedCountersign = vi.mocked(countersignDecision);
 const mockedReject = vi.mocked(rejectDecision);
 const mockedKeys = vi.mocked(fetchRejectedKeys);
@@ -45,8 +46,8 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
   // @covers FR-01.71
   it("asks for confirmation, then rejects once even on a double click", async () => {
     mockedKeys.mockResolvedValue({});
-    mockedFetch.mockResolvedValue([ENTRY]);
-    let release: (v: { ok: true; alreadyRejected: boolean }) => void = () => {};
+    mockedFetch.mockResolvedValue(res([ENTRY]));
+    let release: (v: RejectResult) => void = () => {};
     mockedReject.mockReturnValue(new Promise((r) => { release = r; }));
     renderModal();
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
@@ -58,9 +59,9 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
     fireEvent.click(confirm);
     fireEvent.click(confirm);
     expect(mockedReject).toHaveBeenCalledTimes(1);
-    expect(mockedReject).toHaveBeenCalledWith(TS, "acme-lead", "too vague");
+    expect(mockedReject).toHaveBeenCalledWith(TS, "acme-lead", "too vague", expect.stringMatching(/^[0-9a-f]{32}$/));
 
-    release({ ok: true, alreadyRejected: false });
+    release({ ok: true, alreadyRejected: false, recorded: true });
     // The row is gone at once (even if a stale refetch still lists it); a quote-free notice stays.
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-notice")).toHaveTextContent(`Rejected: acme-lead, ${TS}. Recorded in the audit log.`));
     expect(screen.queryByTestId(`org-decisions-proposed-entry-${ROW}`)).toBeNull();
@@ -70,7 +71,7 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
   // @covers FR-01.71
   it("a lead without a folder shows a blocking message and keeps the entry", async () => {
     mockedKeys.mockResolvedValue({});
-    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedFetch.mockResolvedValue(res([ENTRY]));
     mockedReject.mockResolvedValue({ ok: false, reason: "lead-unknown" });
     renderModal();
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
@@ -84,7 +85,7 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
   // @covers FR-01.71
   it("approving an entry whose rejection is not finished says to use Reject", async () => {
     mockedKeys.mockResolvedValue({});
-    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedFetch.mockResolvedValue(res([ENTRY]));
     mockedCountersign.mockResolvedValue({ ok: false, reason: "reject-pending" });
     renderModal();
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
@@ -97,7 +98,7 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
   // @covers FR-01.71
   it("cancel closes the confirmation without sending anything", async () => {
     mockedKeys.mockResolvedValue({});
-    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedFetch.mockResolvedValue(res([ENTRY]));
     renderModal();
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId(`org-decisions-proposed-reject-${ROW}`));
@@ -110,7 +111,7 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
   // @covers FR-01.71
   it("marks a proposal whose key was rejected before as a repeat", async () => {
     mockedKeys.mockResolvedValue({ "acme-lead": [{ key: "use-weekly-digest", entryTimestamp: "2026-11-01T00:00:00.000Z" }] });
-    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedFetch.mockResolvedValue(res([ENTRY]));
     renderModal();
     await waitFor(() => expect(screen.getByTestId(`org-decisions-proposed-repeat-${ROW}`)).toBeInTheDocument());
     expect(screen.getByText("Repeat of a rejected proposal")).toBeInTheDocument();
@@ -120,7 +121,7 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
   // @covers FR-01.71
   it("no repeat badge when the rejection is of this very entry (crash leftover)", async () => {
     mockedKeys.mockResolvedValue({ "acme-lead": [{ key: "use-weekly-digest", entryTimestamp: TS }] });
-    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedFetch.mockResolvedValue(res([ENTRY]));
     renderModal();
     await waitFor(() => expect(mockedKeys).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
@@ -131,7 +132,7 @@ describe("OrgDecisionsProposedModal - reject (W3)", () => {
   // @covers FR-01.71
   it("no repeat badge for a different key", async () => {
     mockedKeys.mockResolvedValue({ "acme-lead": [{ key: "something-else", entryTimestamp: "2026-11-01T00:00:00.000Z" }] });
-    mockedFetch.mockResolvedValue([ENTRY]);
+    mockedFetch.mockResolvedValue(res([ENTRY]));
     renderModal();
     await waitFor(() => expect(mockedKeys).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByTestId("org-decisions-proposed-list")).toBeInTheDocument());
