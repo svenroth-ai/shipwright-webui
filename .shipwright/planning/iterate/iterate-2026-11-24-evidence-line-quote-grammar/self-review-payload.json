@@ -1,0 +1,9 @@
+{"items": [
+{"name": "acceptance criterion implemented", "verdict": "pass", "note": "known source plus quote shown first as plain text; folded quote is a guard needle (400 line_contains_quote); audit evidence is the structured pointer and never carries the quote; unknown source with quote-like text unchanged"},
+{"name": "client and server grammar mirrors byte-identical", "verdict": "pass", "note": "parseEvidence added below the GRAMMAR marker in both files; daemon-header drift test green"},
+{"name": "files under 300 lines / DO-NOT 6,7,10 respected", "verdict": "pass", "note": "grammar files 282 lines; no lock, cross-package import or path guard touched"},
+{"name": "producer fixture pinned and round-tripped", "verdict": "pass", "note": "leadwright renderEntry sample (44a6606) pinned with sha256 in the contract doc; entry 2 parsed by server facts and shown in a real-browser E2E"},
+{"name": "old fence quote form not adopted", "verdict": "pass", "note": "test asserts a `> text - pointer` Evidence value yields no quote"},
+{"name": "typecheck + lint + suites", "verdict": "pass", "note": "server org suite 471 and client lib suite 1433 pass, tsc clean, lint only pre-existing warnings"},
+{"name": "affected boundaries", "verdict": "pass", "note": "producer leadwright renderEntry Evidence bullet -> consumer parseEvidence in proposalFacts/buildEntryView; round-trip test via the pinned fixture"}
+]}

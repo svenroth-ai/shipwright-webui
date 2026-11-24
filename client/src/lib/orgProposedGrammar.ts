@@ -200,6 +200,19 @@ export function parseSourceRef(raw: string | null): SourceRef {
   return { kind: "known", session: m[1], time: m[2], message: m[3] };
 }
 
+const EVIDENCE_QUOTE_RE = /^(\S+) — "([^\r\n]*)"$/;
+
+/** The Evidence bullet as leadwright writes it: `<pointer> — "<quote>"` (the quote is one line and may itself hold
+ *  ` — ` or `"`: the match is greedy). Only a KNOWN pointer in front licenses a quote; any other text is handled
+ *  exactly as `parseSourceRef` does (unknown, no quote). */
+export function parseEvidence(raw: string | null): { source: SourceRef; quote: string | null } {
+  const t = raw?.trim() ?? "";
+  const m = EVIDENCE_QUOTE_RE.exec(t);
+  const source = m ? parseSourceRef(m[1]) : null;
+  if (m === null || source === null || source.kind !== "known") return { source: parseSourceRef(t), quote: null };
+  return { source, quote: stripInvisible(m[2]).trim() === "" ? null : m[2] };
+}
+
 export interface FencedParts {
   /** The fence label line (carries the beat). */
   label: string;

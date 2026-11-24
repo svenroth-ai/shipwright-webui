@@ -21,7 +21,7 @@
 import { createHash } from "node:crypto";
 
 import {
-  fencedParts, normalizeLine, foldForCompare, splitQuote, parseSourceRef, firstBullet, daemonTail, blockForDigest,
+  fencedParts, normalizeLine, foldForCompare, splitQuote, parseEvidence, firstBullet, daemonTail, blockForDigest,
   EVIDENCE_BULLET_RE, QUOTE_PREFIX_RE,
 } from "./proposed-grammar.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
@@ -74,11 +74,12 @@ export function proposalFacts(block: string): ProposalFacts | null {
   const lines = block.split("\n");
   const parts = fencedParts(lines);
   if (parts === null) return null;
-  const pointer = parseSourceRef(firstBullet(daemonTail(lines), EVIDENCE_BULLET_RE) || null);
+  const { source: pointer, quote: evidenceQuote } = parseEvidence(firstBullet(daemonTail(lines), EVIDENCE_BULLET_RE) || null);
   return {
     original: normalizeLine(parts.proposed.join("\n")),
     // each quote line, plus the whole quote region joined (a sentence can be pasted across two quote lines)
     quotes: [
+      ...(evidenceQuote === null ? [] : [foldForCompare(evidenceQuote)]), // the quote the Evidence line carries (never logged or audited)
       ...parts.quotes.flatMap(quoteNeedles),
       foldForCompare(parts.quotes.map((q) => q.replace(QUOTE_PREFIX_RE, "")).join(" ")),
       foldForCompare(parts.quotes.map((q) => splitQuote(q).text).join(" ")), // joined, pointers left out

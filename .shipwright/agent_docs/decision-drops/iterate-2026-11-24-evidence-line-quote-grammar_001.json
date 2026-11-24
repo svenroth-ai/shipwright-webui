@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-24-evidence-line-quote-grammar",
+  "date": "2026-11-24",
+  "section": "Iterate — change: read the evidence quote from the Evidence line",
+  "title": "Evidence-line quote grammar",
+  "context": "Leadwright writes the shadow evidence quote on the Evidence bullet as '<pointer> — \"<quote>\"', not as a '> text — pointer' line in the fence. The webui showed 'unknown source', no quote, did not guard against copying the quote, and wrote null evidence to the audit.",
+  "decision": "Mirrored grammar gets parseEvidence (greedy match, known short pointer required, otherwise unchanged). The view shows the quote first as plain text; proposalFacts folds it into the copy-guard needles; the audit keeps only the structured pointer. The leadwright renderEntry sample is pinned with a sha256 in the contract doc.",
+  "consequences": "A quote of 20+ folded characters now blocks an unedited copy (400 line_contains_quote). Producer shapes other than the short pointer with ASCII spaces and a closed quote stay unknown source (documented). The 24-200 length rule is the producer's; the webui does not enforce it.",
+  "rationale": "Smallest change that matches the producer: one pure function in the mirrored grammar, reused by the view and the server guard; no new write surface.",
+  "rejected": "Adopting the '> text — pointer' fence form for the Evidence line (not what the producer writes); enforcing the 24-200 length in the webui (producer rule, no consumer benefit).",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ""
+}

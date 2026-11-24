@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "No concrete defects found in the provided diff.\n\nThe change covers the acceptance criteria: known Evidence pointers yield a quote displayed first, the server includes that quote in the copy guard, and the audit retains the structured source pointer without the quote. Tests cover copy rejection, edited-line acceptance, audit/log exclusion, embedded quotes and dashes, and unknown-source fallback.\n\nI couldn\u2019t inspect surrounding files or run tests because local command execution was blocked by policy. Based on the supplied diff, the assessment is **ship-as-is**.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "Findings:\n\n- Category: edge-case\n  Severity: medium\n  File: server/src/external/org/proposed-line.ts:79 (the added `evidenceQuote` needle line) and proposed-grammar.ts `parseEvidence`\n  Finding: The spec/contract says the Evidence-line quote is 24\u2013200 characters, but neither `parseEvidence` nor the guard enforces any minimum length. A short quote (e.g. `s1:...:3 \u2014 \"ok\"`) becomes a `foldForCompare` needle, and any edited proposed line that merely contains that common substring is then refused with 400 `line_contains_quote` \u2014 a false refusal that blocks countersign entirely (the entry stays, no way to accept it with any reasonable line). The fence-quote needles had the `> text \u2014 pointer` shape as an implicit length/structure constraint; the Evidence-line needle has none.\n  Suggestion: In `proposalFacts`, only add the Evidence-quote needle when the quote meets the contract's minimum (e.g. \u226524 chars), or skip needles below some fold-length threshold so short quotes cannot block countersign.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/lib/orgProposedGrammar.ts:204 / server/.../proposed-grammar.ts:203 (`EVIDENCE_QUOTE_RE`)\n  Finding: A known pointer followed by ` \u2014 \"\"` (empty quote) yields quote `null` but the trimmed `source` is parsed from `m[1]` while the fallback path calls `parseSourceRef(raw)` on the *untrimmed* original \u2014 behaviorally equivalent here, but the two paths can diverge if `parseSourceRef` ever treats whitespace differently (e.g. a padded pointer like ` s1:\u2026:3 \u2014 \"q\"`: the quote path trims, the old path didn't). This is a mild inconsistency, not a concrete failure given current `parseSourceRef`.\n  Suggestion: Use `parseSourceRef(t)` in the fallback so both paths see the same trimmed input.\n\nTest quality: the tests are substantive \u2014 they exercise real parse, guard-refusal (including case-folded repetition), audit content, and pin the fixture by hash and structure. The client unit tests would catch a wrong-quotes-order or markup regression. The e2e only covers display; guard/audit are covered server-side, which matches the AC's division. Note the second countersign test asserts the edited-line pass but does not assert the audit `data.evidence` lacks a `quote` field name \u2014 acceptable, since `not.toContain(QUOTE)` covers the text.\n\nRegression risk: `proposalFacts`'s `pointer` variable was renamed to `source` destructuring; if `pointer` is referenced further down in the file (not shown), the diff context implies it compiles, and the exported API shapes are unchanged. `parseEvidence` is additive. No visible breakage for callers.\n\nSpec compliance: all three AC behaviors (display-first plain text with source, copy-refusal guard, audit names source without quote) are implemented and tested. The hash pin and contract doc update match the referenced fixture.\n\nOverall assessment: the work is sound and well-tested; the unenforced minimum quote length turning into a guard needle is the only defect worth fixing before or shortly after ship.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-24-evidence-line-quote-grammar",
+    "at": "2026-11-24T07:08:27.437311+00:00"
+  },
+  "verdicts": {
+    "openai": "approve",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+  }
+}

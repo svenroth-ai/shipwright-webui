@@ -1,0 +1,96 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-24-evidence-line-quote-grammar",
+    "date": "2026-11-24",
+    "unit": {
+      "status": "passed",
+      "passed": 10725,
+      "skipped": 16,
+      "total": 10741
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 3,
+      "skipped": 0,
+      "total": 3
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "parseEvidence: known short pointer plus exactly one quote; quote with embedded em dash and double quotes survives",
+          "disposition": "tested",
+          "evidence": "evidence-line-quote.test.ts PASSED"
+        },
+        {
+          "behavior": "unknown source / long pointer / empty or invisible-only quote with quote-like text: unchanged handling, no quote; old fence form not adopted",
+          "disposition": "tested",
+          "evidence": "evidence-line-quote.test.ts PASSED"
+        },
+        {
+          "behavior": "unedited line containing the Evidence quote refused 400 line_contains_quote; edited line passes; audit evidence is the structured pointer, quote-free; log quote-free",
+          "disposition": "tested",
+          "evidence": "evidence-line-quote.test.ts countersign block PASSED"
+        },
+        {
+          "behavior": "entry view shows the Evidence quote first as plain text with its pointer; unknown source shows none",
+          "disposition": "tested",
+          "evidence": "orgProposedView.evidence-quote.test.ts + org-page.decisions-proposed-evidence-quote.spec.ts e2e PASSED"
+        },
+        {
+          "behavior": "leadwright renderEntry fixture pinned (sha256 in contract doc), entry 2 round-trips through server facts",
+          "disposition": "tested",
+          "evidence": "evidence-line-quote.test.ts pinned sample block PASSED"
+        },
+        {
+          "behavior": "client/server grammar mirrors verbatim",
+          "disposition": "tested",
+          "evidence": "orgDecisionsApi.daemon-header.test.ts drift PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "exit_code": 0,
+      "tests_run": 3,
+      "runner": "node client/e2e/isolated-stack.mjs org-page.decisions-proposed-evidence-quote.spec.ts + entry-view.spec.ts --project=chromium"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
