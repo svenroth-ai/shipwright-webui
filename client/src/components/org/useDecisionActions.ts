@@ -34,7 +34,7 @@ export function useDecisionActions(refetch: () => Promise<unknown>) {
   const queryClient = useQueryClient();
   const [statuses, setStatuses] = useState<Record<string, Stamped>>({});
   const [notice, setNotice] = useState<string | null>(null);
-  const [settled, setSettled] = useState<Record<string, { entry: ProposedDecisionEntry; status: EntryStatus; digest: string }>>({});
+  const [settled, setSettled] = useState<Record<string, { key: string; entry: ProposedDecisionEntry; status: EntryStatus; digest: string }>>({});
   const inFlight = useRef(new Set<string>());
 
   const put = (key: string, entry: ProposedDecisionEntry, status: EntryStatus) =>
@@ -49,7 +49,10 @@ export function useDecisionActions(refetch: () => Promise<unknown>) {
   /** One place that records a row's final status (and pins a `done` row, which the refetch removes from the list). */
   function settle(key: string, entry: ProposedDecisionEntry, status: EntryStatus) {
     put(key, entry, status);
-    if (status.kind === "done") setSettled((prev) => ({ ...prev, [key]: { entry, status, digest: blockDigest(entry.block) } }));
+    if (status.kind === "done") {
+      const digest = blockDigest(entry.block);
+      setSettled((prev) => ({ ...prev, [`${key}|${digest}`]: { key, entry, status, digest } })); // per version: a second done never overwrites the first
+    }
   }
 
   const fail = (key: string, entry: ProposedDecisionEntry, err: unknown) =>

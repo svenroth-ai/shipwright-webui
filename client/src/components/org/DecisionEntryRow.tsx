@@ -30,8 +30,9 @@ export function DecisionEntryRow({
   onCountersign,
   onReject,
   isRepeat,
+  appeared = false,
 }: {
-  /** Caller's per-row identity key — includes the array index, so two
+  /** Caller's per-row identity key — (timestamp, lead, ordinal among rows sharing that pair; see decisionEntryKeys.ts), so two
    *  entries sharing (timestamp, leadId) (409 duplicate_proposal_identity)
    *  still get independently addressable data-testids. Never derive a
    *  testid from `entry.timestamp`/`entry.leadId` alone in this component. */
@@ -43,6 +44,8 @@ export function DecisionEntryRow({
   onReject: (reason: string) => void;
   /** The lead proposed a decision key the operator already rejected. */
   isRepeat: boolean;
+  /** The row showed up after the window was opened (a new or rewritten proposal): acknowledge it before deciding. */
+  appeared?: boolean;
 }) {
   const pending = status.kind === "pending";
   const settled = status.kind === "done";
@@ -52,7 +55,7 @@ export function DecisionEntryRow({
   // The version the operator opened (or last confirmed reading). A refetch that puts a rewritten proposal under this
   // row makes `changed` true in the SAME render, so no click can reach the new content under the old view.
   const digest = useMemo(() => blockDigest(entry.block), [entry.block]);
-  const [seenDigest, setSeenDigest] = useState(digest);
+  const [seenDigest, setSeenDigest] = useState<string | null>(appeared ? null : digest);
   const changed = !settled && digest !== seenDigest;
   const [editDiscarded, setEditDiscarded] = useState(false);
   const hasLine = original !== null && !settled;
@@ -127,7 +130,7 @@ export function DecisionEntryRow({
         >
           <AlertCircle size={12} aria-hidden="true" />
           <span>
-            This proposal changed since you opened it — reload. Read the new version below before deciding.
+            {appeared && seenDigest === null ? "This proposal appeared after you opened the window (new or rewritten by the lead)." : "This proposal changed since you opened it — reload."} Read it below before deciding.
             {editDiscarded ? " Your open edit was replaced by the new proposed line." : ""}
           </span>
           <button

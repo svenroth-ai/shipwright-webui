@@ -35,7 +35,7 @@ export function rejectFailureStatus(result: Exclude<RejectResult, { ok: true }>)
 export function rejectNotice(result: Extract<RejectResult, { ok: true }>, who: string): string {
   if (result.existingReason !== undefined) {
     const was = result.existingReason === null ? "without a reason" : `with the reason "${result.existingReason}"`;
-    return `Rejected: ${who}. It was already recorded ${was}; your new reason was not added.`;
+    return `Rejected: ${who}. Its audit record already exists in the lead's audit file (${was}); your new reason was not added.`;
   }
   if (result.recorded) return `Rejected: ${who}. Recorded in the audit log.`;
   if (result.alreadyRejected) return `Already rejected earlier: ${who}. Nothing new was written.`;

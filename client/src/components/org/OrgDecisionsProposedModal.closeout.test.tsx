@@ -139,6 +139,24 @@ describe("a row whose content changed under the operator (limits closeout)", () 
   });
 });
 
+describe("a row that appears after the window was opened (limits closeout)", () => {
+  // @covers FR-01.71
+  it("is marked and locked until acknowledged, e.g. a proposal the lead re-issued under a new timestamp", async () => {
+    vi.mocked(fetchRejectedKeys).mockResolvedValue({});
+    const B3 = fenced("2026-11-20T09:16:00.000Z", "Re-issued line of B.");
+    mockedFetch.mockResolvedValueOnce(res([A, B])).mockResolvedValue(res([B3]));
+    mockedReject.mockResolvedValue({ ok: true, alreadyRejected: false, recorded: true });
+    renderModal();
+    await screen.findByTestId(tid("entry", TS_A));
+    doRejectA();
+    const marker = await screen.findByTestId(tid("changed", "2026-11-20T09:16:00.000Z"));
+    expect(marker).toHaveTextContent("appeared after you opened the window");
+    expect(screen.getByTestId(tid("countersign", "2026-11-20T09:16:00.000Z"))).toBeDisabled();
+    fireEvent.click(screen.getByTestId(tid("changed-ack", "2026-11-20T09:16:00.000Z")));
+    expect(screen.getByTestId(tid("countersign", "2026-11-20T09:16:00.000Z"))).toBeEnabled();
+  });
+});
+
 describe("reject messages (limits closeout)", () => {
   // @covers FR-01.71
   it("a reject on an entry whose audit record is missing says so instead of 'already countersigned'", async () => {
@@ -163,7 +181,7 @@ describe("reject messages (limits closeout)", () => {
     fireEvent.click(await screen.findByTestId(tid("reject", TS_B)));
     fireEvent.click(screen.getByTestId(tid("reject-confirm-btn", TS_B)));
     await waitFor(() =>
-      expect(screen.getByTestId("org-decisions-proposed-notice")).toHaveTextContent('already recorded with the reason "too vague"; your new reason was not added'),
+      expect(screen.getByTestId("org-decisions-proposed-notice")).toHaveTextContent(/audit record already exists in the lead.s audit file \(with the reason "too vague"\); your new reason was not added/),
     );
   });
 

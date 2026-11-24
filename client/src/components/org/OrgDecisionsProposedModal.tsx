@@ -27,7 +27,7 @@
  *     closed, instead of vanishing mid-render.
  */
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AlertCircle, CheckCircle2, FileQuestion, Inbox, Loader2, X } from "lucide-react";
@@ -75,12 +75,19 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
   // so a status belongs to one VERSION of a proposal and a rewritten proposal never inherits the old verdict.
   const keys = useMemo(() => entryKeys(allEntries), [allEntries]);
   const digests = useMemo(() => allEntries.map((e) => blockDigest(e.block)), [allEntries]);
-  const rows = allEntries.map((entry, i) => ({ entry, key: keys[i], status: statusFor(keys[i], entry, digests[i]) }));
+  // Rows present when the window first loaded are the ones the operator opened; a row that shows up later (a new or
+  // rewritten proposal, e.g. under a fresh timestamp) must be read and acknowledged before it can be decided.
+  const baseline = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!open) baseline.current = null;
+  }, [open]);
+  if (baseline.current === null && data !== undefined) baseline.current = new Set(keys);
+  const rows = allEntries.map((entry, i) => ({ entry, key: keys[i], status: statusFor(keys[i], entry, digests[i]), appeared: baseline.current !== null && !baseline.current.has(keys[i]) }));
   const visibleRows = rows.filter((r) => r.status.kind !== "rejected");
   const liveDigest = new Map(rows.map((r, i) => [r.key, digests[i]]));
   // A settled entry the server has already dropped from its list (the common case) stays pinned here; one still
   // present with the SAME version is already covered by its live row, so it is excluded to avoid rendering it twice.
-  const settledExtras = Object.entries(settled).filter(([key, s]) => liveDigest.get(key) !== s.digest);
+  const settledExtras = Object.values(settled).filter((s) => liveDigest.get(s.key) !== s.digest);
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -136,21 +143,22 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
             )}
             {!isLoading && !error && data !== undefined && (visibleRows.length > 0 || settledExtras.length > 0) && (
               <ul className="flex flex-col gap-3" data-testid="org-decisions-proposed-list">
-                {visibleRows.map(({ entry, key, status }) => (
+                {visibleRows.map(({ entry, key, status, appeared }) => (
                   <DecisionEntryRow
                     key={key}
                     rowKey={key}
                     entry={entry}
                     status={status}
+                    appeared={appeared}
                     onCountersign={(line) => void handleCountersign(key, entry, line)}
                     onReject={(reason) => void handleReject(key, entry, reason)}
                     isRepeat={isRepeat(entry)}
                   />
                 ))}
-                {settledExtras.map(([key, s]) => (
+                {settledExtras.map((s) => (
                   <DecisionEntryRow
-                    key={`settled|${key}|${s.digest}`}
-                    rowKey={liveDigest.has(key) ? `${key}|settled` : key}
+                    key={`settled|${s.key}|${s.digest}`}
+                    rowKey={liveDigest.has(s.key) ? `${s.key}|settled` : s.key}
                     entry={s.entry}
                     status={s.status}
                     onCountersign={() => {}}

@@ -67,7 +67,7 @@ export function DecisionRejectControl({
         >
           {pending ? "Rejecting…" : "Confirm reject"}
         </button>
-        <button type="button" disabled={pending || locked} onClick={() => setConfirming(false)} className={BTN}>
+        <button type="button" disabled={pending} onClick={() => setConfirming(false)} className={BTN}>
           Cancel
         </button>
       </div>
