@@ -10,6 +10,8 @@ import { tmpdir, userInfo } from "node:os";
 
 import { createOrgApiRouter } from "../../../routes/org.js";
 import { performCountersign } from "../countersign-core.js";
+import { parseProposedEntries } from "../decisions-lock.js";
+import { blockDigest } from "../proposed-line.js";
 
 const TS = "2026-11-20T09:15:00.000Z";
 const LEAD = "acme-lead";
@@ -130,7 +132,13 @@ describe("limits closeout", () => {
       expect(dup.status).toBe(409);
       expect(await dup.json()).toMatchObject({ error: "duplicate_proposal_identity", count: 2, loggedAdr: "ADR-0001" });
       const logBefore = readFileSync(logged, "utf8");
-      const rej = await post("reject", { reason: "rewritten, not wanted" });
+      // without a fingerprint nothing proves the operator saw this version: a different proposal is never removed unchecked
+      const unchecked = await post("reject", { reason: "no fingerprint" });
+      expect(unchecked.status).toBe(409);
+      expect((await unchecked.json()).error).toBe("already_countersigned");
+      expect(readFileSync(proposed, "utf8")).toContain("rewritten by the lead");
+      const fingerprint = blockDigest(parseProposedEntries(readFileSync(proposed, "utf8"))[0].block);
+      const rej = await post("reject", { reason: "rewritten, not wanted", fingerprint });
       expect(rej.status).toBe(200);
       expect(await rej.json()).toMatchObject({ rejected: true, recorded: true });
       expect(readFileSync(proposed, "utf8")).not.toContain(KEY);

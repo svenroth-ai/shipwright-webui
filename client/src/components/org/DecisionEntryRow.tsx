@@ -62,7 +62,7 @@ export function DecisionEntryRow({
   // operator had open is flagged, never carried over silently.
   useEffect(() => {
     if (prev.current.block === entry.block) return;
-    setEditDiscarded(editing && draft !== (prev.current.original ?? ""));
+    setEditDiscarded((was) => was || editing); // an open edit field is flagged (sticky until acknowledged), changed or not
     prev.current = { block: entry.block, original };
     setDraft(original ?? "");
   }, [entry.block]); // eslint-disable-line react-hooks/exhaustive-deps

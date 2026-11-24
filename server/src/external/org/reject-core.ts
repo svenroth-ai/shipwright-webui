@@ -65,13 +65,17 @@ export async function performReject(
     const logged = findLoggedEntry(parseLoggedEntries(ctx.readLogged()), timestamp, leadId);
     if (logged) {
       const listed = matches.length === 1 ? matches[0] : null;
-      if (listed === null || isCrashResidue(logged, listed.block)) {
+      const residue = listed !== null && isCrashResidue(logged, listed.block);
+      if (listed === null || residue) {
         // Still listed and its countersign record is missing: say so, never "already countersigned".
         if (listed !== null && !hasDecisionAudit(deps, "decision_countersigned", leadId, timestamp, decisionKeyOf(listed.block))) {
           return { status: "audit_pending", number: logged.number };
         }
         return { status: "already_countersigned", number: logged.number };
       }
+      // A different proposal under a logged identity: without a fingerprint nothing proves the operator saw this
+      // version, so it is never removed unchecked.
+      if (seenDigest == null) return { status: "already_countersigned", number: logged.number };
     }
 
     if (matches.length === 0) {

@@ -242,7 +242,7 @@ export function splitQuote(line: string): { text: string; pointer: string | null
  *  `normalizeLine` strips on the write path, and more (it also drops the emoji selector), so a line can never hide a
  *  quote by an invisible difference. */
 export function foldForCompare(text: string): string {
-  return foldConfusables(normalizeLine(stripInvisible(stripInvisible(text, false).normalize("NFKC"), false))).toLowerCase();
+  return foldConfusables(foldConfusables(normalizeLine(stripInvisible(stripInvisible(text, false).normalize("NFKC"), false))).toLowerCase());
 }
 
 // Code points that render as nothing: format characters (tag characters, bidi overrides, zero width, ...), default

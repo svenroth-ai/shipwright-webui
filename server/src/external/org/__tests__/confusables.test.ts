@@ -44,6 +44,14 @@ describe("quote guard: look-alike letters (bounded confusables map)", () => {
   });
 
   // @covers FR-01.71
+  it("refuses a disguise made only of upper-case look-alikes whose lower-case form is in the map", () => {
+    const facts = proposalFacts(block(QUOTE))!;
+    const disguised = QUOTE.replace(/h/g, "Һ").replace(/d/g, "Ԁ").replace(/v/g, "Ѵ");
+    expect(disguised).not.toBe(QUOTE);
+    expect(checkEditedLine(disguised, facts)).toEqual({ ok: false, error: "line_contains_quote" });
+  });
+
+  // @covers FR-01.71
   it("lets legitimate Cyrillic and Greek text that copies no quote through, unedited", () => {
     const facts = proposalFacts(block(QUOTE))!;
     for (const line of [
