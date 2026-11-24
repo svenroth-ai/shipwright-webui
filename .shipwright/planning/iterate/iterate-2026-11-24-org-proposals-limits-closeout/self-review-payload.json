@@ -1,0 +1,9 @@
+{"items": [
+{"name": "acceptance criteria 1-6 each implemented", "verdict": "pass", "note": "confusables fold, changed-row marker + ack, reject reason reuse, countersign_audit_pending, duplicate way out via Reject, accepted limits documented; unit, server HTTP-level and one real-browser E2E"},
+{"name": "client grammar and confusables mirrors byte-identical", "verdict": "pass", "note": "drift test extended to the confusables module, green"},
+{"name": "files under 300 lines / DO-NOT 6,7,10 respected", "verdict": "pass", "note": "lock unchanged, mirrors only, path guard untouched; new logic split into decision-residue.ts, decisionMessages.ts, decisionEntryKeys.ts"},
+{"name": "contract doc and spec ACs updated", "verdict": "pass", "note": "Hardening section rewritten for the closed limits, accepted environmental limits added; five (E) criteria in FR-01.71"},
+{"name": "typecheck + lint + full client and server suites", "verdict": "pass", "note": "client 596 files pass, server 491 files pass, tsc clean, lint only pre-existing warnings"},
+{"name": "positional row key replaced by ordinal key", "verdict": "pass", "note": "three existing test/e2e ids moved from index to ordinal; all org e2e specs re-run green"},
+{"name": "no destructive route added", "verdict": "pass", "note": "duplicate way out reuses the existing reject route and its digest check, audit record and lock"}
+]}

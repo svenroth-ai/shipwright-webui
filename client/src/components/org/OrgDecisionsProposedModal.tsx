@@ -27,6 +27,7 @@
  *     closed, instead of vanishing mid-render.
  */
 
+import { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AlertCircle, CheckCircle2, FileQuestion, Inbox, Loader2, X } from "lucide-react";
@@ -37,7 +38,8 @@ import { decisionKeyOf } from "../../lib/orgDecisionKey";
 import { ApiError } from "../../lib/externalApi";
 import { DecisionEntryRow } from "./DecisionEntryRow";
 import { SkippedEntriesNotice } from "./SkippedEntriesNotice";
-import { useDecisionActions, entryKey } from "./useDecisionActions";
+import { blockDigest } from "../../lib/orgBlockDigest";
+import { useDecisionActions, entryKeys } from "./useDecisionActions";
 
 interface Props {
   open: boolean;
@@ -66,17 +68,26 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
   };
 
   const notFound = error instanceof ApiError && error.status === 404;
-  const { statuses, settled, notice, handleReject, handleCountersign } = useDecisionActions(refetch);
+  const { statusFor, settled, notice, handleReject, handleCountersign } = useDecisionActions(refetch);
 
   const allEntries = data ?? [];
-  const liveKeys = new Set(allEntries.map((e, i) => entryKey(e, i)));
-  const visibleCount = allEntries.filter((e, i) => statuses[entryKey(e, i)]?.kind !== "rejected").length;
-  // A settled entry the server has already dropped from its list (the
-  // common case — the countersign actually removed it) stays pinned here;
-  // one still present (a mocked/stale refetch, or the rare same-identity
-  // coincidence) is already covered by `statuses` on its live row, so it is
-  // excluded here to avoid rendering it twice.
-  const settledExtras = Object.entries(settled).filter(([key]) => !liveKeys.has(key));
+  // Row identity = (timestamp, lead, ordinal) - not the list position - and every row carries the digest of its block,
+  // so a status belongs to one VERSION of a proposal and a rewritten proposal never inherits the old verdict.
+  const keys = useMemo(() => entryKeys(allEntries), [allEntries]);
+  const digests = useMemo(() => allEntries.map((e) => blockDigest(e.block)), [allEntries]);
+  // Rows present when the window first loaded are the ones the operator opened; a row that shows up later (a new or
+  // rewritten proposal, e.g. under a fresh timestamp) must be read and acknowledged before it can be decided.
+  const baseline = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!open) baseline.current = null;
+  }, [open]);
+  if (baseline.current === null && data !== undefined) baseline.current = new Set(keys);
+  const rows = allEntries.map((entry, i) => ({ entry, key: keys[i], status: statusFor(keys[i], entry, digests[i]), appeared: baseline.current !== null && !baseline.current.has(keys[i]) }));
+  const visibleRows = rows.filter((r) => r.status.kind !== "rejected");
+  const liveDigest = new Map(rows.map((r, i) => [r.key, digests[i]]));
+  // A settled entry the server has already dropped from its list (the common case) stays pinned here; one still
+  // present with the SAME version is already covered by its live row, so it is excluded to avoid rendering it twice.
+  const settledExtras = Object.values(settled).filter((s) => liveDigest.get(s.key) !== s.digest);
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -124,29 +135,30 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
                 <span>Couldn't load decisions-proposed.md: {error instanceof Error ? error.message : "unknown error"}</span>
               </div>
             )}
-            {!isLoading && !error && data !== undefined && visibleCount === 0 && settledExtras.length === 0 && (
+            {!isLoading && !error && data !== undefined && visibleRows.length === 0 && settledExtras.length === 0 && (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-[12px]" style={{ color: "var(--color-muted, #6b7280)" }} data-testid="org-decisions-proposed-empty">
                 <CheckCircle2 size={20} aria-hidden="true" />
                 <span>No decisions waiting.</span>
               </div>
             )}
-            {!isLoading && !error && data !== undefined && (visibleCount > 0 || settledExtras.length > 0) && (
+            {!isLoading && !error && data !== undefined && (visibleRows.length > 0 || settledExtras.length > 0) && (
               <ul className="flex flex-col gap-3" data-testid="org-decisions-proposed-list">
-                {allEntries.map((entry, index) => statuses[entryKey(entry, index)]?.kind === "rejected" ? null : (
-                  <DecisionEntryRow
-                    key={entryKey(entry, index)}
-                    rowKey={entryKey(entry, index)}
-                    entry={entry}
-                    status={statuses[entryKey(entry, index)] ?? { kind: "idle" }}
-                    onCountersign={(line) => void handleCountersign(entry, index, line)}
-                    onReject={(reason) => void handleReject(entry, index, reason)}
-                    isRepeat={isRepeat(entry)}
-                  />
-                ))}
-                {settledExtras.map(([key, s]) => (
+                {visibleRows.map(({ entry, key, status, appeared }) => (
                   <DecisionEntryRow
                     key={key}
                     rowKey={key}
+                    entry={entry}
+                    status={status}
+                    appeared={appeared}
+                    onCountersign={(line) => void handleCountersign(key, entry, line)}
+                    onReject={(reason) => void handleReject(key, entry, reason)}
+                    isRepeat={isRepeat(entry)}
+                  />
+                ))}
+                {settledExtras.map((s) => (
+                  <DecisionEntryRow
+                    key={`settled|${s.key}|${s.digest}`}
+                    rowKey={liveDigest.has(s.key) ? `${s.key}|settled` : s.key}
                     entry={s.entry}
                     status={s.status}
                     onCountersign={() => {}}

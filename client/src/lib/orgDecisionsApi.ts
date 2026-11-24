@@ -150,7 +150,7 @@ export type CountersignResult =
   | { ok: true; alreadyCountersigned: boolean; number: number; adr: string; /** the operator's own line was logged */ edited: boolean; /** this request named a line other than the logged one (already countersigned) */ loggedLineDiffers?: boolean }
   | { ok: false; reason: "line-rejected"; code: string }
   | { ok: false; reason: "not-found" }
-  | { ok: false; reason: "duplicate"; count: number }
+  | { ok: false; reason: "duplicate"; count: number; /** an earlier, different version of this proposal is already logged under this ADR */ loggedAdr?: string }
   | { ok: false; reason: "reject-pending" }
   /** The lead rewrote the entry since the operator opened it; nothing was written. */
   | { ok: false; reason: "entry-changed" }
@@ -189,7 +189,7 @@ export async function countersignDecision(
     return { ok: false, reason: "not-found" };
   }
   if (r.status === 409 && body.error === "duplicate_proposal_identity") {
-    return { ok: false, reason: "duplicate", count: typeof body.count === "number" ? body.count : 0 };
+    return { ok: false, reason: "duplicate", count: typeof body.count === "number" ? body.count : 0, ...(typeof body.loggedAdr === "string" ? { loggedAdr: body.loggedAdr } : {}) };
   }
   if (r.status === 409 && body.error === "reject_pending") return { ok: false, reason: "reject-pending" };
   if (r.status === 409 && body.error === "entry_changed") return { ok: false, reason: "entry-changed" };

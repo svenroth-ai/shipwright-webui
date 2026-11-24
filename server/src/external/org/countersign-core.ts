@@ -36,7 +36,8 @@ import { randomBytes } from "node:crypto";
 
 import { normalizeLine } from "./proposed-grammar.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
-import { proposalFacts, proposalFingerprint, blockDigest, checkEditedLine, checkOriginalLine, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
+import { proposalFacts, blockDigest, checkEditedLine, checkOriginalLine, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
+import { residueKind } from "./decision-residue.js";
 import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, AuditUnwritableError, type DecisionAuditDeps } from "./decisions-audit.js";
 import {
   withDecisionsLock,
@@ -47,14 +48,6 @@ import {
   toLoggedBlock,
   type DecisionsLockDeps,
 } from "./decisions-lock.js";
-
-/** Body of a header-delimited block, i.e. everything after its first line —
- *  used to tell genuine residual-cleanup (same body) from a genuinely
- *  distinct proposal that happens to reuse the same (timestamp, leadId). */
-function bodyAfterHeader(block: string): string {
-  const idx = block.indexOf("\n");
-  return idx === -1 ? "" : block.slice(idx + 1);
-}
 
 export function atomicWrite(target: string, content: string): void {
   const tmp = join(
@@ -94,7 +87,8 @@ export type CountersignOutcome =
    *  it stays listed so a retry finishes it. `message` names the file to fix. */
   | { status: "audit_pending"; number: number; message: string }
   | { status: "line_rejected"; error: "line_empty" | "line_too_long" | "line_contains_quote" | "edit_not_supported" }
-  | { status: "duplicate_identity"; count: number };
+  /** `loggedNumber`: an earlier, different version of this identity is already logged under that ADR (the lead rewrote it). */
+  | { status: "duplicate_identity"; count: number; loggedNumber?: number };
 
 export interface CountersignCoreDeps extends DecisionsLockDeps, Partial<Omit<DecisionAuditDeps, "leadsRoot">> {
   /** Who countersigns (audit record). Defaults to "operator". */
@@ -163,11 +157,9 @@ export async function performCountersign(
         // block: identity is told apart by that fingerprint, whatever line this retry sends. A log block
         // written before W4 (whole entry) is compared the old way.
         // The fingerprint counts only inside an exact line block (fixed place, nothing after the line).
-        const fingerprint = parseLoggedLineBlock(existing.block)?.fingerprint ?? null;
-        const sameProposal = fingerprint !== null
-          ? fingerprint === proposalFingerprint(stillProposed.block)
-          : bodyAfterHeader(toLoggedBlock(stillProposed.block, existing.number)).trimEnd() === bodyAfterHeader(existing.block).trimEnd();
-        if (!sameProposal) return { status: "duplicate_identity", count: 2 };
+        const kind = residueKind(existing, stillProposed.block);
+        const sameProposal = kind === "same";
+        if (!sameProposal) return { status: "duplicate_identity", count: 2, ...(kind === "different" ? { loggedNumber: existing.number } : {}) };
         // Crash between the log write and the audit line: complete it (once).
         try {
           audit(timestamp, leadId, stillProposed.block, existing.number, facts !== null && loggedLine !== null && isEdited(facts, loggedLine), facts);

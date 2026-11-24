@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-24-org-proposals-limits-closeout",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-24T06:07:22.534738+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-24T06:21:29.677200+00:00",
+      "disposition": "small iterate: external and internal plan/architecture reviews apply at medium and above",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/orgRejectApi.ts",
+          "line": 90,
+          "finding": "No test covers how the client maps countersign_audit_pending, reasonKept/existingReason and loggedAdr.",
+          "suggestion": "Add fetch-stub tests for these four answers.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/external/org/decisions-audit.ts",
+          "line": 207,
+          "finding": "ensureRejectAudit reuse ignores supersededAdr; a superseded-rewrite record and a plain reject on one identity can stand in for each other.",
+          "suggestion": "Document as accepted or match on supersededAdr.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/org/DecisionEntryRow.tsx",
+          "line": 34,
+          "finding": "The rowKey comment still says the key includes the array index.",
+          "suggestion": "Reword to the ordinal.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/org/DecisionRejectControl.tsx",
+          "line": 70,
+          "finding": "locked also disables Cancel of an open confirmation.",
+          "suggestion": "Keep Cancel enabled.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-24T06:23:23.871627+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "client/src/components/org/DecisionEntryRow.tsx + OrgDecisionsProposedModal.tsx",
+          "line": null,
+          "finding": "Claim under doubt: the operator approves only what they read: a changed row is marked and locked — A lead replaces a proposal with one under a NEW timestamp in the same position; the refetch mounts a fresh row that is unmarked and clickable, so the changed marker never fires.",
+          "suggestion": "Mark every row that appears after the first load as new since the window was opened, with the same lock and acknowledgement.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "reversibility",
+          "file": "server/src/external/org/proposed-line.ts, decision-residue.ts",
+          "line": null,
+          "finding": "Claim under doubt: different from residueKind means the lead really rewrote the proposal — proposalFingerprint hashes the block with only CR removed and the end trimmed: a whitespace-only edit of approved residue reads as different and Reject would record it as rejected.",
+          "suggestion": "Normalise, or document that a whitespace-only rewrite reads as different.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "server/src/external/org/decisions-audit.ts, client/src/components/org/decisionMessages.ts",
+          "line": null,
+          "finding": "Claim under doubt: any-reason reuse only reuses this webui's own record — A same-OS-user lead can plant a record with any reason; that text is echoed in the notice as if it were the operator's.",
+          "suggestion": "Label the text as read from the audit file and state the widened pre-emption as accepted.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling & blast radius",
+          "file": "client/src/components/org/useDecisionActions.ts",
+          "line": null,
+          "finding": "Claim under doubt: a pinned done result of an older version is always shown on its own — settled is keyed by row key only: a second done for another version overwrites the first.",
+          "suggestion": "Key settled by key and digest.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-24T06:23:17.123724+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-24T06:21:30.396231+00:00",
+      "disposition": "small iterate: external and internal plan/architecture reviews apply at medium and above",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-24T06:08:15.556060+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-24T06:21:29.915966+00:00",
+      "disposition": "small iterate: external and internal plan/architecture reviews apply at medium and above",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-24T06:21:30.135616+00:00",
+      "disposition": "small iterate: external and internal plan/architecture reviews apply at medium and above",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

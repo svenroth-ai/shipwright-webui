@@ -1,0 +1,6 @@
+{"section": "iterate-2026-11-24-org-proposals-limits-closeout", "verdict": "pass", "round": 3, "review": [
+  {"severity": "medium", "category": "correctness", "file": "client/src/lib/orgRejectApi.ts", "line": 90, "finding": "No test covers how the client maps countersign_audit_pending, reasonKept/existingReason and loggedAdr.", "suggestion": "Add fetch-stub tests for these four answers."},
+  {"severity": "low", "category": "correctness", "file": "server/src/external/org/decisions-audit.ts", "line": 207, "finding": "ensureRejectAudit reuse ignores supersededAdr; a superseded-rewrite record and a plain reject on one identity can stand in for each other.", "suggestion": "Document as accepted or match on supersededAdr."},
+  {"severity": "low", "category": "readability", "file": "client/src/components/org/DecisionEntryRow.tsx", "line": 34, "finding": "The rowKey comment still says the key includes the array index.", "suggestion": "Reword to the ordinal."},
+  {"severity": "low", "category": "correctness", "file": "client/src/components/org/DecisionRejectControl.tsx", "line": 70, "finding": "locked also disables Cancel of an open confirmation.", "suggestion": "Keep Cancel enabled."}
+]}

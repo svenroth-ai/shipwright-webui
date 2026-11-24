@@ -1,0 +1,67 @@
+{
+  "run_id": "iterate-2026-11-24-org-proposals-limits-closeout",
+  "date": "2026-11-24T06:28:39.355978Z",
+  "event_at": "2026-11-23T23:47:48.571545+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/org-proposals-limits-closeout",
+  "spec": ".shipwright/planning/iterate/iterate-2026-11-24-org-proposals-limits-closeout/plan.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-24-org-proposals-limits-closeout",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "quote guard fold maps Cyrillic/Greek look-alikes (before and after lower-casing); interleaved disguise refused, legit Cyrillic/Greek line accepted unedited, logged text unchanged",
+        "disposition": "tested",
+        "evidence": "confusables.test.ts PASSED"
+      },
+      {
+        "behavior": "confusables module mirrored verbatim server/client",
+        "disposition": "tested",
+        "evidence": "orgDecisionsApi.daemon-header.test.ts drift PASSED"
+      },
+      {
+        "behavior": "changed row after refetch: marker, actions blocked until acknowledged, edit field reset and open edit flagged (sticky), new digest sent after ack",
+        "disposition": "tested",
+        "evidence": "OrgDecisionsProposedModal.closeout.test.tsx + DecisionEntryRow.replaced.test.tsx + org-page.decisions-proposed-closeout.spec.ts e2e PASSED"
+      },
+      {
+        "behavior": "row identity by (timestamp, lead, ordinal) and digest-bound statuses; pinned row key collision",
+        "disposition": "tested",
+        "evidence": "OrgDecisionsProposedModal.closeout.test.tsx + existing org modal suites PASSED"
+      },
+      {
+        "behavior": "reject retry with another reason reuses this webui record, truthful notice once, foreign author still gets own record, reason read-back capped",
+        "disposition": "tested",
+        "evidence": "decisions-limits-closeout.test.ts + OrgDecisionsProposedModal.closeout.test.tsx PASSED"
+      },
+      {
+        "behavior": "reject on audit_pending entry answers 409 countersign_audit_pending, client shows it, countersign then finishes",
+        "disposition": "tested",
+        "evidence": "decisions-limits-closeout.test.ts + OrgDecisionsProposedModal.closeout.test.tsx PASSED"
+      },
+      {
+        "behavior": "duplicate_identity way out: countersign names logged ADR, Reject needs fingerprint, removes only the rewrite, leaves log untouched, supersededAdr marker, unknown/short-nonce fails closed, CR-normalised residue compare",
+        "disposition": "tested",
+        "evidence": "decisions-limits-closeout.test.ts PASSED"
+      },
+      {
+        "behavior": "accepted environmental limits documented (same-OS-user pre-planted record, plain-http LAN)",
+        "disposition": "untestable",
+        "reason_code": "requires-manual-visual-judgment",
+        "evidence": "docs/org-proposed-entry-contract.md reviewed; untestable by design"
+      }
+    ],
+    "counts": {
+      "testable": 7,
+      "tested": 7,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    }
+  }
+}

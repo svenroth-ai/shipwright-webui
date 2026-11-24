@@ -12,11 +12,14 @@ const BTN =
 export function DecisionRejectControl({
   rowKey,
   pending,
+  locked = false,
   onReject,
 }: {
   rowKey: string;
   /** An action on this row is running. */
   pending: boolean;
+  /** The row changed under the operator and was not acknowledged yet: no decision can be started. */
+  locked?: boolean;
   onReject: (reason: string) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -27,7 +30,7 @@ export function DecisionRejectControl({
       <button
         type="button"
         data-testid={`org-decisions-proposed-reject-${rowKey}`}
-        disabled={pending}
+        disabled={pending || locked}
         onClick={() => setConfirming(true)}
         className={BTN}
       >
@@ -48,7 +51,7 @@ export function DecisionRejectControl({
           type="text"
           maxLength={280}
           value={reason}
-          disabled={pending}
+          disabled={pending || locked}
           onChange={(e) => setReason(e.target.value)}
           data-testid={`org-decisions-proposed-reject-reason-${rowKey}`}
           className="mt-0.5 block w-full rounded-[6px] border border-[var(--color-border,#e0dbd4)] px-2 py-1 text-[11px]"
@@ -58,7 +61,7 @@ export function DecisionRejectControl({
         <button
           type="button"
           data-testid={`org-decisions-proposed-reject-confirm-btn-${rowKey}`}
-          disabled={pending}
+          disabled={pending || locked}
           onClick={() => onReject(reason)}
           className={BTN}
         >

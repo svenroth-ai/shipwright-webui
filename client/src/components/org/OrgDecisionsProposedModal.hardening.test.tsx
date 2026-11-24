@@ -164,7 +164,7 @@ describe("OrgDecisionsProposedModal - hardening", () => {
     rejectRow();
     const notice = screen.getByTestId("org-decisions-proposed-notice");
     await waitFor(() => expect(notice).toHaveTextContent("Recorded in the audit log"));
-    fireEvent.click(screen.getByTestId(`org-decisions-proposed-countersign-${TS2}|acme-lead|1`));
+    fireEvent.click(screen.getByTestId(`org-decisions-proposed-countersign-${TS2}|acme-lead|0`));
     await waitFor(() => expect(notice.textContent).toBe(""));
     release({ ok: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001", edited: false });
   });

@@ -76,9 +76,9 @@ test.describe("Org page — structured proposal view", () => {
     await expect(r1.locator("img")).toHaveCount(0);
     expect(await page.evaluate(() => (window as unknown as { __pwned?: number }).__pwned)).toBeUndefined();
 
-    const r2 = page.getByTestId(`org-decisions-proposed-entry-${TS2}|${LEAD_ID}|1`);
-    await expect(r2.getByTestId(`org-decisions-proposed-evidence-${TS2}|${LEAD_ID}|1`)).toContainText("unknown source");
-    await expect(r2.getByTestId(`org-decisions-proposed-quote-source-${TS2}|${LEAD_ID}|1-0`)).toContainText("unknown source");
+    const r2 = page.getByTestId(`org-decisions-proposed-entry-${TS2}|${LEAD_ID}|0`);
+    await expect(r2.getByTestId(`org-decisions-proposed-evidence-${TS2}|${LEAD_ID}|0`)).toContainText("unknown source");
+    await expect(r2.getByTestId(`org-decisions-proposed-quote-source-${TS2}|${LEAD_ID}|0-0`)).toContainText("unknown source");
     await expect(r2).toBeVisible();
   });
 
