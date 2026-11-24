@@ -1424,6 +1424,38 @@ write surface; gated, path-guarded, and concurrency-safe.
   turned into plain spaces in the decisions log while emoji, umlauts and CJK
   text stay intact, and an unedited everyday line is logged exactly as
   proposed.
+- (E) **(iterate-2026-11-24-org-proposals-limits-closeout)** Given a
+  proposed line that copies a quote of the lead but swaps some letters for
+  Cyrillic or Greek letters that look the same, when the operator
+  countersigns it, then it is refused as a copy of the quote, while ordinary
+  Cyrillic or Greek text that copies no quote is accepted unchanged and the
+  logged line keeps the letters the operator typed.
+- (E) **(iterate-2026-11-24-org-proposals-limits-closeout)** Given the
+  window is open and the list refreshes after another proposal was decided,
+  when the content of a still-listed proposal has changed in the meantime,
+  then that proposal is marked as changed since it was opened, its
+  Countersign, Edit and Reject stay unavailable until the operator confirms
+  having read the new version, and its edit field starts again from the new
+  proposed line with an open edit flagged.
+- (E) **(iterate-2026-11-24-org-proposals-limits-closeout)** Given a
+  rejection was already recorded in the lead's audit trail by this app and
+  the operator retries the rejection with a different reason after an
+  interruption, when the retry runs, then no second record is added and the
+  window says the proposal was already recorded with the earlier reason,
+  while a line another author wrote does not count and still gets its own
+  record.
+- (E) **(iterate-2026-11-24-org-proposals-limits-closeout)** Given a
+  proposal is already in the decisions log but its audit record is missing,
+  when the operator tries to reject it, then nothing is changed and the
+  window says it was logged and the audit record is missing so the operator
+  can fix the lead's audit file and finish with Countersign, instead of
+  saying it was already countersigned.
+- (E) **(iterate-2026-11-24-org-proposals-limits-closeout)** Given an
+  earlier version of a proposal is already in the decisions log and the lead
+  then rewrote the listed one, when the operator countersigns it, then the
+  window names the logged earlier version and offers Reject to remove the
+  rewritten one, and Reject removes only that listed version and leaves the
+  decisions log untouched.
 
 ### FR-01.74 Codex CLI as an alternate task runtime ("Codex Light")
 

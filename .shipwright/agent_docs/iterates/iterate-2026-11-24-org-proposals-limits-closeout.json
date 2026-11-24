@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-11-24-org-proposals-limits-closeout",
+  "date": "2026-11-24T06:28:39.355978Z",
+  "event_at": "2026-11-23T23:47:48.571545+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/org-proposals-limits-closeout",
+  "spec": ".shipwright/planning/iterate/iterate-2026-11-24-org-proposals-limits-closeout/plan.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-24-org-proposals-limits-closeout"
+}

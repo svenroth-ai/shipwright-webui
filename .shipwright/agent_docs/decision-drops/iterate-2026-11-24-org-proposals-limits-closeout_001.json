@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-24-org-proposals-limits-closeout",
+  "date": "2026-11-24",
+  "section": "Iterate — change: close the tracked limits of the org proposal decisions",
+  "title": "Close the limits left by org-proposals-hardening",
+  "context": "PR 629 left seven tracked limits: look-alike letters in the quote guard, a silent row swap after a refetch, a second reject record on a retry with another reason, reject on an audit_pending entry saying already countersigned, no way out of a duplicate identity after a rewrite, and two environmental limits.",
+  "decision": "Bounded Cyrillic/Greek confusables map in the comparison fold only (mirrored). Window rows keyed by (timestamp, lead, ordinal) with digest-bound statuses, a changed marker and an acknowledgement before any decision. Reject reuses this webui's own record under another reason, answers 409 countersign_audit_pending, and removes a rewritten entry whose older version is logged (fingerprint required, supersededAdr marker, shared residueKind).",
+  "consequences": "Item 5 uses the existing reject route (no new destructive route); unfingerprintable or whitespace-rewritten residue needs a manual fix. The map is a bounded list, not UTS 39. Row keys are now ordinal, and rows appearing after open need an acknowledgement. Accepted: same-OS-user pre-planted records, plain-http LAN without Fetch-Metadata, any-reason pre-emption. The round-3 fix was verified by tests, not by a fourth review round.",
+  "rationale": "Every item is closed with the existing lock, digest check and audit record; nothing is removed unchecked, and the server entry_changed check stays the backstop of the client marker.",
+  "rejected": "A new Remove-the-duplicate route (new destructive surface); a full UTS 39 table (large, still incomplete); disabling only the clicked row on refetch (does not stop a swapped row being decided).",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ""
+}
