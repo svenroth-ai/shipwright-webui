@@ -37,7 +37,7 @@ import { randomBytes } from "node:crypto";
 import { normalizeLine } from "./proposed-grammar.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
 import { proposalFacts, blockDigest, checkEditedLine, checkOriginalLine, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
-import { isCrashResidue } from "./decision-residue.js";
+import { residueKind } from "./decision-residue.js";
 import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, AuditUnwritableError, type DecisionAuditDeps } from "./decisions-audit.js";
 import {
   withDecisionsLock,
@@ -157,8 +157,9 @@ export async function performCountersign(
         // block: identity is told apart by that fingerprint, whatever line this retry sends. A log block
         // written before W4 (whole entry) is compared the old way.
         // The fingerprint counts only inside an exact line block (fixed place, nothing after the line).
-        const sameProposal = isCrashResidue(existing, stillProposed.block);
-        if (!sameProposal) return { status: "duplicate_identity", count: 2, loggedNumber: existing.number };
+        const kind = residueKind(existing, stillProposed.block);
+        const sameProposal = kind === "same";
+        if (!sameProposal) return { status: "duplicate_identity", count: 2, ...(kind === "different" ? { loggedNumber: existing.number } : {}) };
         // Crash between the log write and the audit line: complete it (once).
         try {
           audit(timestamp, leadId, stillProposed.block, existing.number, facts !== null && loggedLine !== null && isEdited(facts, loggedLine), facts);

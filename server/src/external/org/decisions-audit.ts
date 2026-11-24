@@ -205,7 +205,7 @@ export function ensureRejectAudit(deps: DecisionAuditDeps, f: DecisionAuditFacts
   const other = lines.find((l) => isOwnRecord(l, f, true));
   if (other !== undefined) {
     const reason = parsed(other)?.data?.reason;
-    return { recorded: false, existingReason: typeof reason === "string" ? reason : null };
+    return { recorded: false, existingReason: typeof reason === "string" ? normalizeReason(reason) : null };
   }
   return { recorded: ensureDecisionAudit(deps, f) };
 }

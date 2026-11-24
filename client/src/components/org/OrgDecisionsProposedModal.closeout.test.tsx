@@ -108,6 +108,22 @@ describe("a row whose content changed under the operator (limits closeout)", () 
   });
 
   // @covers FR-01.71
+  it("a refetch that differs only in line endings changes nothing: no marker, the open edit is kept", async () => {
+    vi.mocked(fetchRejectedKeys).mockResolvedValue({});
+    const crlf = { ...B, block: B.block.split(String.fromCharCode(10)).join(String.fromCharCode(13, 10)) };
+    mockedFetch.mockResolvedValueOnce(res([A, B])).mockResolvedValue(res([crlf]));
+    mockedReject.mockResolvedValue({ ok: true, alreadyRejected: false, recorded: true });
+    renderModal();
+    await screen.findByTestId(tid("entry", TS_A));
+    fireEvent.click(screen.getByTestId(tid("edit", TS_B)));
+    fireEvent.change(screen.getByLabelText("Line for the decisions log"), { target: { value: "My own wording." } });
+    doRejectA();
+    await waitFor(() => expect(screen.queryByTestId(tid("entry", TS_A))).toBeNull());
+    expect(screen.queryByTestId(tid("changed", TS_B))).toBeNull();
+    expect((screen.getByLabelText("Line for the decisions log") as HTMLTextAreaElement).value).toBe("My own wording.");
+  });
+
+  // @covers FR-01.71
   it("an old verdict (blocked message) is not shown on the rewritten version", async () => {
     vi.mocked(fetchRejectedKeys).mockResolvedValue({});
     mockedFetch.mockResolvedValueOnce(res([B])).mockResolvedValue(res([B2]));

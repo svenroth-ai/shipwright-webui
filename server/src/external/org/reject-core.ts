@@ -23,7 +23,7 @@ import {
 import { atomicWrite } from "./countersign-core.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
 import { blockDigest } from "./proposed-line.js";
-import { isCrashResidue } from "./decision-residue.js";
+import { residueKind } from "./decision-residue.js";
 import { ensureRejectAudit, hasDecisionAudit, leadFolderExists, assertAuditAppendable, type DecisionAuditDeps } from "./decisions-audit.js";
 
 export type RejectOutcome =
@@ -65,8 +65,9 @@ export async function performReject(
     const logged = findLoggedEntry(parseLoggedEntries(ctx.readLogged()), timestamp, leadId);
     if (logged) {
       const listed = matches.length === 1 ? matches[0] : null;
-      const residue = listed !== null && isCrashResidue(logged, listed.block);
-      if (listed === null || residue) {
+      // `unknown` (a log block that cannot be fingerprinted) is treated like residue: fail closed.
+      const different = listed !== null && residueKind(logged, listed.block) === "different";
+      if (listed === null || !different) {
         // Still listed and its countersign record is missing: say so, never "already countersigned".
         if (listed !== null && !hasDecisionAudit(deps, "decision_countersigned", leadId, timestamp, decisionKeyOf(listed.block))) {
           return { status: "audit_pending", number: logged.number };

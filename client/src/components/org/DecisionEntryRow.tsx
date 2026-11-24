@@ -57,15 +57,15 @@ export function DecisionEntryRow({
   const [editDiscarded, setEditDiscarded] = useState(false);
   const hasLine = original !== null && !settled;
   const canEdit = hasLine && !changed; // an empty line is editable too: the server asks for one
-  const prev = useRef({ block: entry.block, original });
+  const prev = useRef({ digest, original });
   // A different proposal under this instance: the edit field starts over from the NEW proposed line; an edit the
   // operator had open is flagged, never carried over silently.
   useEffect(() => {
-    if (prev.current.block === entry.block) return;
+    if (prev.current.digest === digest) return; // keyed on the digest, like `changed`: a CRLF-only difference is no change
     setEditDiscarded((was) => was || editing); // an open edit field is flagged (sticky until acknowledged), changed or not
-    prev.current = { block: entry.block, original };
+    prev.current = { digest, original };
     setDraft(original ?? "");
-  }, [entry.block]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [digest]); // eslint-disable-line react-hooks/exhaustive-deps
   const labelId = `org-proposed-label-${rowKey.replace(/[^A-Za-z0-9_-]/g, "_")}`;
 
   return (

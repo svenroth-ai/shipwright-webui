@@ -122,6 +122,35 @@ describe("limits closeout", () => {
     });
   });
 
+  describe("a logged block that cannot be fingerprinted (short fence nonce)", () => {
+    // @covers FR-01.71
+    it("is never taken for a different proposal: Reject fails closed and countersign does not offer Reject", async () => {
+      const SHORT = "ab12cd34";
+      writeFileSync(proposed, entry("Line one.", SHORT));
+      const first = await performCountersign({ leadsRoot: root, author: me(), now: failOnce() }, TS, LEAD);
+      expect(first.status).toBe("audit_pending");
+      const fingerprint = blockDigest(parseProposedEntries(readFileSync(proposed, "utf8"))[0].block);
+      const rej = await post("reject", { reason: "no", fingerprint });
+      expect(rej.status).toBe(409);
+      expect((await rej.json()).error).toBe("countersign_audit_pending");
+      expect(readFileSync(proposed, "utf8")).toContain(KEY); // still listed
+      const dup = await (await post("countersign", {})).json();
+      expect(dup.error).toBe("duplicate_proposal_identity");
+      expect(dup.loggedAdr).toBeUndefined();
+    });
+  });
+
+  describe("reason text read back from the audit file", () => {
+    // @covers FR-01.71
+    it("is normalised and bounded before it is returned", async () => {
+      writeFileSync(proposed, entry("Line one."));
+      writeFileSync(audit, rejectedLine(me(), "x".repeat(900)));
+      const body = await (await post("reject", { reason: "other" })).json();
+      expect(body.reasonKept).toBe(true);
+      expect(body.existingReason.length).toBeLessThanOrEqual(280);
+    });
+  });
+
   describe("audit_pending and the lead rewrote the entry", () => {
     // @covers FR-01.71
     it("countersign names the logged ADR; Reject removes the rewritten version and leaves the log alone", async () => {

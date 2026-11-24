@@ -13,10 +13,19 @@ function bodyAfterHeader(block: string): string {
   return idx === -1 ? "" : block.slice(idx + 1);
 }
 
-/** A fenced entry's log holds the line plus a fingerprint of the proposed block: identity is told apart by that
- *  fingerprint. A log block written before W4 (whole entry) is compared body for body. */
-export function isCrashResidue(logged: { block: string; number: number }, listedBlock: string): boolean {
-  const fingerprint = parseLoggedLineBlock(logged.block)?.fingerprint ?? null;
-  if (fingerprint !== null) return fingerprint === proposalFingerprint(listedBlock);
-  return bodyAfterHeader(toLoggedBlock(listedBlock, logged.number)).trimEnd() === bodyAfterHeader(logged.block).trimEnd();
+export type ResidueKind = "same" | "different" | "unknown";
+
+/** Is the still-listed block the proposal that is logged? A fenced entry's log holds the line plus a fingerprint of the
+ *  proposed block: identity is told apart by that fingerprint. A line block WITHOUT one (the block's fence nonce was too
+ *  short to fingerprint) cannot be told either way: `unknown`, which callers treat as "maybe the same" and fail closed.
+ *  A log block written before W4 (whole entry) is compared body for body. */
+export function residueKind(logged: { block: string; number: number }, listedBlock: string): ResidueKind {
+  const line = parseLoggedLineBlock(logged.block);
+  if (line !== null) {
+    if (line.fingerprint === null) return "unknown";
+    return line.fingerprint === proposalFingerprint(listedBlock) ? "same" : "different";
+  }
+  return bodyAfterHeader(toLoggedBlock(listedBlock, logged.number)).trimEnd() === bodyAfterHeader(logged.block).trimEnd() ? "same" : "different";
 }
+
+export const isCrashResidue = (logged: { block: string; number: number }, listedBlock: string): boolean => residueKind(logged, listedBlock) === "same";
