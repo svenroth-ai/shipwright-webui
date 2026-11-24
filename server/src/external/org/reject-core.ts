@@ -23,14 +23,17 @@ import {
 import { atomicWrite } from "./countersign-core.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
 import { blockDigest } from "./proposed-line.js";
-import { ensureDecisionAudit, hasDecisionAudit, leadFolderExists, assertAuditAppendable, type DecisionAuditDeps } from "./decisions-audit.js";
+import { isCrashResidue } from "./decision-residue.js";
+import { ensureRejectAudit, hasDecisionAudit, leadFolderExists, assertAuditAppendable, type DecisionAuditDeps } from "./decisions-audit.js";
 
 export type RejectOutcome =
   /** `recorded`: this call appended the audit record (false = the identical record was already there, a retry). */
-  | { status: "rejected"; recorded: boolean }
+  | { status: "rejected"; recorded: boolean; /** a record with another reason already existed and was reused (`null` = it had none) */ existingReason?: string | null }
   | { status: "entry_changed" }
   | { status: "already_rejected" }
   | { status: "already_countersigned"; number: number }
+  /** The entry IS in the log, but its countersign audit record is missing (the audit file failed after the log write). */
+  | { status: "audit_pending"; number: number }
   | { status: "not_found" }
   | { status: "lead_unknown" }
   | { status: "duplicate_identity"; count: number };
@@ -56,10 +59,20 @@ export async function performReject(
     );
     if (matches.length > 1) return { status: "duplicate_identity", count: matches.length };
 
-    // Logged = countersigned (possibly with the proposed-side removal still
-    // pending after a crash): never reject an approved entry.
+    // Logged = countersigned (possibly with the proposed-side removal still pending after a crash): never reject an
+    // approved entry. One exception: a still-listed entry that is NOT the logged proposal (the lead rewrote it under
+    // the same identity) is a different proposal; rejecting it is the way out of `duplicate_identity`.
     const logged = findLoggedEntry(parseLoggedEntries(ctx.readLogged()), timestamp, leadId);
-    if (logged) return { status: "already_countersigned", number: logged.number };
+    if (logged) {
+      const listed = matches.length === 1 ? matches[0] : null;
+      if (listed === null || isCrashResidue(logged, listed.block)) {
+        // Still listed and its countersign record is missing: say so, never "already countersigned".
+        if (listed !== null && !hasDecisionAudit(deps, "decision_countersigned", leadId, timestamp, decisionKeyOf(listed.block))) {
+          return { status: "audit_pending", number: logged.number };
+        }
+        return { status: "already_countersigned", number: logged.number };
+      }
+    }
 
     if (matches.length === 0) {
       // Rejected earlier: the audit line is the record that it happened. Its
@@ -75,7 +88,7 @@ export async function performReject(
     if (!leadFolderExists(deps, leadId)) return { status: "lead_unknown" };
     assertAuditAppendable(deps, leadId);
     // Our own record, or nothing: a matching line the lead wrote itself does not count as the operator's record.
-    const recorded = ensureDecisionAudit(deps, {
+    const audit = ensureRejectAudit(deps, {
       kind: "decision_rejected",
       leadId,
       author,
@@ -87,7 +100,7 @@ export async function performReject(
       ctx.proposedPath,
       proposedRaw.slice(0, target.startIndex) + proposedRaw.slice(target.endIndex),
     );
-    return { status: "rejected", recorded };
+    return { status: "rejected", recorded: audit.recorded, ...(audit.existingReason !== undefined ? { existingReason: audit.existingReason } : {}) };
   });
 }
 

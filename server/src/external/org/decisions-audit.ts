@@ -117,12 +117,13 @@ export function hasDecisionAudit(
  * that merely names the same entry (the lead can write one into its own file)
  * is NOT ours: the decision then writes its own record.
  */
-function isOwnRecord(line: string, f: DecisionAuditFacts): boolean {
+function isOwnRecord(line: string, f: DecisionAuditFacts, anyReason = false): boolean {
   const rec = parsed(line);
   if (rec === null || !matches(line, f.kind, f.entryTimestamp, f.decisionKey)) return false;
   const verb = f.kind === "decision_rejected" ? "rejected" : "countersigned";
   const d = rec.data ?? {};
   if (d.author !== f.author || d.action !== verb) return false;
+  if (anyReason) return f.kind === "decision_rejected" && "reason" in d; // the shape this webui writes: the reason field is always present
   return f.kind === "decision_rejected" ? (d.reason ?? null) === (f.reason ?? null) : (d.adr ?? null) === (f.adr ?? null);
 }
 
@@ -184,6 +185,29 @@ export function ensureDecisionAudit(deps: DecisionAuditDeps, f: DecisionAuditFac
     throw err;
   }
   return true;
+}
+
+export interface RejectAuditResult {
+  /** This call appended the record. */
+  recorded: boolean;
+  /** A record of this webui for the same entry and author already existed under ANOTHER reason (a retry after a crash
+   *  with a different note): it was reused, nothing was appended. `null` = it had no reason. */
+  existingReason?: string | null;
+}
+
+/** Reject's record, exactly once per (kind, entry, key, author, action): the identical record is reused, and so is
+ *  one with a different reason (the retry's reason is dropped and the caller says so). A line another author wrote
+ *  never counts, so a forged foreign-author line still gets its own record. */
+export function ensureRejectAudit(deps: DecisionAuditDeps, f: DecisionAuditFacts): RejectAuditResult {
+  if (!leadFolderExists(deps, f.leadId)) return { recorded: false };
+  const lines = readAuditLines(deps, f.leadId);
+  if (lines.some((l) => isOwnRecord(l, f))) return { recorded: false };
+  const other = lines.find((l) => isOwnRecord(l, f, true));
+  if (other !== undefined) {
+    const reason = parsed(other)?.data?.reason;
+    return { recorded: false, existingReason: typeof reason === "string" ? reason : null };
+  }
+  return { recorded: ensureDecisionAudit(deps, f) };
 }
 
 export interface RejectedKey {

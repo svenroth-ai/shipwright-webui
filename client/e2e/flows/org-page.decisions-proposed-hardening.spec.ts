@@ -70,12 +70,14 @@ test.describe("Org page - proposals window hardening", () => {
     // The lead rewrites the evidence under the same identity while the window is open.
     writeFileSync(PROPOSED_PATH, entry(TS1, "use-weekly-digest", "Send one digest per week.", "session 9z9z0000 at 2026-11-19T16:02:11Z, message 99"), "utf8");
     await page.getByTestId(`org-decisions-proposed-countersign-${row}`).click();
-    const result = page.getByTestId(`org-decisions-proposed-result-${row}`);
-    await expect(result).toContainText("This proposal changed since you opened it — reload");
+    // The refetch put the rewritten version under the row: it is marked, and no decision is possible until it is acknowledged.
+    await expect(page.getByTestId(`org-decisions-proposed-changed-${row}`)).toContainText("This proposal changed since you opened it — reload");
+    await expect(page.getByTestId(`org-decisions-proposed-countersign-${row}`)).toBeDisabled();
     await expect(page.getByTestId(`org-decisions-proposed-evidence-${row}`)).toContainText("9z9z0000"); // refetched
     expect(existsSync(LOGGED_PATH)).toBe(false);
     expect(readFileSync(PROPOSED_PATH, "utf8")).toContain("use-weekly-digest");
-    // Seeing the new version, a second click approves it.
+    // Having read the new version, the operator confirms it and a second click approves it.
+    await page.getByTestId(`org-decisions-proposed-changed-ack-${row}`).click();
     await page.getByTestId(`org-decisions-proposed-countersign-${row}`).click();
     await expect(page.getByTestId(`org-decisions-proposed-result-${row}`)).toContainText("Countersigned as ADR-0001");
   });

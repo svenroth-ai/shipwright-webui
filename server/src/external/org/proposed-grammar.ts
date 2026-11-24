@@ -15,6 +15,8 @@
  * forged one is not.
  */
 
+import { foldConfusables } from "./proposed-confusables.js";
+
 // ---- GRAMMAR (verbatim mirror below this line) ----
 
 export const WEBUI_HEADER_RE = /^## \[([^\]]+)\] (.+?)\r?$/;
@@ -235,11 +237,12 @@ export function splitQuote(line: string): { text: string; pointer: string | null
 }
 
 /** Comparison form of a text: Unicode-folded (NFKC, so NBSP and wide forms), every invisible character removed
- *  (including emoji presentation selectors), one line, lower case. Never written anywhere. It strips exactly what
+ *  (including emoji presentation selectors), look-alike letters of a small bounded Cyrillic/Greek list mapped to their
+ *  Latin twin (`foldConfusables`), one line, lower case. Never written anywhere. It strips exactly what
  *  `normalizeLine` strips on the write path, and more (it also drops the emoji selector), so a line can never hide a
  *  quote by an invisible difference. */
 export function foldForCompare(text: string): string {
-  return normalizeLine(stripInvisible(stripInvisible(text, false).normalize("NFKC"), false)).toLowerCase();
+  return foldConfusables(normalizeLine(stripInvisible(stripInvisible(text, false).normalize("NFKC"), false))).toLowerCase();
 }
 
 // Code points that render as nothing: format characters (tag characters, bidi overrides, zero width, ...), default

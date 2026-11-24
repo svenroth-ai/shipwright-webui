@@ -78,7 +78,7 @@ export async function handleCountersignRequest(
   if (outcome.status === "duplicate_identity") {
     return {
       status: 409,
-      body: { error: "duplicate_proposal_identity", timestamp, leadId, count: outcome.count },
+      body: { error: "duplicate_proposal_identity", timestamp, leadId, count: outcome.count, ...(outcome.loggedNumber !== undefined ? { loggedAdr: `ADR-${String(outcome.loggedNumber).padStart(4, "0")}` } : {}) },
     };
   }
   return {

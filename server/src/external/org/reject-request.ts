@@ -65,6 +65,17 @@ export async function handleRejectRequest(
         status: 409,
         body: { error: "duplicate_proposal_identity", timestamp, leadId, count: outcome.count },
       };
+    case "audit_pending":
+      return {
+        status: 409,
+        body: {
+          error: "countersign_audit_pending",
+          timestamp,
+          leadId,
+          number: outcome.number,
+          message: "Logged, but the audit record is missing: fix the lead's audit file, then countersign again to finish",
+        },
+      };
     case "already_countersigned":
       return {
         status: 409,
@@ -78,6 +89,8 @@ export async function handleRejectRequest(
           alreadyRejected: outcome.status === "already_rejected",
           // truthful: false when this call wrote no audit record (the identical one was already there, or the entry was gone)
           recorded: outcome.status === "rejected" && outcome.recorded,
+          // a retry with another reason found this webui's earlier record and reused it (`null` = that one had no reason)
+          ...(outcome.status === "rejected" && outcome.existingReason !== undefined ? { reasonKept: true, existingReason: outcome.existingReason } : {}),
         },
       };
   }

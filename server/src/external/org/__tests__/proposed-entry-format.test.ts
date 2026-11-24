@@ -172,7 +172,7 @@ describe("countersign - both forms move exactly once", () => {
     await performCountersign({ leadsRoot }, T1, "acme-lead");
     // the same (timestamp, lead) re-appears in WebUI form with different text: conflict, not a second number
     writeFileSync(proposed(), `## [${T1}] acme-lead\n\ndifferent text\n`);
-    expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "duplicate_identity", count: 2 });
+    expect(await performCountersign({ leadsRoot }, T1, "acme-lead")).toEqual({ status: "duplicate_identity", count: 2, loggedNumber: 1 });
     expect(readFileSync(logged(), "utf8").match(/^## ADR-/gm)).toHaveLength(1);
   });
 

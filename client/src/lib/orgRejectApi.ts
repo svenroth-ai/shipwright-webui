@@ -8,13 +8,15 @@ import { ORG_API } from "./orgApi";
 
 export type RejectResult =
   /** `recorded`: this request wrote the audit record (false = it was already there, or the entry was gone). */
-  | { ok: true; alreadyRejected: boolean; recorded: boolean }
+  | { ok: true; alreadyRejected: boolean; recorded: boolean; /** an earlier record of this webui was reused: the reason on record (`null` = none) */ existingReason?: string | null }
   | { ok: false; reason: "entry-changed" }
   | { ok: false; reason: "audit-unwritable"; message: string }
   | { ok: false; reason: "not-found" }
   | { ok: false; reason: "lead-unknown" }
   | { ok: false; reason: "duplicate"; count: number }
-  | { ok: false; reason: "already-countersigned"; adr: number };
+  | { ok: false; reason: "already-countersigned"; adr: number }
+  /** In the log already, but its countersign audit record is missing: countersign again after fixing the audit file. */
+  | { ok: false; reason: "audit-pending"; adr: number; message: string };
 
 /** `POST /api/org/decisions/reject`. Other failures throw {@link ApiError}. */
 export async function rejectDecision(timestamp: string, leadId: string, reason: string, fingerprint?: string): Promise<RejectResult> {
@@ -38,10 +40,18 @@ export async function rejectDecision(timestamp: string, leadId: string, reason: 
   if (r.status === 409 && body.error === "already_countersigned") {
     return { ok: false, reason: "already-countersigned", adr: typeof body.number === "number" ? body.number : 0 };
   }
+  if (r.status === 409 && body.error === "countersign_audit_pending") {
+    return { ok: false, reason: "audit-pending", adr: typeof body.number === "number" ? body.number : 0, message: typeof body.message === "string" ? body.message : "The audit record is missing." };
+  }
   if (!r.ok) {
     throw new ApiError(typeof body.error === "string" ? body.error : `http_${r.status}`, r.status, body);
   }
-  return { ok: true, alreadyRejected: body.alreadyRejected === true, recorded: body.recorded === true };
+  return {
+    ok: true,
+    alreadyRejected: body.alreadyRejected === true,
+    recorded: body.recorded === true,
+    ...(body.reasonKept === true ? { existingReason: typeof body.existingReason === "string" ? body.existingReason : null } : {}),
+  };
 }
 
 export interface RejectedKey {
