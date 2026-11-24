@@ -12,6 +12,8 @@ import { createOrgApiRouter } from "../../../routes/org.js";
 import { performCountersign } from "../countersign-core.js";
 import { parseProposedEntries } from "../decisions-lock.js";
 import { blockDigest } from "../proposed-line.js";
+import { residueKind } from "../decision-residue.js";
+import { toLoggedBlock } from "../decisions-lock.js";
 
 const TS = "2026-11-20T09:15:00.000Z";
 const LEAD = "acme-lead";
@@ -124,7 +126,7 @@ describe("limits closeout", () => {
 
   describe("a logged block that cannot be fingerprinted (short fence nonce)", () => {
     // @covers FR-01.71
-    it("is never taken for a different proposal: Reject fails closed and countersign does not offer Reject", async () => {
+    it("is never taken for a different proposal: Reject fails closed (no removal, no misleading advice) and countersign does not offer Reject", async () => {
       const SHORT = "ab12cd34";
       writeFileSync(proposed, entry("Line one.", SHORT));
       const first = await performCountersign({ leadsRoot: root, author: me(), now: failOnce() }, TS, LEAD);
@@ -132,11 +134,23 @@ describe("limits closeout", () => {
       const fingerprint = blockDigest(parseProposedEntries(readFileSync(proposed, "utf8"))[0].block);
       const rej = await post("reject", { reason: "no", fingerprint });
       expect(rej.status).toBe(409);
-      expect((await rej.json()).error).toBe("countersign_audit_pending");
+      expect((await rej.json()).error).toBe("already_countersigned"); // Countersign cannot finish it either: no false advice
       expect(readFileSync(proposed, "utf8")).toContain(KEY); // still listed
       const dup = await (await post("countersign", {})).json();
       expect(dup.error).toBe("duplicate_proposal_identity");
       expect(dup.loggedAdr).toBeUndefined();
+    });
+  });
+
+  describe("whole-entry log form", () => {
+    // @covers FR-01.71
+    it("a residue rewritten with other line endings or trailing blanks is still the same proposal", () => {
+      const NL = String.fromCharCode(10);
+      const listed = ["## [2026-11-20T09:15:00.000Z] acme-lead", "", "Body text.", ""].join(NL);
+      const logged = { number: 3, block: toLoggedBlock(listed, 3) };
+      expect(residueKind(logged, listed)).toBe("same");
+      expect(residueKind(logged, listed.split(NL).join(String.fromCharCode(13, 10)) + "  ")).toBe("same");
+      expect(residueKind(logged, listed.replace("Body text.", "Other text."))).toBe("different");
     });
   });
 
@@ -172,7 +186,12 @@ describe("limits closeout", () => {
       expect(await rej.json()).toMatchObject({ rejected: true, recorded: true });
       expect(readFileSync(proposed, "utf8")).not.toContain(KEY);
       expect(readFileSync(logged, "utf8")).toBe(logBefore);
-      expect(auditLines().filter((l) => l.kind === "decision_rejected")).toHaveLength(1);
+      const rejected = auditLines().filter((l) => l.kind === "decision_rejected");
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0].data.supersededAdr).toBe("ADR-0001");
+      // the record is about the rewrite, never a rejection of the approved key: no repeat hint for it
+      const keys = await (await router().request(`/api/org/decisions/rejected-keys?leadIds=${LEAD}`)).json();
+      expect(keys.byLead[LEAD] ?? []).toEqual([]);
     });
   });
 });

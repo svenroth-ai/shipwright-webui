@@ -150,7 +150,7 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
                 {settledExtras.map(([key, s]) => (
                   <DecisionEntryRow
                     key={`settled|${key}|${s.digest}`}
-                    rowKey={key}
+                    rowKey={liveDigest.has(key) ? `${key}|settled` : key}
                     entry={s.entry}
                     status={s.status}
                     onCountersign={() => {}}

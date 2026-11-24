@@ -55,6 +55,8 @@ export interface DecisionAuditFacts {
   reason?: string | null;
   /** ADR number, for a countersign. */
   adr?: string;
+  /** Reject only: the rejected entry is a rewritten version of this already logged ADR (not a rejection of the approved key). */
+  supersededAdr?: string;
   /** Countersign only: the operator changed the proposed line. The original text is never recorded. */
   edited?: boolean;
   /** Countersign only: pointer to the observation (known shape only, never free text). */
@@ -175,7 +177,7 @@ export function ensureDecisionAudit(deps: DecisionAuditDeps, f: DecisionAuditFac
         entryTimestamp: f.entryTimestamp,
         decisionKey: f.decisionKey,
         ...(f.kind === "decision_rejected"
-          ? { reason: f.reason ?? null }
+          ? { reason: f.reason ?? null, ...(f.supersededAdr !== undefined ? { supersededAdr: f.supersededAdr } : {}) }
           : { adr: f.adr ?? null, edit: f.edited ? "edited" : "approved_as_proposed", evidence: f.evidence ?? null }),
       },
     });
@@ -221,7 +223,7 @@ export function rejectedKeys(deps: DecisionAuditDeps, leadId: string): RejectedK
   const out: RejectedKey[] = [];
   for (const line of readAuditLines(deps, leadId)) {
     const rec = parsed(line);
-    if (rec?.kind !== "decision_rejected") continue;
+    if (rec?.kind !== "decision_rejected" || typeof rec.data?.supersededAdr === "string") continue;
     const key = rec.data?.decisionKey;
     const ts = rec.data?.entryTimestamp;
     if (typeof key === "string" && key.length > 0 && typeof ts === "string") out.push({ key, entryTimestamp: ts });

@@ -6,7 +6,6 @@ import { checkEditedLine, proposalFacts } from "../proposed-line.js";
 
 const QUOTE = "The customer told us the migration to the new billing platform was postponed because the vendor missed two deadlines";
 const NONCE = "3f9a1c0e5b7d42a8916c0d2e4f6a8b1c";
-const E = (s: string) => s; // readability only
 
 function block(quote: string): string {
   return (
@@ -69,6 +68,6 @@ describe("quote guard: look-alike letters (bounded confusables map)", () => {
     const v = checkEditedLine(line, facts);
     expect(v).toEqual({ ok: true, line });
     expect(foldForCompare(line)).toContain("cyrillic o stays");
-    expect(E(foldConfusables("\u0410\u0412\u0415"))).toBe("abe");
+    expect(foldConfusables("\u0410\u0412\u0415")).toBe("abe");
   });
 });

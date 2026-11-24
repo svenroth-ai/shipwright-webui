@@ -6,6 +6,7 @@
 
 import { toLoggedBlock } from "./decisions-lock.js";
 import { parseLoggedLineBlock, proposalFingerprint } from "./proposed-line.js";
+import { blockForDigest } from "./proposed-grammar.js";
 
 /** Body of a header-delimited block, i.e. everything after its first line. */
 function bodyAfterHeader(block: string): string {
@@ -25,7 +26,9 @@ export function residueKind(logged: { block: string; number: number }, listedBlo
     if (line.fingerprint === null) return "unknown";
     return line.fingerprint === proposalFingerprint(listedBlock) ? "same" : "different";
   }
-  return bodyAfterHeader(toLoggedBlock(listedBlock, logged.number)).trimEnd() === bodyAfterHeader(logged.block).trimEnd() ? "same" : "different";
+  // line endings, BOM and trailing blanks are not content (an editor or autocrlf may have rewritten the file)
+  const norm = (s: string) => blockForDigest(bodyAfterHeader(s));
+  return norm(toLoggedBlock(listedBlock, logged.number)) === norm(logged.block) ? "same" : "different";
 }
 
 export const isCrashResidue = (logged: { block: string; number: number }, listedBlock: string): boolean => residueKind(logged, listedBlock) === "same";

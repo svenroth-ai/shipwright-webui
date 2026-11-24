@@ -114,6 +114,11 @@ export function DecisionEntryRow({
         )}
         {!settled && <DecisionRejectControl rowKey={rowKey} pending={pending} locked={changed} onReject={onReject} />}
       </div>
+      {editDiscarded && !changed && (
+        <div role="status" className="mt-2 text-[11px]" data-testid={`org-decisions-proposed-edit-replaced-${rowKey}`}>
+          Your open edit was replaced by the proposed line of the current version.
+        </div>
+      )}
       {changed && (
         <div
           role="alert"
@@ -142,7 +147,7 @@ export function DecisionEntryRow({
         rowKey={rowKey}
         entry={entry}
         labelId={labelId}
-        lineSlot={canEdit && editing ? <DecisionLineEditor rowKey={rowKey} value={draft} original={original ?? ""} disabled={pending} onChange={setDraft} /> : undefined}
+        lineSlot={canEdit && editing ? <DecisionLineEditor rowKey={rowKey} value={draft} original={original ?? ""} disabled={pending} onChange={(v) => { setDraft(v); setEditDiscarded(false); }} /> : undefined}
       />
 
       {status.kind === "done" && (

@@ -66,10 +66,12 @@ export async function performReject(
     if (logged) {
       const listed = matches.length === 1 ? matches[0] : null;
       // `unknown` (a log block that cannot be fingerprinted) is treated like residue: fail closed.
-      const different = listed !== null && residueKind(logged, listed.block) === "different";
+      const kind = listed === null ? null : residueKind(logged, listed.block);
+      const different = kind === "different";
       if (listed === null || !different) {
-        // Still listed and its countersign record is missing: say so, never "already countersigned".
-        if (listed !== null && !hasDecisionAudit(deps, "decision_countersigned", leadId, timestamp, decisionKeyOf(listed.block))) {
+        // Still listed (the same proposal) and its countersign record is missing: say so, never "already countersigned".
+        // `unknown` stays "already countersigned": Countersign cannot finish such an entry either, so no false advice.
+        if (listed !== null && kind === "same" && !hasDecisionAudit(deps, "decision_countersigned", leadId, timestamp, decisionKeyOf(listed.block))) {
           return { status: "audit_pending", number: logged.number };
         }
         return { status: "already_countersigned", number: logged.number };
@@ -88,6 +90,9 @@ export async function performReject(
     }
 
     const target = matches[0];
+    // A rejected rewrite of an identity that is already logged: the record says which ADR it is about, so it never
+    // reads as a rejection of the approved key (rejectedKeys skips it).
+    const supersededAdr = logged ? `ADR-${String(logged.number).padStart(4, "0")}` : undefined;
     if (seenDigest != null && seenDigest !== blockDigest(target.block)) return { status: "entry_changed" };
     // The record needs the lead's own folder; never create one for a name found in a lead-written file.
     if (!leadFolderExists(deps, leadId)) return { status: "lead_unknown" };
@@ -100,6 +105,7 @@ export async function performReject(
       entryTimestamp: timestamp,
       decisionKey: decisionKeyOf(target.block),
       reason,
+      ...(supersededAdr !== undefined ? { supersededAdr } : {}),
     });
     atomicWrite(
       ctx.proposedPath,
