@@ -1,0 +1,5 @@
+{"section": "iterate-2026-11-24-evidence-line-quote-grammar", "verdict": "pass", "round": 1, "review": [
+  {"severity": "low", "category": "correctness", "file": "server/src/external/org/__tests__/evidence-line-quote.test.ts", "line": 224, "finding": "No test covers an empty or whitespace-only quote, nor a quote made only of invisible characters (view would show an empty-looking blockquote).", "suggestion": "Add asserts; treat a quote that is blank after stripInvisible as no quote in both mirrors."},
+  {"severity": "low", "category": "readability", "file": "docs/org-proposed-entry-contract.md", "line": 161, "finding": "Doc says a known pointer, but only the short session:ISO:n form can precede a quote; the long form followed by a quote reads as unknown (safe).", "suggestion": "State the short form only and pin with a test assert."},
+  {"severity": "low", "category": "correctness", "file": "docs/org-proposed-entry-contract.md", "line": 166, "finding": "'never written to the log or audit' is only guaranteed for fenced entries (the form leadwright writes).", "suggestion": "Narrow the wording."}
+]}

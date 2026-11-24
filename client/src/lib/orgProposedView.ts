@@ -9,12 +9,13 @@
  * ending in ` — <pointer>` (split at the LAST ` — `, only when the suffix looks like a
  * pointer, so an em-dash in the text survives); every other line is the
  * proposed line. A quote without its own pointer inherits the entry's evidence
- * pointer. Everything here is text: callers render it as plain text, never markup.
+ * pointer. The Evidence bullet itself may carry the quote (`<pointer> — "<quote>"`,
+ * `parseEvidence`): it is shown first, as a quote with its own pointer. Everything here is text: callers render it as plain text, never markup.
  *
  * The line/quote split (`fencedParts`) and the pointer parser live in the mirrored grammar, so the
  * server countersign uses the very same rule (W4).
  */
-import { fencedParts, parseSourceRef, splitQuote, stripInvisible, type SourceRef } from "./orgProposedGrammar";
+import { fencedParts, parseEvidence, parseSourceRef, splitQuote, stripInvisible, type SourceRef } from "./orgProposedGrammar";
 
 export { parseSourceRef };
 export type { SourceRef };
@@ -44,10 +45,11 @@ function parseQuote(line: string, fallback: SourceRef): QuoteView {
 }
 
 export function buildEntryView(block: string, evidence: string | null): EntryView {
-  const source = parseSourceRef(evidence);
+  const { source, quote } = parseEvidence(evidence);
   const parts = fencedParts(block.split("\n"));
   if (parts === null) return { fenced: false, proposedLine: null, beat: null, source, quotes: [] };
-  const quotes = parts.quotes.map((l) => parseQuote(l, source)).filter((q) => q.text !== "");
+  const own: QuoteView[] = quote === null ? [] : [{ text: quote, source, inherited: false }]; // the Evidence line's own quote, first
+  const quotes = [...own, ...parts.quotes.map((l) => parseQuote(l, source)).filter((q) => q.text !== "")];
   return {
     fenced: true,
     proposedLine: stripInvisible(parts.proposed.join("\n")).trim(), // invisible characters removed as on the server; whitespace is collapsed on write

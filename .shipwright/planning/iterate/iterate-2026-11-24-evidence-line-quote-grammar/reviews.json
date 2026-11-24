@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-24-evidence-line-quote-grammar",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-24T07:08:11.469969+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-24T07:08:11.675992+00:00",
+      "disposition": "Stage-2 scout: a single-function grammar addition (about 40 production lines, one producer fixture), classified small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/external/org/__tests__/evidence-line-quote.test.ts",
+          "line": 224,
+          "finding": "No test covers an empty or whitespace-only quote, nor a quote made only of invisible characters (view would show an empty-looking blockquote).",
+          "suggestion": "Add asserts; treat a quote that is blank after stripInvisible as no quote in both mirrors.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "docs/org-proposed-entry-contract.md",
+          "line": 161,
+          "finding": "Doc says a known pointer, but only the short session:ISO:n form can precede a quote; the long form followed by a quote reads as unknown (safe).",
+          "suggestion": "State the short form only and pin with a test assert.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "docs/org-proposed-entry-contract.md",
+          "line": 166,
+          "finding": "'never written to the log or audit' is only guaranteed for fenced entries (the form leadwright writes).",
+          "suggestion": "Narrow the wording.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-24T07:13:07.981305+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "ee904d3afefd2f77b62e0590744523b8bdf5e5ab"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "robustness",
+          "file": null,
+          "line": null,
+          "finding": "A quote containing U+2028/U+2029 fails the (.*) match, so the quote, guard and pointer are dropped silently.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "robustness",
+          "file": null,
+          "line": null,
+          "finding": "Producer-shape deviations (NBSP/tab around the dash, long pointer form, unterminated quote) fall back to unknown source with no guard.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "robustness",
+          "file": null,
+          "line": null,
+          "finding": "Only quotes of 20+ folded characters are guarded (QUOTE_GUARD_MIN); the doc says every folded quote is a needle.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "robustness",
+          "file": null,
+          "line": null,
+          "finding": "The displayed quote is not passed through stripInvisible.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-24T07:17:30.528804+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "ee904d3afefd2f77b62e0590744523b8bdf5e5ab"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "server/src/external/org/proposed-line.ts:79 (the added `evidenceQuote` needle line) and proposed-grammar.ts `parseEvidence",
+          "line": null,
+          "finding": "The spec/contract says the Evidence-line quote is 24–200 characters, but neither `parseEvidence` nor the guard enforces any minimum length. A short quote (e.g. `s1:...:3 — \"ok\"`) becomes a `foldForCompare` needle, and any edited proposed line that merely contains that common substring is then refused with 400 `line_contains_quote` — a false refusal that blocks countersign entirely (the entry stays, no way to accept it with any reasonable line). The fence-quote needles had the `> text — pointer` shape as an implicit length/structure constraint; the Evidence-line needle has none.",
+          "suggestion": "In `proposalFacts`, only add the Evidence-quote needle when the quote meets the contract's minimum (e.g. ≥24 chars), or skip needles below some fold-length threshold so short quotes cannot block countersign.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/orgProposedGrammar.ts:204 / server/.../proposed-grammar.ts:203 (`EVIDENCE_QUOTE_RE`)",
+          "line": null,
+          "finding": "A known pointer followed by ` — \"\"` (empty quote) yields quote `null` but the trimmed `source` is parsed from `m[1]` while the fallback path calls `parseSourceRef(raw)` on the untrimmed original — behaviorally equivalent here, but the two paths can diverge if `parseSourceRef` ever treats whitespace differently (e.g. a padded pointer like ` s1:…:3 — \"q\"`: the quote path trims, the old path didn't). This is a mild inconsistency, not a concrete failure given current `parseSourceRef`.",
+          "suggestion": "Use `parseSourceRef(t)` in the fallback so both paths see the same trimmed input.  Test quality: the tests are substantive — they exercise real parse, guard-refusal (including case-folded repetition), audit content, and pin the fixture by hash and structure. The client unit tests would catch a wrong-quotes-order or markup regression. The e2e only covers display; guard/audit are covered server-side, which matches the AC's division. Note the second countersign test asserts the edited-line pass but does not assert the audit `data.evidence` lacks a `quote` field name — acceptable, since `not.toContain(QUOTE)` covers the text.  Regression risk: `proposalFacts`'s `pointer` variable was renamed to `source` destructuring; if `pointer` is referenced further down in the file (not shown), the diff context implies it compiles, and the exported API shapes are unchanged. `parseEvidence` is additive. No visible breakage for callers.  Spec compliance: all three AC behaviors (display-first plain text with source, copy-refusal guard, audit names source without quote) are implemented and tested. The hash pin and contract doc update match the referenced fixture.  Overall assessment: the work is sound and well-tested; the unenforced minimum quote length turning into a guard needle is the only defect worth fixing before or shortly after ship.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-11-24T07:08:58.649643+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] Findings:\n\n- Category: edge-case\n  Severity: medium\n  File: server/src/external/org/proposed-line.ts:79 (the added `evidenceQuote` needle line) and proposed-grammar.ts `parseEvidence`\n  Finding: The spec/contract says the Evidence-line quote is 24–200 characters, but neither `parseEvidence` nor the guard enforces any minimum length. A short quote (e.g. `s1:...:3 — \"ok\"`) becomes a `foldForCompare` needle, and any edited proposed line that merely contains that common substring is then refused with 400 `line_contains_quote` — a false refusal that blocks countersign entirely (the entry stays, no way to accept it with any reasonable line). The fence-quote needles had the `> text — pointer` shape as an implicit length/structure constraint; the Evidence-line needle has none.\n  Suggestion: In `proposalFacts`, only add the Evidence-quote needle when the quote meets the contract's minimum (e.g. ≥24 chars), or skip needles below some fold-length threshold so short quotes cannot block countersign.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/lib/orgProposedGrammar.ts:204 / server/.../proposed-grammar.ts:203 (`EVIDENCE_QUOTE_RE`)\n  Finding: A known pointer followed by ` — \"\"` (empty quote) yields quote `null` but the trimmed `source` is parsed from `m[1]` while the fallback path calls `parseSourceRef(raw)` on the *untrimmed* original — behaviorally equivalent here, but the two paths can diverge if `parseSourceRef` ever treats whitespace differently (e.g. a padded pointer like ` s1:…:3 — \"q\"`: the quote path trims, the old path didn't). This is a mild inconsistency, not a concrete failure given current `parseSourceRef`.\n  Suggestion: Use `parseSourceRef(t)` in the fallback so both paths see the same trimmed input.\n\nTest quality: the tests are substantive — they exercise real parse, guard-refusal (including case-folded repetition), audit content, and pin the fixture by hash and structure. The client unit tests would catch a wrong-quotes-order or markup r […truncated]\n\n[openai] No concrete defects found in the provided diff.\n\nThe change covers the acceptance criteria: known Evidence pointers yield a quote displayed first, the server includes that quote in the copy guard, and the audit retains the structured source pointer without the quote. Tests cover copy rejection, edited-line acceptance, audit/log exclusion, embedded quotes and dashes, and unknown-source fallback.\n\nI couldn’t inspect surrounding files or run tests because local command execution was blocked by policy. Based on the supplied diff, the assessment is **ship-as-is**.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "openai": "approve",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-24T07:11:34.787810+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "ee904d3afefd2f77b62e0590744523b8bdf5e5ab"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-24T07:08:11.839241+00:00",
+      "disposition": "Stage-2 scout: a single-function grammar addition (about 40 production lines, one producer fixture), classified small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-24T07:08:11.994482+00:00",
+      "disposition": "Stage-2 scout: a single-function grammar addition (about 40 production lines, one producer fixture), classified small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

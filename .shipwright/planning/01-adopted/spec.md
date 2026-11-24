@@ -1456,6 +1456,13 @@ write surface; gated, path-guarded, and concurrency-safe.
   window names the logged earlier version and offers Reject to remove the
   rewritten one, and Reject removes only that listed version and leaves the
   decisions log untouched.
+- (E) **(iterate-2026-11-24-evidence-line-quote-grammar)** Given a proposal
+  whose evidence line names a known source followed by a quoted sentence of
+  the lead, when the operator opens the proposals window, then the quote is
+  shown first, as plain text, with its source, and when the operator
+  countersigns a proposed line that repeats that quote it is refused as a
+  copy, while an edited line passes and the audit record names the source
+  but never carries the quote.
 
 ### FR-01.74 Codex CLI as an alternate task runtime ("Codex Light")
 

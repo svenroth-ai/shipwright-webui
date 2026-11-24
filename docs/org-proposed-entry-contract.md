@@ -260,3 +260,27 @@ Nothing here changes identity, listing or countersign.
   could not be read and were skipped (lead: ...)." The count is a lower bound after a dangling opener (text after it is untrusted) and
   may include a header-looking line that was never a real entry.
 - `loggedLineDiffers` is decided for W4 line blocks only (a fenced entry); a pre-W4 whole-entry log block has no single line to compare.
+
+## Evidence-line quote (iterate evidence-line-quote-grammar)
+
+**Accepted.** Leadwright (`renderEntry`, leadwright #141) writes the shadow evidence quote NOT inside the fence but on the
+Evidence bullet: `- **Evidence:** <session>:<ISO .mmmZ>:<n> — "<quote>"`. The quote is one line, 24-200 characters, and
+may itself contain ` — ` and `"`. `parseEvidence` (mirrored grammar) matches `^(\S+) — "(.*)"$` greedily; the part
+before the first ` — ` must be a KNOWN pointer in the short form `<session>:<ISO>:<n>` (the long `session ... at ...` form followed by a quote reads as unknown), otherwise the line is handled exactly as before
+(unknown source, no quote). An empty, blank or invisible-only quote is no quote.
+
+- **Display:** the quote is shown first, as its own quote with the entry's pointer, as untrusted plain text.
+- **Guard:** the folded quote (when its folded form is 20+ characters, `QUOTE_GUARD_MIN`) is a `line_contains_quote` needle, so an unedited proposed line that repeats it is refused (400).
+- **Audit:** `evidence` is the structured pointer `{session,time,message}` (no longer null for this form); for a fenced entry (the form leadwright writes) the quote text is never written to the log or the audit.
+
+**Not adopted.** The `> text — pointer` quote line inside the fence (W2 display convention) stays accepted for reading, but
+the Evidence-line form is not extended to it and it is not what leadwright writes for the shadow evidence quote.
+
+**Fixture pin.** `server/src/external/org/__tests__/fixtures/decisions-proposed-renderentry-sample.md` is copied from leadwright
+`tests/fixtures/decisions-proposed-renderentry-sample.md` (commit 44a6606, #141). SHA-256 (LF-normalised):
+`f37620e501c9727becb88206207bbc82db1a33cdff08779a4693aa164b00902c`.
+
+**Producer requirements.** Leadwright must write the short pointer with ASCII spaces around the em dash and keep the closing
+`"` when it truncates a quote; any other shape (NBSP or tab around the dash, the long pointer form, an unterminated quote)
+reads as unknown source: no quote shown, no guard needle, audit evidence null. The displayed quote is plain text as written
+(invisible characters are folded away by the guard, not stripped for display), the same as fence quotes.
