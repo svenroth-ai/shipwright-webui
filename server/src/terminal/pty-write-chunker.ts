@@ -25,18 +25,15 @@
  *      the paste-image path, or a mouse report would otherwise splice
  *      bytes into the middle of the still-draining first burst.
  *
- * Extracted from `pty-manager.ts` (which already carries an ADR-101 bloat
- * exception) as a cohesive split, mirroring `backpressure-telemetry.ts`'s
- * precedent: the concern only ever touches an entry's `pty.write()` call
- * and its own busy/queue bookkeeping, never anything else `PtyManager`
- * owns, so `ChunkedPtyWriteEntry` below is a narrow structural interface
- * rather than a dependency on `PtyEntry` itself.
+ * Extracted from `pty-manager.ts` (ADR-101 bloat exception); the entry is a
+ * narrow structural interface, not a dependency on `PtyEntry`.
  *
- * Six review passes hardened this (unclamped chunk size, mid-drain
- * interleaving, an unguarded mouse-report path, an uncapped pending queue,
- * a mutually-recursive drain, a recursive scheduler callback — each fixed
- * where found). Full history: the run-id's ADR.
+ * Issue #632: chunk spacing alone gave no back-pressure — each chunk is now
+ * delivered via `pty-raw-write.ts` (async fd write, off the event loop) and
+ * the next is scheduled only after it completes.
  */
+
+import { writePtyChunk, type RawWritablePty } from "./pty-raw-write.js";
 
 /** Callback scheduler used to space out chunked pty writes (see `ptyWriteChunkBytes`). */
 export type ChunkWriteScheduler = (cb: () => void, delayMs: number) => void;
@@ -107,7 +104,7 @@ function normalizePositive(value: number | undefined, fallback: number): number 
  * which is what makes a respawn's write queue clean by construction.
  */
 export interface ChunkedPtyWriteEntry {
-  readonly pty: { write(data: string): void };
+  readonly pty: RawWritablePty;
   /** Set once the underlying pty has been torn down (kill()); no further chunks are delivered. */
   tornDown?: boolean;
   /**
@@ -159,19 +156,11 @@ export class ChunkedPtyWriter {
   private readonly pendingWriteBytesCap: number;
 
   constructor(opts: ChunkedPtyWriterOpts = {}) {
-    // External-review finding (2026-09-05, Tier-3, non-blocking, 2nd pass): a
-    // 0/negative/non-finite ptyWriteChunkBytes made the "at/under cap"
-    // fast-path check disagree with chunkUtf8ForPtyWrite's own 4-byte floor.
+    // Bad (0/negative/NaN) options degrade to the documented defaults — a NaN
+    // cap would otherwise disable the pending-queue bound entirely.
     this.ptyWriteChunkBytes = normalizePositive(opts.ptyWriteChunkBytes, DEFAULT_PTY_WRITE_CHUNK_BYTES);
-    // External-review finding (2026-09-05, Tier-3, non-blocking): a
-    // non-finite/negative delay or cap produced "surprising" behavior
-    // (setTimeout clamping a bad delay; a NaN cap making every `>` comparison
-    // false, so the cap check would never fire and the queue could grow
-    // unboundedly). Normalized at construction so a misconfigured option
-    // degrades to the documented default instead of silently misbehaving.
     this.ptyWriteChunkDelayMs = normalizeNonNegative(opts.ptyWriteChunkDelayMs, DEFAULT_PTY_WRITE_CHUNK_DELAY_MS);
-    // Code-review finding 3: unref so a lone pending chunk-write timer can't
-    // hold the process open a beat past graceful shutdown.
+    // unref: a lone pending timer must not hold the process open at shutdown.
     this.scheduleChunkWrite = opts.scheduleChunkWrite ?? ((cb, ms) => { setTimeout(cb, ms).unref?.(); });
     this.pendingWriteBytesCap = normalizeNonNegative(opts.pendingWriteBytesCap, 1_048_576);
   }
@@ -204,14 +193,9 @@ export class ChunkedPtyWriter {
   }
 
   /**
-   * External-review finding (2026-09-05, Tier-3, BLOCKING, 2nd pass): a
-   * synchronous `scheduleChunkWrite` (a public, injectable option) used to
-   * make `writeNext` recurse into itself once per chunk — same stack-depth
-   * bug as `drainPendingWrites` above, different call site. Trampoline fix:
-   * `step`'s own `for(;;)` loop advances through chunks; a synchronous
-   * reentrant call is caught by `running` and just flags "keep going" for
-   * that loop, while a genuinely async call finds `running` already false
-   * and re-enters fresh, preserving the real event-loop yield.
+   * Small payloads write inline; oversized ones are chunked and drained by
+   * a non-recursive trampoline (`pump`) so a synchronous scheduler can't
+   * blow the stack.
    */
   private deliverOrChunk(entry: ChunkedPtyWriteEntry, data: string): void {
     if (Buffer.byteLength(data, "utf8") <= this.ptyWriteChunkBytes) {
@@ -223,44 +207,58 @@ export class ChunkedPtyWriter {
     const chunks = chunkUtf8ForPtyWrite(data, this.ptyWriteChunkBytes);
     let i = 0;
     let running = false;
-    let scheduledSynchronously = false;
-    const step = (): void => {
+    let again = false;
+    // Trampoline (see the doc above): `pump` never recurses. A synchronous
+    // re-entry (sync scheduler AND sync chunk write, as in unit tests) just
+    // flags `again`; a genuinely async re-entry finds `running` false.
+    const pump = (): void => {
       if (running) {
-        // Reentrant synchronous call from inside scheduleChunkWrite below —
-        // do not recurse; tell the in-progress loop to keep going instead.
-        scheduledSynchronously = true;
+        again = true;
         return;
       }
       running = true;
       try {
-        for (;;) {
-          // The task may have been closed/killed mid-flight.
-          if (entry.tornDown) {
-            entry.chunkWriteBusy = false;
-            // Doubt-review finding (2026-09-05): any writes still queued
-            // behind a torn-down burst are intentionally DROPPED here (not
-            // delivered, not logged) — there is nothing left to deliver
-            // them to.
-            return;
-          }
-          entry.pty.write(chunks[i]!);
-          i++;
-          if (i >= chunks.length) {
-            entry.chunkWriteBusy = false;
-            this.drainPendingWrites(entry);
-            return;
-          }
-          scheduledSynchronously = false;
-          this.scheduleChunkWrite(step, this.ptyWriteChunkDelayMs);
-          if (!scheduledSynchronously) return; // async scheduler — its own later call continues this
-          // else: scheduler invoked step() synchronously (caught by the
-          // `running` guard above) — loop again ourselves instead.
-        }
+        do {
+          again = false;
+          stepOnce();
+        } while (again);
       } finally {
         running = false;
       }
     };
-    step();
+    const finish = (): void => {
+      entry.chunkWriteBusy = false;
+      this.drainPendingWrites(entry);
+    };
+    const stepOnce = (): void => {
+      // The task may have been closed/killed mid-flight.
+      if (entry.tornDown) {
+        entry.chunkWriteBusy = false;
+        // Doubt-review finding (2026-09-05): any writes still queued
+        // behind a torn-down burst are intentionally DROPPED here (not
+        // delivered, not logged) — there is nothing left to deliver
+        // them to.
+        return;
+      }
+      writePtyChunk(entry, chunks[i]!, (err) => {
+        if (err) {
+          // Issue #632 — a failed chunk fails THIS launch only: abandon the
+          // rest of the burst (a half-typed command must not be completed
+          // by later chunks) and let queued writes continue.
+          // eslint-disable-next-line no-console
+          console.warn(`[pty-write-chunker] chunk write failed — abandoning burst: ${err.message}`);
+          finish();
+          return;
+        }
+        i++;
+        if (i >= chunks.length) {
+          finish();
+          return;
+        }
+        this.scheduleChunkWrite(pump, this.ptyWriteChunkDelayMs);
+      });
+    };
+    pump();
   }
 
   /**
