@@ -25,8 +25,8 @@
 > [Report an issue](https://github.com/svenroth-ai/shipwright-webui/issues/new/choose).
 > Feedback is very welcome.
 
-**Shipwright** is the harness your AI follows, the discipline layer
-that keeps your project's context **true** as it changes. On every
+**Shipwright** is an AI software factory that you control: its harness
+keeps your project's context **true** as it changes. On every
 change it re-checks the work against your requirements, architecture,
 and decisions, and blocks anything that silently drops a requirement
 or reverses a past call. The **Command Center** is the board that
