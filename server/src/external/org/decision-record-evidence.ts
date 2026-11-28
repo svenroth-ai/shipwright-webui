@@ -156,7 +156,9 @@ export function decisionNote(text: string, adr: string): string | undefined {
 // ---- port of leadwright lib/evidence-quote.ts ----
 
 const flat = (s: string): string => s.replace(/\s+/g, " ").trim();
-const recordableQuote = (s: string): string => s.replace(/[⟦⟧]/g, "'").replace(/<!--|-->/g, "...");
+// leadwright replaces `<!--` and `-->` with `...` in one left-to-right regex pass; split/join in that order gives the same
+// text (the two markers cannot overlap except as `<!-->`, where `<!--` wins in both) and is not an HTML tag filter.
+const recordableQuote = (s: string): string => s.replace(/[⟦⟧]/g, "'").split("<!--").join("...").split("-->").join("...");
 
 /** True when `quote` is acceptable evidence from `words` by leadwright's rules (length bounds, occurs in the text). */
 export function quoteOccursIn(words: string, quote: string): boolean {
