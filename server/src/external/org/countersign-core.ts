@@ -36,7 +36,8 @@ import { randomBytes } from "node:crypto";
 
 import { normalizeLine } from "./proposed-grammar.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
-import { proposalFacts, blockDigest, checkEditedLine, checkOriginalLine, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
+import { proposalFacts, blockDigest, checkEditedLine, checkOriginalLine, checkNoteText, toLoggedLineBlock, parseLoggedLineBlock, isEdited, type ProposalFacts } from "./proposed-line.js";
+import { withLoggedNote } from "./proposed-entry-format.js";
 import { residueKind } from "./decision-residue.js";
 import { ensureDecisionAudit, hasDecisionAudit, assertAuditAppendable, AuditUnwritableError, type DecisionAuditDeps } from "./decisions-audit.js";
 import {
@@ -87,6 +88,8 @@ export type CountersignOutcome =
    *  it stays listed so a retry finishes it. `message` names the file to fix. */
   | { status: "audit_pending"; number: number; message: string }
   | { status: "line_rejected"; error: "line_empty" | "line_too_long" | "line_contains_quote" | "edit_not_supported" }
+  /** The operator's note is longer than NOTE_MAX or repeats a quote of the entry; nothing was written. */
+  | { status: "note_rejected"; error: "note_too_long" | "note_contains_quote" }
   /** `loggedNumber`: an earlier, different version of this identity is already logged under that ADR (the lead rewrote it). */
   | { status: "duplicate_identity"; count: number; loggedNumber?: number };
 
@@ -105,6 +108,9 @@ export async function performCountersign(
   editedLine?: string | null,
   /** `blockDigest` of the entry block the operator saw; absent = not checked (secret-gated callers). */
   seenDigest?: string | null,
+  /** The operator's note, logged as `- Note: <text>` below the line (same rules as an edited line); absent = none.
+   *  Only a first countersign writes it: a retry of an already logged entry keeps the logged block as it is. */
+  note?: string | null,
 ): Promise<CountersignOutcome> {
   const lockFn = deps.withDecisionsLock ?? withDecisionsLock;
   const audit = (ts: string, lead: string, block: string, number: number, edited: boolean, facts: ProposalFacts | null): void => {
@@ -212,9 +218,13 @@ export async function performCountersign(
       finalLine = verdict.line;
     }
     const edited = facts !== null && finalLine !== null && isEdited(facts, finalLine);
+    const noteVerdict = checkNoteText(note, facts);
+    if (!noteVerdict.ok) return { status: "note_rejected", error: noteVerdict.error === "too_long" ? "note_too_long" : "note_contains_quote" };
 
     const number = nextLoggedNumber(loggedEntries);
-    const loggedBlock = facts === null || finalLine === null ? toLoggedBlock(target.block, number) : toLoggedLineBlock(target, number, finalLine);
+    const loggedBlock = facts === null || finalLine === null
+      ? withLoggedNote(toLoggedBlock(target.block, number), noteVerdict.text)
+      : toLoggedLineBlock(target, number, finalLine, noteVerdict.text);
     const separator = loggedRaw.length > 0 && !loggedRaw.endsWith("\n") ? "\n" : "";
     const nextLogged = loggedRaw + separator + loggedBlock;
     const nextProposed =

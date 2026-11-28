@@ -23,12 +23,13 @@ import { join } from "node:path";
 import { appendAuditLine, resolveParentLeadId } from "./audit-append.js";
 import { readAuditLinesGuarded } from "./audit-log.js";
 import { OrgSymlinkEscapeError } from "./decisions-lock.js";
-import type { EvidencePointer } from "./proposed-line.js";
+import { NOTE_MAX, type EvidencePointer } from "./proposed-line.js";
 import { pathGuard, realPathGuard } from "../../core/path-guard.js";
 
 export type DecisionAuditKind = "decision_rejected" | "decision_countersigned";
 
-export const REASON_MAX = 280;
+/** Read-back cap of an existing record's reason: the same limit a new reason is checked against. */
+export const REASON_MAX = NOTE_MAX;
 
 /** The lead's `audit.jsonl` cannot be read or written (read-only, a directory, unreadable): the decision is refused before anything changes. */
 export class AuditUnwritableError extends Error {

@@ -46,10 +46,10 @@ export function DecisionRejectControl({
       data-testid={`org-decisions-proposed-reject-confirm-${rowKey}`}
     >
       <label className="text-[11px]" style={{ color: "var(--color-muted, #6b7280)" }}>
-        Why reject? (optional, kept in the audit log - do not paste quotes)
+        Why reject? (optional, one line, max 600 characters) - the leads read it in the shared list of rejected decisions, so do not paste quotes
         <input
           type="text"
-          maxLength={280}
+          maxLength={600}
           value={reason}
           disabled={pending || locked}
           onChange={(e) => setReason(e.target.value)}

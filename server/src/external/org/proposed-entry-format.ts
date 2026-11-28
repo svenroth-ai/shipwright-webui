@@ -155,3 +155,19 @@ export function toLoggedBlock(proposedBlock: string, number: number): string {
   const marker = h.marker !== null ? `\n${h.marker}` : "";
   return `## ${adr} [${h.timestamp}] ${h.leadId}${marker}${h.rest}`;
 }
+
+/** The body of a proposed block (everything below its header line, the marker excluded), or `null` when the block
+ *  has no proposed-entry header. A fenced entry's proposed line comes from `proposalFacts`; this is the text of an
+ *  entry WITHOUT a fence (the old WebUI form), which has no single line of its own. */
+export function proposedBodyOf(block: string): string | null {
+  const h = headerOf(block);
+  return h === null ? null : h.rest;
+}
+
+/** A whole-entry log block (`toLoggedBlock`) with the operator's countersign note appended as its own list item,
+ *  after one blank line. No note = the block unchanged (byte for byte). `decision-residue.ts` strips exactly this
+ *  suffix again when it compares a log block with a still-listed entry. */
+export function withLoggedNote(loggedBlock: string, note: string | null): string {
+  if (note === null) return loggedBlock;
+  return `${loggedBlock.replace(/\s+$/, "")}\n\n- Note: ${note}\n\n`;
+}

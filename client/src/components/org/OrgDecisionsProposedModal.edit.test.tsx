@@ -49,7 +49,7 @@ describe("edit before approving (W4)", () => {
     mockedCountersign.mockResolvedValue({ ok: true, alreadyCountersigned: false, number: 1, adr: "ADR-0001", edited: false });
     renderModal();
     fireEvent.click(await screen.findByTestId(id("countersign")));
-    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", LINE, expect.stringMatching(/^[0-9a-f]{32}$/))); // always the line the operator saw
+    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", LINE, expect.stringMatching(/^[0-9a-f]{32}$/), undefined)); // always the line the operator saw
   });
 
   // @covers FR-01.71
@@ -64,7 +64,7 @@ describe("edit before approving (W4)", () => {
     expect(screen.getByTestId(`org-decisions-proposed-quote-${TS}|acme-lead|0-0`)).toBeInTheDocument();
     fireEvent.change(field, { target: { value: "One digest per week." } });
     fireEvent.click(screen.getByTestId(id("countersign")));
-    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", "One digest per week.", expect.stringMatching(/^[0-9a-f]{32}$/)));
+    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", "One digest per week.", expect.stringMatching(/^[0-9a-f]{32}$/), undefined));
     expect(await screen.findByText(/Countersigned as ADR-0007 with your edited line/)).toBeInTheDocument();
   });
 
@@ -100,7 +100,7 @@ describe("edit before approving (W4)", () => {
     fireEvent.click(await screen.findByTestId(id("edit")));
     fireEvent.change(screen.getByLabelText("Line for the decisions log"), { target: { value: "Written by the operator." } });
     fireEvent.click(screen.getByTestId(id("countersign")));
-    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", "Written by the operator.", expect.stringMatching(/^[0-9a-f]{32}$/)));
+    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS, "acme-lead", "Written by the operator.", expect.stringMatching(/^[0-9a-f]{32}$/), undefined));
   });
 
   // @covers FR-01.71

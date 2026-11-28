@@ -239,7 +239,7 @@ Nothing here changes identity, listing or countersign.
   (it cannot stop the operator rejecting it); `rejected earlier` (entry gone) is still decided from any author's line, since no
   entry is left to protect.
 - **Accepted environmental limits (no code, by decision).** (0) The fingerprint of the logged proposal hashes the block with only CR removed and the end trimmed: a whitespace-only rewrite of crash residue by an external tool reads as "a different version", and the window then offers Reject for it (the operator sees "different version" wording and decides; the ADR stays logged and its countersign record stays missing). A reject-reuse record is matched on kind, entry, key, author, action and a present reason field, and not on `supersededAdr`: a plain reject and a rejected rewrite of one identity can stand in for each other (the window says which reason is on record). (1) A lead running as the SAME OS user can pre-plant an identical own record
-  (same kind, entry, key, author, action; for a reject ANY reason, since a retry with another reason reuses an earlier record, and the reason text read back is normalised and capped at 280 characters) in its audit.jsonl: the decision then answers `recorded:false` ("already in the
+  (same kind, entry, key, author, action; for a reject ANY reason, since a retry with another reason reuses an earlier record, and the reason text read back is normalised and capped at 600 characters (280 before iterate decision-reject-reason)) in its audit.jsonl: the decision then answers `recorded:false` ("already in the
   log"); the audit content stays true, and real provenance would need a webui-only marker or a signature. (2) On plain-http LAN addresses
   browsers send no Fetch-Metadata headers, so only the JSON content-type rule (415) and the CORS allowlist guard the writes there; the
   403 `cross_site_refused` applies on secure contexts and localhost. Neither is fixable inside this app.
@@ -348,3 +348,117 @@ older entry, or one written by another tool or by hand, whose Evidence bullet ha
 pointer reads as a structured citation and is audited as such. The reader accepts lowercase hex and needlessly encoded bytes
 (the producer's input rule), which the daemon itself never writes. Leadwright refuses such a text in new proposals; an old one
 is removed by countersign or reject.
+
+## Rejected decisions file (iterate decision-reject-reason)
+
+A reject no longer loses the proposal. The webui appends one block per rejection to the org-wide
+`<leadsRoot>/decisions-rejected.md`; the leadwright daemon reads it so a lead sees what was already rejected and
+why. Pinned sample (the writer's exact output, held by `decisions-rejected.test.ts`):
+`server/src/external/org/__tests__/fixtures/decisions-rejected-sample.md`.
+
+**Writer and lock.** Only the reject action writes the file, never the generic `/file` route (it is not in the
+org allowlist). The write is atomic (temp file + rename) and happens while the reject holds the same
+`decisions-proposed.md` lock as the rest of the reject (proper-lockfile `<path>.lock`, the FR-04.28 contract), so a
+reader that takes that lock sees either the old or the new file. The path is resolved by the path guard and refused
+as a symlink (`403 symlink_forbidden`); a file that cannot be read or written (not a file, unreadable or read-only file, read-only folder) is
+refused BEFORE anything changes with `409 rejected_file_unwritable {message}` (the same 409 with `auditWritten: true` answers a write that fails after that check; the audit line is then written and the entry stays listed, so a retry finishes it, and the WebUI says "Half done" instead of "Nothing was changed"). Countersign never touches the file.
+
+**File.** Created on the first rejection, in ONE write together with the first block, starting with this header
+(no `## ` line, so it is never a block):
+
+```
+# Rejected decisions
+
+Proposals the operator rejected, appended by the Shipwright WebUI when a proposal is rejected (oldest first).
+Each block: the proposed line, when it was rejected and the operator's reason. Leads: do not propose these again
+in other words. Format: docs/org-proposed-entry-contract.md in shipwright-webui, "Rejected decisions file".
+
+```
+
+An existing empty or whitespace-only file is treated as missing. Blocks are only ever appended, oldest first. LF line
+endings as written; a reader should tolerate CRLF and a BOM (an editor may add them).
+
+**Block grammar** (exact; every line ends with `\n`):
+
+```
+## Rejected [<entry timestamp>] <leadId>            heading
+<!-- decisionKey: <key> -->                         only when the entry has an identifier key
+                                                    one empty line
+- <proposed line>                                   item 1, always present
+- Rejected: <rejection time>                        item 2, always present
+- Reason: <operator reason>                         item 3, only when a reason was given
+                                                    one empty line (end of block)
+```
+
+- Heading: `## Rejected [` + the rejected entry's timestamp (its identity in `decisions-proposed.md`, canonical
+  ISO-8601 UTC, e.g. `2026-11-20T09:15:00.000Z`) + `] ` + the proposing lead's id (`^[a-z0-9][a-z0-9-]*$`). Regex:
+  `^## Rejected \[([^\]]+)\] (\S+)$`. The heading mirrors `decision_log.md`'s `## ADR-NNNN [<timestamp>] <leadId>`.
+- Marker: the line directly below the heading, `<!-- decisionKey: <key> -->`, written under the same condition as the
+  log: only when the entry's key is a plain identifier (`^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$`, `decisionKeyOf`). An
+  old WebUI-form entry has no key and no marker line.
+- Items are **positional**: the first list item after the empty line is ALWAYS the proposed line, whatever text it
+  starts with (a line may itself start with `Reason:` - see the sample's second block). Item 2 is `Rejected: ` + the
+  rejection time (ISO-8601 UTC with milliseconds, `Date.toISOString()`). Item 3, when present, is `Reason: ` + the
+  reason. A reader must not look items up by prefix in the first position.
+- Every text field is one line: invisible and control characters are removed, line breaks and odd spaces become
+  one space (`normalizeLine`), so no text can start a header, a marker or another item.
+- The proposed line is the line as the lead proposed it (a fenced entry's line, at most 2000 characters). Two
+  replacements: an empty line is written as `(no text)`, and a line that copies a quote of the entry's evidence
+  (the same check countersign applies to an unedited line, run on the text as it would be written, i.e. after
+  the 2000-character cut) is written as
+  `(line withheld: it repeats a quote from the lead's evidence)` - the file is read by every lead and a quote is
+  that lead's own evidence. An unfenced (old WebUI form) entry's body is flattened to one line, at most 2000
+  characters, after its quote lines (`> `) and its `- **Evidence:**` bullet are left out: such a body has no
+  fenced evidence to check against, so the quote structure itself is dropped.
+- The reason: optional, one line, at most 600 characters, refused (`400 reason_too_long`, `reason_contains_quote`,
+  `reason_invalid` for a non-string) with nothing changed when it is longer or repeats a quote of the entry
+  (20-character folded run, same rule as an edited line). It is always the reason of the request that wrote the
+  block, never a reason read back from the lead's audit file. So after a crash between the audit line and the block,
+  a retry with a different reason leaves the audit with the first reason and the block with the second; the
+  WebUI notice says so.
+- Hand edits: the writer tolerates CRLF, a BOM, and trailing whitespace on any line when it looks for an existing
+  block. A block whose heading or marker is otherwise changed (a blank line before the marker, an indent) is not
+  recognised, so a retry of that same reject would append a second block. A reader should trim lines the same way.
+
+**Exactly once and order.** A block's identity is (entry timestamp, lead id, decisionKey or none, proposed line);
+the rejection time and the reason are not part of it. Under the lock the reject writes: (1) the
+`decision_rejected` audit line (unchanged: `data.reason` is the reason string or `null`), (2) the block, only when
+no block with that identity exists, (3) the removal from `decisions-proposed.md`. A crash after (1) leaves the entry
+listed (countersign answers `409 reject_pending`) and the retry writes the block once; a crash after (2) makes the
+retry append nothing; the entry's text is never gone before its block exists. A retry after (3) answers
+`alreadyRejected: true` and writes nothing. A different proposal under the same identity (another line), or the same
+line under a new timestamp, gets its own block. Rejections made before this change have no block (their text is gone).
+A reason is validated after the entry is found: an `already_rejected` / `already_countersigned` answer wins over an
+invalid reason.
+
+**Trust and size (for the reader).** The proposed line is lead-written text, quoted from an AI lead: the reader must
+present it to leads as quoted data, never as instructions. The reason is the operator's words. The file grows by one
+block per rejection and is never pruned by the writer; the reader decides how much of it a lead is fed (e.g. the
+latest N blocks or a time window). The writer re-reads the whole file under the lock on each reject (linear scan),
+fine at the expected size. Residual: a same-OS-user lead can write into the file; a pre-planted block with the same
+identity suppresses the operator's block (its content would be identical anyway).
+
+## Countersign note (iterate decision-reject-reason)
+
+`POST .../decisions/countersign` takes an optional `note`: one line, at most 600 characters, same rules as the reject
+reason (`400 note_too_long`, `note_contains_quote`, `note_invalid`; blank = no note). It is written as its own list
+item directly below the logged line:
+
+```
+## ADR-0007 [2026-11-21T09:15:00.000Z] acme-lead
+<!-- decisionKey: friday-reviews -->
+<!-- proposal: <32 hex> -->
+
+- Reviews happen every Friday afternoon.
+- Note: Agreed in the Monday sync.
+
+```
+
+Without a note the block is byte-for-byte what it was before. A whole-entry (unfenced) log block gets the note after
+its body and one empty line. Only the first countersign writes it; a retry of an already logged entry keeps the
+logged block as it is (crash residue with a note still heals as the same proposal). Residual (accepted): for an
+old unfenced entry the crash-residue check accepts the logged body plus exactly one trailing `- Note:` item, so a
+lead that rewrites such an entry under the same identity by dropping a final `- Note:` item of its own reads as the
+logged proposal; fenced entries are told apart by their fingerprint and are not affected. The note is not written to the
+audit record. leadwright reads `decision_log.md` keys from the `<!-- decisionKey -->` markers only, so the extra item
+does not change which keys count as decided.

@@ -76,7 +76,7 @@ describe("OrgDecisionsProposedModal", () => {
     await waitFor(() =>
       expect(screen.getByText("Countersigned as ADR-0001.")).toBeInTheDocument(),
     );
-    expect(mockedCountersign).toHaveBeenCalledWith(ENTRY.timestamp, ENTRY.leadId, undefined, expect.stringMatching(/^[0-9a-f]{32}$/));
+    expect(mockedCountersign).toHaveBeenCalledWith(ENTRY.timestamp, ENTRY.leadId, undefined, expect.stringMatching(/^[0-9a-f]{32}$/), undefined);
   });
 
   // @covers FR-01.71

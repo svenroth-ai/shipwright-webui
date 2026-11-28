@@ -1,0 +1,103 @@
+{
+  "last_updated": "2026-11-28T09:25:00Z",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-28-decision-reject-reason",
+    "date": "2026-11-28",
+    "unit": {
+      "status": "passed",
+      "passed": 10813,
+      "skipped": 16,
+      "total": 10829
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 7,
+      "skipped": 0,
+      "total": 7
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "reject appends one block to decisions-rejected.md with heading, marker (identifier key only), line, Rejected time and optional Reason; header with the first block",
+          "disposition": "tested",
+          "evidence": "decisions-rejected.test.ts 'reject appends one block' + fixture pin PASSED"
+        },
+        {
+          "behavior": "a fenced line copying a lead quote (also past the 2000 cut) is withheld; unfenced bodies drop quote lines and Evidence bullet",
+          "disposition": "tested",
+          "evidence": "decisions-rejected.test.ts quote tests PASSED"
+        },
+        {
+          "behavior": "reason: 600 ok, 601 refused, quote copy refused, non-string 400, all before any write; audit data.reason string or null",
+          "disposition": "tested",
+          "evidence": "decisions-rejected.test.ts limits + audit tests PASSED"
+        },
+        {
+          "behavior": "retry never duplicates: both crash orders, identity rules, CRLF/BOM/trailing whitespace hand edits",
+          "disposition": "tested",
+          "evidence": "decisions-rejected.test.ts crash, identity, boundary probes PASSED"
+        },
+        {
+          "behavior": "unusable rejected file refused before changes (409); failure after the audit reported auditWritten / Half done",
+          "disposition": "tested",
+          "evidence": "decisions-rejected.test.ts + orgDecisionsApi.note-reason.test.ts PASSED"
+        },
+        {
+          "behavior": "countersign note logged as - Note: item on line and whole-entry blocks; residue heals with a note; short nonce + note fails closed",
+          "disposition": "tested",
+          "evidence": "decisions-countersign-note.test.ts PASSED"
+        },
+        {
+          "behavior": "client reason field (600) and note toggle send the text and map refusals; UI flow in a browser",
+          "disposition": "tested",
+          "evidence": "OrgDecisionsProposedModal.note.test.tsx + orgDecisionsApi.note-reason.test.ts + e2e org-page.decisions-rejected.spec.ts PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 7,
+        "tested": 7,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "exit_code": 0,
+      "tests_run": 7,
+      "runner": "cmd /c npm --prefix client run test:e2e:chromium -- client/e2e/flows/org-page.decisions-rejected.spec.ts client/e2e/flows/org-page.decisions-proposed-reject.spec.ts client/e2e/flows/org-page.decisions-proposed-edit.spec.ts client/e2e/flows/org-page.decisions-proposed-hardening.spec.ts"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-28-decision-reject-reason",
+    "commit": "8a7f41326d1549de95644623a02550cc087fb61f",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
