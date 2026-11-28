@@ -591,6 +591,11 @@ _Source legend per bullet: **(E)** = enrichment.json acceptance_draft; **(T)** =
 - (E) Given `SHIPWRIGHT_NETWORK_PROFILE` is set (`local` | `tailscale` | …),
   when the dev servers start, then the profile selects a coherent bind
   preset across both the backend and the client.
+- (F) **(iterate-2026-11-28-hono-cve-bump)** Given the WebUI backend is running,
+  when a request arrives whose path contains a raw backslash, then the backend
+  answers 400 Bad Request and serves nothing; and when a request names a file of
+  the web app with a percent sign still left after decoding, then that file is
+  not served, so a path written one way is never served as a different file.
 
 Backfilled by `iterate-2026-05-16-backfill-historical-frs` from historical
 events 0881461 (VITE_HOST), 65049116 + 825cdcf (HONO_HOST), and 6827d97

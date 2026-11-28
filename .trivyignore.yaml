@@ -78,29 +78,13 @@
 #   the critical gate fires only on `security-severity >= 9.0` or a Gitleaks
 #   secret. Full reasoning: `shipwright_accepted_risks.yaml`, the FILING NOTE.
 #
-# SCOPING NOTE: the two advisory entries are id-level, not `paths`-scoped. Trivy
+# SCOPING NOTE: the advisory entry is id-level, not `paths`-scoped. Trivy
 # is not installed on the authoring machine, so a narrower path match could not
 # be verified to actually fire, and a suppression that silently fails to apply is
 # the worst outcome for both goals here. The precise occurrence sites are
 # recorded in the register's `scope.paths`.
 
 vulnerabilities:
-  # Register: shipwright_accepted_risks.yaml → ar-2026-07-28-hono-node-server-serve-static-windows
-  # Occurs in server/package-lock.json and bootstrapper/package-lock.json.
-  - id: GHSA-frvp-7c67-39w9
-    expired_at: 2027-01-28
-    statement: >-
-      @hono/node-server < 2.0.5 path traversal in serve-static on Windows via an
-      encoded backslash (%5C). NOT FIXABLE: @hono/node-ws@1.3.1 (latest)
-      peer-requires @hono/node-server ^1.19.11, so the patched 2.0.5 breaks the
-      embedded terminal's WebSocket upgrade chain (ADR-067). NOT REACHABLE: the
-      advisory's impact is reading static files behind a middleware-guarded
-      prefix, and this repo mounts no prefix-scoped middleware — every app.use in
-      server/src/index.ts is a wildcard, the static root is the public SPA build
-      served in full by design, and ".." escape stays blocked. TRIPWIRE: invalid
-      the moment auth middleware or a guarded subtree appears under the static
-      root. Full rationale and re-review trigger in shipwright_accepted_risks.yaml.
-
   # Register: shipwright_accepted_risks.yaml → ar-2026-07-28-react-router-rsc-csrf
   # Occurs in client/package-lock.json.
   - id: GHSA-qwww-vcr4-c8h2
