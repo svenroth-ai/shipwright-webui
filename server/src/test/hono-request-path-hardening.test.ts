@@ -10,8 +10,8 @@
  *   - CVE-2026-118663 (@hono/node-server 2.1.3): serveStatic no longer decodes a
  *     second time; a path still holding "%" after decoding is refused instead of
  *     being served as a different file.
- *   - GHSA-frvp-7c67-39w9 (@hono/node-server 1.19.15 / 2.0.5, the retired
- *     accepted risk): an encoded backslash (%5C) in a serveStatic path is never a
+ *   - GHSA-frvp-7c67-39w9 (@hono/node-server 1.19.15 / 2.0.5, still listed as an
+ *     accepted risk until a maintainer retires it): an encoded backslash (%5C) in a serveStatic path is never a
  *     way out of, or around, the static root.
  *
  * Raw sockets are used because every HTTP client normalises a backslash before
