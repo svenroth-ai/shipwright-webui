@@ -16,6 +16,7 @@
  */
 
 import { foldConfusables } from "./orgProposedConfusables";
+import { parseSourceRef, isKnownSource, type SourceRef } from "./orgProposedEvidencePointer";
 
 // ---- GRAMMAR (verbatim mirror below this line) ----
 
@@ -183,34 +184,29 @@ export function firstBullet(lines: string[], re: RegExp): string | null {
 
 // ---- W4: proposed line / quote classification and evidence pointer ----
 
-export type SourceRef =
-  | { kind: "known"; session: string; time: string; message: string }
-  | { kind: "unknown"; raw: string | null };
-
-const POINTER_ISO = String.raw`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z`;
-const SHORT_POINTER_RE = new RegExp(String.raw`^([A-Za-z0-9_-]{1,64}):(${POINTER_ISO}):(\d{1,9})$`);
-const LONG_POINTER_RE = new RegExp(String.raw`^session ([A-Za-z0-9_-]{1,64}) at (${POINTER_ISO}), message (\d{1,9})$`);
-
-/** `session:time:number` or `session <id> at <time>, message <n>`; anything else is unknown. */
-export function parseSourceRef(raw: string | null): SourceRef {
-  const t = raw?.trim() ?? "";
-  if (t === "") return { kind: "unknown", raw: null };
-  const m = SHORT_POINTER_RE.exec(t) ?? LONG_POINTER_RE.exec(t);
-  if (!m) return { kind: "unknown", raw: t };
-  return { kind: "known", session: m[1], time: m[2], message: m[3] };
-}
+// The pointer forms (session excerpt, file line, journal event) live in the mirrored evidence-pointer module.
+export { parseSourceRef, isKnownSource };
+export type { SourceRef };
 
 const EVIDENCE_QUOTE_RE = /^(\S+) — "([^\r\n]*)"$/;
 
 /** The Evidence bullet as leadwright writes it: `<pointer> — "<quote>"` (the quote is one line and may itself hold
- *  ` — ` or `"`: the match is greedy). Only a KNOWN pointer in front licenses a quote; any other text is handled
- *  exactly as `parseSourceRef` does (unknown, no quote). */
+ *  ` — ` or `"`: the match is greedy). Only a KNOWN pointer in front (session excerpt, file line or journal event)
+ *  licenses a quote; any other text is handled exactly as `parseSourceRef` does (unknown, no quote). */
 export function parseEvidence(raw: string | null): { source: SourceRef; quote: string | null } {
   const t = raw?.trim() ?? "";
   const m = EVIDENCE_QUOTE_RE.exec(t);
   const source = m ? parseSourceRef(m[1]) : null;
-  if (m === null || source === null || source.kind !== "known") return { source: parseSourceRef(t), quote: null };
+  if (m === null || source === null || !isKnownSource(source)) return { source: parseSourceRef(t), quote: null };
   return { source, quote: stripInvisible(m[2]).trim() === "" ? null : m[2] };
+}
+
+/** The quote of an Evidence bullet in the `<pointer> — "<quote>"` shape WHATEVER the pointer, for the copy guard only:
+ *  the reader refuses some pointers the daemon accepts (display hardening), and a needle can only make the guard
+ *  stricter. Display and audit use `parseEvidence`, which licenses a quote only behind a known pointer. */
+export function evidenceQuoteForGuard(raw: string | null): string | null {
+  const m = EVIDENCE_QUOTE_RE.exec(raw?.trim() ?? "");
+  return m === null || stripInvisible(m[2]).trim() === "" ? null : m[2];
 }
 
 export interface FencedParts {

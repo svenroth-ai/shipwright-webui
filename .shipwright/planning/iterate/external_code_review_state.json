@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-11-24T07:08:58.657188+00:00",
-  "provider": "codex",
+  "timestamp": "2026-11-27T23:57:44.631889+00:00",
+  "provider": "openrouter+codex",
   "findings_count": 2,
   "self_review_fallback_ran": false,
-  "reason": "only some provider legs could be itemized \u2014 the count (2) may understate what was found",
+  "reason": "glm approve; openai revise: (1) rejected-with-reason - the guard matches a shared 20-char folded run, not containment; ' merged before the freeze' (25 chars) is shared and the 400 test passes; (2) accepted-and-fixed - quote-first order now asserted in orgProposedView.evidence-forms.test.ts \u2014 only some provider legs could be itemized \u2014 the count (2) may understate what was found",
   "review_mode": "code",
   "marker_schema": 4,
   "verdicts": {
-    "openai": "approve",
-    "glm": "approve"
+    "glm": "approve",
+    "openai": "revise"
   },
   "contradiction": {
     "detected": false,
     "comparable": true,
     "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
   },
   "contradiction_resolution": null
 }

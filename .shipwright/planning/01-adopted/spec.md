@@ -1463,6 +1463,15 @@ write surface; gated, path-guarded, and concurrency-safe.
   countersigns a proposed line that repeats that quote it is refused as a
   copy, while an edited line passes and the audit record names the source
   but never carries the quote.
+- (F) **(iterate-2026-11-28-evidence-file-event-pointers)** Given a proposal
+  whose evidence line points to a line of a file in one of the lead's
+  projects, or to a journal event, followed by a quoted sentence of the
+  lead, when the operator opens the proposals window, then the source is
+  shown readably as project, path and line number, or as the event id, in
+  plain text and never as a link, the quote is shown first, and when the
+  operator countersigns a proposed line that repeats that quote it is
+  refused as a copy, while an edited line passes and the audit record names
+  the source in structured form but never carries the quote.
 
 ### FR-01.74 Codex CLI as an alternate task runtime ("Codex Light")
 

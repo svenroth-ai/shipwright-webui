@@ -161,8 +161,10 @@ Nothing here changes identity, listing or countersign.
 - **Proposed line** = the fenced lines that do not start with `>`; **a quote** = one
   fenced line starting with `>`, optionally ending ` — <pointer>` (split at the LAST
   ` — `). A quote without its own pointer inherits the entry's Evidence pointer.
-- **Pointer** is `session:time:number` (the S1-E format) or the legacy
-  `session <id> at <ISO time>, message <n>`. Anything else (empty, free text) is shown
+- **Pointer** is `session:time:number` (the S1-E format), the legacy
+  `session <id> at <ISO time>, message <n>`, a file line `file:<project>/<path>#L<n>` (shown as
+  `<project> · <path> · line <n>`) or a journal event `event:<id>` (shown as `event <id>`); see
+  "Evidence pointer forms" below. Never a link. Anything else (empty, free text) is shown
   as **unknown source** (with the raw text), never hidden.
 - One line per quote (a continuation line counts as part of the proposed line). A quote whose
   ` — ` suffix is not a valid pointer shows the raw suffix beside "unknown source" (nothing is
@@ -198,11 +200,12 @@ Nothing here changes identity, listing or countersign.
   of exactly this shape), a blank line and `- <line>`. The list prefix keeps any text
   of the line from becoming a header, marker or fence.
 - Audit (`decision_countersigned`, additive fields): `data.edit` = `edited` | `approved_as_proposed`,
-  `data.evidence` = `{session, time, message}` when the entry's pointer has a known shape, else `null`
+  `data.evidence` = `{session, time, message}` for a session pointer, `{form: "file", project, path, line}` or
+  `{form: "event", id}` for the two newer forms (see "Evidence pointer forms"), else `null`
   (free text is never copied). The summary ends `(edited)` / `(approved as proposed)`. No quote, no original text.
 - A fenced line that starts with `>` after optional blanks is a quote. An UNEDITED line goes through the same
   checks (empty, too long, repeats a quote) and the operator must edit it when it fails. Quote needles include
-  the text without its ` — <pointer>` suffix. Evidence pointer fields are bounded (session 1-64 chars, message
+  the text without its ` — <pointer>` suffix. Evidence pointer fields are bounded (a file or event pointer at most 1024 characters as written; session 1-64 chars, message
   up to 9 digits). Invisible characters (Unicode format characters such as tag characters, bidi overrides and zero width, and C1 controls) are removed from every line before it is shown, sent or logged, so the log never carries them. Quotes under 20 characters are not guarded, the quote region is also checked as one joined text, and a paraphrase or translation of a quote is not detected (documented limits). decisionKey is lead-written and may carry wording.
 - Accepted limits: the client always sends the line it displayed, so only seen text is logged and a changed line is audited as edited. A rewrite of the quotes/evidence between view and click is caught by
   the stale-entry digest (see "Hardening" below). A lead can pre-plant a `decision_countersigned` line in its own audit.jsonl, but that no longer
@@ -266,7 +269,8 @@ Nothing here changes identity, listing or countersign.
 **Accepted.** Leadwright (`renderEntry`, leadwright #141) writes the shadow evidence quote NOT inside the fence but on the
 Evidence bullet: `- **Evidence:** <session>:<ISO .mmmZ>:<n> — "<quote>"`. The quote is one line, 24-200 characters, and
 may itself contain ` — ` and `"`. `parseEvidence` (mirrored grammar) matches `^(\S+) — "(.*)"$` greedily; the part
-before the first ` — ` must be a KNOWN pointer in the short form `<session>:<ISO>:<n>` (the long `session ... at ...` form followed by a quote reads as unknown), otherwise the line is handled exactly as before
+before the first ` — ` must be a KNOWN pointer: the short form `<session>:<ISO>:<n>`, or (since iterate evidence-file-event-pointers) a
+file-line or journal-event pointer, see the next section (the long `session ... at ...` form followed by a quote reads as unknown), otherwise the line is handled exactly as before
 (unknown source, no quote). An empty, blank or invisible-only quote is no quote.
 
 - **Display:** the quote is shown first, as its own quote with the entry's pointer, as untrusted plain text.
@@ -284,3 +288,63 @@ the Evidence-line form is not extended to it and it is not what leadwright write
 `"` when it truncates a quote; any other shape (NBSP or tab around the dash, the long pointer form, an unterminated quote)
 reads as unknown source: no quote shown, no guard needle, audit evidence null. The displayed quote is plain text as written
 (invisible characters are folded away by the guard, not stripped for display), the same as fence quotes.
+
+## Evidence pointer forms: file line and journal event (iterate evidence-file-event-pointers)
+
+**Accepted.** Leadwright #149 (commit d5c9ae01, `lib/evidence-pointer.ts`, "evidence pointer grammar" in its `docs/guide.md`)
+lets a shadow lead cite a line of a file in one of its readable projects or a journal event of its run, besides a session
+excerpt. The Evidence bullet keeps its shape `- **Evidence:** <pointer> — "<quote>"`. `parseSourceRef` (mirrored
+evidence-pointer module, `proposed-evidence-pointer.ts` / `orgProposedEvidencePointer.ts`) tells the forms apart in this order:
+
+1. **Session excerpt** (unchanged, `kind: "known"`): `^[A-Za-z0-9_-]{1,64}:<ISO>:\d{1,9}$` or the long `session ... at ...` form.
+   Tried FIRST: a session id may itself be `file` or `event`.
+2. **File line** (`kind: "file"`): `^file:C(?:/C)+#L[1-9][0-9]{0,8}$`, `C` = `(?:[A-Za-z0-9._~-]|%[0-9A-Fa-f]{2})+`. The first
+   component is the project folder name, the rest the path inside it, the number the 1-based line.
+3. **Journal event** (`kind: "event"`): `^event:C$`.
+
+Each component is percent-encoded UTF-8; leadwright writes uppercase hex, the reader also accepts lowercase hex and a
+needlessly encoded unreserved byte. Read as **unknown source** (raw text shown, no quote, no guard needle, audit `null`), as
+leadwright refuses them: a pointer longer than 1024 characters as written, broken UTF-8 after decoding, an empty, `.` or `..`
+component, a decoded file component holding `/`, `\`, a C0 control or DEL or one of `: ? * < > | "`, ending in `.` or a
+space, or a Windows device name (`con`, `prn`, `aux`, `nul`, `com0`-`com9`, `lpt0`-`lpt9`, with or without extension), a
+line of 0, with a leading zero or of more than 9 digits, a blank event id. **Stricter than the producer, for display:** any
+decoded component (event id included) holding a character that renders as nothing or moves text (Unicode control or
+format characters such as bidi overrides and zero width, default-ignorables such as the Hangul filler or variation
+selectors, private use, line/paragraph separators) reads as unknown, so a pointer can never reorder or hide text on the
+page; and a file component holding the label separator `·` (U+00B7) reads as unknown, so a project or path name cannot
+fake the `· line N` part of the label. Residual: other dot-like look-alikes (e.g. U+2219, U+30FB) are not refused; the
+label is plain text and the quote, not the pointer, is the durable evidence.
+
+- **Display:** the decoded fields as plain text, never a link and never a path the WebUI opens: `dinovo GmbH · Projekte/Q4 Plan.md · line 3`,
+  `event evt-2026-11-27-001`. The quote is shown first, as for a session pointer.
+- **Guard:** the folded quote is a `line_contains_quote` needle for both forms, exactly as for a session pointer. Because the
+  reader refuses some pointers the daemon accepts (the stricter display rules above, e.g. an emoji with a variation selector
+  in a file name), the guard does NOT depend on the pointer being known: the quote of any Evidence bullet in the
+  `<token> — "<quote>"` shape is a needle (`evidenceQuoteForGuard`); such an entry shows unknown source, no quote, and
+  audits `evidence: null`. A needle can only make the guard stricter.
+- **Fence quotes:** a `> text — <pointer>` line inside the fence is lead-written and never checked by the daemon (its
+  anti-mimic rule covers only the Evidence bullet), so a file-line or journal-event pointer there is shown as **unknown source**
+  with its raw text, never as a citation; the session form there keeps its earlier reading. The guard needles are unchanged
+  (the suffix is split off as before).
+- **Audit (`decision_countersigned`, `data.evidence`):** `{"form": "file", "project": "<decoded>", "path": ["<decoded>", ...], "line": <number>}`
+  or `{"form": "event", "id": "<decoded>"}`. The session form keeps its original `{session, time, message}` shape (no `form`
+  field), so records written before this change read the same. Never the quote, never a full filesystem path (the project is
+  a folder name). The decoded fields are lead-written text, like the decisionKey (bounded by the 1024-character pointer).
+
+Examples, exactly as leadwright writes them:
+
+    - **Evidence:** file:dinovo%20GmbH/Projekte/Q4%20Plan.md#L3 — "answered within two working days"
+    - **Evidence:** event:evt-2026-11-27-001 — "release branch be merged before the freeze"
+
+**Fixture pin.** `server/src/external/org/__tests__/fixtures/decisions-proposed-renderentry-evidence-forms-sample.md` is copied
+byte for byte from leadwright `tests/fixtures/decisions-proposed-renderentry-evidence-forms-sample.md` (commit d5c9ae01, #149).
+SHA-256 (LF-normalised): `5059ef1cdbed1cef01925c9e34ef6117b44fddac7d8f6769681098791618a049`.
+
+**Residual (by design, leadwright's):** the pointer was checked by the daemon at proposal time only; the file may have changed
+since, so the recorded quote, not the pointer, is the durable evidence. The WebUI never reads the cited file or event.
+
+**Residual (accepted):** leadwright refuses `file:` / `event:` free-text evidence from a non-shadow lead only since #149. An
+older entry, or one written by another tool or by hand, whose Evidence bullet happens to be a well-formed file or event
+pointer reads as a structured citation and is audited as such. The reader accepts lowercase hex and needlessly encoded bytes
+(the producer's input rule), which the daemon itself never writes. Leadwright refuses such a text in new proposals; an old one
+is removed by countersign or reject.

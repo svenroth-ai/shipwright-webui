@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-28-evidence-file-event-pointers",
+  "date": "2026-11-28",
+  "section": "Iterate — change: read the file-line and journal-event evidence pointers",
+  "title": "File-line and journal-event evidence pointers",
+  "context": "Leadwright #149 lets a shadow lead cite a project file line (file:<project>/<path>#L<n>) or a journal event (event:<id>), percent-encoded. The webui read only the session pointer, so these showed as unknown source, their quote was dropped and the copy guard did not take it.",
+  "decision": "A new mirrored module (proposed-evidence-pointer.ts / orgProposedEvidencePointer.ts) parses both forms exactly by the producer grammar, stricter for display. parseEvidence licenses quotes for all known kinds; the guard takes any Evidence-line quote; fence-quote file/event suffixes stay unknown. Audit: {form:file,project,path[],line} / {form:event,id}.",
+  "consequences": "The window shows project · path · line N or event <id> as plain text with the quote first. An unedited copy of such a quote is refused 400. The session audit shape is unchanged. Pre-#149 free text in a pointer shape reads as a citation (documented residual).",
+  "rationale": "Mirror the producer's grammar exactly, refuse only what cannot be shown safely, never let display strictness weaken the copy guard, and keep the audit backward compatible by discriminating only the new forms.",
+  "rejected": "Renaming the session kind to 'session' (churn); one joined pointer string in the audit (ambiguous); canonical-uppercase-only reading (the producer accepts lowercase); reading file/event on fence quotes (unchecked text would look like a checked citation).",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ""
+}

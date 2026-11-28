@@ -1,0 +1,4 @@
+{"section":"iterate-2026-11-28-evidence-file-event-pointers","review":[
+{"finding":"UNSHOWABLE_RE narrower than the grammar's INVISIBLE set: default-ignorables (Hangul filler U+3164, variation selectors) and private use pass and render as nothing","severity":"low","category":"security","file":"server/src/external/org/proposed-evidence-pointer.ts","line":43,"suggestion":"Widen to Co + Default_Ignorable_Code_Point in both mirrors; add refusal tests. DISPOSITION: accepted-and-fixed (both mirrors + 4 refusal cases + contract)"},
+{"finding":"describeSource joins file fields with ' · ' and a decoded component may contain U+00B7, faking a '· line N' part of the label","severity":"low","category":"security","file":"client/src/lib/orgProposedView.ts","line":47,"suggestion":"Refuse U+00B7 in decoded file components or render separately. DISPOSITION: accepted-and-fixed (U+00B7 refused in file components, test + contract; other dot look-alikes documented as residual)"}
+]}

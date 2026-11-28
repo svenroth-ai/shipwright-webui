@@ -23,6 +23,7 @@ import { join } from "node:path";
 import { appendAuditLine, resolveParentLeadId } from "./audit-append.js";
 import { readAuditLinesGuarded } from "./audit-log.js";
 import { OrgSymlinkEscapeError } from "./decisions-lock.js";
+import type { EvidencePointer } from "./proposed-line.js";
 import { pathGuard, realPathGuard } from "../../core/path-guard.js";
 
 export type DecisionAuditKind = "decision_rejected" | "decision_countersigned";
@@ -59,8 +60,8 @@ export interface DecisionAuditFacts {
   supersededAdr?: string;
   /** Countersign only: the operator changed the proposed line. The original text is never recorded. */
   edited?: boolean;
-  /** Countersign only: pointer to the observation (known shape only, never free text). */
-  evidence?: { session: string; time: string; message: string } | null;
+  /** Countersign only: the structured evidence pointer (session, file line or journal event; never free text or a quote). */
+  evidence?: EvidencePointer | null;
 }
 
 /** One line, bounded: an operator note can never forge a second JSONL line. */
