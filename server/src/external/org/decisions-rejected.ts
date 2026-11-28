@@ -26,7 +26,7 @@
  * resolved by `pathGuard` and refused as a symlink, like the two decision files.
  */
 
-import { accessSync, constants as fsConstants, existsSync, lstatSync, readFileSync, statSync } from "node:fs";
+import { accessSync, closeSync, constants as fsConstants, fstatSync, lstatSync, openSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { pathGuard } from "../../core/path-guard.js";
@@ -146,14 +146,38 @@ function assertNotSymlink(path: string): void {
   }
 }
 
+function openOrMissing(path: string): number | null {
+  try {
+    return openSync(path, "r+");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code === "ENOENT") return null;
+    throw err;
+  }
+}
+
+function readOrEmpty(path: string): string {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code === "ENOENT") return "";
+    throw err;
+  }
+}
+
 /** Fail BEFORE the reject changes anything when the block could not be appended later. Call under the decisions lock. */
 export function assertRejectedWritable(path: string): void {
   assertNotSymlink(path);
   try {
-    if (existsSync(path)) {
-      if (!statSync(path).isFile()) throw new Error("not a file");
-      accessSync(path, fsConstants.R_OK | fsConstants.W_OK); // appending re-reads it for the duplicate check
-      readFileSync(path, "utf8");
+    // One handle for every check (no check-then-use race): opened read+write, it must be a file and readable,
+    // since appending re-reads it for the duplicate check. Missing is fine: the append creates it.
+    const fd = openOrMissing(path);
+    if (fd !== null) {
+      try {
+        if (!fstatSync(fd).isFile()) throw new Error("not a file");
+        readFileSync(fd, "utf8");
+      } finally {
+        closeSync(fd);
+      }
     }
     // the atomic write creates a temp file next to it and renames it over the target
     accessSync(dirname(path), fsConstants.W_OK);
@@ -168,7 +192,7 @@ export function assertRejectedWritable(path: string): void {
 export function appendRejectedBlock(path: string, f: RejectedBlockFacts): boolean {
   assertNotSymlink(path);
   try {
-    const raw = existsSync(path) ? readFileSync(path, "utf8") : "";
+    const raw = readOrEmpty(path);
     if (parseRejectedBlocks(raw).some((b) => sameRejection(b, f))) return false;
     const base = raw.trim() === "" ? REJECTED_FILE_HEADER : raw;
     const sep = base.endsWith("\n\n") ? "" : base.endsWith("\n") ? "\n" : "\n\n";
