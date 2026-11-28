@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>8 Open questions</title><link rel="stylesheet" href="mock.css"></head><body><div class="mocknote"><b>MOCKUP</b> - static HTML, invented sample data, nothing is built. Real Command Center look (sidebar, title bar, photo backdrop, Inbox rows, Mission Control, Org cards). <a href="index.html">All screens</a></div><div class="wrap"><h1>8. Decisions and open questions</h1><h2>Open questions (each with a recommendation)</h2><ol class="q">
+<li><b>Campaign companion: one session per campaign, or one for all?</b> <i>Recommendation: one per running campaign. It ends cleanly with its campaign, its context stays small, and it is how you already work by hand. max_concurrent_tasks caps the count.</i></li>
+<li><b>Does a session start in the webui terminal without you (pre-draft runs unattended), or only when you press Join?</b> <i>Recommendation: start without you, otherwise the plan is not there when you arrive. Needs a webui route that starts a task in its own terminal; how the PTY starts tasks today was not read for this W0.</i></li>
+<li><b>Is your yes in chat enough for every band, including New feature and Architecture?</b> <i>Recommendation: yes for decisions and for learnings for this lead; learnings for all leads keep the Org page countersign (screen 7).</i></li>
+<li><b>Standing triage session: renew daily, or one session forever with Claude Code&#x27;s own compaction?</b> <i>Recommendation: renew daily with a code-built handover; what compaction keeps cannot be checked.</i></li>
+<li><b>Fit check after the writers: its own short session, or does the planner session stay open until then?</b> <i>Recommendation: its own session (screen 3); a planner session open for days would sit in the Inbox for no reason.</i></li>
+<li><b>Inbox grouping: a &quot;Leads&quot; group, or by project (content by folder)?</b> <i>Recommendation: a Leads group on top, sorted by waiting time. A lead session still needs a projectId on its task today; that is settled in the first webui sub-iterate.</i></li></ol>
+<h2>Fixed for this W0 (from your picture)</h2><ul>
+<li>The beat stays the cheap watch loop and only says start, keep or end. Nothing interactive runs in a beat.</li>
+<li>A session is a normal Claude Code session in Mission Control (Terminal + Transcript), not a chat built into the webui.</li>
+<li>Guards come from the hook (same read/write rules as the lead&#x27;s beats, plus one write folder per session), never from prose. No shell in lead sessions.</li>
+<li>Everything with an effect goes through the session&#x27;s outbox and is done by the daemon.</li>
+<li>When the plan is recorded, the first draft starts at the next poll, not the next day.</li>
+<li>Everything that waits for you is in the Inbox; the Org page is an overview of state only.</li>
+<li>Budget for sessions: measured only, no pause or stop.</li></ul>
+<h2>Suggested order of sub-iterates</h2><ol>
+<li>leadwright: session register + hook kind lead-session (read/write by stage, one write folder per session)</li>
+<li>leadwright: session packet from buildContextPacket, session protocol file, outbox executed under the beat lock</li>
+<li>webui: action lead-session, arming adds --settings / --append-system-prompt-file / LEADWRIGHT_NO_SESSION_HOOK, start-in-terminal route</li>
+<li>leadwright: beat intents start/keep/end, dedup, cap, end by code (campaign complete, idle), daily renewal</li>
+<li>webui: Inbox kind lead session, Leads group, Join session (screens 1-2)</li>
+<li>leadwright: chat consent evidence and recording (screen 7)</li>
+<li>webui: Org page sessions block and measurement, decisions show &quot;agreed in session&quot; (screens 6-7)</li>
+<li>leadwright: parent/child (start_child, children.json, first draft at once, fit check) (screen 3)</li>
+<li>leadwright: set-up of the four leads, guide section, live test of a real session with consent</li></ol>
+<div class="note">Spec (private, German): leadwright <code>spec/lead-sessions-spec.md</code>, ids LS-1 to LS-16. Every claim about existing behaviour there names the file it was read from.</div></div></body></html>
