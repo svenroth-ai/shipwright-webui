@@ -8,14 +8,10 @@
  */
 import type { ReactNode } from "react";
 import type { ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
-import { buildEntryView, type SourceRef } from "../../lib/orgProposedView";
+import { buildEntryView, describeSource, type SourceRef } from "../../lib/orgProposedView";
 import { DocumentMarkdown } from "../external/SmartViewer/DocumentMarkdown";
 
 const MUTED = { color: "var(--color-muted, #6b7280)" } as const;
-
-function describeSource(s: SourceRef): string {
-  return s.kind === "known" ? `session ${s.session}, ${s.time}, message ${s.message}` : "unknown source";
-}
 
 export function SourceLabel({ source, testId }: { source: SourceRef; testId: string }) {
   return (

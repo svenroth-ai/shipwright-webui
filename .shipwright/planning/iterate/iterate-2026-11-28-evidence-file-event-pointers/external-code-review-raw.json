@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "I reviewed the diff against the FR-01.71 acceptance criteria, focusing on the pointer grammar, the copy guard, the audit shape, and the mirror drift guard.\n\n**Spec compliance**\n- All three pointer forms are parsed (`proposed-evidence-pointer.ts`, mirrored verbatim to the client with a byte-comparison drift guard \u2014 the guard is real, not a smoke test: it slices below the marker and compares).\n- `describeSource` renders `project \u00b7 path \u00b7 line N` / `event <id>` as plain text (`orgProposedView.ts:44-50`); the e2e asserts `locator(\"a\")` count 0, so \"never a link\" is actually verified, not just implied.\n- Copy guard: `parseEvidence` now licenses quotes for `isKnownSource` (file/event included) and `proposalFacts` uses `auditEvidence(pointer)`; the server test proves the unedited line is refused with `line_contains_quote` for both forms and that the audit/log never contain the quote.\n- Audit keeps the structured pointer with the session form unchanged (no `form` field), preserving backward compatibility of existing records.\n\n**Edge cases checked**\n- Session-first ordering (a session id `file`/`event`) is explicitly tested.\n- Length cap (1024), broken UTF-8, `%2F`/`%5C` encoded separators, dot/dot-dot, device names, leading-zero/over-long line numbers, bidi/zero-width/line-separator rejection \u2014 all covered in the refusal table. Decoded components reject all `Cc/Cf/Zl/Zp`, so a pointer cannot inject a newline into the JSONL audit or reorder text on the page. The `EVIDENCE_QUOTE_RE` pointer is `\\S+`, so spaces can't smuggle into a licensed pointer.\n\n**Minor observations (not defects)**\n- `BAD_SEGMENT_RE`'s trailing-space clause is mostly shadowed by `decodeComponent`'s `trim() === \"\"` check for a pure-space component, but the trailing-space case for non-blank components (\"a \") still needs and uses it \u2014 behavior is correct.\n- The e2e builds its fixture path across package boundary into the server fixtures dir; consistent with the vitest suite doing the same, so it's intentional fixture pinning, not a defect.\n\nNo spec gaps, no correctness, security, or regression issues found. Tests validate behavior (refusal statuses, audit contents, absence of quote in logs, anchor-count assertions), not just function invocation.\n\nOverall assessment: ship-as-is \u2014 the change fully implements FR-01.71 with strong behavioral tests.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "- **Category:** test  \n  **Severity:** medium  \n  **File:** `server/src/external/org/__tests__/fixtures/decisions-proposed-renderentry-evidence-forms-sample.md:16`  \n  **Finding:** The journal-event fixture proposes \u201cRelease branches are merged before the freeze,\u201d but the evidence quote is \u201crelease branch be merged before the freeze.\u201d The copy guard checks whether the normalized line contains the normalized quote. These strings differ in both the noun and the verb, so the journal-event request should pass and fail the test\u2019s expected `400 line_contains_quote` assertion.  \n  **Suggestion:** Keep the pinned fixture intact. Submit an explicit `line` containing the exact event quote in the rejection test, or derive a test fixture whose proposed line contains that quote if the test needs to exercise unedited countersigning.\n\n- **Category:** test  \n  **Severity:** low  \n  **File:** `client/e2e/flows/org-page.decisions-proposed-evidence-forms.spec.ts:47`  \n  **Finding:** The test filters the list down to its sole quote and then calls `.first()`. It would still pass if the evidence quote appeared after a fenced quote, so it misses the quote-first acceptance criterion.  \n  **Suggestion:** Add a fenced quote to at least one test entry and assert the order of the rendered blockquotes without filtering out either quote.\n\n**Overall assessment: ship-with-fixes.** The implementation covers readable plain-text pointers, quote handling, and structured audit output. Fix the countersign test\u2019s input and assert quote ordering before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-28-evidence-file-event-pointers",
+    "at": "2026-11-27T23:56:50.933199+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

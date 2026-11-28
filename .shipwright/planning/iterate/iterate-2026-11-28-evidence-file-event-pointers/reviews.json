@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-28-evidence-file-event-pointers",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-27T23:53:35.494924+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T00:04:14.851239+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/external/org/proposed-evidence-pointer.ts",
+          "line": 43,
+          "finding": "UNSHOWABLE_RE narrower than the grammar's INVISIBLE set: default-ignorables (Hangul filler U+3164, variation selectors) and private use pass and render as nothing",
+          "suggestion": "Widen to Co + Default_Ignorable_Code_Point in both mirrors; add refusal tests. DISPOSITION: accepted-and-fixed (both mirrors + 4 refusal cases + contract)",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "client/src/lib/orgProposedView.ts",
+          "line": 47,
+          "finding": "describeSource joins file fields with ' · ' and a decoded component may contain U+00B7, faking a '· line N' part of the label",
+          "suggestion": "Refuse U+00B7 in decoded file components or render separately. DISPOSITION: accepted-and-fixed (U+00B7 refused in file components, test + contract; other dot look-alikes documented as residual)",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-28T00:03:49.453326+00:00",
+      "disposition": "2 low findings, both accepted-and-fixed before commit",
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "23fe19078bf80f8ff97ec0aadcf52438d50cfd91"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "server/src/external/org/proposed-line.ts",
+          "line": 94,
+          "finding": "Claim under doubt: the copy guard covers both new forms: a producer-written quote is always a guard needle — reader is stricter than producer (U+00B7, VS16/ZWJ, Cf/Co/default-ignorable): pointer reads unknown, parseEvidence drops the quote, no needle, an unedited copy passes countersign",
+          "suggestion": "ADDRESSED: guard needle from evidenceQuoteForGuard (any <token> — \"<quote>\" bullet) independent of pointer knownness; server test with a VS16 file name expects 400 line_contains_quote and audit evidence null; contract updated",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/lib/orgProposedView.ts",
+          "line": 53,
+          "finding": "Claim under doubt: no unchecked text can show as a checked citation — fence quote lines are lead-written and unchecked; a `> text — file:...#L12` suffix now rendered as a file citation",
+          "suggestion": "ADDRESSED: file/event forms are read only on the Evidence bullet; a fence-quote file/event suffix shows unknown source with raw text (fenceQuoteSource); unit test + contract updated",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling & blast radius",
+          "file": "server/src/external/org/proposed-evidence-pointer.ts",
+          "line": 80,
+          "finding": "Claim under doubt: only daemon-checked text reads as file/event — pre-#149 non-shadow free text or third-party/hand entries with a well-formed file/event pointer read as structured citations; lowercase hex accepted",
+          "suggestion": "ACCEPTED RESIDUAL: documented in the contract; lowercase acceptance kept per the producer's input rule and the operator brief",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-28T00:10:52.688403+00:00",
+      "disposition": "2 medium addressed in code + tests + contract; 1 low accepted as documented residual",
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "23fe19078bf80f8ff97ec0aadcf52438d50cfd91"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/external/org/__tests__/fixtures/decisions-proposed-renderentry-evidence-forms-sample.md",
+          "line": 16,
+          "finding": "The journal-event fixture proposes “Release branches are merged before the freeze,” but the evidence quote is “release branch be merged before the freeze.” The copy guard checks whether the normalized line contains the normalized quote. These strings differ in both the noun and the verb, so the journal-event request should pass and fail the test’s expected `400 line_contains_quote` assertion.",
+          "suggestion": "Keep the pinned fixture intact. Submit an explicit `line` containing the exact event quote in the rejection test, or derive a test fixture whose proposed line contains that quote if the test needs to exercise unedited countersigning.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/org-page.decisions-proposed-evidence-forms.spec.ts",
+          "line": 47,
+          "finding": "The test filters the list down to its sole quote and then calls `.first()`. It would still pass if the evidence quote appeared after a fenced quote, so it misses the quote-first acceptance criterion.",
+          "suggestion": "Add a fenced quote to at least one test entry and assert the order of the rendered blockquotes without filtering out either quote.  Overall assessment: ship-with-fixes. The implementation covers readable plain-text pointers, quote handling, and structured audit output. Fix the countersign test’s input and assert quote ordering before shipping.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter+codex",
+      "completed_at": "2026-11-27T23:57:44.631889+00:00",
+      "disposition": "glm approve; openai revise: (1) rejected-with-reason - the guard matches a shared 20-char folded run, not containment; ' merged before the freeze' (25 chars) is shared and the 400 test passes; (2) accepted-and-fixed - quote-first order now asserted in orgProposedView.evidence-forms.test.ts",
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] I reviewed the diff against the FR-01.71 acceptance criteria, focusing on the pointer grammar, the copy guard, the audit shape, and the mirror drift guard.\n\n**Spec compliance**\n- All three pointer forms are parsed (`proposed-evidence-pointer.ts`, mirrored verbatim to the client with a byte-comparison drift guard — the guard is real, not a smoke test: it slices below the marker and compares).\n- `describeSource` renders `project · path · line N` / `event <id>` as plain text (`orgProposedView.ts:44-50`); the e2e asserts `locator(\"a\")` count 0, so \"never a link\" is actually verified, not just implied.\n- Copy guard: `parseEvidence` now licenses quotes for `isKnownSource` (file/event included) and `proposalFacts` uses `auditEvidence(pointer)`; the server test proves the unedited line is refused with `line_contains_quote` for both forms and that the audit/log never contain the quote.\n- Audit keeps the structured pointer with the session form unchanged (no `form` field), preserving backward compatibility of existing records.\n\n**Edge cases checked**\n- Session-first ordering (a session id `file`/`event`) is explicitly tested.\n- Length cap (1024), broken UTF-8, `%2F`/`%5C` encoded separators, dot/dot-dot, device names, leading-zero/over-long line numbers, bidi/zero-width/line-separator rejection — all covered in the refusal table. Decoded components reject all `Cc/Cf/Zl/Zp`, so a pointer cannot inject a newline into the JSONL audit or reorder text on the page. The `EVIDENCE_QUOTE_RE` pointer is `\\S+`, so spaces can't smuggle into a licensed pointer.\n\n**Minor observations (not defects)**\n- `BAD_SEGMENT_RE`'s trailing-space clause is mostly shadowed by `decodeComponent`'s `trim() === \"\"` check for a pure-space component, but the trailing-space case for non-blank components (\"a \") still needs and uses it — behavior is correct.\n- The e2e builds its fixture path across package boundary into the server fixtures dir; consistent with the vitest suite doing the same, so it […truncated]\n\n[openai] - **Category:** test  \n  **Severity:** medium  \n  **File:** `server/src/external/org/__tests__/fixtures/decisions-proposed-renderentry-evidence-forms-sample.md:16`  \n  **Finding:** The journal-event fixture proposes “Release branches are merged before the freeze,” but the evidence quote is “release branch be merged before the freeze.” The copy guard checks whether the normalized line contains the normalized quote. These strings differ in both the noun and the verb, so the journal-event request should pass and fail the test’s expected `400 line_contains_quote` assertion.  \n  **Suggestion:** Keep the pinned fixture intact. Submit an explicit `line` containing the exact event quote in the rejection test, or derive a test fixture whose proposed line contains that quote if the test needs to exercise unedited countersigning.\n\n- **Category:** test  \n  **Severity:** low  \n  **File:** `client/e2e/flows/org-page.decisions-proposed-evidence-forms.spec.ts:47`  \n  **Finding:** The test filters the list down to its sole quote and then calls `.first()`. It would still pass if the evidence quote appeared after a fenced quote, so it misses the quote-first acceptance criterion.  \n  **Suggestion:** Add a fenced quote to at least one test entry and assert the order of the rendered blockquotes without filtering out either quote.\n\n**Overall assessment: ship-with-fixes.** The implementation covers readable plain-text pointers, quote handling, and structured audit output. Fix the countersign test’s input and assert quote ordering before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T00:25:29.939798+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "23fe19078bf80f8ff97ec0aadcf52438d50cfd91",
+      "ac_verdicts": [
+        {
+          "ac": "item-1",
+          "verdict": "matches",
+          "diff_location": "server/src/external/org/proposed-line.ts:46",
+          "reason": "File and event pointers parse into structured kinds; parseEvidence gives them their quote, shown first as plain-text labels; the copy guard uses the quote as a needle (400 line_contains_quote on an unedited line); auditEvidence writes {form:'file',...} / {form:'event',id} and never the quote.",
+          "weakens": false
+        }
+      ]
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T00:04:16.190283+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T00:04:17.423165+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

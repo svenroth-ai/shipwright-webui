@@ -95,6 +95,20 @@ describe("parseProposedDecisions - both header forms (W1)", () => {
   });
 
   // @covers FR-01.71
+  it("the evidence-pointer module is a verbatim mirror of the server's (drift guard)", () => {
+    const read = (p: string) => readFileSync(path.resolve(__dirname, p), "utf8");
+    const marker = "// ---- EVIDENCE POINTER (verbatim mirror below this line) ----";
+    const body = (src: string) => {
+      const at = src.indexOf(marker);
+      expect(at, "evidence pointer marker").toBeGreaterThan(-1);
+      return src.slice(at).split(String.fromCharCode(13)).join("");
+    };
+    const server = body(read("../../../server/src/external/org/proposed-evidence-pointer.ts"));
+    expect(body(read("./orgProposedEvidencePointer.ts"))).toBe(server);
+    expect(server).toContain("export function parseSourceRef(");
+  });
+
+  // @covers FR-01.71
   it("the confusables map is a verbatim mirror of the server's (drift guard)", () => {
     const read = (p: string) => readFileSync(path.resolve(__dirname, p), "utf8");
     const marker = "// ---- CONFUSABLES (verbatim mirror below this line) ----";

@@ -1,0 +1,113 @@
+{
+  "last_updated": "2026-11-28",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-28-evidence-file-event-pointers",
+    "date": "2026-11-28",
+    "unit": {
+      "status": "passed",
+      "passed": 10783,
+      "skipped": 16,
+      "total": 10799
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 4,
+      "skipped": 0,
+      "total": 4
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "file pointer parsed to project, decoded path segments and line; lowercase hex and needless encoding accepted; UTF-8 decoded",
+          "disposition": "tested",
+          "evidence": "evidence-pointer-forms.test.ts parseSourceRef block PASSED"
+        },
+        {
+          "behavior": "event pointer parsed to its decoded id; session excerpt tried first (session id file/event)",
+          "disposition": "tested",
+          "evidence": "evidence-pointer-forms.test.ts PASSED"
+        },
+        {
+          "behavior": "producer refusals plus display hardening (controls, format, default-ignorable, private use, separators, U+00B7, 1024 cap, line digits) read as unknown with raw text",
+          "disposition": "tested",
+          "evidence": "evidence-pointer-forms.test.ts refused table (36 cases) + length boundary PASSED"
+        },
+        {
+          "behavior": "parseEvidence licenses a quote for session, file and event pointers; none behind a malformed pointer or an empty quote",
+          "disposition": "tested",
+          "evidence": "evidence-pointer-forms.test.ts parseEvidence block + evidence-line-quote.test.ts PASSED"
+        },
+        {
+          "behavior": "view shows project \u00b7 path \u00b7 line N / event <id> as plain text, quote first; markup/URL-like ids stay text; fence-quote file/event suffix shows unknown source",
+          "disposition": "tested",
+          "evidence": "orgProposedView.evidence-forms.test.ts + org-page.decisions-proposed-evidence-forms.spec.ts e2e PASSED"
+        },
+        {
+          "behavior": "unedited countersign repeating the quote refused 400 line_contains_quote for file and event entries, and behind a pointer the reader refuses; edited line passes",
+          "disposition": "tested",
+          "evidence": "evidence-pointer-forms.test.ts countersign block PASSED"
+        },
+        {
+          "behavior": "audit data.evidence is {form:file,...} / {form:event,id} (null for a refused pointer), session shape unchanged, quote never in audit or log; leadwright parseDecisionAudit reads the records",
+          "disposition": "tested",
+          "evidence": "evidence-pointer-forms.test.ts + evidence-line-quote.test.ts PASSED; round-trip probe to leadwright parseDecisionAudit (2 keys, 0 damaged)"
+        },
+        {
+          "behavior": "leadwright evidence-forms sample pinned byte-identical, sha256 named in the contract doc, read by server, client and e2e",
+          "disposition": "tested",
+          "evidence": "evidence-pointer-forms.test.ts hash test + client/e2e reads PASSED"
+        },
+        {
+          "behavior": "client and server evidence-pointer and grammar modules are verbatim mirrors",
+          "disposition": "tested",
+          "evidence": "orgDecisionsApi.daemon-header.test.ts drift guards PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 9,
+        "tested": 9,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "exit_code": 0,
+      "tests_run": 4,
+      "runner": "node client/e2e/isolated-stack.mjs org-page.decisions-proposed-evidence-forms.spec.ts org-page.decisions-proposed-evidence-quote.spec.ts org-page.decisions-proposed-entry-view.spec.ts --project=chromium"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-28-evidence-file-event-pointers",
+    "commit": "23fe19078bf80f8ff97ec0aadcf52438d50cfd91",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

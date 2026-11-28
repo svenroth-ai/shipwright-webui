@@ -11,6 +11,8 @@
  * proposed line. A quote without its own pointer inherits the entry's evidence
  * pointer. The Evidence bullet itself may carry the quote (`<pointer> — "<quote>"`,
  * `parseEvidence`): it is shown first, as a quote with its own pointer. Everything here is text: callers render it as plain text, never markup.
+ * A pointer is a session excerpt, a file line (`project · path · line N`) or a journal event (`event <id>`); none of
+ * them is ever a link (`describeSource`).
  *
  * The line/quote split (`fencedParts`) and the pointer parser live in the mirrored grammar, so the
  * server countersign uses the very same rule (W4).
@@ -39,9 +41,25 @@ export interface EntryView {
 
 const BEAT_RE = /origin: \S+ beat ([^,\s]+),/;
 
+/** The pointer as the operator reads it: decoded, plain text, no link. */
+export function describeSource(s: SourceRef): string {
+  if (s.kind === "known") return `session ${s.session}, ${s.time}, message ${s.message}`;
+  if (s.kind === "file") return `${s.project} · ${s.path.join("/")} · line ${s.line}`;
+  if (s.kind === "event") return `event ${s.id}`;
+  return "unknown source";
+}
+
+/** A fence quote's own ` — <pointer>` is lead-written and never checked by the daemon: the file-line and journal-event
+ *  forms are read only on the Evidence bullet (which the daemon checks), so here they show as unknown source with the
+ *  raw text instead of a citation that looks checked. */
+function fenceQuoteSource(pointer: string): SourceRef {
+  const s = parseSourceRef(pointer);
+  return s.kind === "file" || s.kind === "event" ? { kind: "unknown", raw: pointer.trim() } : s;
+}
+
 function parseQuote(line: string, fallback: SourceRef): QuoteView {
   const { text, pointer } = splitQuote(line);
-  return pointer === null ? { text, source: fallback, inherited: true } : { text, source: parseSourceRef(pointer), inherited: false };
+  return pointer === null ? { text, source: fallback, inherited: true } : { text, source: fenceQuoteSource(pointer), inherited: false };
 }
 
 export function buildEntryView(block: string, evidence: string | null): EntryView {

@@ -1,0 +1,9 @@
+{"items": [
+ {"name": "Spec Compliance", "verdict": "pass", "note": "All six asks covered: file/event SourceRef kinds mirrored client+server with parity test, parseEvidence licenses quotes for all known kinds, view shows project - path - line N / event id as plain text, guard needle + structured audit, fixture pinned with sha256, contract doc updated."},
+ {"name": "Error Handling", "verdict": "pass", "note": "decodeURIComponent wrapped in try/catch; every malformed pointer falls back to unknown source with the raw text, never throws."},
+ {"name": "Security Basics", "verdict": "pass", "note": "Plain text only (React text nodes, no link); decoded components with control/format/separator characters are refused so bidi tricks cannot reorder the label; 1024-char cap; WebUI never opens the cited file or event."},
+ {"name": "Test Quality", "verdict": "pass", "note": "41 server tests (31 refusal cases, length boundary, countersign 400/200, audit shape, fixture hash), 5 client view tests reading the pinned fixture, mirror drift guard, e2e on isolated stack."},
+ {"name": "Performance Basics", "verdict": "pass", "note": "Regexes have disjoint alternatives with a literal separator (no catastrophic backtracking); the 1024 cap runs before the file/event regexes."},
+ {"name": "Naming & Structure", "verdict": "pass", "note": "Pointer grammar split into its own mirrored module to keep the grammar files under 300 lines; session kind keeps the name known for compatibility, documented in the type comment."},
+ {"name": "Affected Boundaries", "verdict": "pass", "note": "Producer leadwright renderEntry -> decisions-proposed.md -> WebUI parser: byte-pinned fixture round-trips (LF, CRLF, BOM probes). Producer WebUI countersign -> audit.jsonl -> consumer leadwright parseDecisionAudit: real probe read both keys, zero damaged lines."}
+]}

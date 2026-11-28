@@ -11,7 +11,8 @@
  * on its own line, so no text of it can ever start a header, marker or fence.
  *
  * Documented limits: a look-alike (homoglyph, paraphrase, translation) of a quote is not detected; the evidence
- * session id (up to 64 identifier characters) is lead-written, like the decisionKey, and is audited as such.
+ * pointer's fields (session id, file project and path, event id; a pointer is at most 1024 characters) are
+ * lead-written, like the decisionKey, and are audited as such.
  *
  * The classification of fenced lines (line vs quote) and the quote split are the
  * mirrored grammar's `fencedParts` / `splitQuote`; this module only decides what
@@ -21,10 +22,11 @@
 import { createHash } from "node:crypto";
 
 import {
-  fencedParts, normalizeLine, foldForCompare, splitQuote, parseEvidence, firstBullet, daemonTail, blockForDigest,
+  fencedParts, normalizeLine, foldForCompare, splitQuote, parseEvidence, evidenceQuoteForGuard, firstBullet, daemonTail, blockForDigest,
   EVIDENCE_BULLET_RE, QUOTE_PREFIX_RE,
 } from "./proposed-grammar.js";
 import { decisionKeyOf } from "./proposed-decision-key.js";
+import type { SourceRef } from "./proposed-evidence-pointer.js";
 import type { ProposedEntry } from "./proposed-entry-format.js";
 
 export const LINE_MAX = 2000;
@@ -32,10 +34,20 @@ export const LINE_MAX = 2000;
  *  this is never guarded: it is too likely to occur in an honest sentence. */
 export const QUOTE_GUARD_MIN = 20;
 
-export interface EvidencePointer {
-  session: string;
-  time: string;
-  message: string;
+/** The audit's structured evidence pointer (`data.evidence`). The session form keeps its original shape (no `form`
+ *  field, so records written before the other forms read the same); the file-line and journal-event forms carry a
+ *  `form` discriminator and their DECODED fields. Never the quote. */
+export type EvidencePointer =
+  | { session: string; time: string; message: string }
+  | { form: "file"; project: string; path: string[]; line: number }
+  | { form: "event"; id: string };
+
+/** `null` for an unknown source: free text is never copied into the audit. */
+export function auditEvidence(s: SourceRef): EvidencePointer | null {
+  if (s.kind === "known") return { session: s.session, time: s.time, message: s.message };
+  if (s.kind === "file") return { form: "file", project: s.project, path: [...s.path], line: s.line };
+  if (s.kind === "event") return { form: "event", id: s.id };
+  return null;
 }
 
 export interface ProposalFacts {
@@ -43,7 +55,7 @@ export interface ProposalFacts {
   original: string;
   /** Folded quote texts (with and without the pointer suffix), used only to refuse a copy. */
   quotes: string[];
-  /** The entry's evidence pointer when it has the known shape; `null` otherwise. */
+  /** The entry's evidence pointer when it has a known shape (session, file line, journal event); `null` otherwise. */
   evidence: EvidencePointer | null;
 }
 
@@ -74,17 +86,20 @@ export function proposalFacts(block: string): ProposalFacts | null {
   const lines = block.split("\n");
   const parts = fencedParts(lines);
   if (parts === null) return null;
-  const { source: pointer, quote: evidenceQuote } = parseEvidence(firstBullet(daemonTail(lines), EVIDENCE_BULLET_RE) || null);
+  const evidenceLine = firstBullet(daemonTail(lines), EVIDENCE_BULLET_RE) || null;
+  const { source: pointer } = parseEvidence(evidenceLine);
+  // the quote the Evidence line carries, guarded even behind a pointer the reader refuses (never logged or audited)
+  const evidenceQuote = evidenceQuoteForGuard(evidenceLine);
   return {
     original: normalizeLine(parts.proposed.join("\n")),
     // each quote line, plus the whole quote region joined (a sentence can be pasted across two quote lines)
     quotes: [
-      ...(evidenceQuote === null ? [] : [foldForCompare(evidenceQuote)]), // the quote the Evidence line carries (never logged or audited)
+      ...(evidenceQuote === null ? [] : [foldForCompare(evidenceQuote)]),
       ...parts.quotes.flatMap(quoteNeedles),
       foldForCompare(parts.quotes.map((q) => q.replace(QUOTE_PREFIX_RE, "")).join(" ")),
       foldForCompare(parts.quotes.map((q) => splitQuote(q).text).join(" ")), // joined, pointers left out
     ].filter((q) => q !== ""),
-    evidence: pointer.kind === "known" ? { session: pointer.session, time: pointer.time, message: pointer.message } : null,
+    evidence: auditEvidence(pointer),
   };
 }
 
