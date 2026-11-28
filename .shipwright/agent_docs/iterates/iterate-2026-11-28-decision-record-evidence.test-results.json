@@ -1,0 +1,120 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-28-decision-record-evidence",
+    "date": "2026-11-28",
+    "unit": {
+      "status": "passed",
+      "passed": 10859,
+      "total": 10875,
+      "skipped": 16
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 2,
+      "total": 2
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 2,
+      "exit_code": 0,
+      "justification": "Playwright on the isolated stack drives the org page proposals window: rejected:/decision: learning proposals show the confirmed operator words, a missing record shows the fail-closed notice, and the learning label chips are shown."
+    },
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 11,
+        "tested": 11,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      },
+      "behaviors": [
+        {
+          "behavior": "rejected:/decision: pointers parse with leadwright's exact regexes, mirrored server+client, bounded",
+          "disposition": "tested",
+          "evidence": "decision-record-evidence.test.ts + orgDecisionsApi.daemon-header mirror test"
+        },
+        {
+          "behavior": "the source is named in plain words (reason for rejecting / note on ADR)",
+          "disposition": "tested",
+          "evidence": "orgProposedView.record-evidence.test.ts, DecisionEntryRow.record-evidence.test.tsx"
+        },
+        {
+          "behavior": "positional reading: the lead's own line is never the operator's reason, note only in the countersign line shape, duplicate ADR cites nothing",
+          "disposition": "tested",
+          "evidence": "decision-record-evidence.test.ts (leadwright cases + real toRejectedBlock writer)"
+        },
+        {
+          "behavior": "quote bounds 24..200 with flattening and recordable form, like leadwright",
+          "disposition": "tested",
+          "evidence": "decision-record-evidence.test.ts"
+        },
+        {
+          "behavior": "record file fails closed: missing, directory, symlink (ELOOP + Windows lstat), swapped, FIFO, oversized, grown",
+          "disposition": "tested",
+          "evidence": "decision-record-evidence.test.ts"
+        },
+        {
+          "behavior": "POST route: words only on confirmed, no-store, 400 on bad input, write guard 403/415",
+          "disposition": "tested",
+          "evidence": "decision-record-evidence.test.ts route block"
+        },
+        {
+          "behavior": "window shows the operator's words only on confirmed; checking, re-checking, error, unknown status show the notice",
+          "disposition": "tested",
+          "evidence": "DecisionEntryRow.record-evidence.test.tsx"
+        },
+        {
+          "behavior": "audit records the structured form, never the quote; fence/inherited record pointers read unknown",
+          "disposition": "tested",
+          "evidence": "decision-record-evidence.test.ts, orgProposedView.record-evidence.test.ts"
+        },
+        {
+          "behavior": "learning label chips (reach, importance, pinned, replaces), unlabelled default, unreadable warning keeps the line",
+          "disposition": "tested",
+          "evidence": "orgLearningLabel.test.ts, DecisionEntryRow.record-evidence.test.tsx"
+        },
+        {
+          "behavior": "edit field reads the label live as it will be logged (newline, spaces, NBSP, zero-width)",
+          "disposition": "tested",
+          "evidence": "DecisionEntryRow.record-evidence.test.tsx"
+        },
+        {
+          "behavior": "countersigned decision_log.md fixture written by the real writer, byte-identical and hash-pinned; org page e2e",
+          "disposition": "tested",
+          "evidence": "decision-log-countersigned-sample.test.ts; org-page.decisions-proposed-record-evidence.spec.ts (F0.5 exit 0)"
+        }
+      ]
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-28-decision-record-evidence",
+    "commit": "8ccd6bcb9a565f2480bf0132ab0902ae15ed9fd2",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

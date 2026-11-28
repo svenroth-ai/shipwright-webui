@@ -5,6 +5,8 @@
  */
 import { useEffect, useRef } from "react";
 
+import { LearningLabelView } from "./LearningLabelView";
+
 const BTN =
   "rounded-[6px] border border-[var(--color-border,#e0dbd4)] px-2 py-1 text-[11px] hover:bg-[var(--color-muted-bg,#ede8e1)] disabled:opacity-50";
 
@@ -13,6 +15,7 @@ export function DecisionLineEditor({
   value,
   original,
   disabled,
+  learning = false,
   onChange,
 }: {
   rowKey: string;
@@ -20,6 +23,8 @@ export function DecisionLineEditor({
   /** The line as the lead proposed it, for "Use the original". */
   original: string;
   disabled: boolean;
+  /** A learning proposal: the label is read back live, as leadwright will read the logged line. */
+  learning?: boolean;
   onChange: (next: string) => void;
 }) {
   const id = `org-proposed-edit-${rowKey.replace(/[^A-Za-z0-9_-]/g, "_")}`;
@@ -46,6 +51,12 @@ export function DecisionLineEditor({
       <p id={hintId} className="text-[11px]" style={{ color: "var(--color-muted, #6b7280)" }}>
         Only this line is written to the log. The original wording is not kept, and quotes are never copied, so write it in your own words.
       </p>
+      {learning && (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[11px]" style={{ color: "var(--color-muted, #6b7280)" }}>The leads will read this line as:</span>
+          <LearningLabelView line={value} testId={`org-decisions-proposed-edit-learning-${rowKey}`} showRule={false} />
+        </div>
+      )}
       <div>
         <button type="button" disabled={disabled || value === original} onClick={() => onChange(original)} className={BTN} data-testid={`org-decisions-proposed-edit-reset-${rowKey}`}>
           Use the original line

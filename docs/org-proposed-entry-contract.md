@@ -462,3 +462,63 @@ lead that rewrites such an entry under the same identity by dropping a final `- 
 logged proposal; fenced entries are told apart by their fingerprint and are not affected. The note is not written to the
 audit record. leadwright reads `decision_log.md` keys from the `<!-- decisionKey -->` markers only, so the extra item
 does not change which keys count as decided.
+
+## Evidence pointer forms: the operator's reason and note (iterate decision-record-evidence)
+
+**Accepted.** Leadwright #153 (commit f79a181, `lib/evidence-pointer.ts`, `lib/decision-record-evidence.ts`, "How leads
+learn from you" in its `docs/guide.md`) lets a lead cite the operator's own words, mainly for a learning proposal. The
+Evidence bullet keeps its shape `- **Evidence:** <pointer> — "<quote>"`. `parseSourceRef` (mirrored evidence-pointer
+module) reads two more forms, after the excerpt form and within the 1024-character bound, with leadwright's exact regexes:
+
+4. **Rejected decision** (`kind: "rejected"`): `^rejected:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z)\/([a-z0-9][a-z0-9-]*)$`,
+   the `## Rejected [<time>] <lead>` block of `decisions-rejected.md`; the quote comes from its operator reason.
+5. **Countersigned decision** (`kind: "decision"`): `^decision:ADR-(\d{1,9})$`, the `## ADR-<n> [...] <lead>` block of
+   `decision_log.md` (`ADR-7` names `ADR-0007`); the quote comes from its operator note.
+
+- **Resolved, unlike the other forms.** Both records are written by this WebUI, so the server checks the citation
+  (`server/src/external/org/decision-record-evidence.ts`, `POST /api/org/decisions/record-evidence` with
+  `{pointer, quote}`, a POST so the quote stays out of URLs; `Cache-Control: no-store`). The file path is fixed, never
+  taken from the pointer; the file is read through one no-follow handle, at most 5 MB. The reader is a port of
+  leadwright's (`rejectedReasons`, `decisionNote` with the strict countersign line shape, `quoteProblem` bounds: 24 to 200
+  characters after whitespace runs become one space, or all of a shorter text). **Positional:** item 1 of a rejected
+  block is always the lead's line, whatever it starts with; only a third item after `- Rejected: ` is a reason; a
+  decision block counts only in the line shape and two blocks under one ADR number cite nothing. Answers:
+  `confirmed` (with `words`, the one reason or note that holds the quote), `quote_not_found`, `no_words` (no such block,
+  or no reason / note), `unreadable` (with a fixed `detail`: missing, a symbolic link, not a file, too large, outside
+  the leads folder). The words are returned only with `confirmed`, so the route reads no more than the citation itself.
+  The existing reject-side reader `parseRejectedBlocks` (duplicate check on reject) is not fence-aware; the two differ only
+  for hand-edited files with fences, and the duplicate check is not evidence (accepted).
+- **Display:** the source as `your reason for rejecting <lead>'s proposal of <time>` / `your note on ADR-<n>`. The
+  window shows the quote as the operator's words, with the full recorded reason or note, ONLY on `confirmed` ("found in
+  <file> when shown": a view-time check, re-run after a reject or countersign). While checking, on a failed request
+  and on every other answer it shows a notice and NOT the quote as the operator's words (fail closed). A fence quote
+  with a record pointer, or one inheriting the Evidence bullet's record pointer, shows as unknown source.
+- **Guard:** unchanged, the quote is a `line_contains_quote` needle (a learning rule that repeats 20+ characters of the
+  operator's words must be edited before countersigning; accepted, stricter).
+- **Audit (`data.evidence`):** `{"form": "rejected", "time": "<time>", "lead": "<lead>"}` or `{"form": "decision", "adr": "<digits as written>"}`. Never the quote.
+
+## Learning label (iterate decision-record-evidence)
+
+A learning proposal has a decisionKey starting with `learning.` and a line that starts with its label, written by
+leadwright (`learningLabel`) and read back by it from the countersigned line (`parseLearningLabel`):
+`Learning (this lead|all leads[, importance 1-5][, pinned][, replaces learning.<key>]): <rule>` (reach first, the other
+parts at most once, any order, case-insensitive). The window shows the label as chips apart from the rule (`for this
+lead only` / `for all leads`, `importance N of 5`, `pinned`, `replaces <key>`), and reads it again live under the edit
+field ("The leads will read this line as"). No label reads as this lead, importance 3. A label outside the grammar is
+shown as a warning with leadwright's own problem text: countersigning still logs the line (nothing here blocks), but the
+daemon does not write that learning (`learning_not_promoted`) until the line in `decision_log.md` is fixed. The label is
+read from the line as the countersign logs it (`normalizeLine`: a newline, a run of spaces, NBSP or an invisible
+character reads exactly as leadwright will read the logged line). The preview checks the label grammar only: leadwright's
+600-character cap on the promoted learning (rule plus the operator's note) is not shown here. Port:
+`client/src/lib/orgLearningLabel.ts`, display only.
+
+On `confirmed`, the window shows the lead's quote as cited and, beside it, the operator's full recorded reason or note;
+the match is leadwright's (whitespace runs as one space, `⟦⟧` and `<!--`/`-->` in their recordable form), so the
+quote may differ from the record in those characters only. The full text beside it is the record verbatim.
+
+**Countersigned log sample (for leadwright to pin; leadwright does not pin it yet, follow-up).** `server/src/external/org/__tests__/fixtures/decision-log-countersigned-sample.md`
+is written byte for byte by the real countersign (`handleCountersignRequest`, test `decision-log-countersigned-sample.test.ts`):
+ADR-0001 a learning whose label the operator edited (`all leads, importance 4, pinned` to `this lead, importance 3`) with a
+`- Note:`, ADR-0002 a plain decision approved as proposed with a `- Note:`. The file starts with the first heading (the
+writer created it) and every block ends with one empty line. SHA-256 (LF-normalised): `990956d0d22a4a21a1cec90856eeca9274f2367b8462149437f5c0581bab91fa`.
+A change to the log block shape updates the writer, this fixture, this hash and, once it exists, the leadwright copy in the same release train.

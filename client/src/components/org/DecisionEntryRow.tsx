@@ -9,7 +9,7 @@ import type { ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
 import { buildEntryView } from "../../lib/orgProposedView";
 import { blockDigest } from "../../lib/orgBlockDigest";
 import { duplicateMessage } from "./decisionMessages";
-import { DecisionEntryDetail } from "./DecisionEntryDetail";
+import { DecisionEntryDetail, isLearningEntry } from "./DecisionEntryDetail";
 import { DecisionLineEditor } from "./DecisionLineEditor";
 import { DecisionRejectControl } from "./DecisionRejectControl";
 
@@ -180,7 +180,7 @@ export function DecisionEntryRow({
         rowKey={rowKey}
         entry={entry}
         labelId={labelId}
-        lineSlot={canEdit && editing ? <DecisionLineEditor rowKey={rowKey} value={draft} original={original ?? ""} disabled={pending} onChange={(v) => { setDraft(v); setEditDiscarded(false); }} /> : undefined}
+        lineSlot={canEdit && editing ? <DecisionLineEditor rowKey={rowKey} value={draft} original={original ?? ""} disabled={pending} learning={isLearningEntry(entry.block)} onChange={(v) => { setDraft(v); setEditDiscarded(false); }} /> : undefined}
       />
 
       {status.kind === "done" && (

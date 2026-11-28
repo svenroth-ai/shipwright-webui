@@ -29,6 +29,8 @@ import { handleCountersignRequest } from "../external/org/countersign-request.js
 import { handleRejectRequest } from "../external/org/reject-request.js";
 import { rejectedKeys, type RejectedKey } from "../external/org/decisions-audit.js";
 import { LEAD_ID_RE } from "../external/org/_helpers.js";
+import { MAX_QUOTE_INPUT_CHARS, resolveRecordEvidence } from "../external/org/decision-record-evidence.js";
+import { MAX_POINTER_CHARS } from "../external/org/proposed-evidence-pointer.js";
 import { requireChartLead } from "./org-chart-lead-guard.js";
 
 export interface OrgWriteActionsDeps {
@@ -115,5 +117,24 @@ export function registerOrgWriteActions(app: Hono, deps: OrgWriteActionsDeps): v
       }
     }
     return c.json({ byLead });
+  });
+
+  // iterate-2026-11-28-decision-record-evidence: does the lead's quote occur in the operator's own reject reason or
+  // countersign note? Read-only; a POST so the quote stays out of URLs and logs, and so the write guard (same-site,
+  // JSON) applies. The words come back only when the quote is confirmed (`decision-record-evidence.ts`).
+  app.post("/api/org/decisions/record-evidence", async (c) => {
+    c.header("Cache-Control", "no-store");
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid_json" }, 400);
+    }
+    const { pointer, quote } = (body ?? {}) as { pointer?: unknown; quote?: unknown };
+    if (typeof pointer !== "string" || pointer.length === 0 || pointer.length > MAX_POINTER_CHARS) return c.json({ error: "pointer_invalid" }, 400);
+    if (typeof quote !== "string" || quote.length > MAX_QUOTE_INPUT_CHARS) return c.json({ error: "quote_invalid" }, 400);
+    const result = resolveRecordEvidence({ leadsRoot }, pointer, quote);
+    if (result === null) return c.json({ error: "pointer_invalid" }, 400);
+    return c.json(result, 200);
   });
 }

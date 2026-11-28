@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: high\n- File:line \u2014 `client/src/components/org/OperatorWordsEvidence.tsx:41`\n- Finding: A cached confirmation is displayed during a background recheck because React Query keeps the previous data and `isPending` stays false. If the operator closes the window, removes the cited note, and reopens it before the cache expires, the window displays the old quote and full note as confirmed until the new request finishes. This violates AC3\u2019s fail-closed behavior while checking.\n- Suggestion: Suppress the confirmed rendering while a recheck is in progress. Add a test that seeds a cached confirmation, delays the recheck, and then returns `no_words`.\n\n- Category: spec\n- Severity: medium\n- File:line \u2014 `server/src/external/org/decision-record-evidence.ts:188`\n- Finding: On POSIX, opening a named pipe read-only can block until a writer connects. The file-type check happens after the synchronous open, so a FIFO at either record path can hang the server instead of returning `unreadable` as AC3 requires. The directory test and mocked `ELOOP` test do not exercise this path.\n- Suggestion: Open with `O_NONBLOCK` where supported and keep the descriptor-based `isFile()` check. Add a POSIX test that verifies a FIFO with no writer is rejected promptly.\n\n- Category: spec\n- Severity: medium\n- File:line \u2014 `server/src/external/org/decision-record-evidence.ts:200`\n- Finding: The size limit is checked before an unbounded read. If a concurrent writer grows the same file after `fstatSync`, the reader can consume more than 5 MB and confirm a citation from an oversized record, contrary to AC3.\n- Suggestion: Read at most `MAX_RECORD_BYTES + 1` bytes from the open descriptor and return `unreadable` if the read crosses the limit.\n\n- Category: regression\n- Severity: medium\n- File:line \u2014 `client/src/components/org/LearningLabelView.tsx:15`\n- Finding: A malformed learning label causes the detail view to replace the entire proposed line with a warning. For example, `Learning (everyone): Every update names its reader.` hides the rule from the operator even though the row still allows countersigning.\n- Suggestion: Show the original line alongside the warning in the proposal detail. Add a row test that checks both the parser problem and the proposed text are visible.\n\nOverall assessment: ship-with-fixes. The diff implements both evidence forms and the learning-label preview, but the fail-closed paths and malformed-label display need correction before release. This assessment is based on the supplied diff. The tests were not run.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n- Category: edge-case\n  Severity: low\n  File: server/src/external/org/decision-record-evidence.ts \u2014 `fenceClose` (`lines.indexOf(line, i + 1)` for the SHIPWRIGHT fence)\n  Finding: When the same fence nonce appears more than once in a file (the writer normally uses a unique nonce per entry, but the fixture/writer here uses one nonce per countersign batch \u2014 `writeSampleLog` writes both entries with `NONCE = \"abab...\"`), an *unclosed* first fence will \"close\" at the next entry's identical opener, silently skipping a whole region of the file \u2014 potentially including a genuine `## ADR-<n>` heading \u2014 during block scanning. A hand-edited or truncated log could therefore cause `decisionNote` to miss a real block and return `no_words` (fail-closed, so not a security issue, but a wrong answer).\n  Suggestion: Match leadwright's exact behaviour (if it has the same quirk, disclose it in the contract doc); otherwise require the closing fence to be found before any intervening `## ` heading, or note the limitation alongside the existing \"fence rescan\" disclosure.\n\n- Category: bug\n  Severity: low\n  File: server/src/external/org/decision-record-evidence.ts \u2014 `quoteOccursIn` min-bound\n  Finding: The \"or all of a shorter text\" allowance is computed against the *transformed* text length (`flat(recordableQuote(words)).length`), not the raw reason/note length. A reason that is \u226524 raw characters but whose recordable/flattened form is shorter (e.g. contains `<!--`/`\u27e6\u27e7`, which become 3/1-char replacements) would reject a 24-char quote that leadwright's own bound (if measured on the raw text) accepts \u2014 a false `quote_not_found` divergence from the mirrored reader.\n  Suggestion: Confirm against leadwright's `quoteProblem` which length it bounds on and mirror that exactly; add a ported test case with a reason whose recordable form is shorter than its raw form.\n\n- Category: edge-case\n  Severity: low\n  File: server/src/external/org/decision-record-evidence.ts \u2014 `readRecordFile`\n  Finding: The 5 MB cap is checked via `fstatSync(fd)` and then the file is read with `readFileSync(fd, \"utf8\")` from the same descriptor, so a file that grows between `fstat` and `read` can exceed `MAX_RECORD_BYTES` in the actual read (TOCTOU on size). In practice only this app writes these files, so exposure is minimal.\n  Suggestion: Read with an explicit length bound derived from the fstat size (e.g. `readSync` loop capped at `st.size`), or re-check `fstat` after reading.\n\n- Category: test\n  Severity: low\n  File: client/src/components/org/DecisionEntryRow.record-evidence.test.ts \u2014 `serve(...)` stubs\n  Finding: The row tests stub a bare global `fetch`, so the `no-store` / URL / method assertions rest entirely on one test asserting the request URL and JSON body; the `Cache-Control: no-store` header and the `ORG_API` base path are never asserted anywhere in the client suite (the server test asserts the header on the response side). A regression that dropped `no-store` server-side would be caught, but a client regression that started sending the quote as a query param would not change `fetch`'s first argument here since the mock ignores init beyond body in one test.\n  Suggestion: Assert the full request (method, URL, headers, body) in the confirmed-path test, not just URL + body.\n\nPositive notes on otherwise-suspect areas I checked and found sound: the positional reading (lead's line never confirmed, `- Rejected:` gating, `sameAdr` dedup returning no note for two blocks, `lineBlock` marker/proposal-marker/blank-line/empty-note strictness) matches AC2; fail-closed states (missing/symlink/non-file/oversized/undecodable marker) match AC3 and the client never renders the quote as operator words while pending, on error, or on any non-`confirmed` answer; the audit shapes never carry the quote (AC4), and fence quotes with a record pointer \u2014 own or inherited \u2014 resolve to unknown source; the pointer grammar is tried after the excerpt form and bounded, and `decision:...Z:3` stays an excerpt. AC6's fixture is produced by the real writer, byte-compared, and its LF-normalised hash is pinned in the contract doc by the test. AC7's e2e covers confirmed, fail-closed, and the label. The route correctly reuses the org write guard (POST, JSON, cross-site 403 per test), bounds pointer/quote before IO, and echoes words only on `confirmed`.\n\nOverall assessment: This is a well-executed, thoroughly tested change; the only findings are low-severity mirror-fidelity and edge-case refinements, none of which block shipping. SHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-28-decision-record-evidence",
+    "at": "2026-11-28T13:05:54.438863+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "unknown"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "verdict could not be read for: glm (glm=unknown, openai=revise)"
+  }
+}

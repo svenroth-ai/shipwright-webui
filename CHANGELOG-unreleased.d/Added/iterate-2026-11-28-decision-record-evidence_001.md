@@ -1,0 +1,1 @@
+Org proposals: evidence citing the operator's own reject reason or countersign note (leadwright rejected:/decision: pointers) is checked against decisions-rejected.md / decision_log.md and shown as the operator's words, or with a plain notice when it cannot be confirmed

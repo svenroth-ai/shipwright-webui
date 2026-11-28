@@ -1,0 +1,1 @@
+Org proposals: a learning proposal shows its label (this lead or all leads, importance, pinned, replaces) apart from the rule, and the edit field reads an edited label back live with a warning when leads could not read it
