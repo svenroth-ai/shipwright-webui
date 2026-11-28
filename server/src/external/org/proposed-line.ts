@@ -40,13 +40,17 @@ export const QUOTE_GUARD_MIN = 20;
 export type EvidencePointer =
   | { session: string; time: string; message: string }
   | { form: "file"; project: string; path: string[]; line: number }
-  | { form: "event"; id: string };
+  | { form: "event"; id: string }
+  | { form: "rejected"; time: string; lead: string }
+  | { form: "decision"; adr: string };
 
 /** `null` for an unknown source: free text is never copied into the audit. */
 export function auditEvidence(s: SourceRef): EvidencePointer | null {
   if (s.kind === "known") return { session: s.session, time: s.time, message: s.message };
   if (s.kind === "file") return { form: "file", project: s.project, path: [...s.path], line: s.line };
   if (s.kind === "event") return { form: "event", id: s.id };
+  if (s.kind === "rejected") return { form: "rejected", time: s.time, lead: s.lead };
+  if (s.kind === "decision") return { form: "decision", adr: s.adr };
   return null;
 }
 

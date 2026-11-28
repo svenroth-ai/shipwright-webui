@@ -1,0 +1,1 @@
+{"stage":"spec","verdict":"pass","summary":"Re-review after reject: both text divergences fixed (contract doc fixture first-line sentence; AC1/Design Notes now POST with JSON body). Ports match leadwright line by line; AC1-AC7 hold.","spec_citations":[]}

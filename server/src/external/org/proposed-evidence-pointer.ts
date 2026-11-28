@@ -13,13 +13,17 @@
 // ---- EVIDENCE POINTER (verbatim mirror below this line) ----
 
 /** A parsed evidence pointer. `known` is the session excerpt (`<session>:<ISO time>:<n>`, the name predates the other
- *  forms); `file` a line of a file in one of the lead's projects; `event` a journal event of the lead's run. All three
- *  are KNOWN sources (`isKnownSource`). Every field is decoded text for display and audit only: never a link, never a
- *  path the WebUI opens or reads. */
+ *  forms); `file` a line of a file in one of the lead's projects; `event` a journal event of the lead's run; `rejected`
+ *  the operator's reason in a block of `decisions-rejected.md` (`rejected:<entry time>/<lead>`); `decision` the
+ *  operator's note in a countersigned block of `decision_log.md` (`decision:ADR-<n>`). All five are KNOWN sources
+ *  (`isKnownSource`). Every field is decoded text for display and audit only: never a link; only the two record forms
+ *  are ever resolved, by the server, against the two fixed record files (`decision-record-evidence.ts`). */
 export type SourceRef =
   | { kind: "known"; session: string; time: string; message: string }
   | { kind: "file"; project: string; path: string[]; line: number }
   | { kind: "event"; id: string }
+  | { kind: "rejected"; time: string; lead: string }
+  | { kind: "decision"; adr: string }
   | { kind: "unknown"; raw: string | null };
 
 export const isKnownSource = (s: SourceRef): boolean => s.kind !== "unknown";
@@ -64,19 +68,32 @@ function parseFilePointer(t: string): SourceRef | null {
   return { kind: "file", project, path, line: Number(m[2]) };
 }
 
+// The two decision-record forms (leadwright #153, `lib/evidence-pointer.ts`, exact regexes): no encoding, only safe
+// characters. A rejected pointer cannot match the excerpt form (`Z/` where the excerpt needs `Z:`).
+const REJECTED_POINTER_RE = /^rejected:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z)\/([a-z0-9][a-z0-9-]*)$/;
+const DECISION_POINTER_RE = /^decision:ADR-(\d{1,9})$/;
+
+function parseRecordPointer(t: string): SourceRef | null {
+  const r = REJECTED_POINTER_RE.exec(t);
+  if (r) return { kind: "rejected", time: r[1], lead: r[2] };
+  const d = DECISION_POINTER_RE.exec(t);
+  return d ? { kind: "decision", adr: d[1] } : null;
+}
+
 function parseEventPointer(t: string): SourceRef | null {
   const m = EVENT_POINTER_RE.exec(t);
   const id = m ? decodeComponent(m[1]) : null;
   return id === null ? null : { kind: "event", id };
 }
 
-/** `session:time:number`, `session <id> at <time>, message <n>`, `file:<project>/<path>#L<n>` or `event:<id>`; the
- *  excerpt forms are tried FIRST (a session id may itself be `file` or `event`). Anything else is unknown. */
+/** `session:time:number`, `session <id> at <time>, message <n>`, `file:<project>/<path>#L<n>`, `event:<id>`,
+ *  `rejected:<time>/<lead>` or `decision:ADR-<n>`; the excerpt forms are tried FIRST (a session id may itself be
+ *  `file`, `event`, `rejected` or `decision`). Anything else is unknown. */
 export function parseSourceRef(raw: string | null): SourceRef {
   const t = raw?.trim() ?? "";
   if (t === "") return { kind: "unknown", raw: null };
   const m = SHORT_POINTER_RE.exec(t) ?? LONG_POINTER_RE.exec(t);
   if (m) return { kind: "known", session: m[1], time: m[2], message: m[3] };
   if (t.length > MAX_POINTER_CHARS) return { kind: "unknown", raw: t };
-  return parseFilePointer(t) ?? parseEventPointer(t) ?? { kind: "unknown", raw: t };
+  return parseFilePointer(t) ?? parseEventPointer(t) ?? parseRecordPointer(t) ?? { kind: "unknown", raw: t };
 }

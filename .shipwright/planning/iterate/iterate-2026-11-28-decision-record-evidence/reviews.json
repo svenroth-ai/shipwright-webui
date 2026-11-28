@@ -1,0 +1,314 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-28-decision-record-evidence",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T13:01:56.600292+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The mirrored-pointer / ported-reader design is the right call — the rejected client-side alternative is correctly diagnosed (allowlist is shared with PUT, third parser copy). Keeping one reader on the server and exposing a narrow query route is sound.",
+          "suggestion": "None; keep the mirror-equality test as the drift guard.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Quote matching semantics are under-specified. AC1 says \"returns `confirmed` when the quote occurs in it,\" but AC2 says a quote from the lead's line returns `quote_not_found` / `no_words` — \"never `confirmed`.\" If the lead's reason happens to contain the same substring as the operator's reason (plausible with short quotes), a plain substring check could return `confirmed` from the wrong line. The positional rule (\"the lead's line is never the operator's words\") needs an explicit statement of which lines the quote is matched against and whether matching is exact-substring, trimmed, or normalized (CRLF/BOM are listed for readers but not for quote comparison).",
+          "suggestion": "Specify: quote must match (after trailing-whitespace trim and LF normalization) within the reason/note lines only; test a case where the lead's line and the operator's reason share a substring.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The `record-evidence` route takes user-controlled `pointer` and `quote` as inputs and matches them against file contents. Oversized-file cap (5 MB) and `MAX_POINTER_CHARS` cover the file side, but the quote length cap is only implied by AC3's \"400 malformed pointer / quote too long\" test plan — the limit value isn't stated. Also unhandled: a quote containing characters that change meaning under the pointer grammar (e.g., the quote itself parsed as a fence/record pointer, covered by AC4 for display, but not for the query).",
+          "suggestion": "State the quote length cap explicitly and pin it in both mirrors; add a route test where the quote itself embeds a record pointer form.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "DecisionLineEditor` gains a live `LearningLabelView` re-parse per keystroke. If the parse port is O(n) per keypress on typical line lengths this is fine, but if the editor also triggers the evidence fetch (React Query) on the same path, edits could fire record-evidence requests repeatedly. The spec doesn't say whether the editor shows only the label or also resolves evidence.",
+          "suggestion": "Clarify the editor resolves only the label (pure parse, no fetch); keep `OperatorWordsEvidence` fetches in the read-only detail view, keyed by pointer+quote with React Query caching.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "AC2's \"two blocks under one ADR number cite nothing\" is a strict-correctness port of leadwright behavior, but the webui writer (`countersign-core.ts`) is now also a producer of this file. If the writer can ever emit a duplicate ADR block (retry after partial write?), the strict rule turns a real record into `no_words` for the operator, contradicting AC1's intent. This is fail-closed (safe), but worth confirming the writer cannot produce duplicates.",
+          "suggestion": "Add a server-unit assertion (or note) that `handleCountersignRequest` cannot append a second block under an existing ADR; if it can, consider whether the strict rule needs a documented exception.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The fixture (AC6) requires the real writer to produce byte-identical output, and the SHA-256 is pinned LF-normalized. If the writer's note/label emission includes any timestamp or environment-dependent text beyond the countersign line, the fixture can't be stable. The spec implicitly assumes determinism but doesn't verify it.",
+          "suggestion": "In step 4, run the fixture-generation test with two different inputs/clock values to confirm only the intended line varies, and confirm the SHA pin covers the whole file, not just the countersign line.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The new GET route returns the operator's recorded words for an arbitrary pointer — fine, it's the operator's own surface, gated like `rejected-keys`. The main exposure risk is path handling: `rejected:<time>/<lead>` embeds a `<lead>` id that flows into a file read path only indirectly (the file is fixed; lead is a lookup key), so no traversal — but confirm the reader treats lead ids as opaque strings and never interpolates them into filesystem paths.",
+          "suggestion": "Add a route test with a lead id containing path separators / `..` asserting it returns `no_words`, not a filesystem error or wrong-block match.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "CRLF/BOM handling is listed for the readers, but the e2e uses \"a fixture leadsRoot\" — real files written on other platforms could reach the route. Also unstated: behavior when the record file exists but is empty, or when a rejected block exists but `- Rejected:` has no item 3 (should be `no_words`, presumably, but only implied).",
+          "suggestion": "Add explicit unit tests: empty file → `unreadable` or `no_words` (pick and state which), and rejected block with no reason line → `no_words`.",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-28T13:01:37.425458+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ## Review Findings\n\n- **Category: approach** — **Severity: low**\n  **Finding:** The mirrored-pointer / ported-reader design is the right call — the rejected client-side alternative is correctly diagnosed (allowlist is shared with PUT, third parser copy). Keeping one reader on the server and exposing a narrow query route is sound.\n  **Suggestion:** None; keep the mirror-equality test as the drift guard.\n\n- **Category: edge-case** — **Severity: medium**\n  **Finding:** Quote matching semantics are under-specified. AC1 says \"returns `confirmed` when the quote occurs in it,\" but AC2 says a quote from the lead's line returns `quote_not_found` / `no_words` — \"never `confirmed`.\" If the lead's reason happens to *contain* the same substring as the operator's reason (plausible with short quotes), a plain substring check could return `confirmed` from the wrong line. The positional rule (\"the lead's line is never the operator's words\") needs an explicit statement of which lines the quote is matched against and whether matching is exact-substring, trimmed, or normalized (CRLF/BOM are listed for readers but not for quote comparison).\n  **Suggestion:** Specify: quote must match (after trailing-whitespace trim and LF normalization) within the reason/note lines only; test a case where the lead's line and the operator's reason share a substring.\n\n- **Category: edge-case** — **Severity: medium**\n  **Finding:** The `record-evidence` route takes user-controlled `pointer` and `quote` as inputs and matches them against file contents. Oversized-file cap (5 MB) and `MAX_POINTER_CHARS` cover the file side, but the **quote** length cap is only implied by AC3's \"400 malformed pointer / quote too long\" test plan — the limit value isn't stated. Also unhandled: a quote containing characters that change meaning under the pointer grammar (e.g., the quote itself parsed as a fence/record pointer, covered by AC4 for *display*, but not for the *query*).\n  **Suggestion:** State the quote le […truncated]\n\n[openai] 1. **Category** security · **Severity** high  \n   **Finding** — The route tests verify the inherited host gate, but the plan does not establish that callers can read the addressed record within the active organization. The endpoint accepts arbitrary pointers and returns the full reason or note on a match, which creates a new read surface for `decisions-rejected.md`.  \n   **Suggestion** — Verify that the route uses the same caller authorization and server-selected `leadsRoot` as the proposals window. Add a route test confirming that a caller outside that scope cannot retrieve recorded text.\n\n2. **Category** security · **Severity** medium  \n   **Finding** — The GET query places the operator’s quote in the request URL. Access logs and request tracing can retain that text even though the countersign audit omits it.  \n   **Suggestion** — If the GET contract stays, verify that request logging and tracing redact `quote`, and send `Cache-Control: no-store` on the response.\n\n3. **Category** edge-case · **Severity** medium  \n   **Finding** — Route validation covers malformed pointers and oversized quotes, but the plan leaves missing, empty, and whitespace-only quotes unspecified. An empty string after normalization can match any record in a substring check and return its full text.  \n   **Suggestion** — Apply the leadwright quote rules before matching, explicitly reject inputs that normalize to empty, and test that these requests return no recorded text.\n\n4. **Category** risk · **Severity** medium  \n   **Finding** — The React Query plan leaves cache identity and freshness unspecified. A pointer identifies a record, while confirmation also depends on the quote and active organization. A cached confirmation can also outlive a record that becomes unreadable.  \n   **Suggestion** — Key the query by organization, pointer, and quote. Revalidate on modal reopen and after relevant organization writes, and keep prior confirmed text out of the UI while a fresh result is pen […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/external/org/decision-record-evidence.ts",
+          "line": 198,
+          "finding": "readRecordFile stats the fd twice (number, then bigint for dev/ino); same fd, not a correctness issue",
+          "suggestion": "one bigint fstat (optional)",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-28T13:11:44.816046+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "8ccd6bcb9a565f2480bf0132ab0902ae15ed9fd2"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "client/src/components/org/LearningLabelView.tsx",
+          "line": 17,
+          "finding": "Claim under doubt: An edited learning label is read back by leadwright exactly as the live preview shows it — preview parsed the raw textarea; the countersign logs normalizeLine(raw), so a newline, double space, NBSP or zero-width char made the preview show a narrower reach than the leads get",
+          "suggestion": "ADDRESSED: LearningLabelView parses normalizeLine(line) (client mirror of the countersign normaliser); row test types a newline, a double space, NBSP and U+200B and expects all leads, importance 5; contract doc updated",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "client/src/lib/orgLearningLabel.ts",
+          "line": 1,
+          "finding": "Claim under doubt: The edit preview warns whenever the leads could not use the learning — leadwright refuses a promoted learning over 600 chars (rule + note); the preview checks only the label grammar",
+          "suggestion": "ADDRESSED (narrowed): contract doc states the preview checks the label grammar only and the 600-char cap is not shown; follow-up listed",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling & blast radius",
+          "file": "docs/org-proposed-entry-contract.md",
+          "line": 512,
+          "finding": "Claim under doubt: The countersigned log sample is a pinned cross-repo contract — leadwright has no copy of the fixture or the hash yet",
+          "suggestion": "ADDRESSED: doc says leadwright does not pin it yet (follow-up)",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "client/src/components/org/OperatorWordsEvidence.tsx",
+          "line": 49,
+          "finding": "Claim under doubt: The quote shown under 'Your own words' is the operator's text — the match is after flattening and recordable form, so the shown lead quote may differ from the record in whitespace, fence brackets and comment markers",
+          "suggestion": "ACCEPTED and documented: the full recorded reason/note is shown verbatim beside the quote; contract doc names the characters that may differ",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-28T13:15:12.911448+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "8ccd6bcb9a565f2480bf0132ab0902ae15ed9fd2"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/external/org/decision-record-evidence.ts — `fenceClose` (`lines.indexOf(line, i + 1)` for the SHIPWRIGHT fence)",
+          "line": null,
+          "finding": "When the same fence nonce appears more than once in a file (the writer normally uses a unique nonce per entry, but the fixture/writer here uses one nonce per countersign batch — `writeSampleLog` writes both entries with `NONCE = \"abab...\"`), an unclosed first fence will \"close\" at the next entry's identical opener, silently skipping a whole region of the file — potentially including a genuine `## ADR-<n>` heading — during block scanning. A hand-edited or truncated log could therefore cause `decisionNote` to miss a real block and return `no_words` (fail-closed, so not a security issue, but a wrong answer).",
+          "suggestion": "Match leadwright's exact behaviour (if it has the same quirk, disclose it in the contract doc); otherwise require the closing fence to be found before any intervening `## ` heading, or note the limitation alongside the existing \"fence rescan\" disclosure.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "server/src/external/org/decision-record-evidence.ts — `quoteOccursIn` min-bound",
+          "line": null,
+          "finding": "The \"or all of a shorter text\" allowance is computed against the transformed text length (`flat(recordableQuote(words)).length`), not the raw reason/note length. A reason that is ≥24 raw characters but whose recordable/flattened form is shorter (e.g. contains `<!--`/`⟦⟧`, which become 3/1-char replacements) would reject a 24-char quote that leadwright's own bound (if measured on the raw text) accepts — a false `quote_not_found` divergence from the mirrored reader.",
+          "suggestion": "Confirm against leadwright's `quoteProblem` which length it bounds on and mirror that exactly; add a ported test case with a reason whose recordable form is shorter than its raw form.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/external/org/decision-record-evidence.ts — `readRecordFile",
+          "line": null,
+          "finding": "The 5 MB cap is checked via `fstatSync(fd)` and then the file is read with `readFileSync(fd, \"utf8\")` from the same descriptor, so a file that grows between `fstat` and `read` can exceed `MAX_RECORD_BYTES` in the actual read (TOCTOU on size). In practice only this app writes these files, so exposure is minimal.",
+          "suggestion": "Read with an explicit length bound derived from the fstat size (e.g. `readSync` loop capped at `st.size`), or re-check `fstat` after reading.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/org/DecisionEntryRow.record-evidence.test.ts — `serve(...)` stubs",
+          "line": null,
+          "finding": "The row tests stub a bare global `fetch`, so the `no-store` / URL / method assertions rest entirely on one test asserting the request URL and JSON body; the `Cache-Control: no-store` header and the `ORG_API` base path are never asserted anywhere in the client suite (the server test asserts the header on the response side). A regression that dropped `no-store` server-side would be caught, but a client regression that started sending the quote as a query param would not change `fetch`'s first argument here since the mock ignores init beyond body in one test.",
+          "suggestion": "Assert the full request (method, URL, headers, body) in the confirmed-path test, not just URL + body.  Positive notes on otherwise-suspect areas I checked and found sound: the positional reading (lead's line never confirmed, `- Rejected:` gating, `sameAdr` dedup returning no note for two blocks, `lineBlock` marker/proposal-marker/blank-line/empty-note strictness) matches AC2; fail-closed states (missing/symlink/non-file/oversized/undecodable marker) match AC3 and the client never renders the quote as operator words while pending, on error, or on any non-`confirmed` answer; the audit shapes never carry the quote (AC4), and fence quotes with a record pointer — own or inherited — resolve to unknown source; the pointer grammar is tried after the excerpt form and bounded, and `decision:...Z:3` stays an excerpt. AC6's fixture is produced by the real writer, byte-compared, and its LF-normalised hash is pinned in the contract doc by the test. AC7's e2e covers confirmed, fail-closed, and the label. The route correctly reuses the org write guard (POST, JSON, cross-site 403 per test), bounds pointer/quote before IO, and echoes words only on `confirmed`.  Overall assessment: This is a well-executed, thoroughly tested change; the only findings are low-severity mirror-fidelity and edge-case refinements, none of which block shipping. SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": "line — `client/src/components/org/OperatorWordsEvidence.tsx",
+          "line": 41,
+          "finding": "A cached confirmation is displayed during a background recheck because React Query keeps the previous data and `isPending` stays false. If the operator closes the window, removes the cited note, and reopens it before the cache expires, the window displays the old quote and full note as confirmed until the new request finishes. This violates AC3’s fail-closed behavior while checking.",
+          "suggestion": "Suppress the confirmed rendering while a recheck is in progress. Add a test that seeds a cached confirmation, delays the recheck, and then returns `no_words`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "line — `server/src/external/org/decision-record-evidence.ts",
+          "line": 188,
+          "finding": "On POSIX, opening a named pipe read-only can block until a writer connects. The file-type check happens after the synchronous open, so a FIFO at either record path can hang the server instead of returning `unreadable` as AC3 requires. The directory test and mocked `ELOOP` test do not exercise this path.",
+          "suggestion": "Open with `O_NONBLOCK` where supported and keep the descriptor-based `isFile()` check. Add a POSIX test that verifies a FIFO with no writer is rejected promptly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "line — `server/src/external/org/decision-record-evidence.ts",
+          "line": 200,
+          "finding": "The size limit is checked before an unbounded read. If a concurrent writer grows the same file after `fstatSync`, the reader can consume more than 5 MB and confirm a citation from an oversized record, contrary to AC3.",
+          "suggestion": "Read at most `MAX_RECORD_BYTES + 1` bytes from the open descriptor and return `unreadable` if the read crosses the limit.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "line — `client/src/components/org/LearningLabelView.tsx",
+          "line": 15,
+          "finding": "A malformed learning label causes the detail view to replace the entire proposed line with a warning. For example, `Learning (everyone): Every update names its reader.` hides the rule from the operator even though the row still allows countersigning.",
+          "suggestion": "Show the original line alongside the warning in the proposal detail. Add a row test that checks both the parser problem and the proposed text are visible.  Overall assessment: ship-with-fixes. The diff implements both evidence forms and the learning-label preview, but the fail-closed paths and malformed-label display need correction before release. This assessment is based on the supplied diff. The tests were not run.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-28T13:07:59.134304+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: edge-case\n  Severity: low\n  File: server/src/external/org/decision-record-evidence.ts — `fenceClose` (`lines.indexOf(line, i + 1)` for the SHIPWRIGHT fence)\n  Finding: When the same fence nonce appears more than once in a file (the writer normally uses a unique nonce per entry, but the fixture/writer here uses one nonce per countersign batch — `writeSampleLog` writes both entries with `NONCE = \"abab...\"`), an *unclosed* first fence will \"close\" at the next entry's identical opener, silently skipping a whole region of the file — potentially including a genuine `## ADR-<n>` heading — during block scanning. A hand-edited or truncated log could therefore cause `decisionNote` to miss a real block and return `no_words` (fail-closed, so not a security issue, but a wrong answer).\n  Suggestion: Match leadwright's exact behaviour (if it has the same quirk, disclose it in the contract doc); otherwise require the closing fence to be found before any intervening `## ` heading, or note the limitation alongside the existing \"fence rescan\" disclosure.\n\n- Category: bug\n  Severity: low\n  File: server/src/external/org/decision-record-evidence.ts — `quoteOccursIn` min-bound\n  Finding: The \"or all of a shorter text\" allowance is computed against the *transformed* text length (`flat(recordableQuote(words)).length`), not the raw reason/note length. A reason that is ≥24 raw characters but whose recordable/flattened form is shorter (e.g. contains `<!--`/`⟦⟧`, which become 3/1-char replacements) would reject a 24-char quote that leadwright's own bound (if measured on the raw text) accepts — a false `quote_not_found` divergence from the mirrored reader.\n  Suggestion: Confirm against leadwright's `quoteProblem` which length it bounds on and mirror that exactly; add a ported test case with a reason whose recordable form is shorter than its raw form.\n\n- Category: edge-case\n  Severity: low\n  File: server/src/external/org/decision-record-evidence.ts — `readRec […truncated]\n\n[openai] - Category: spec\n- Severity: high\n- File:line — `client/src/components/org/OperatorWordsEvidence.tsx:41`\n- Finding: A cached confirmation is displayed during a background recheck because React Query keeps the previous data and `isPending` stays false. If the operator closes the window, removes the cited note, and reopens it before the cache expires, the window displays the old quote and full note as confirmed until the new request finishes. This violates AC3’s fail-closed behavior while checking.\n- Suggestion: Suppress the confirmed rendering while a recheck is in progress. Add a test that seeds a cached confirmation, delays the recheck, and then returns `no_words`.\n\n- Category: spec\n- Severity: medium\n- File:line — `server/src/external/org/decision-record-evidence.ts:188`\n- Finding: On POSIX, opening a named pipe read-only can block until a writer connects. The file-type check happens after the synchronous open, so a FIFO at either record path can hang the server instead of returning `unreadable` as AC3 requires. The directory test and mocked `ELOOP` test do not exercise this path.\n- Suggestion: Open with `O_NONBLOCK` where supported and keep the descriptor-based `isFile()` check. Add a POSIX test that verifies a FIFO with no writer is rejected promptly.\n\n- Category: spec\n- Severity: medium\n- File:line — `server/src/external/org/decision-record-evidence.ts:200`\n- Finding: The size limit is checked before an unbounded read. If a concurrent writer grows the same file after `fstatSync`, the reader can consume more than 5 MB and confirm a citation from an oversized record, contrary to AC3.\n- Suggestion: Read at most `MAX_RECORD_BYTES + 1` bytes from the open descriptor and return `unreadable` if the read crosses the limit.\n\n- Category: regression\n- Severity: medium\n- File:line — `client/src/components/org/LearningLabelView.tsx:15`\n- Finding: A malformed learning label causes the detail view to replace the entire proposed line with a warning. For example, ` […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "unknown"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T13:08:06.604660+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "8ccd6bcb9a565f2480bf0132ab0902ae15ed9fd2"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T13:01:36.895311+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T13:01:37.133352+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

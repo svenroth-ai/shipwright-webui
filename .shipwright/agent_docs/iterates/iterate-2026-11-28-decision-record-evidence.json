@@ -1,0 +1,16 @@
+{
+  "run_id": "iterate-2026-11-28-decision-record-evidence",
+  "date": "2026-11-28T13:19:46.780456Z",
+  "event_at": "2026-11-28T13:19:33.260000+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "default",
+  "branch": "iterate/decision-record-evidence",
+  "spec": ".shipwright/planning/iterate/iterate-2026-11-28-decision-record-evidence.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-28-decision-record-evidence",
+  "risk_flags": [
+    "touches_io_boundary",
+    "touches_public_api"
+  ]
+}

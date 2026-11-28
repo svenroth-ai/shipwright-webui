@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "Yes. Choose A because the operator needs to verify that a learning rests on words they actually wrote before countersigning.\n\n**Smallest thing that would do.** Add a read-only lookup in the existing route family that resolves one citation against the existing records and returns the reason or note only when the quote is confirmed. Keep the lookup scoped to the proposal detail and render the learning label in the client.\n\n**What it costs to keep.** WebUI owns the lookup and must keep its interpretation of the record and label formats aligned with Leadwright. The writer-generated fixture makes changes to the countersign format visible to both projects.\n\n**What it forecloses.** Both projects must coordinate changes to the record format or citation identifiers so existing proposals remain verifiable.\n\nNo findings.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "1. **The question, answered in one sentence.** Something should exist \u2014 the operator genuinely cannot see what their own words a learning cites, and the app writes the records it would read \u2014 but it should be smaller: Option B (client-side resolution over the existing file route) does the job without a new server module and a mirrored grammar on the server side.\n\n2. **The smallest thing that would do.** Make the rejected-decisions list reachable through the existing generic read-only file route (it already serves the decision log), resolve `rejected:` / `decision:` pointers in the browser with one copy of the positional reader (`decision-record-evidence.ts` becomes a client module, not a server module), and render confirmed words or a fail-cailed notice. That keeps the whole feature to: one file-route extension, one reader module, two UI components. No `GET /api/org/decisions/record-evidence`, no `orgProposedEvidencePointer` server mirror, no route-specific auth/host-gate reasoning.\n\n3. **What it costs to keep.** As proposed: a permanent route plus a second copy of leadwright's fragile positional block grammar (regexes, `lineBlock`, `sameAdr` semantics) that must be re-ported and re-reasoned about on every change to either record format \u2014 the brief itself flags the format as an IO boundary another repo reads and this repo writes. Option B's cost: one copy of that grammar, plus one more file allowed by the existing file-route gate (a list-entry change, not a new mechanism).\n\n4. **What it forecloses.** The route form binds resolution to server-side reads of 5 MB files on every proposal render; the client form makes future record-format changes a one-place fix. Neither forecloses the other irreversibly.\n\n**Findings**\n\n- Category: simpler-alternative\n- Severity: high\n- Finding: The proposed mechanism doubles the record-reading grammar (server module + mirrored pointer module + ported test cases) where one copy suffices; the existing generic read-only file route already serves the decisions log, and extending it to the rejected list is a gate-list change, not a new route.\n- Suggestion: Take Option B: allow `decisions-rejected.md` through the existing file route (with the same O_NOFOLLOW/size guards that route already has), and resolve pointers client-side in `OperatorWordsEvidence`. Drop the new route and the server-side reader; keep the positional-reading semantics and fail-closed display exactly as specified.\n\n- Category: proportionality\n- Severity: low\n- Finding: AC6's SHA-256 pin of the fixture in the contract doc adds a standing obligation (every byte change to the writer forces a coordinated doc update) for a guard the committed fixture test already provides.\n- Suggestion: Keep the fixture and the byte-for-byte generation test; drop the LF-normalised hash from the contract doc, or regenerate it mechanically from the test so it cannot drift independently.\n\n- Category: existence\n- Severity: low\n- Finding: Option C/D solve nothing real (the words are invisible), so a resolution mechanism is warranted; the choice is only about where the single grammar copy lives.\n- Suggestion: none \u2014 resolution should exist.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "architecture",
+  "capture": {
+    "run_id": "iterate-2026-11-28-decision-record-evidence",
+    "at": "2026-11-28T12:52:26.550956+00:00"
+  },
+  "verdicts": {
+    "openai": "approve",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=approve"
+  }
+}

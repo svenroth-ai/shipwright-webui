@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-28-decision-record-evidence",
+  "date": "2026-11-28",
+  "section": "Iterate — feature: decision-record evidence and learning labels",
+  "title": "Resolve the operator's own words as evidence on the server, fail closed",
+  "context": "Leadwright #153 lets a lead cite the operator's reject reason (rejected:<time>/<lead>) or countersign note (decision:ADR-<n>) when proposing a learning; the proposals window showed both as an unknown source, and the learning label sat unexplained in the line.",
+  "decision": "A read-only POST /api/org/decisions/record-evidence ports leadwright's positional reader, reads the two fixed record files through one no-follow handle and returns the operator's words only when the quote is confirmed; the window shows them or a fail-closed notice. The learning label is read client-side with a port of parseLearningLabel, also live while editing.",
+  "consequences": "A second copy of leadwright's record reader lives here, held in step by ported leadwright test cases and a countersigned decision_log.md fixture written by the real writer and hash-pinned for leadwright. The audit gains two evidence forms; the copy guard is unchanged.",
+  "rationale": "Both records are written by this app, so confirming the citation is possible and is what lets the operator see what a learning rests on; words only on confirmed keeps the read no wider than the citation.",
+  "rejected": "Client-side resolution with decisions-rejected.md added to the org file allowlist (the allowlist is shared with the generic PUT and would expose the whole file); showing the pointer and lead quote unchecked (cannot show the operator's words).",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ""
+}

@@ -18,6 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { countersignDecision, type ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
 import { rejectDecision } from "../../lib/orgRejectApi";
+import { RECORD_EVIDENCE_KEY } from "../../lib/orgRecordEvidenceApi";
 import { blockDigest } from "../../lib/orgBlockDigest";
 import type { EntryStatus } from "./DecisionEntryRow";
 import { LINE_PROBLEMS, CHANGED, UNWRITABLE, rejectFailureStatus, rejectNotice } from "./decisionMessages";
@@ -73,7 +74,7 @@ export function useDecisionActions(refetch: () => Promise<unknown>) {
       if (result.ok) setNotice(rejectNotice(result, `${entry.leadId}, ${entry.timestamp}`));
       const keepAsIs = status.kind === "duplicate" || (!result.ok && (result.reason === "audit-unwritable" || result.reason === "audit-pending"));
       if (!keepAsIs) {
-        await Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: ["org", "decisions-rejected-keys"] })]);
+        await Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: ["org", "decisions-rejected-keys"] }), queryClient.invalidateQueries({ queryKey: RECORD_EVIDENCE_KEY })]);
       }
     } catch (err) {
       fail(key, entry, err);
@@ -94,7 +95,7 @@ export function useDecisionActions(refetch: () => Promise<unknown>) {
         settle(key, entry, { kind: "done", alreadyCountersigned: result.alreadyCountersigned, adr: result.adr, edited: result.edited, loggedLineDiffers: result.loggedLineDiffers });
         // Both surfaces observe the same countersign action's effect: refresh the proposed list (the entry is
         // gone) and the decision_log.md tile (the new entry is there), without the PO re-opening either.
-        await Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: ["org", "shared-doc", "decision_log.md"] })]);
+        await Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: ["org", "shared-doc", "decision_log.md"] }), queryClient.invalidateQueries({ queryKey: RECORD_EVIDENCE_KEY })]);
         return;
       }
       const blocked = (message: string) => put(key, entry, { kind: "blocked", message });

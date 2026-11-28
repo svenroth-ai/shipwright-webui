@@ -9,7 +9,11 @@
 import type { ReactNode } from "react";
 import type { ProposedDecisionEntry } from "../../lib/orgDecisionsApi";
 import { buildEntryView, describeSource, type SourceRef } from "../../lib/orgProposedView";
+import { decisionKeyOf } from "../../lib/orgDecisionKey";
+import { isLearningKey, normalizeDecisionKey } from "../../lib/orgLearningLabel";
 import { DocumentMarkdown } from "../external/SmartViewer/DocumentMarkdown";
+import { LearningLabelView } from "./LearningLabelView";
+import { OperatorWordsEvidence } from "./OperatorWordsEvidence";
 
 const MUTED = { color: "var(--color-muted, #6b7280)" } as const;
 
@@ -24,13 +28,30 @@ export function SourceLabel({ source, testId }: { source: SourceRef; testId: str
   );
 }
 
+/** A learning proposal (leadwright #153): its decisionKey starts with `learning.`. */
+export function isLearningEntry(block: string): boolean {
+  const key = decisionKeyOf(block);
+  return key !== null && isLearningKey(normalizeDecisionKey(key));
+}
+
+/** The canonical pointer of a decision-record source, as the server resolves it. */
+function recordPointer(s: SourceRef): { form: "rejected" | "decision"; pointer: string } | null {
+  if (s.kind === "rejected") return { form: "rejected", pointer: `rejected:${s.time}/${s.lead}` };
+  if (s.kind === "decision") return { form: "decision", pointer: `decision:ADR-${s.adr}` };
+  return null;
+}
+
 export function DecisionEntryDetail({ rowKey, entry, labelId, lineSlot }: { rowKey: string; entry: ProposedDecisionEntry; labelId: string; /** Replaces the proposed line (the line editor). */ lineSlot?: ReactNode }) {
   const view = buildEntryView(entry.block, entry.evidence);
   const quotesId = `${labelId}-quotes`;
+  const record = recordPointer(view.source);
+  const learning = view.fenced && !!view.proposedLine && isLearningEntry(entry.block);
 
   return (
     <div className="mt-2 flex flex-col gap-2" data-testid={`org-decisions-proposed-detail-${rowKey}`}>
-      {lineSlot ?? (view.fenced ? (view.proposedLine === "" ? null : (
+      {lineSlot ?? (view.fenced ? (view.proposedLine === "" ? null : learning ? (
+        <LearningLabelView line={view.proposedLine ?? ""} testId={`org-decisions-proposed-learning-${rowKey}`} />
+      ) : (
         <p className="whitespace-pre-wrap break-words text-[12px] font-medium" data-testid={`org-decisions-proposed-line-${rowKey}`}>
           {view.proposedLine}
         </p>
@@ -54,6 +75,10 @@ export function DecisionEntryDetail({ rowKey, entry, labelId, lineSlot }: { rowK
           <SourceLabel source={view.source} testId={`org-decisions-proposed-evidence-${rowKey}`} />
         </dd>
       </dl>
+
+      {record !== null && view.evidenceQuote !== null && (
+        <OperatorWordsEvidence rowKey={rowKey} form={record.form} pointer={record.pointer} quote={view.evidenceQuote} />
+      )}
 
       {view.quotes.length > 0 && (
         <div role="group" aria-labelledby={quotesId}>

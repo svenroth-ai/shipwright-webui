@@ -11,8 +11,9 @@
  * proposed line. A quote without its own pointer inherits the entry's evidence
  * pointer. The Evidence bullet itself may carry the quote (`<pointer> — "<quote>"`,
  * `parseEvidence`): it is shown first, as a quote with its own pointer. Everything here is text: callers render it as plain text, never markup.
- * A pointer is a session excerpt, a file line (`project · path · line N`) or a journal event (`event <id>`); none of
- * them is ever a link (`describeSource`).
+ * A pointer is a session excerpt, a file line (`project · path · line N`), a journal event (`event <id>`) or the
+ * operator's own reject reason / countersign note (`rejected:` / `decision:`, whose quote is resolved by the server and
+ * shown by `OperatorWordsEvidence`, never as a lead quote); none of them is ever a link (`describeSource`).
  *
  * The line/quote split (`fencedParts`) and the pointer parser live in the mirrored grammar, so the
  * server countersign uses the very same rule (W4).
@@ -37,6 +38,8 @@ export interface EntryView {
   beat: string | null;
   source: SourceRef;
   quotes: QuoteView[];
+  /** The Evidence bullet's own quote (`<pointer> — "<quote>"`), `null` when it has none or the pointer is unknown. */
+  evidenceQuote: string | null;
 }
 
 const BEAT_RE = /origin: \S+ beat ([^,\s]+),/;
@@ -46,33 +49,45 @@ export function describeSource(s: SourceRef): string {
   if (s.kind === "known") return `session ${s.session}, ${s.time}, message ${s.message}`;
   if (s.kind === "file") return `${s.project} · ${s.path.join("/")} · line ${s.line}`;
   if (s.kind === "event") return `event ${s.id}`;
+  if (s.kind === "rejected") return `your reason for rejecting ${s.lead}'s proposal of ${s.time}`;
+  if (s.kind === "decision") return `your note on ADR-${s.adr}`;
   return "unknown source";
 }
 
 /** A fence quote's own ` — <pointer>` is lead-written and never checked by the daemon: the file-line and journal-event
  *  forms are read only on the Evidence bullet (which the daemon checks), so here they show as unknown source with the
- *  raw text instead of a citation that looks checked. */
+ *  raw text instead of a citation that looks checked. The two decision-record forms likewise (only the Evidence bullet's
+ *  quote behind them is checked, and only that one is resolved). */
 function fenceQuoteSource(pointer: string): SourceRef {
   const s = parseSourceRef(pointer);
-  return s.kind === "file" || s.kind === "event" ? { kind: "unknown", raw: pointer.trim() } : s;
+  return s.kind === "known" || s.kind === "unknown" ? s : { kind: "unknown", raw: pointer.trim() };
 }
 
-function parseQuote(line: string, fallback: SourceRef): QuoteView {
+/** True for the two pointers that cite the operator's own words (`rejected:` / `decision:`). Only the Evidence
+ *  bullet's own quote behind one of them is resolved (`OperatorWordsEvidence`); a fence quote never borrows them. */
+export const citesOperatorWords = (s: SourceRef): boolean => s.kind === "rejected" || s.kind === "decision";
+
+function parseQuote(line: string, fallback: SourceRef, rawEvidence: string | null): QuoteView {
   const { text, pointer } = splitQuote(line);
-  return pointer === null ? { text, source: fallback, inherited: true } : { text, source: fenceQuoteSource(pointer), inherited: false };
+  if (pointer !== null) return { text, source: fenceQuoteSource(pointer), inherited: false };
+  // a lead-written fence quote must never read as the operator's words by inheriting a record pointer
+  return { text, source: citesOperatorWords(fallback) ? { kind: "unknown", raw: rawEvidence } : fallback, inherited: true };
 }
 
 export function buildEntryView(block: string, evidence: string | null): EntryView {
   const { source, quote } = parseEvidence(evidence);
   const parts = fencedParts(block.split("\n"));
-  if (parts === null) return { fenced: false, proposedLine: null, beat: null, source, quotes: [] };
-  const own: QuoteView[] = quote === null ? [] : [{ text: quote, source, inherited: false }]; // the Evidence line's own quote, first
-  const quotes = [...own, ...parts.quotes.map((l) => parseQuote(l, source)).filter((q) => q.text !== "")];
+  if (parts === null) return { fenced: false, proposedLine: null, beat: null, source, quotes: [], evidenceQuote: null };
+  // the Evidence line's own quote, first; behind a record pointer it is shown by OperatorWordsEvidence instead
+  const own: QuoteView[] = quote === null || citesOperatorWords(source) ? [] : [{ text: quote, source, inherited: false }];
+  const rawPointer = evidence === null ? null : (evidence.trim().split(" — ")[0] ?? null);
+  const quotes = [...own, ...parts.quotes.map((l) => parseQuote(l, source, rawPointer)).filter((q) => q.text !== "")];
   return {
     fenced: true,
     proposedLine: stripInvisible(parts.proposed.join("\n")).trim(), // invisible characters removed as on the server; whitespace is collapsed on write
     beat: BEAT_RE.exec(parts.label)?.[1] ?? null,
     source,
     quotes,
+    evidenceQuote: quote,
   };
 }
