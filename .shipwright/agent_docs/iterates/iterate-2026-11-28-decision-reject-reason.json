@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-28-decision-reject-reason",
+  "date": "2026-11-28T09:33:56.295405Z",
+  "event_at": "2026-11-28T09:20:04.328006+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/decision-reject-reason",
+  "spec": ".shipwright/planning/iterate/2026-11-28-decision-reject-reason.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-28-decision-reject-reason",
+  "risk_flags": [
+    "touches_io_boundary"
+  ]
+}

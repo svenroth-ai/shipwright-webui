@@ -80,7 +80,7 @@ describe("a row whose content changed under the operator (limits closeout)", () 
     fireEvent.click(screen.getByTestId(tid("changed-ack", TS_B)));
     expect(screen.queryByTestId(tid("changed", TS_B))).toBeNull();
     fireEvent.click(screen.getByTestId(tid("countersign", TS_B)));
-    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS_B, "acme-lead", "Line of B as the lead rewrote it.", blockDigest(B2.block)));
+    await waitFor(() => expect(mockedCountersign).toHaveBeenCalledWith(TS_B, "acme-lead", "Line of B as the lead rewrote it.", blockDigest(B2.block), undefined));
   });
 
   // @covers FR-01.71
@@ -181,7 +181,7 @@ describe("reject messages (limits closeout)", () => {
     fireEvent.click(await screen.findByTestId(tid("reject", TS_B)));
     fireEvent.click(screen.getByTestId(tid("reject-confirm-btn", TS_B)));
     await waitFor(() =>
-      expect(screen.getByTestId("org-decisions-proposed-notice")).toHaveTextContent(/audit record already exists in the lead.s audit file \(with the reason "too vague"\); your new reason was not added/),
+      expect(screen.getByTestId("org-decisions-proposed-notice")).toHaveTextContent(/audit record already exists in the lead.s audit file \(with the reason "too vague"\); the audit record keeps that reason/),
     );
   });
 

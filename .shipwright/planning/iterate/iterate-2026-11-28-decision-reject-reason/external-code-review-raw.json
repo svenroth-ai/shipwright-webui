@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- **Category:** security  \n  **Severity:** high  \n  **File:** `server/src/external/org/reject-core.ts:155`  \n  **Finding:** An overlong fenced proposal can leak a quote into the org-wide file. `checkOriginalLine` checks length before checking quotes. A proposal over 2,000 characters that copies an evidence quote near the beginning therefore reaches the truncation branch, which publishes the copied quote to every lead. The existing withholding test only covers a short proposal.  \n  **Suggestion:** Run the quote check on the exact text that would be published after truncation and write `QUOTE_WITHHELD` if it matches. Add a regression test with a copied quote inside the first 2,000 characters of an overlong proposal.\n\n- **Category:** regression  \n  **Severity:** medium  \n  **File:** `server/src/external/org/decision-residue.ts:37`  \n  **Finding:** The suffix check can mistake a rewritten legacy proposal for crash residue. If a whole-entry proposal originally ended with its own blank-line-separated `- Note: ...` item and was countersigned without an operator note, a new version under the same timestamp and lead that drops that item matches the suffix check. Countersign can then remove the rewrite as already approved, and reject can refuse it as already countersigned.  \n  **Suggestion:** Give newly written whole-entry blocks with operator notes a proposal fingerprint in a fixed metadata position and require it to match before accepting the suffix. Keep exact body matching for older blocks and test the rewrite that drops a lead-authored note.\n\n- **Category:** bug  \n  **Severity:** medium  \n  **File:** `server/src/external/org/decisions-rejected.ts:162`  \n  **Finding:** The preflight checks write permission, but appending also requires reading the existing file. With a write-only `decisions-rejected.md`, preflight can pass and the reject can write its audit record before `readFileSync` throws `EACCES`. The read sits outside the error mapping, so the request fails without the documented `409 rejected_file_unwritable` and leaves the proposal in a pending rejection state.  \n  **Suggestion:** Read and validate the existing file under the lock before writing the audit record, reuse that content for the append, and map read failures to `RejectedFileUnwritableError`.\n\nShip-with-fixes. The main reject and countersign flows are implemented, but quote withholding, retry matching, and rejected-file preflight need the fixes above before release.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "Reviewing against the spec, contract, and the integrated plan-review fixes:\n\n**Findings**\n\n- Category: bug | Severity: low | File: server/src/external/org/countersign-core.ts (hunk at `const noteVerdict = checkNoteText(...)`)\n  Finding: The note is validated in the \"write the block\" path of `performCountersign`. If this code executes before the already-logged / crash-residue branch returns `already_countersigned`, then a retry of an already-countersigned entry with an over-long or quote-repeating note answers `note_rejected` (400) instead of the idempotent `alreadyCountersigned` answer \u2014 and per the documented contract, a retry should keep the logged block as-is and succeed. The diff does not show the surrounding control flow, and the new residue test only retries with a valid note (\"a different note\"), so this ordering is untested.\n  Suggestion: Confirm the `already_countersigned`/residue-same return happens before the note check, or move `checkNoteText` after it; add a test retrying an already-logged entry with a 601-char note expecting `alreadyCountersigned`.\n\n- Category: edge-case | Severity: low | File: server/src/external/org/decisions-rejected.ts:96-104 (`parseRejectedBlocks`)\n  Finding: `rejectedAt`/`reason` are recovered by prefix lookup (`rest.find(startsWith(...))`) rather than position, while the contract explicitly says items are positional and \"a reader must not look items up by prefix.\" The writer is positional so current round-trips are safe, but the parser here is the idempotency authority (and the documented reference parser); a hand-edited or externally written block whose *second* item starts `Reason: ` would be mis-parsed (rejectedAt=null, reason shifted). Since only items[0]/[1]/[2] are ever written, positional extraction is strictly more correct.\n  Suggestion: Read `Rejected`/`Reason` from `rest[0]`/`rest[1]` positionally with a prefix check, matching the grammar the doc pins.\n\n- Category: test | Severity: low | File: client/src/lib/orgDecisionsApi.note-reason.test.ts:18\n  Finding: The assertion `JSON.parse(f.mock.calls[0][1].body)` checks the note is sent, but `mock.calls[0][1].body` is a string and the JSON parse is fine; however the blank-note case asserts the body equals `{timestamp, leadId}` \u2014 good \u2014 while the API-level test never covers `note_invalid` mapping. Minor gap only; server tests cover the 400s.\n  Suggestion: None required; optionally add the `note_invalid` mapping case.\n\n**Positive checks (no defect):**\n- AC1 idempotency: write order audit \u2192 block \u2192 removal, dedupe identity (timestamp, lead, key, line) all match the plan-review fixes; tests cover both crash points and the byte-identical retry.\n- The truncation fix is real: `reject-request.ts` now passes the raw string and `checkNoteText` (600) refuses 601 \u2014 the `normalizeReason` cap removal closes the \"AC2 passes silently\" hole, and `REASON_MAX` in `decisions-audit.ts` is consistently raised for the read-back.\n- Quote withholding (`QUOTE_WITHHELD`), unfenced-body flattening via `normalizeLine` before writing (forging blocked), reason-always-current-request, and `resolveRejectedPath`/`assertRejectedWritable` scoped to the reject path are all implemented as reviewed.\n- Backward compatibility: `checkEditedLine`, `toLoggedLineBlock`, `parseLoggedLineBlock` changes are additive/defaulted; `residueKind` keeps the exact-match branch first so pre-change blocks still heal; leadwright reads keys from markers only, and the `- Note:` item is tolerated per the checked contract.\n- The pinned fixture and the e2e byte/regex assertions would fail on a wrong writer, so the tests are not happy-path-only.\n\n**Overall assessment:** The change implements the contract faithfully, integrates all reviewer fixes, and is well tested; the three findings are refinements (one unverified ordering, one parser/contract inconsistency) that do not block shipping.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-28-decision-reject-reason",
+    "at": "2026-11-28T09:01:06.621819+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

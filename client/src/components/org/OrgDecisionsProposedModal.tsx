@@ -150,7 +150,7 @@ export function OrgDecisionsProposedModal({ open, onOpenChange }: Props) {
                     entry={entry}
                     status={status}
                     appeared={appeared}
-                    onCountersign={(line) => void handleCountersign(key, entry, line)}
+                    onCountersign={(line, note) => void handleCountersign(key, entry, line, note)}
                     onReject={(reason) => void handleReject(key, entry, reason)}
                     isRepeat={isRepeat(entry)}
                   />

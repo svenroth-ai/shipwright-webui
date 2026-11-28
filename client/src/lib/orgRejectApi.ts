@@ -10,7 +10,11 @@ export type RejectResult =
   /** `recorded`: this request wrote the audit record (false = it was already there, or the entry was gone). */
   | { ok: true; alreadyRejected: boolean; recorded: boolean; /** an earlier record of this webui was reused: the reason on record (`null` = none) */ existingReason?: string | null }
   | { ok: false; reason: "entry-changed" }
-  | { ok: false; reason: "audit-unwritable"; message: string }
+  /** The reason is too long or repeats a quote of the lead (`code`: reason_too_long | reason_contains_quote | reason_invalid); nothing was changed. */
+  | { ok: false; reason: "reason-rejected"; code: string }
+  /** The lead audit file, or the org-wide rejected-decisions file, cannot be written; nothing was changed, unless
+   *  `auditWritten`: the audit record is written and the entry is still listed (retry Reject to finish). */
+  | { ok: false; reason: "audit-unwritable"; message: string; auditWritten?: true }
   | { ok: false; reason: "not-found" }
   | { ok: false; reason: "lead-unknown" }
   | { ok: false; reason: "duplicate"; count: number }
@@ -36,6 +40,11 @@ export async function rejectDecision(timestamp: string, leadId: string, reason: 
     return { ok: false, reason: "duplicate", count: typeof body.count === "number" ? body.count : 0 };
   }
   if (r.status === 409 && body.error === "entry_changed") return { ok: false, reason: "entry-changed" };
+  if (r.status === 400 && typeof body.error === "string" && body.error.startsWith("reason_")) return { ok: false, reason: "reason-rejected", code: body.error };
+  if (r.status === 409 && body.error === "rejected_file_unwritable") {
+    const message = typeof body.message === "string" ? body.message : "The rejected-decisions file cannot be written.";
+    return { ok: false, reason: "audit-unwritable", message, ...(body.auditWritten === true ? { auditWritten: true as const } : {}) };
+  }
   if (r.status === 409 && body.error === "audit_unwritable") return { ok: false, reason: "audit-unwritable", message: typeof body.message === "string" ? body.message : "The audit file of this lead cannot be used." };
   if (r.status === 409 && body.error === "already_countersigned") {
     return { ok: false, reason: "already-countersigned", adr: typeof body.number === "number" ? body.number : 0 };

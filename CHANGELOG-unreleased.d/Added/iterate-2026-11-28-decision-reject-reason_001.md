@@ -1,0 +1,1 @@
+Rejecting a proposed lead decision now keeps it: the decision, the lead, the date and the optional reason are appended to the org-wide decisions-rejected.md that leads read, and the audit line records the reason.

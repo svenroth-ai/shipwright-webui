@@ -82,14 +82,14 @@ export function useDecisionActions(refetch: () => Promise<unknown>) {
     }
   }
 
-  async function handleCountersign(key: string, entry: ProposedDecisionEntry, line?: string) {
+  async function handleCountersign(key: string, entry: ProposedDecisionEntry, line?: string, note?: string) {
     const flightKey = `${entry.timestamp}|${entry.leadId}`;
     if (inFlight.current.has(flightKey)) return;
     inFlight.current.add(flightKey);
     setNotice(null);
     put(key, entry, { kind: "pending" });
     try {
-      const result = await countersignDecision(entry.timestamp, entry.leadId, line, blockDigest(entry.block));
+      const result = await countersignDecision(entry.timestamp, entry.leadId, line, blockDigest(entry.block), note);
       if (result.ok) {
         settle(key, entry, { kind: "done", alreadyCountersigned: result.alreadyCountersigned, adr: result.adr, edited: result.edited, loggedLineDiffers: result.loggedLineDiffers });
         // Both surfaces observe the same countersign action's effect: refresh the proposed list (the entry is

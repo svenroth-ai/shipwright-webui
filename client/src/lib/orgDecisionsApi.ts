@@ -173,11 +173,13 @@ export async function countersignDecision(
   line?: string,
   /** Digest (`blockDigest`) of the entry block the operator saw; the server refuses when the entry changed since. */
   fingerprint?: string,
+  /** The operator's optional note, logged as its own item below the line (one line, at most 600 characters). */
+  note?: string,
 ): Promise<CountersignResult> {
   const r = await fetch(`${ORG_API}/decisions/countersign`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ timestamp, leadId, ...(line === undefined ? {} : { line }), ...(fingerprint === undefined ? {} : { fingerprint }) }),
+    body: JSON.stringify({ timestamp, leadId, ...(line === undefined ? {} : { line }), ...(fingerprint === undefined ? {} : { fingerprint }), ...(note === undefined || note.trim() === "" ? {} : { note }) }),
   });
   let body: Record<string, unknown> = {};
   try {
@@ -194,7 +196,7 @@ export async function countersignDecision(
   if (r.status === 409 && body.error === "reject_pending") return { ok: false, reason: "reject-pending" };
   if (r.status === 409 && body.error === "entry_changed") return { ok: false, reason: "entry-changed" };
   if (r.status === 409 && body.error === "audit_unwritable") return { ok: false, reason: "audit-unwritable", message: typeof body.message === "string" ? body.message : "The audit file of this lead cannot be used.", ...(body.logged === true && typeof body.adr === "string" ? { adr: body.adr } : {}) };
-  if (r.status === 400 && typeof body.error === "string" && body.error.startsWith("line_")) {
+  if (r.status === 400 && typeof body.error === "string" && (body.error.startsWith("line_") || body.error.startsWith("note_"))) {
     return { ok: false, reason: "line-rejected", code: body.error };
   }
   if (r.status === 400 && body.error === "edit_not_supported") return { ok: false, reason: "line-rejected", code: body.error };

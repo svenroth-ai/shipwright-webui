@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-28-decision-reject-reason",
+  "date": "2026-11-28",
+  "section": "Iterate - feature: keep a rejected lead decision and its reason",
+  "title": "Rejected lead decisions go to an org-wide decisions-rejected.md; countersign takes a note",
+  "context": "A rejected proposal was removed from decisions-proposed.md and only an audit line stayed, without the text; leads could propose the same thing again and never learned why it was refused. Leadwright reads the result, so the grammar is a cross-repo contract.",
+  "decision": "Reject takes an optional one-line reason (600 chars, same quote guard as an edited line) and, under the decisions-proposed.md lock, writes the audit line with data.reason, then appends a block (heading, key marker, line, Rejected time, optional Reason) to <leadsRoot>/decisions-rejected.md atomically, deduped by identity, then removes the entry. Countersign takes an optional note logged as a - Note: item.",
+  "consequences": "Leads can read every new rejection and its reason. Rejections before this change have no block. The file grows without bound; the reader trims. A fingerprint-less logged line block now always fails closed on residue. Grammar in docs/org-proposed-entry-contract.md, sample in server/src/external/org/__tests__/fixtures/decisions-rejected-sample.md.",
+  "rationale": "Write order audit, block, removal keeps the text recoverable at every crash point; identity dedupe makes retries idempotent; one shared file is what the contract asked for and what leadwright reads.",
+  "rejected": "A per-lead rejected file (leadwright wants one org-wide list); reading the reason back from the lead-writable audit file into the shared file (lead could plant operator words); copying fenced quotes or unfenced quote lines (every lead reads the file).",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ".shipwright/planning/iterate/2026-11-28-decision-reject-reason.md"
+}

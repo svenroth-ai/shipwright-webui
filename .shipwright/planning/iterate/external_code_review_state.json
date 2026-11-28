@@ -1,15 +1,15 @@
 {
   "status": "completed",
-  "timestamp": "2026-11-27T23:57:44.631889+00:00",
-  "provider": "openrouter+codex",
-  "findings_count": 2,
+  "timestamp": "2026-11-28T09:03:15.890255+00:00",
+  "provider": "openrouter",
+  "findings_count": 6,
   "self_review_fallback_ran": false,
-  "reason": "glm approve; openai revise: (1) rejected-with-reason - the guard matches a shared 20-char folded run, not containment; ' merged before the freeze' (25 chars) is shared and the 400 test passes; (2) accepted-and-fixed - quote-first order now asserted in orgProposedView.evidence-forms.test.ts \u2014 only some provider legs could be itemized \u2014 the count (2) may understate what was found",
+  "reason": null,
   "review_mode": "code",
   "marker_schema": 4,
   "verdicts": {
-    "glm": "approve",
-    "openai": "revise"
+    "openai": "revise",
+    "glm": "approve"
   },
   "contradiction": {
     "detected": false,

@@ -39,8 +39,9 @@ export function DecisionEntryRow({
   rowKey: string;
   entry: ProposedDecisionEntry;
   status: EntryStatus;
-  /** `line` is the line the operator SAW (edited or not), so only seen text is logged; absent for an entry without a line. */
-  onCountersign: (line?: string) => void;
+  /** `line` is the line the operator SAW (edited or not), so only seen text is logged; absent for an entry without a line.
+   *  `note`: the operator's optional note, logged as its own item below the line. */
+  onCountersign: (line?: string, note?: string) => void;
   onReject: (reason: string) => void;
   /** The lead proposed a decision key the operator already rejected. */
   isRepeat: boolean;
@@ -58,6 +59,8 @@ export function DecisionEntryRow({
   const [seenDigest, setSeenDigest] = useState<string | null>(appeared ? null : digest);
   const changed = !settled && digest !== seenDigest;
   const [editDiscarded, setEditDiscarded] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [note, setNote] = useState("");
   const hasLine = original !== null && !settled;
   const canEdit = hasLine && !changed; // an empty line is editable too: the server asks for one
   const prev = useRef({ digest, original });
@@ -96,7 +99,7 @@ export function DecisionEntryRow({
             data-testid={`org-decisions-proposed-countersign-${rowKey}`}
             disabled={pending || changed}
             aria-label={`${pending ? "Countersigning" : "Countersign"} proposal from ${entry.leadId} at ${entry.timestamp}`}
-            onClick={() => onCountersign(original === null ? undefined : editing ? draft : original)}
+            onClick={() => onCountersign(original === null ? undefined : editing ? draft : original, noteOpen && note.trim() !== "" ? note : undefined)}
             className="rounded-[6px] border border-[var(--color-border,#e0dbd4)] px-2 py-1 text-[11px] hover:bg-[var(--color-muted-bg,#ede8e1)] disabled:opacity-50"
           >
             {pending ? "Countersigning…" : "Countersign"}
@@ -115,8 +118,35 @@ export function DecisionEntryRow({
             Edit line
           </button>
         )}
+        {!settled && (
+          <button
+            type="button"
+            data-testid={`org-decisions-proposed-note-${rowKey}`}
+            disabled={pending || changed}
+            aria-pressed={noteOpen}
+            aria-label={`Add a note to the countersign of the proposal from ${entry.leadId} at ${entry.timestamp}`}
+            onClick={() => setNoteOpen((on) => !on)}
+            className="rounded-[6px] border border-[var(--color-border,#e0dbd4)] px-2 py-1 text-[11px] hover:bg-[var(--color-muted-bg,#ede8e1)] disabled:opacity-50"
+          >
+            Add note
+          </button>
+        )}
         {!settled && <DecisionRejectControl rowKey={rowKey} pending={pending} locked={changed} onReject={onReject} />}
       </div>
+      {noteOpen && !settled && (
+        <label className="mt-2 block text-[11px]" style={{ color: "var(--color-muted, #6b7280)" }}>
+          Note for the decisions log (optional, one line, max 600 characters; written below the line - do not paste quotes)
+          <input
+            type="text"
+            maxLength={600}
+            value={note}
+            disabled={pending || changed}
+            onChange={(e) => setNote(e.target.value)}
+            data-testid={`org-decisions-proposed-note-input-${rowKey}`}
+            className="mt-0.5 block w-full rounded-[6px] border border-[var(--color-border,#e0dbd4)] px-2 py-1 text-[11px]"
+          />
+        </label>
+      )}
       {editDiscarded && !changed && (
         <div role="status" className="mt-2 text-[11px]" data-testid={`org-decisions-proposed-edit-replaced-${rowKey}`}>
           Your open edit was replaced by the proposed line of the current version.

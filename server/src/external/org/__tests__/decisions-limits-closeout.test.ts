@@ -161,7 +161,7 @@ describe("limits closeout", () => {
       writeFileSync(audit, rejectedLine(me(), "x".repeat(900)));
       const body = await (await post("reject", { reason: "other" })).json();
       expect(body.reasonKept).toBe(true);
-      expect(body.existingReason.length).toBeLessThanOrEqual(280);
+      expect(body.existingReason.length).toBeLessThanOrEqual(600); // REASON_MAX = the reason limit since iterate-2026-11-28-decision-reject-reason
     });
   });
 

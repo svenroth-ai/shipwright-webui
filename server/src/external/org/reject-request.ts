@@ -6,7 +6,8 @@
 
 import { performReject, type RejectCoreDeps, type RejectOutcome } from "./reject-core.js";
 import { OrgSymlinkEscapeError } from "./decisions-lock.js";
-import { normalizeReason, AuditUnwritableError } from "./decisions-audit.js";
+import { AuditUnwritableError } from "./decisions-audit.js";
+import { RejectedFileUnwritableError } from "./decisions-rejected.js";
 import { osAuthor, parseDecisionIdentity, auditUnwritableResult, FINGERPRINT_RE } from "./decision-request-common.js";
 
 export interface HandleRejectRequestDeps extends RejectCoreDeps {
@@ -31,6 +32,9 @@ export async function handleRejectRequest(
   if (fingerprint !== undefined && fingerprint !== null && (typeof fingerprint !== "string" || !FINGERPRINT_RE.test(fingerprint))) {
     return { status: 400, body: { error: "fingerprint_invalid" } };
   }
+  if (reason !== undefined && reason !== null && typeof reason !== "string") {
+    return { status: 400, body: { error: "reason_invalid" } };
+  }
 
   let outcome: RejectOutcome;
   try {
@@ -39,7 +43,7 @@ export async function handleRejectRequest(
       timestamp,
       leadId,
       (deps.author ?? osAuthor)(),
-      normalizeReason(reason),
+      typeof reason === "string" ? reason : null,
       fingerprint,
     );
   } catch (err) {
@@ -47,6 +51,9 @@ export async function handleRejectRequest(
       return { status: 403, body: { error: "symlink_forbidden", path: err.path } };
     }
     if (err instanceof AuditUnwritableError) return auditUnwritableResult(err);
+    if (err instanceof RejectedFileUnwritableError) {
+      return { status: 409, body: { error: "rejected_file_unwritable", message: err.message, ...(err.auditWritten ? { auditWritten: true } : {}) } };
+    }
     if ((err as NodeJS.ErrnoException)?.code === "ELOCKED") {
       return { status: 409, body: { error: "locked" } };
     }
@@ -60,6 +67,8 @@ export async function handleRejectRequest(
       return { status: 404, body: { error: "lead_unknown", leadId } };
     case "entry_changed":
       return { status: 409, body: { error: "entry_changed", timestamp, leadId } };
+    case "reason_rejected":
+      return { status: 400, body: { error: outcome.error, timestamp, leadId } };
     case "duplicate_identity":
       return {
         status: 409,

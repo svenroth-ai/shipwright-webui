@@ -117,11 +117,11 @@ function sharesQuoteRun(line: string, quotes: string[]): boolean {
   });
 }
 
-/** Validate the line the operator saw (edited or not) against the entry's quotes. */
-export function checkEditedLine(raw: string, facts: ProposalFacts): LineVerdict {
+/** Validate the line the operator saw (edited or not) against the entry's quotes. `max` = the length limit. */
+export function checkEditedLine(raw: string, facts: Pick<ProposalFacts, "quotes">, max: number = LINE_MAX): LineVerdict {
   const line = normalizeLine(raw);
   if (line === "") return { ok: false, error: "line_empty" };
-  if (line.length > LINE_MAX) return { ok: false, error: "line_too_long" };
+  if (line.length > max) return { ok: false, error: "line_too_long" };
   if (sharesQuoteRun(line, facts.quotes)) return { ok: false, error: "line_contains_quote" };
   return { ok: true, line };
 }
@@ -131,26 +131,47 @@ export function checkOriginalLine(facts: ProposalFacts): LineVerdict {
   return checkEditedLine(facts.original, facts);
 }
 
-/** The log block of a fenced entry: header, key marker (identifier keys only), block fingerprint, the line. */
-export function toLoggedLineBlock(entry: ProposedEntry, number: number, line: string): string {
+/** Max length of an operator's reject reason or countersign note (after normalisation to one line). */
+export const NOTE_MAX = 600;
+
+export type NoteVerdict = { ok: true; text: string | null } | { ok: false; error: "too_long" | "contains_quote" };
+
+/** An operator's reject reason or countersign note: optional (absent or blank = `null`), and otherwise the same rules
+ *  as an edited line - one line, invisible characters removed, at most NOTE_MAX characters, and never a copy of a
+ *  quote of the entry. `facts === null` (an entry without a fence) has no quotes to guard. */
+export function checkNoteText(raw: string | null | undefined, facts: Pick<ProposalFacts, "quotes"> | null): NoteVerdict {
+  if (raw == null) return { ok: true, text: null };
+  const verdict = checkEditedLine(raw, facts ?? { quotes: [] }, NOTE_MAX);
+  if (verdict.ok) return { ok: true, text: verdict.line };
+  if (verdict.error === "line_empty") return { ok: true, text: null };
+  return { ok: false, error: verdict.error === "line_too_long" ? "too_long" : "contains_quote" };
+}
+
+/** The `- Note: <text>` item a countersign note adds below the logged line (text already passed `checkNoteText`). */
+export const noteItem = (note: string | null | undefined): string => (note == null ? "" : `- Note: ${note}\n`);
+
+/** The log block of a fenced entry: header, key marker (identifier keys only), block fingerprint, the line, and the
+ *  operator's note as its own item when there is one. */
+export function toLoggedLineBlock(entry: ProposedEntry, number: number, line: string, note: string | null = null): string {
   const adr = `ADR-${String(number).padStart(4, "0")}`;
   const key = decisionKeyOf(entry.block);
   const fp = proposalFingerprint(entry.block);
   const marker = key !== null ? `<!-- decisionKey: ${key} -->\n` : "";
   const print = fp !== null ? `<!-- proposal: ${fp} -->\n` : "";
-  return `## ${adr} [${entry.timestamp}] ${entry.leadId}\n${marker}${print}\n- ${line}\n\n`;
+  return `## ${adr} [${entry.timestamp}] ${entry.leadId}\n${marker}${print}\n- ${line}\n${noteItem(note)}\n`;
 }
 
 // The EXACT shape `toLoggedLineBlock` writes and nothing else: the fingerprint is read only at its fixed place
-// (right after the header and the optional key marker) of a block with nothing after the line. Any other block - a
+// (right after the header and the optional key marker) of a block with nothing after the line but an optional note item. Any other block - a
 // pre-W4 whole entry, a body that merely contains such a line somewhere - is not a line block.
 const LOGGED_LINE_BLOCK_RE =
-  /^## ADR-\d{4,} \[[^\]\n]+\] [^\n]+\n(?:<!-- decisionKey: [^\n]*-->\n)?(?:<!-- proposal: ([0-9a-f]{32}) -->\n)?\n- ([^\n]+)\n\s*$/;
+  /^## ADR-\d{4,} \[[^\]\n]+\] [^\n]+\n(?:<!-- decisionKey: [^\n]*-->\n)?(?:<!-- proposal: ([0-9a-f]{32}) -->\n)?\n- ([^\n]+)\n(?:- Note: ([^\n]+)\n)?\s*$/;
 
-/** The line and fingerprint of a block written by `toLoggedLineBlock`, or `null` for any other shape. */
-export function parseLoggedLineBlock(loggedBlock: string): { line: string; fingerprint: string | null } | null {
+/** The line, fingerprint and note of a block written by `toLoggedLineBlock`, or `null` for any other shape. */
+export function parseLoggedLineBlock(loggedBlock: string): { line: string; fingerprint: string | null; note: string | null } | null {
   const m = LOGGED_LINE_BLOCK_RE.exec(loggedBlock.replace(/\r/g, ""));
-  return m ? { line: m[2], fingerprint: m[1] ?? null } : null;
+  if (!m) return null;
+  return { line: m[2], fingerprint: m[1] ?? null, note: m[3] ?? null };
 }
 
 export function isEdited(facts: ProposalFacts, finalLine: string): boolean {

@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-28-decision-reject-reason",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T09:00:52.761236+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-11-28T08:57:13.140770+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "unstructured",
+      "raw_excerpt": "[glm] ## Findings\n\n**Category: edge-case — Severity: medium**\nIdempotency key for the rejected block is under-specified. The heading is `## Rejected [<entry timestamp>] <leadId>`, but if a lead later re-proposes a *byte-identical* line, the timestamp will differ — good — yet the plan never states that `parseRejectedBlocks`-based dedup keys on timestamp+leadId rather than the proposed-line text. If it matches on the text, a legitimate new proposal that happens to be identical to a previously rejected one gets silently swallowed (\"append-if-absent\"). State the key explicitly in `decisions-rejected.ts` and pin it with a test: same timestamp+lead → no duplicate; same text, new timestamp → new block.\n\n**Category: dependency — Severity: medium**\nThe `- Note:` item changes the `decision_log.md` block grammar, and leadwright reads `decision_log.md` (\"Out of Scope: changing leadwright\"). Adding a trailing item to a block leadwright parses is a consumer-breaking format change unless the sibling's parser already tolerates it. The spec/contract doc covers the rejected-decisions grammar but the plan should explicitly confirm (or document in `docs/org-proposed-entry-contract.md` as an agreed extension with the sibling iterate) that leadwright's `decision_log.md` parser accepts a trailing `- Note:` item. If it doesn't, countersign-with-note corrupts leadwright's view of every logged line — worse than a lost reject.\n\n**Category: risk — Severity: low**\nThe crash-retry order (audit → block → removal) is sound and the retry path (audit present, block missing → rewrite from recorded reason) is good. But confirm the retry path rejects a *differing* reason: if the operator retries with a new reason after a crash between audit and block, the plan writes \"with the recorded reason\" — make that explicit (recorded reason wins, incoming reason ignored or refused), otherwise two sources of truth race.\n\n**Category: edge-case — Severity: low**\nReason/note text is normalised to one line, bu […truncated]\n\n[openai] 1. **Category** risk · **Severity** high  \n   **Finding** Reject can commit its audit record and then fail to replace `decisions-rejected.md`. The writability check cannot guarantee the rename will succeed. The plan covers retrying reject, but leaves open what happens if the operator countersigns the still-listed proposal after that failure.  \n   **Suggestion** Treat an existing rejection audit record as the recorded outcome under the proposals lock. Have countersign refuse that state or route it through rejection recovery. Add a test that fails the replace after the audit write, attempts countersign, then retries reject and verifies that exactly one block is written with the recorded reason.\n\n2. **Category** edge-case · **Severity** high  \n   **Finding** The rejected block conditionally omits the decision-key marker, but the plan leaves the deduplication identity for markerless proposals undefined. Matching on rendered block text would fail across retries because the rejection timestamp changes. Matching on proposal text alone could suppress a separate rejection.  \n   **Suggestion** Define the markerless lookup using the existing legacy proposal identity and preserve the agreed file grammar. Test both a retry of a markerless rejection and a distinct proposal with the same text.\n\n3. **Category** dependency · **Severity** medium  \n   **Finding** A trailing `- Note:` item can already be part of a whole-entry proposal body. If residue detection strips that line to compare the logged and proposed entries, it can misclassify an exact legacy match. The plan also identifies leadwright log readers without a compatibility check for the new suffix.  \n   **Suggestion** Check exact whole-entry equality first, then recognize an appended note only after the complete original body. Verify existing and annotated blocks against the leadwright reader with a shared fixture. Include a proposal whose original final item starts with `- Note:`.\n\n4. **Category** risk · **Sever […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "maintainability",
+          "file": "server/src/external/org/__tests__/decisions-rejected.test.ts",
+          "line": 1,
+          "finding": "decisions-rejected.test.ts was 308 lines, over the 300-line source limit",
+          "suggestion": "DISPOSITION accepted-and-fixed: countersign-note tests moved to decisions-countersign-note.test.ts (120 lines); reject file is 254 lines; no baseline entry",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/external/org/proposed-line.ts",
+          "line": 1,
+          "finding": "LOGGED_LINE_BLOCK_RE matched an unfenced body '- x' plus '- Note: y' as a line block with a null fingerprint, so residue returned unknown",
+          "suggestion": "DISPOSITION accepted-and-fixed: parseLoggedLineBlock returns null when a note is present without a fingerprint; test added for the body-for-body heal",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/external/org/reject-core.ts",
+          "line": 150,
+          "finding": "Unfenced proposal bodies are copied to the shared file without a quote check",
+          "suggestion": "DISPOSITION accepted-and-fixed: quote lines and the Evidence bullet are left out of an unfenced body; test added",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/org/useDecisionActions.ts",
+          "line": 92,
+          "finding": "Ternary around countersignDecision only to omit a trailing undefined",
+          "suggestion": "DISPOSITION accepted-and-fixed: single call; four test assertions expect a trailing undefined",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/external/org/decisions-rejected.ts",
+          "line": 74,
+          "finding": "oneLine alias and comma expression in decisions-rejected.ts",
+          "suggestion": "DISPOSITION accepted-and-fixed: alias removed, loop rewritten",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "maintainability",
+          "file": "server/src/external/org/decisions-audit.ts",
+          "line": 1,
+          "finding": "REASON_MAX duplicates NOTE_MAX",
+          "suggestion": "DISPOSITION accepted-and-fixed: REASON_MAX = NOTE_MAX (value import, no cycle)",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-28T09:07:05.616160+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "b96c256e7d55ad0402d2a6719ccda585e130ea56"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary and contract / reversibility",
+          "file": "server/src/external/org/decision-residue.ts:23",
+          "line": null,
+          "finding": "Claim under doubt: residue detection fails closed for a countersigned fenced entry with a note — A short fence nonce gives no fingerprint; with a note the logged line block was no longer parsed as a line block, so residueKind returned different instead of unknown and reject could publish an approved decision",
+          "suggestion": "DISPOSITION accepted-and-fixed: parseLoggedLineBlock accepts a note without a fingerprint again; residueKind tries the whole-entry body compare for any fingerprint-less line block and returns unknown when that does not match. Test: short-nonce entry plus note plus crash residue -> countersign 409 not duplicate_identity, reject refused, no rejected file",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency and ordering",
+          "file": "client/src/components/org/decisionMessages.ts:47",
+          "line": null,
+          "finding": "Claim under doubt: after a crash between audit and block the operator is told the truth — retry with reason B writes B to the block while the audit keeps A; notice said the new reason was not added",
+          "suggestion": "DISPOSITION accepted-and-fixed: notice now says the audit keeps that reason and the rejected file records the reason sent when its block was written; split documented in the contract",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary and contract (error shape)",
+          "file": "client/src/lib/orgRejectApi.ts:43",
+          "line": null,
+          "finding": "Claim under doubt: rejected_file_unwritable means nothing changed — a write failure after the pre-check leaves the audit line written but the UI says Nothing was changed",
+          "suggestion": "DISPOSITION accepted-and-fixed: server adds auditWritten true for a failure in appendRejectedBlock; client renders Half done; tests on both sides",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "server/src/external/org/decisions-rejected.ts:102",
+          "line": null,
+          "finding": "Claim under doubt: dedup is robust to hand edits — trailing whitespace on heading or marker hid the block from the duplicate check",
+          "suggestion": "DISPOSITION accepted-and-fixed for trailing whitespace (lines trimmed, test added); blank line before the marker or indents accepted and documented as a residual risk in the contract",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-28T09:14:51.079466+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "b96c256e7d55ad0402d2a6719ccda585e130ea56"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "bug |",
+          "file": null,
+          "line": null,
+          "finding": "The note is validated in the \"write the block\" path of `performCountersign`. If this code executes before the already-logged / crash-residue branch returns `already_countersigned`, then a retry of an already-countersigned entry with an over-long or quote-repeating note answers `note_rejected` (400) instead of the idempotent `alreadyCountersigned` answer — and per the documented contract, a retry should keep the logged block as-is and succeed. The diff does not show the surrounding control flow, and the new residue test only retries with a valid note (\"a different note\"), so this ordering is untested.",
+          "suggestion": "Confirm the `already_countersigned`/residue-same return happens before the note check, or move `checkNoteText` after it; add a test retrying an already-logged entry with a 601-char note expecting `alreadyCountersigned`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "rejectedAt`/`reason` are recovered by prefix lookup (`rest.find(startsWith(...))`) rather than position, while the contract explicitly says items are positional and \"a reader must not look items up by prefix.\" The writer is positional so current round-trips are safe, but the parser here is the idempotency authority (and the documented reference parser); a hand-edited or externally written block whose second item starts `Reason: ` would be mis-parsed (rejectedAt=null, reason shifted). Since only items[0]/[1]/[2] are ever written, positional extraction is strictly more correct.",
+          "suggestion": "Read `Rejected`/`Reason` from `rest[0]`/`rest[1]` positionally with a prefix check, matching the grammar the doc pins.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test |",
+          "file": null,
+          "line": null,
+          "finding": "The assertion `JSON.parse(f.mock.calls[0][1].body)` checks the note is sent, but `mock.calls[0][1].body` is a string and the JSON parse is fine; however the blank-note case asserts the body equals `{timestamp, leadId}` — good — while the API-level test never covers `note_invalid` mapping. Minor gap only; server tests cover the 400s.",
+          "suggestion": "None required; optionally add the `note_invalid` mapping case.  Positive checks (no defect): - AC1 idempotency: write order audit → block → removal, dedupe identity (timestamp, lead, key, line) all match the plan-review fixes; tests cover both crash points and the byte-identical retry. - The truncation fix is real: `reject-request.ts` now passes the raw string and `checkNoteText` (600) refuses 601 — the `normalizeReason` cap removal closes the \"AC2 passes silently\" hole, and `REASON_MAX` in `decisions-audit.ts` is consistently raised for the read-back. - Quote withholding (`QUOTE_WITHHELD`), unfenced-body flattening via `normalizeLine` before writing (forging blocked), reason-always-current-request, and `resolveRejectedPath`/`assertRejectedWritable` scoped to the reject path are all implemented as reviewed. - Backward compatibility: `checkEditedLine`, `toLoggedLineBlock`, `parseLoggedLineBlock` changes are additive/defaulted; `residueKind` keeps the exact-match branch first so pre-change blocks still heal; leadwright reads keys from markers only, and the `- Note:` item is tolerated per the checked contract. - The pinned fixture and the e2e byte/regex assertions would fail on a wrong writer, so the tests are not happy-path-only.  Overall assessment: The change implements the contract faithfully, integrates all reviewer fixes, and is well tested; the three findings are refinements (one unverified ordering, one parser/contract inconsistency) that do not block shipping.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security",
+          "file": "server/src/external/org/reject-core.ts",
+          "line": 155,
+          "finding": "An overlong fenced proposal can leak a quote into the org-wide file. `checkOriginalLine` checks length before checking quotes. A proposal over 2,000 characters that copies an evidence quote near the beginning therefore reaches the truncation branch, which publishes the copied quote to every lead. The existing withholding test only covers a short proposal.",
+          "suggestion": "Run the quote check on the exact text that would be published after truncation and write `QUOTE_WITHHELD` if it matches. Add a regression test with a copied quote inside the first 2,000 characters of an overlong proposal.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "server/src/external/org/decision-residue.ts",
+          "line": 37,
+          "finding": "The suffix check can mistake a rewritten legacy proposal for crash residue. If a whole-entry proposal originally ended with its own blank-line-separated `- Note: ...` item and was countersigned without an operator note, a new version under the same timestamp and lead that drops that item matches the suffix check. Countersign can then remove the rewrite as already approved, and reject can refuse it as already countersigned.",
+          "suggestion": "Give newly written whole-entry blocks with operator notes a proposal fingerprint in a fixed metadata position and require it to match before accepting the suffix. Keep exact body matching for older blocks and test the rewrite that drops a lead-authored note.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/external/org/decisions-rejected.ts",
+          "line": 162,
+          "finding": "The preflight checks write permission, but appending also requires reading the existing file. With a write-only `decisions-rejected.md`, preflight can pass and the reject can write its audit record before `readFileSync` throws `EACCES`. The read sits outside the error mapping, so the request fails without the documented `409 rejected_file_unwritable` and leaves the proposal in a pending rejection state.",
+          "suggestion": "Read and validate the existing file under the lock before writing the audit record, reuse that content for the append, and map read failures to `RejectedFileUnwritableError`.  Ship-with-fixes. The main reject and countersign flows are implemented, but quote withholding, retry matching, and rejected-file preflight need the fixes above before release.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-28T09:03:15.884018+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] Reviewing against the spec, contract, and the integrated plan-review fixes:\n\n**Findings**\n\n- Category: bug | Severity: low | File: server/src/external/org/countersign-core.ts (hunk at `const noteVerdict = checkNoteText(...)`)\n  Finding: The note is validated in the \"write the block\" path of `performCountersign`. If this code executes before the already-logged / crash-residue branch returns `already_countersigned`, then a retry of an already-countersigned entry with an over-long or quote-repeating note answers `note_rejected` (400) instead of the idempotent `alreadyCountersigned` answer — and per the documented contract, a retry should keep the logged block as-is and succeed. The diff does not show the surrounding control flow, and the new residue test only retries with a valid note (\"a different note\"), so this ordering is untested.\n  Suggestion: Confirm the `already_countersigned`/residue-same return happens before the note check, or move `checkNoteText` after it; add a test retrying an already-logged entry with a 601-char note expecting `alreadyCountersigned`.\n\n- Category: edge-case | Severity: low | File: server/src/external/org/decisions-rejected.ts:96-104 (`parseRejectedBlocks`)\n  Finding: `rejectedAt`/`reason` are recovered by prefix lookup (`rest.find(startsWith(...))`) rather than position, while the contract explicitly says items are positional and \"a reader must not look items up by prefix.\" The writer is positional so current round-trips are safe, but the parser here is the idempotency authority (and the documented reference parser); a hand-edited or externally written block whose *second* item starts `Reason: ` would be mis-parsed (rejectedAt=null, reason shifted). Since only items[0]/[1]/[2] are ever written, positional extraction is strictly more correct.\n  Suggestion: Read `Rejected`/`Reason` from `rest[0]`/`rest[1]` positionally with a prefix check, matching the grammar the doc pins.\n\n- Category: test | Severity: low | File: client/src/l […truncated]\n\n[openai] - **Category:** security  \n  **Severity:** high  \n  **File:** `server/src/external/org/reject-core.ts:155`  \n  **Finding:** An overlong fenced proposal can leak a quote into the org-wide file. `checkOriginalLine` checks length before checking quotes. A proposal over 2,000 characters that copies an evidence quote near the beginning therefore reaches the truncation branch, which publishes the copied quote to every lead. The existing withholding test only covers a short proposal.  \n  **Suggestion:** Run the quote check on the exact text that would be published after truncation and write `QUOTE_WITHHELD` if it matches. Add a regression test with a copied quote inside the first 2,000 characters of an overlong proposal.\n\n- **Category:** regression  \n  **Severity:** medium  \n  **File:** `server/src/external/org/decision-residue.ts:37`  \n  **Finding:** The suffix check can mistake a rewritten legacy proposal for crash residue. If a whole-entry proposal originally ended with its own blank-line-separated `- Note: ...` item and was countersigned without an operator note, a new version under the same timestamp and lead that drops that item matches the suffix check. Countersign can then remove the rewrite as already approved, and reject can refuse it as already countersigned.  \n  **Suggestion:** Give newly written whole-entry blocks with operator notes a proposal fingerprint in a fixed metadata position and require it to match before accepting the suffix. Keep exact body matching for older blocks and test the rewrite that drops a lead-authored note.\n\n- **Category:** bug  \n  **Severity:** medium  \n  **File:** `server/src/external/org/decisions-rejected.ts:162`  \n  **Finding:** The preflight checks write permission, but appending also requires reading the existing file. With a write-only `decisions-rejected.md`, preflight can pass and the reject can write its audit record before `readFileSync` throws `EACCES`. The read sits outside the error mapping, so the request fa […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T09:02:01.881586+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "ac_verdicts": [
+        {
+          "ac": "item-1",
+          "verdict": "matches",
+          "diff_location": "server/src/external/org/reject-core.ts:131",
+          "reason": "One block per reject after the audit line and before the removal, header on create, retry-safe identity; documented quote-withheld exception.",
+          "weakens": false
+        },
+        {
+          "ac": "item-2",
+          "verdict": "matches",
+          "diff_location": "server/src/external/org/proposed-line.ts",
+          "reason": "checkNoteText reuses checkEditedLine with 600 and the entry quotes; both actions refuse before any write; client shows plain explanations.",
+          "weakens": false
+        },
+        {
+          "ac": "item-3",
+          "verdict": "matches",
+          "diff_location": "server/src/external/org/proposed-line.ts",
+          "reason": "Note written as its own item below the line; no note = byte-identical block.",
+          "weakens": false
+        }
+      ]
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T08:57:12.871931+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-28T08:57:13.006237+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

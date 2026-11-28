@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n**Category: edge-case \u2014 Severity: medium**\nIdempotency key for the rejected block is under-specified. The heading is `## Rejected [<entry timestamp>] <leadId>`, but if a lead later re-proposes a *byte-identical* line, the timestamp will differ \u2014 good \u2014 yet the plan never states that `parseRejectedBlocks`-based dedup keys on timestamp+leadId rather than the proposed-line text. If it matches on the text, a legitimate new proposal that happens to be identical to a previously rejected one gets silently swallowed (\"append-if-absent\"). State the key explicitly in `decisions-rejected.ts` and pin it with a test: same timestamp+lead \u2192 no duplicate; same text, new timestamp \u2192 new block.\n\n**Category: dependency \u2014 Severity: medium**\nThe `- Note:` item changes the `decision_log.md` block grammar, and leadwright reads `decision_log.md` (\"Out of Scope: changing leadwright\"). Adding a trailing item to a block leadwright parses is a consumer-breaking format change unless the sibling's parser already tolerates it. The spec/contract doc covers the rejected-decisions grammar but the plan should explicitly confirm (or document in `docs/org-proposed-entry-contract.md` as an agreed extension with the sibling iterate) that leadwright's `decision_log.md` parser accepts a trailing `- Note:` item. If it doesn't, countersign-with-note corrupts leadwright's view of every logged line \u2014 worse than a lost reject.\n\n**Category: risk \u2014 Severity: low**\nThe crash-retry order (audit \u2192 block \u2192 removal) is sound and the retry path (audit present, block missing \u2192 rewrite from recorded reason) is good. But confirm the retry path rejects a *differing* reason: if the operator retries with a new reason after a crash between audit and block, the plan writes \"with the recorded reason\" \u2014 make that explicit (recorded reason wins, incoming reason ignored or refused), otherwise two sources of truth race.\n\n**Category: edge-case \u2014 Severity: low**\nReason/note text is normalised to one line, but the plan should also handle a reason/note that begins with `-` or `#` \u2014 written as `- Reason: - foo` or a line that could be mistaken for a second block item by the parser. A leading-dash strip (or refusing it) is one line of validation; worth adding to `checkNoteText`'s tests.\n\n**Category: approach \u2014 Severity: low (positive)**\nThe alternative-analysis on org-wide vs per-lead file is right, the lock reuse avoids a new consistency boundary, and the `pathGuard` resolution (not adding to the generic `/file` allowlist) correctly keeps the browser from writing the rejected list. No over-production: the new `DecisionNoteField` component is justified only if the \"Add note\" toggle shares nothing with `DecisionLineEditor`; if the existing editor toggle already gives you show/hide + single-line input, reuse it instead of a sibling component. Check before creating the new file.\n\n**Category: edge-case \u2014 Severity: low**\nThe writability \"pre-check\" for `decisions-rejected.md` (409 `rejected_file_unwritable`) is inherently TOCTOU; fine as a friendly early error, but ensure a write failure *after* the pre-check still produces a sane error rather than a half state (audit written, no block). Since the retry path covers that combination, this is acceptable \u2014 just make sure the route doesn't return 500 with the entry already removed (removal happens last, so it doesn't \u2014 good).\n\n## Overall assessment\n\nThe approach is sound and well-scoped: correct lock reuse, correct crash ordering, and a sensible alternative rejection. The two things to nail down before building are the idempotency key (timestamp-based, not text-based) and explicit confirmation that leadwright tolerates the `- Note:` log item \u2014 the latter is the only finding that could break a sibling system.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category** risk \u00b7 **Severity** high  \n   **Finding** Reject can commit its audit record and then fail to replace `decisions-rejected.md`. The writability check cannot guarantee the rename will succeed. The plan covers retrying reject, but leaves open what happens if the operator countersigns the still-listed proposal after that failure.  \n   **Suggestion** Treat an existing rejection audit record as the recorded outcome under the proposals lock. Have countersign refuse that state or route it through rejection recovery. Add a test that fails the replace after the audit write, attempts countersign, then retries reject and verifies that exactly one block is written with the recorded reason.\n\n2. **Category** edge-case \u00b7 **Severity** high  \n   **Finding** The rejected block conditionally omits the decision-key marker, but the plan leaves the deduplication identity for markerless proposals undefined. Matching on rendered block text would fail across retries because the rejection timestamp changes. Matching on proposal text alone could suppress a separate rejection.  \n   **Suggestion** Define the markerless lookup using the existing legacy proposal identity and preserve the agreed file grammar. Test both a retry of a markerless rejection and a distinct proposal with the same text.\n\n3. **Category** dependency \u00b7 **Severity** medium  \n   **Finding** A trailing `- Note:` item can already be part of a whole-entry proposal body. If residue detection strips that line to compare the logged and proposed entries, it can misclassify an exact legacy match. The plan also identifies leadwright log readers without a compatibility check for the new suffix.  \n   **Suggestion** Check exact whole-entry equality first, then recognize an appended note only after the complete original body. Verify existing and annotated blocks against the leadwright reader with a shared fixture. Include a proposal whose original final item starts with `- Note:`.\n\n4. **Category** risk \u00b7 **Severity** medium  \n   **Finding** If rejected-file validation is unconditional in the shared lock helper, a symlink or invalid rejected-file path could disable countersign even though countersign only needs the proposals and decision log.  \n   **Suggestion** Scope rejected-file checks to reject and rejection recovery while retaining the proposals lock for serialization. Add a route test showing that an invalid rejected-file path blocks reject and that countersign still works for a separate proposal.\n\n5. **Category** security \u00b7 **Severity** medium  \n   **Finding** The operator\u2019s reason and the original proposal will become readable by leads across the organization. The proposed UI label names the shared list, but operators may still assume the reason has the same audience as the prior audit entry.  \n   **Suggestion** State who can read the reason beside the input and verify that the file inherits the intended organization boundary. Keep generic file writes disabled and cover cross-organization access if the application serves multiple organizations.\n\n6. **Category** approach \u00b7 **Severity** low  \n   **Finding** A separate `DecisionNoteField` adds a component boundary for a toggle and a single input used by one row.  \n   **Suggestion** Keep the note control in `DecisionEntryRow` and reuse the existing input styling and conventions. Retain the server validation and UI tests.\n\nThe shared file and existing proposals lock are a sound fit. Define recovery across both decision actions and markerless deduplication before implementation, and verify that the note format remains compatible with existing log readers.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-28-decision-reject-reason",
+    "at": "2026-11-28T08:47:45.626212+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews_expected": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "1. **The question, answered in one sentence.** Yes \u2014 given the constraint that the audit record must not carry proposed text, an org-wide append-only `decisions-rejected.md` under the existing lock is the smallest mechanism that preserves rejected decision text, and it is proportionate to a real, recurring cost (leads re-proposing rejected ideas).\n\n2. **The smallest thing that would do.** What is proposed: one file, one writer (the reject path), one lock it already holds, one block grammar. Option C would be smaller still \u2014 no new file, no new grammar, leadwright reads `data.reason` plus text from the existing audit records \u2014 and it is the alternative I would weigh seriously, but the stated constraint (audit never carries proposed text) rules it out, and after that ruling A is the minimum.\n\n3. **What it costs to keep.** A cross-repository markdown grammar that every future change to the reject path must keep byte-compatible, documented and pinned; an idempotency retry rule on the append; and a second source of truth for \"what was rejected\" alongside the audit records.\n\n4. **What it forecloses.** none identified \u2014 the file is append-only and additive; per-lead splitting (Option B) remains possible later since each block carries the leadId.\n\n5. **Findings**\n\n- Category: ownership\n- Severity: low\n- Finding: After this change there are two places a rejection's reason lives (audit `data.reason` and the rejected file) and two places its identity lives (decisionKey and the block). The existing \"repeat of a rejected proposal\" hint is computed from audit records; nothing here says whether that migrates to the file or stays duplicated.\n- Suggestion: State which source is authoritative for the repeat-hint and any future readers, so the rejected file does not become a parallel store that only leadwright knows.\n\n- Category: proportionality\n- Severity: low\n- Finding: The countersign `- Note:` item is a second, smaller grammar addition bundled into the same change; it is cheap but it widens the `decision_log.md` contract in the same review.\n- Suggestion: None needed \u2014 keep it, but confirm the leadwright parser treats unknown `- Note:` lines tolerantly so old readers survive.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "Yes, keep one org-wide rejection history so leads can learn from rejected proposals and operators can avoid reviewing the same ideas again.\n\nThe smallest option is A. Append one record with the proposed text, lead, rejection time, and optional reason under the existing decisions lock. Store countersign notes in the existing decision log.\n\nThe web UI and leadwright maintainers must keep the writer and reader in sync and maintain the shared record as it grows.\n\nThe shared file makes future per-lead visibility harder because access is currently scoped to the organization.\n\nNo findings.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "missing_legs": [],
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "architecture",
+  "capture": {
+    "run_id": "iterate-2026-11-28-decision-reject-reason",
+    "at": "2026-11-28T08:48:03.694399+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "approve"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+  }
+}

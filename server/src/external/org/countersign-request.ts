@@ -29,11 +29,11 @@ export async function handleCountersignRequest(
   deps: HandleCountersignRequestDeps,
   rawBody: unknown,
 ): Promise<CountersignRequestResult> {
-  const body = (rawBody ?? {}) as { timestamp?: unknown; leadId?: unknown; line?: unknown; fingerprint?: unknown };
+  const body = (rawBody ?? {}) as { timestamp?: unknown; leadId?: unknown; line?: unknown; fingerprint?: unknown; note?: unknown };
   const id = parseDecisionIdentity(body);
   if (!id.ok) return { status: id.status, body: id.body };
   const { timestamp, leadId } = id;
-  const { line, fingerprint } = body;
+  const { line, fingerprint, note } = body;
 
   if (line !== undefined && line !== null && typeof line !== "string") {
     return { status: 400, body: { error: "line_invalid" } };
@@ -41,10 +41,13 @@ export async function handleCountersignRequest(
   if (fingerprint !== undefined && fingerprint !== null && (typeof fingerprint !== "string" || !FINGERPRINT_RE.test(fingerprint))) {
     return { status: 400, body: { error: "fingerprint_invalid" } };
   }
+  if (note !== undefined && note !== null && typeof note !== "string") {
+    return { status: 400, body: { error: "note_invalid" } };
+  }
 
   let outcome: CountersignOutcome;
   try {
-    outcome = await performCountersign({ ...deps, author: deps.author ?? osAuthor() }, timestamp, leadId, line, fingerprint);
+    outcome = await performCountersign({ ...deps, author: deps.author ?? osAuthor() }, timestamp, leadId, line, fingerprint, note);
   } catch (err) {
     // Code-review fix: without this, a symlinked decisions-proposed.md /
     // decision_log.md fell through to the generic 500 error handler
@@ -59,6 +62,9 @@ export async function handleCountersignRequest(
 
   if (outcome.status === "not_found") {
     return { status: 404, body: { error: "proposal_not_found", timestamp, leadId } };
+  }
+  if (outcome.status === "note_rejected") {
+    return { status: 400, body: { error: outcome.error, timestamp, leadId } };
   }
   if (outcome.status === "line_rejected") {
     return { status: 400, body: { error: outcome.error, timestamp, leadId } };
